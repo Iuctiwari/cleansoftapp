@@ -1,0 +1,9 @@
+analyzer:
+  errors:
+    missing_required_param: error
+    missing_return: error
+
+linter:
+  rules:
+    avoid_print: true
+    prefer_final_locals: true

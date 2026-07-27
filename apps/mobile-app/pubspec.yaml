@@ -1,0 +1,22 @@
+name: mobile_app
+description: Mobile App foundation without UI.
+publish_to: none
+version: 0.0.0+1
+
+environment:
+  sdk: ">=3.8.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_dotenv: ^6.0.1
+  go_router: ^17.3.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: false
+  assets:
+    - .env

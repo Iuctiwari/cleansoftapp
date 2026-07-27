@@ -1,0 +1,509 @@
+Nexoraa-CleanSoft/
+|-- .github/
+|   |-- workflows/
+|   |   |-- .gitkeep
+|   |   `-- ci.yml
+|   `-- README.md
+|-- apps/
+|   |-- api-gateway/
+|   |   |-- src/
+|   |   |   `-- .gitkeep
+|   |   |-- test/
+|   |   |   `-- .gitkeep
+|   |   |-- .env.example
+|   |   |-- package.json
+|   |   |-- README.md
+|   |   `-- tsconfig.json
+|   |-- audit-service/
+|   |   |-- src/
+|   |   |   `-- .gitkeep
+|   |   |-- test/
+|   |   |   `-- .gitkeep
+|   |   |-- .env.example
+|   |   |-- package.json
+|   |   |-- README.md
+|   |   `-- tsconfig.json
+|   |-- auth-service/
+|   |   |-- src/
+|   |   |   `-- .gitkeep
+|   |   |-- test/
+|   |   |   `-- .gitkeep
+|   |   |-- .env.example
+|   |   |-- package.json
+|   |   |-- README.md
+|   |   `-- tsconfig.json
+|   |-- branch-service/
+|   |   |-- src/
+|   |   |   `-- .gitkeep
+|   |   |-- test/
+|   |   |   `-- .gitkeep
+|   |   |-- .env.example
+|   |   |-- package.json
+|   |   |-- README.md
+|   |   `-- tsconfig.json
+|   |-- customer-service/
+|   |   |-- src/
+|   |   |   `-- .gitkeep
+|   |   |-- test/
+|   |   |   `-- .gitkeep
+|   |   |-- .env.example
+|   |   |-- package.json
+|   |   |-- README.md
+|   |   `-- tsconfig.json
+|   |-- expense-service/
+|   |   |-- src/
+|   |   |   `-- .gitkeep
+|   |   |-- test/
+|   |   |   `-- .gitkeep
+|   |   |-- .env.example
+|   |   |-- package.json
+|   |   |-- README.md
+|   |   `-- tsconfig.json
+|   |-- mobile-app/
+|   |   |-- android/
+|   |   |   |-- app/
+|   |   |   |   |-- src/
+|   |   |   |   |   |-- debug/
+|   |   |   |   |   |   `-- AndroidManifest.xml
+|   |   |   |   |   |-- main/
+|   |   |   |   |   |   |-- java/
+|   |   |   |   |   |   |   `-- io/
+|   |   |   |   |   |   |       `-- flutter/
+|   |   |   |   |   |   |           `-- plugins/
+|   |   |   |   |   |   |-- kotlin/
+|   |   |   |   |   |   |   `-- com/
+|   |   |   |   |   |   |       `-- nexoraa/
+|   |   |   |   |   |   |           `-- mobile_app/
+|   |   |   |   |   |   |               `-- MainActivity.kt
+|   |   |   |   |   |   |-- res/
+|   |   |   |   |   |   |   |-- drawable/
+|   |   |   |   |   |   |   |   `-- launch_background.xml
+|   |   |   |   |   |   |   |-- drawable-v21/
+|   |   |   |   |   |   |   |   `-- launch_background.xml
+|   |   |   |   |   |   |   |-- mipmap-hdpi/
+|   |   |   |   |   |   |   |   `-- ic_launcher.png
+|   |   |   |   |   |   |   |-- mipmap-mdpi/
+|   |   |   |   |   |   |   |   `-- ic_launcher.png
+|   |   |   |   |   |   |   |-- mipmap-xhdpi/
+|   |   |   |   |   |   |   |   `-- ic_launcher.png
+|   |   |   |   |   |   |   |-- mipmap-xxhdpi/
+|   |   |   |   |   |   |   |   `-- ic_launcher.png
+|   |   |   |   |   |   |   |-- mipmap-xxxhdpi/
+|   |   |   |   |   |   |   |   `-- ic_launcher.png
+|   |   |   |   |   |   |   |-- values/
+|   |   |   |   |   |   |   |   `-- styles.xml
+|   |   |   |   |   |   |   `-- values-night/
+|   |   |   |   |   |   |       `-- styles.xml
+|   |   |   |   |   |   `-- AndroidManifest.xml
+|   |   |   |   |   `-- profile/
+|   |   |   |   |       `-- AndroidManifest.xml
+|   |   |   |   `-- build.gradle.kts
+|   |   |   |-- gradle/
+|   |   |   |   `-- wrapper/
+|   |   |   |       |-- gradle-wrapper.jar
+|   |   |   |       `-- gradle-wrapper.properties
+|   |   |   |-- .gitignore
+|   |   |   |-- .gitkeep
+|   |   |   |-- build.gradle.kts
+|   |   |   |-- gradle.properties
+|   |   |   |-- gradlew
+|   |   |   |-- gradlew.bat
+|   |   |   `-- settings.gradle.kts
+|   |   |-- assets/
+|   |   |   `-- .gitkeep
+|   |   |-- ios/
+|   |   |   |-- Flutter/
+|   |   |   |   |-- AppFrameworkInfo.plist
+|   |   |   |   |-- Debug.xcconfig
+|   |   |   |   `-- Release.xcconfig
+|   |   |   |-- Runner/
+|   |   |   |   |-- Assets.xcassets/
+|   |   |   |   |   |-- AppIcon.appiconset/
+|   |   |   |   |   |   |-- Contents.json
+|   |   |   |   |   |   |-- Icon-App-1024x1024@1x.png
+|   |   |   |   |   |   |-- Icon-App-20x20@1x.png
+|   |   |   |   |   |   |-- Icon-App-20x20@2x.png
+|   |   |   |   |   |   |-- Icon-App-20x20@3x.png
+|   |   |   |   |   |   |-- Icon-App-29x29@1x.png
+|   |   |   |   |   |   |-- Icon-App-29x29@2x.png
+|   |   |   |   |   |   |-- Icon-App-29x29@3x.png
+|   |   |   |   |   |   |-- Icon-App-40x40@1x.png
+|   |   |   |   |   |   |-- Icon-App-40x40@2x.png
+|   |   |   |   |   |   |-- Icon-App-40x40@3x.png
+|   |   |   |   |   |   |-- Icon-App-60x60@2x.png
+|   |   |   |   |   |   |-- Icon-App-60x60@3x.png
+|   |   |   |   |   |   |-- Icon-App-76x76@1x.png
+|   |   |   |   |   |   |-- Icon-App-76x76@2x.png
+|   |   |   |   |   |   `-- Icon-App-83.5x83.5@2x.png
+|   |   |   |   |   `-- LaunchImage.imageset/
+|   |   |   |   |       |-- Contents.json
+|   |   |   |   |       |-- LaunchImage.png
+|   |   |   |   |       |-- LaunchImage@2x.png
+|   |   |   |   |       |-- LaunchImage@3x.png
+|   |   |   |   |       `-- README.md
+|   |   |   |   |-- Base.lproj/
+|   |   |   |   |   |-- LaunchScreen.storyboard
+|   |   |   |   |   `-- Main.storyboard
+|   |   |   |   |-- AppDelegate.swift
+|   |   |   |   |-- Info.plist
+|   |   |   |   |-- Runner-Bridging-Header.h
+|   |   |   |   `-- SceneDelegate.swift
+|   |   |   |-- Runner.xcodeproj/
+|   |   |   |   |-- project.xcworkspace/
+|   |   |   |   |   |-- xcshareddata/
+|   |   |   |   |   |   |-- IDEWorkspaceChecks.plist
+|   |   |   |   |   |   `-- WorkspaceSettings.xcsettings
+|   |   |   |   |   `-- contents.xcworkspacedata
+|   |   |   |   |-- xcshareddata/
+|   |   |   |   |   `-- xcschemes/
+|   |   |   |   |       `-- Runner.xcscheme
+|   |   |   |   `-- project.pbxproj
+|   |   |   |-- Runner.xcworkspace/
+|   |   |   |   |-- xcshareddata/
+|   |   |   |   |   |-- IDEWorkspaceChecks.plist
+|   |   |   |   |   `-- WorkspaceSettings.xcsettings
+|   |   |   |   `-- contents.xcworkspacedata
+|   |   |   |-- RunnerTests/
+|   |   |   |   `-- RunnerTests.swift
+|   |   |   |-- .gitignore
+|   |   |   `-- .gitkeep
+|   |   |-- lib/
+|   |   |   `-- main.dart
+|   |   |-- test/
+|   |   |   `-- .gitkeep
+|   |   |-- .metadata
+|   |   |-- analysis_options.yaml
+|   |   |-- package.json
+|   |   |-- pubspec.lock
+|   |   |-- pubspec.yaml
+|   |   `-- README.md
+|   |-- notification-service/
+|   |   |-- src/
+|   |   |   `-- .gitkeep
+|   |   |-- test/
+|   |   |   `-- .gitkeep
+|   |   |-- .env.example
+|   |   |-- package.json
+|   |   |-- README.md
+|   |   `-- tsconfig.json
+|   |-- order-service/
+|   |   |-- src/
+|   |   |   `-- .gitkeep
+|   |   |-- test/
+|   |   |   `-- .gitkeep
+|   |   |-- .env.example
+|   |   |-- package.json
+|   |   |-- README.md
+|   |   `-- tsconfig.json
+|   |-- payment-service/
+|   |   |-- src/
+|   |   |   `-- .gitkeep
+|   |   |-- test/
+|   |   |   `-- .gitkeep
+|   |   |-- .env.example
+|   |   |-- package.json
+|   |   |-- README.md
+|   |   `-- tsconfig.json
+|   |-- report-service/
+|   |   |-- src/
+|   |   |   `-- .gitkeep
+|   |   |-- test/
+|   |   |   `-- .gitkeep
+|   |   |-- .env.example
+|   |   |-- package.json
+|   |   |-- README.md
+|   |   `-- tsconfig.json
+|   |-- scheduler-service/
+|   |   |-- src/
+|   |   |   `-- .gitkeep
+|   |   |-- test/
+|   |   |   `-- .gitkeep
+|   |   |-- .env.example
+|   |   |-- package.json
+|   |   |-- README.md
+|   |   `-- tsconfig.json
+|   |-- search-service/
+|   |   |-- src/
+|   |   |   `-- .gitkeep
+|   |   |-- test/
+|   |   |   `-- .gitkeep
+|   |   |-- .env.example
+|   |   |-- package.json
+|   |   |-- README.md
+|   |   `-- tsconfig.json
+|   |-- service-service/
+|   |   |-- src/
+|   |   |   `-- .gitkeep
+|   |   |-- test/
+|   |   |   `-- .gitkeep
+|   |   |-- .env.example
+|   |   |-- package.json
+|   |   |-- README.md
+|   |   `-- tsconfig.json
+|   |-- tenant-service/
+|   |   |-- src/
+|   |   |   `-- .gitkeep
+|   |   |-- test/
+|   |   |   `-- .gitkeep
+|   |   |-- .env.example
+|   |   |-- package.json
+|   |   |-- README.md
+|   |   `-- tsconfig.json
+|   |-- user-service/
+|   |   |-- src/
+|   |   |   `-- .gitkeep
+|   |   |-- test/
+|   |   |   `-- .gitkeep
+|   |   |-- .env.example
+|   |   |-- package.json
+|   |   |-- README.md
+|   |   `-- tsconfig.json
+|   |-- web-frontend/
+|   |   |-- assets/
+|   |   |   `-- .gitkeep
+|   |   |-- lib/
+|   |   |   `-- main.dart
+|   |   |-- test/
+|   |   |   `-- .gitkeep
+|   |   |-- web/
+|   |   |   |-- icons/
+|   |   |   |   |-- Icon-192.png
+|   |   |   |   |-- Icon-512.png
+|   |   |   |   |-- Icon-maskable-192.png
+|   |   |   |   `-- Icon-maskable-512.png
+|   |   |   |-- .gitkeep
+|   |   |   |-- favicon.png
+|   |   |   |-- index.html
+|   |   |   `-- manifest.json
+|   |   |-- .metadata
+|   |   |-- analysis_options.yaml
+|   |   |-- package.json
+|   |   |-- pubspec.lock
+|   |   |-- pubspec.yaml
+|   |   `-- README.md
+|   `-- README.md
+|-- docker/
+|   |-- mongodb/
+|   |   `-- .gitkeep
+|   |-- redis/
+|   |   `-- .gitkeep
+|   |-- templates/
+|   |   `-- .gitkeep
+|   `-- README.md
+|-- docs/
+|   |-- architecture/
+|   |   `-- README.md
+|   |-- architecture-decision-records/
+|   |   |-- 0000-template.md
+|   |   `-- README.md
+|   |-- backend/
+|   |   `-- README.md
+|   |-- deployment/
+|   |   `-- README.md
+|   |-- development/
+|   |   `-- README.md
+|   |-- flutter/
+|   |   `-- README.md
+|   |-- frontend/
+|   |   `-- README.md
+|   |-- infrastructure/
+|   |   `-- README.md
+|   |-- security/
+|   |   `-- README.md
+|   |-- testing/
+|   |   `-- README.md
+|   `-- README.md
+|-- ERP-PLANNING/
+|   |-- apis/
+|   |   `-- README.md
+|   |-- architecture/
+|   |   `-- README.md
+|   |-- assets/
+|   |   `-- README.md
+|   |-- database/
+|   |   `-- README.md
+|   |-- deployment/
+|   |   `-- README.md
+|   |-- diagrams/
+|   |   `-- README.md
+|   |-- implementation-prompts/
+|   |   `-- README.md
+|   |-- implementation-roadmap/
+|   |   `-- README.md
+|   |-- phase-completions/
+|   |   `-- README.md
+|   |-- phase-prompts/
+|   |   |-- AUDIT_PHASE_PROMPT.md
+|   |   |-- PHASE_0_FOUNDATION.md
+|   |   |-- PHASE_1_SOFTWARE_IDEA.md
+|   |   |-- PHASE_10_TENANTS.md
+|   |   |-- PHASE_11_BRANCHES.md
+|   |   |-- PHASE_12_USERS.md
+|   |   |-- PHASE_13_CUSTOMERS.md
+|   |   |-- PHASE_14_SERVICES.md
+|   |   |-- PHASE_15_ORDERS.md
+|   |   |-- PHASE_16_PAYMENTS.md
+|   |   |-- PHASE_17_NOTIFICATIONS.md
+|   |   |-- PHASE_18_EXPENSES.md
+|   |   |-- PHASE_19_REPORTS.md
+|   |   |-- PHASE_2_SYSTEM_PLANNING.md
+|   |   |-- PHASE_20_DASHBOARD.md
+|   |   |-- PHASE_21_SEARCH.md
+|   |   |-- PHASE_22_SETTINGS.md
+|   |   |-- PHASE_23_TESTING.md
+|   |   |-- PHASE_24_DEPLOYMENT.md
+|   |   |-- PHASE_25_RELEASE.md
+|   |   |-- PHASE_3_PLAN_AUDIT.md
+|   |   |-- PHASE_4_IMPLEMENTATION_ROADMAP.md
+|   |   |-- PHASE_5_ROADMAP_AUDIT.md
+|   |   |-- PHASE_6_IMPLEMENTATION_PROMPTS.md
+|   |   |-- PHASE_7_PROMPT_ENGINEERING.md
+|   |   |-- PHASE_8_PLATFORM_SETUP.md
+|   |   |-- PHASE_9_AUTH.md
+|   |   `-- README.md
+|   |-- plan-audit/
+|   |   `-- README.md
+|   |-- prompt-engineering/
+|   |   `-- README.md
+|   |-- roadmap-audit/
+|   |   `-- README.md
+|   |-- security/
+|   |   `-- README.md
+|   |-- software-idea/
+|   |   `-- README.md
+|   |-- system-planning/
+|   |   `-- README.md
+|   |-- templates/
+|   |   `-- README.md
+|   |-- testing/
+|   |   `-- README.md
+|   |-- ui-ux/
+|   |   `-- README.md
+|   |-- API_DESIGN.md
+|   |-- BUSINESS_GOALS.md
+|   |-- BUSINESS_REQUIREMENTS.md
+|   |-- CODING_GUIDELINES.md
+|   |-- DATABASE_DESIGN.md
+|   |-- DIRECTORY_GUIDE.md
+|   |-- DOMAIN_MODEL.md
+|   |-- ENTITY_RELATIONSHIP.md
+|   |-- EVENT_ARCHITECTURE.md
+|   |-- FEATURE_LIST.md
+|   |-- FILE_STORAGE.md
+|   |-- MICROSERVICES.md
+|   |-- MILESTONES.md
+|   |-- MODULE_BREAKDOWN.md
+|   |-- MULTI_TENANCY.md
+|   |-- NAMING_CONVENTIONS.md
+|   |-- NOTIFICATION_ARCHITECTURE.md
+|   |-- PLAN_AUDIT.md
+|   |-- PROJECT_BIBLE.md
+|   |-- RBAC.md
+|   |-- README.md
+|   |-- ROADMAP_AUDIT.md
+|   |-- ROADMAP.md
+|   |-- SECURITY_ARCHITECTURE.md
+|   |-- SOFTWARE_IDEA.md
+|   |-- SPRINT_PLAN.md
+|   |-- SYSTEM_ARCHITECTURE.md
+|   |-- TARGET_USERS.md
+|   `-- TECH_STACK.md
+|-- infra/
+|   |-- deployment/
+|   |   `-- .gitkeep
+|   |-- helm/
+|   |   |-- charts/
+|   |   |   `-- .gitkeep
+|   |   `-- README.md
+|   |-- logging/
+|   |   `-- .gitkeep
+|   |-- monitoring/
+|   |   `-- .gitkeep
+|   |-- security/
+|   |   `-- .gitkeep
+|   |-- terraform/
+|   |   |-- environments/
+|   |   |   |-- development/
+|   |   |   |   `-- .gitkeep
+|   |   |   |-- production/
+|   |   |   |   `-- .gitkeep
+|   |   |   `-- staging/
+|   |   |       `-- .gitkeep
+|   |   |-- modules/
+|   |   |   `-- .gitkeep
+|   |   `-- main.tf
+|   `-- README.md
+|-- packages/
+|   |-- common/
+|   |   |-- src/
+|   |   |   `-- .gitkeep
+|   |   |-- package.json
+|   |   |-- README.md
+|   |   `-- tsconfig.json
+|   |-- config/
+|   |   |-- src/
+|   |   |   `-- .gitkeep
+|   |   |-- package.json
+|   |   |-- README.md
+|   |   `-- tsconfig.json
+|   |-- constants/
+|   |   |-- src/
+|   |   |   `-- .gitkeep
+|   |   |-- package.json
+|   |   |-- README.md
+|   |   `-- tsconfig.json
+|   |-- database/
+|   |   |-- src/
+|   |   |   `-- .gitkeep
+|   |   |-- package.json
+|   |   |-- README.md
+|   |   `-- tsconfig.json
+|   |-- logger/
+|   |   |-- src/
+|   |   |   `-- .gitkeep
+|   |   |-- package.json
+|   |   |-- README.md
+|   |   `-- tsconfig.json
+|   |-- shared/
+|   |   |-- src/
+|   |   |   `-- .gitkeep
+|   |   |-- package.json
+|   |   |-- README.md
+|   |   `-- tsconfig.json
+|   |-- types/
+|   |   |-- src/
+|   |   |   `-- .gitkeep
+|   |   |-- package.json
+|   |   |-- README.md
+|   |   `-- tsconfig.json
+|   |-- ui/
+|   |   |-- src/
+|   |   |   `-- .gitkeep
+|   |   |-- package.json
+|   |   |-- README.md
+|   |   `-- tsconfig.json
+|   |-- utils/
+|   |   |-- src/
+|   |   |   `-- .gitkeep
+|   |   |-- package.json
+|   |   |-- README.md
+|   |   `-- tsconfig.json
+|   `-- README.md
+|-- scripts/
+|   |-- generate-tree.mjs
+|   |-- README.md
+|   `-- verify-scaffold.mjs
+|-- .editorconfig
+|-- .env.example
+|-- .eslintrc
+|-- .gitignore
+|-- .prettierrc
+|-- DIRECTORY_TREE.txt
+|-- docker-compose.yml
+|-- first
+|-- FOUNDATION_VERIFICATION.txt
+|-- LICENSE
+|-- package.json
+|-- pnpm-workspace.yaml
+|-- README.md
+`-- turbo.json

@@ -1,0 +1,26 @@
+{
+  "name": "nexoraa-cleansoft",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Enterprise multi-tenant ERP monorepo foundation.",
+  "license": "UNLICENSED",
+  "packageManager": "pnpm@10.13.1",
+  "engines": {
+    "node": ">=22.13.0",
+    "pnpm": ">=10.0.0"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev --parallel",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "verify": "node scripts/verify-scaffold.mjs",
+    "tree": "node scripts/generate-tree.mjs"
+  },
+  "devDependencies": {
+    "eslint": "10.8.0",
+    "prettier": "3.5.3",
+    "turbo": "2.5.2",
+    "typescript": "5.8.3"
+  }
+}

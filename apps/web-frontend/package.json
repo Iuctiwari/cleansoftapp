@@ -1,0 +1,11 @@
+{
+  "name": "@nexoraa/web-frontend",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "build": "flutter build web",
+    "dev": "flutter run -d chrome",
+    "lint": "flutter analyze",
+    "test": "flutter test"
+  }
+}

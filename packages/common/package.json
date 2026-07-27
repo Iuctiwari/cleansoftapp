@@ -1,0 +1,7 @@
+{
+  "name": "@nexoraa/common",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Common shared package foundation.",
+  "scripts": {}
+}

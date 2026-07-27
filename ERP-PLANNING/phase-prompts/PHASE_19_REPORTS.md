@@ -1,0 +1,192 @@
+# Phase 19 — Security Hardening
+
+## Phase Number
+
+19
+
+## Phase Name
+
+Security Hardening
+
+## Execution Contract
+
+You are the implementation agent for Nexoraa CleanSoft Phase 19. Work from the repository root. Execute this prompt end to end without asking the user to restate it or manually fill in values that can be discovered from the repository.
+
+The repository is the single source of truth. Read the mandatory material before changing files, inspect current code and git status, preserve unrelated work, and reconcile this prompt with newer authoritative repository decisions. If documentation is still skeletal or conflicts with tested implementation, use the narrowest safe interpretation consistent with the existing scaffold and this phase; record every material assumption as an ADR and in the completion report. Never invent extra product scope.
+
+This file retains the original scaffold filename `PHASE_19_REPORTS.md`; its canonical identity is Phase 19 — Security Hardening. Implement only this canonical phase.
+
+## Objective
+
+Perform platform-wide threat modeling and security hardening, remediate verified weaknesses, and establish enforceable security gates before final test and deployment phases.
+
+## Scope
+
+- Threat models, secure configuration, transport, headers/CORS/CSRF, input/output controls, rate limits, secrets, dependencies, containers, database/Redis, file handling, mobile/web storage, authorization, and audit coverage.
+- SAST, dependency, secret, container, infrastructure, and dynamic security scanning integrated into CI.
+- Security regression tests, incident hooks, security documentation, and remediation of in-scope findings.
+
+## Out of Scope
+
+- Claiming external certification, a substitute for independent penetration testing, redesigning approved business workflows, or enabling production deployment.
+- Suppressing findings without documented owner, rationale, expiry, and compensating controls.
+- Committing scanner credentials or production secrets.
+
+## Mandatory Reading
+
+Read all of the following completely before implementation:
+
+- ERP-PLANNING/PROJECT_BIBLE.md
+- ERP-PLANNING/SOFTWARE_IDEA.md
+- ERP-PLANNING/BUSINESS_REQUIREMENTS.md
+- ERP-PLANNING/BUSINESS_GOALS.md
+- ERP-PLANNING/TARGET_USERS.md
+- ERP-PLANNING/FEATURE_LIST.md
+- ERP-PLANNING/SYSTEM_ARCHITECTURE.md
+- ERP-PLANNING/TECH_STACK.md
+- ERP-PLANNING/MICROSERVICES.md
+- ERP-PLANNING/MODULE_BREAKDOWN.md
+- ERP-PLANNING/DATABASE_DESIGN.md
+- ERP-PLANNING/DOMAIN_MODEL.md
+- ERP-PLANNING/ENTITY_RELATIONSHIP.md
+- ERP-PLANNING/API_DESIGN.md
+- ERP-PLANNING/EVENT_ARCHITECTURE.md
+- ERP-PLANNING/MULTI_TENANCY.md
+- ERP-PLANNING/RBAC.md
+- ERP-PLANNING/SECURITY_ARCHITECTURE.md
+- ERP-PLANNING/CODING_GUIDELINES.md
+- ERP-PLANNING/NAMING_CONVENTIONS.md
+- ERP-PLANNING/DIRECTORY_GUIDE.md
+- README.md, docs/README.md, apps/README.md, packages/README.md, and every README in a directory touched by this phase
+- All earlier phase prompts, completion reports, ADRs, schemas, and tests that define dependencies for this phase
+- The current git status and actual repository tree; current implementation and executable tests outrank stale prose
+
+Also read the relevant application/package source, manifests, environment examples, Docker/infra assets, API/event/job schemas, and tests for every component named in this prompt.
+
+## Dependencies
+
+Verify all earlier completion reports, especially the direct dependencies listed below, before implementation. Do not assume a report is true when the repository or tests disagree.
+
+- All implementation phases through Phase 18.
+- Phase 16 audit coverage and Phase 15 job controls.
+
+Do not begin feature implementation until required earlier behavior is present and its critical tests pass. If a dependency is incomplete, repair only the minimum dependency defect necessary for this phase, document it, and rerun the dependency's affected acceptance tests.
+
+## Architecture Notes
+
+The checked-in scaffold establishes a pnpm/TurboRepo monorepo; NestJS/TypeScript backend applications; MongoDB/Mongoose persistence; Redis/BullMQ messaging and jobs; a Flutter web application; a Flutter Android/iOS application; shared packages; Docker; initial Terraform/Helm assets; and GitHub Actions CI.
+
+- Use repository-specific threat models mapped to trust boundaries: clients, gateway, services, MongoDB, Redis/queues, object storage, provider callbacks, CI/CD, and operators.
+- Follow defense in depth: gateway controls do not replace service authorization; encryption does not replace tenant isolation; audit does not replace prevention.
+- Security configuration is fail-closed in production and may use explicit safe local defaults only in development.
+- All accepted residual risk must be concrete, owned, time-bounded, and recorded in the completion report.
+
+Any material deviation requires an ADR explaining context, options, decision, consequences, migration, and rollback.
+
+## Tasks to Perform
+
+1. Re-read the phase scope and build a private implementation checklist mapped to acceptance criteria.
+2. Inspect the current repository state, earlier completion evidence, dependency versions, tests, and uncommitted changes.
+3. Define or update the contracts, ownership boundaries, data classification, failure modes, and migration/compatibility plan before coding.
+4. Create/update system data-flow diagrams, asset inventory, trust boundaries, abuse cases, and STRIDE-style threat models for high-risk flows.
+5. Audit and harden authentication/session, tenant/branch isolation, RBAC, IDOR, mass assignment, validation, output encoding, CORS/CSRF, headers, redirects, rate limits, and error handling.
+6. Audit and harden MongoDB/Redis/object storage/provider webhook/network configuration, encryption, credentials, backups, and least privilege.
+7. Audit web/mobile secret/token/cache/log/deep-link behavior and file upload/download controls.
+8. Integrate reproducible SAST, dependency/license, secret, container, IaC, and dynamic API scans into CI with severity gates and documented triage.
+9. Remove leaked/sensitive artifacts if any, rotate only credentials in scope/authorized, and ensure examples contain safe non-secrets.
+10. Add security regression and adversarial tests for every verified finding and high-risk threat.
+11. Complete security architecture, threat models, incident contacts/procedures, vulnerability management, and hardening documentation.
+12. Run every required validation, inspect the diff for scope/security/data-isolation regressions, and remove generated junk or secrets.
+13. Replace the instructional content in the matching completion report with factual evidence from this implementation.
+
+Do not implement anything listed as out of scope. Do not leave simulated success paths, dormant insecure fallbacks, undocumented breaking changes, or unowned data.
+
+## Coding Standards
+
+- Preserve the monorepo boundaries: deployable applications remain in apps/*, reusable infrastructure in packages/*, planning in ERP-PLANNING/*, documentation in docs/*, and deployment assets in docker/* or infra/*.
+- Use Node.js 22+, pnpm 10, strict TypeScript with no implicit any, NestJS dependency injection, class-validator/class-transformer DTO boundaries, and Mongoose repositories with explicit tenant-aware indexes.
+- Keep controllers and transport handlers thin; place invariants in testable application/domain services and persistence details behind repositories/adapters.
+- Use structured redacted logs, correlation/causation IDs, typed configuration validated at startup, stable machine-readable errors, UTC timestamps, opaque IDs, optimistic concurrency, and integer minor units for money.
+- Use versioned API, event, job, and stored-data contracts. Producers and consumers must tolerate documented compatible evolution; breaking changes require migration and ADR.
+- Use outbox/inbox and idempotency patterns for cross-service effects. Never reach into another service's private MongoDB collections.
+- For Flutter, follow analyzer rules, feature-oriented modules, immutable typed models, accessible Material 3 components, go_router, centralized API/error handling, and no secrets in client assets.
+- Format, lint, type-check, test, and build every touched workspace. Do not disable rules, skip tests, weaken types, or catch and ignore errors to obtain a green result.
+- Preserve unrelated user changes. Make the smallest coherent changes for this phase and do not rename top-level repository directories.
+
+## Backend Requirements
+
+- Verify schema validation/whitelisting, authorization at every resource boundary, request/body/query limits, safe errors, timeouts, and redacted logs.
+- Apply production security headers, narrowly configured CORS, CSRF protections for cookie-based flows, trusted proxy rules, and rate limiting.
+- Use least-privilege database/Redis/storage credentials and authenticated encrypted connections outside local development.
+- Pin/lock dependencies reproducibly and remove unused or vulnerable packages when safe.
+
+All backend work must retain global validation, consistent errors, correlation, graceful shutdown, health/readiness, tenant-aware authorization where applicable, and safe telemetry established in earlier phases.
+
+## Frontend Requirements
+
+- Audit XSS/content injection, token handling, browser storage, CSP compatibility, clickjacking, open redirects, deep links, cache leakage, and sensitive telemetry.
+- Ensure permission-driven UI cannot be used to bypass server enforcement and sensitive state is cleared on logout/scope change.
+- Do not add certificate bypasses, debug endpoints, or production logging of sensitive values.
+
+Frontend behavior must never be the only enforcement point. Handle loading, empty, validation, forbidden, conflict, retryable failure, terminal failure, and stale-data states explicitly.
+
+## Security Requirements
+
+- Test OWASP API/Web/Mobile risk categories applicable to the platform, including BOLA/IDOR, broken auth, injection, SSRF, unsafe uploads, replay, resource exhaustion, and supply-chain risk.
+- Define severity, remediation SLA, exception approval/expiry, and release-blocking thresholds.
+- Ensure security scans produce actionable artifacts without uploading source/secrets to unapproved services.
+
+Apply deny-by-default authorization, data minimization, secret redaction, input validation, output encoding, least privilege, and tenant/branch isolation to every new access path. Add regression tests for each material threat addressed.
+
+## Performance Requirements
+
+- Measure the latency/resource effect of hashing, rate limiting, security headers, validation, scanning, encryption, and audit controls.
+- Tune controls only within the threat model; never disable protection merely to pass latency tests.
+- Load-test rate-limit fairness and resource-exhaustion protections.
+
+Define representative data/workloads and record measurements rather than claiming performance from code inspection alone. Do not trade away correctness, security, or isolation for benchmark results.
+
+## Testing Requirements
+
+- Run automated SAST, dependency, secret, container, IaC, and dynamic API scans with recorded tool versions/results.
+- Run authentication, tenant/branch isolation, RBAC, webhook, upload, export, queue, and audit adversarial suites.
+- Verify remediations with regression tests and rerun affected functional/performance suites.
+- Perform a manual secure-configuration review against a documented checklist and record evidence.
+
+At minimum, run all touched-package format/lint/type/test/build commands plus relevant root gates. Tests must cover success, validation, authentication, authorization, tenant/branch isolation, concurrency, idempotency, dependency failure, and recovery wherever applicable.
+
+## Documentation Requirements
+
+- Complete SECURITY_ARCHITECTURE.md and docs/security/README.md with threats, controls, data classification, secrets, key rotation, vulnerability management, incident response, and residual risks.
+- Add security ADRs for material controls and update deployment/configuration guidance.
+- Document scan commands, triage, exceptions, ownership, and release gates.
+
+Documentation must describe implemented behavior only, use safe synthetic examples, contain no secrets, and link to authoritative schemas/tests/ADRs.
+
+## Deliverables
+
+- Repository-specific threat models and hardened implementation/configuration.
+- CI security scans, adversarial regression tests, severity gates, and remediation evidence.
+- Complete security architecture, vulnerability process, incident guidance, and residual-risk register.
+- A completed Phase 19 report at ERP-PLANNING/phase-completions/PHASE_19_SECURITY_HARDENING_COMPLETION.md.
+
+## Acceptance Criteria
+
+- [ ] No open critical or high finding remains without an explicit approved release-blocking decision; exceptions are owned and expiring.
+- [ ] Authentication, isolation, RBAC, files, webhooks, jobs, exports, and audit adversarial suites pass.
+- [ ] Production configuration fails closed for missing secrets, insecure transports, or unsafe origins.
+- [ ] Security scans run reproducibly in CI and enforce documented thresholds.
+- [ ] Threat models, mitigations, residual risk, and remediation evidence are complete and traceable.
+- [ ] Every task and deliverable in this prompt is complete, and every out-of-scope boundary remains intact.
+- [ ] Formatting, linting, type checks, tests, security checks, and builds relevant to touched work pass from documented commands.
+- [ ] The completion report is factual, contains exact file lists and test evidence, and identifies all limitations or pending external gates.
+
+## Completion Instructions
+
+1. Review the final diff and map each acceptance criterion to code, configuration, tests, documentation, or measured evidence.
+2. Run the full relevant validation suite and record exact commands and outcomes. Never report a check as passing if it was skipped, unavailable, or failed.
+3. Update `ERP-PLANNING/phase-completions/PHASE_19_SECURITY_HARDENING_COMPLETION.md` in place. Replace its authoring guidance with the actual Phase 19 report while retaining every required heading.
+4. Under Files Created and Files Modified, list repository-relative paths exactly. State `None` when a category is empty.
+5. Under Known Limitations and Pending Work, state `None` only after verifying there is nothing to report; otherwise include impact, owner or required authority, and the next safe action.
+6. Include architecture/security decisions, migrations, compatibility notes, test evidence, measured performance, and notes needed by Phase 20 when another phase follows.
+7. End work after the completion report and documentation are accurate. Do not begin the next phase.

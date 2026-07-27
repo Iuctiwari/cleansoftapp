@@ -1,0 +1,7 @@
+{
+  "name": "@nexoraa/logger",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Logger shared package foundation.",
+  "scripts": {}
+}

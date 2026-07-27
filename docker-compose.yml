@@ -1,0 +1,22 @@
+name: nexoraa-cleansoft
+
+services:
+  mongodb:
+    image: mongo:8.0
+    restart: unless-stopped
+    ports:
+      - "${MONGODB_PORT}:27017"
+    volumes:
+      - mongodb-data:/data/db
+
+  redis:
+    image: redis:8.0-alpine
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT}:6379"
+    volumes:
+      - redis-data:/data
+
+volumes:
+  mongodb-data:
+  redis-data:
