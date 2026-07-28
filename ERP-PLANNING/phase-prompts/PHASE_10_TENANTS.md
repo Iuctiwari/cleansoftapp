@@ -1,193 +1,1150 @@
-# Phase 10 — Notification System
+# PHASE 10 – MULTI-TENANCY IMPLEMENTATION PROMPT
 
 ## Phase Number
 
-10
+02
 
 ## Phase Name
 
-Notification System
+Multi-Tenancy (Tenant Management)
 
-## Execution Contract
+---
 
-You are the implementation agent for Nexoraa CleanSoft Phase 10. Work from the repository root. Execute this prompt end to end without asking the user to restate it or manually fill in values that can be discovered from the repository.
+# Role
 
-The repository is the single source of truth. Read the mandatory material before changing files, inspect current code and git status, preserve unrelated work, and reconcile this prompt with newer authoritative repository decisions. If documentation is still skeletal or conflicts with tested implementation, use the narrowest safe interpretation consistent with the existing scaffold and this phase; record every material assumption as an ADR and in the completion report. Never invent extra product scope.
+You are a Senior Enterprise Software Architect and Lead Full Stack Engineer responsible for implementing the Multi-Tenancy module of the Nexoraa CleanSoft ERP platform.
 
-This file retains the original scaffold filename `PHASE_10_TENANTS.md`; its canonical identity is Phase 10 — Notification System. Implement only this canonical phase.
+Your responsibility in this phase is to establish the complete Software-as-a-Service (SaaS) tenant architecture that enables multiple independent businesses to operate securely on a shared application infrastructure.
 
-## Objective
+Implement only the Multi-Tenancy module. Do not implement Branch Management, User Management, Customer Management, Order Management, Payment Management, Reports, Notifications, or other business modules except where minimal integration is required.
 
-Implement reliable, tenant-aware notification templates, preferences, delivery orchestration, and channel adapters driven by domain events.
+---
 
-## Scope
+# Phase Dependencies
 
-- Notification templates and versioning, recipient resolution, preferences, email/in-app adapter contracts, delivery records, retries, suppression, and status tracking.
-- Event consumers for approved authentication, customer, order, payment, and expense events.
-- Web notification center and tenant template/preference administration where authorized.
-- Integration with scheduler-service/BullMQ for durable asynchronous delivery.
+Before starting implementation, complete the following verification steps:
 
-## Out of Scope
+1. Read the previous phase completion report.
+2. Verify that the Authentication module has been completed successfully.
+3. Review the repository architecture and shared packages.
+4. Understand the existing authentication and security flow.
+5. Verify coding standards and naming conventions.
+6. Maintain backward compatibility.
+7. Do not overwrite completed implementations.
+8. Continue only after successful verification.
 
-- Marketing campaigns, unsolicited bulk messaging, unsupported SMS/push providers, and arbitrary user-authored executable templates.
-- Background-job platform generalization beyond notification needs; Phase 15 owns platform-wide jobs.
-- Real provider activation without approved credentials and sender-domain configuration.
+---
 
-## Mandatory Reading
+# Objective
 
-Read all of the following completely before implementation:
+Implement a production-ready Multi-Tenant architecture that allows multiple businesses to securely share the same ERP platform while maintaining complete logical isolation of their data, configurations, branding, subscriptions, and business operations.
 
-- ERP-PLANNING/PROJECT_BIBLE.md
-- ERP-PLANNING/SOFTWARE_IDEA.md
-- ERP-PLANNING/BUSINESS_REQUIREMENTS.md
-- ERP-PLANNING/BUSINESS_GOALS.md
-- ERP-PLANNING/TARGET_USERS.md
-- ERP-PLANNING/FEATURE_LIST.md
-- ERP-PLANNING/SYSTEM_ARCHITECTURE.md
-- ERP-PLANNING/TECH_STACK.md
-- ERP-PLANNING/MICROSERVICES.md
-- ERP-PLANNING/MODULE_BREAKDOWN.md
-- ERP-PLANNING/DATABASE_DESIGN.md
-- ERP-PLANNING/DOMAIN_MODEL.md
-- ERP-PLANNING/ENTITY_RELATIONSHIP.md
-- ERP-PLANNING/API_DESIGN.md
-- ERP-PLANNING/EVENT_ARCHITECTURE.md
-- ERP-PLANNING/MULTI_TENANCY.md
-- ERP-PLANNING/RBAC.md
-- ERP-PLANNING/SECURITY_ARCHITECTURE.md
-- ERP-PLANNING/CODING_GUIDELINES.md
-- ERP-PLANNING/NAMING_CONVENTIONS.md
-- ERP-PLANNING/DIRECTORY_GUIDE.md
-- README.md, docs/README.md, apps/README.md, packages/README.md, and every README in a directory touched by this phase
-- All earlier phase prompts, completion reports, ADRs, schemas, and tests that define dependencies for this phase
-- The current git status and actual repository tree; current implementation and executable tests outrank stale prose
+The module should establish every tenant as an independent organization with its own workspace, users, branches, customers, services, orders, reports, and settings.
 
-Also read the relevant application/package source, manifests, environment examples, Docker/infra assets, API/event/job schemas, and tests for every component named in this prompt.
+---
 
-## Dependencies
+# Business Objectives
 
-Verify all earlier completion reports, especially the direct dependencies listed below, before implementation. Do not assume a report is true when the repository or tests disagree.
+The Multi-Tenancy module should allow new businesses to register and immediately receive an isolated ERP workspace without affecting existing tenants.
 
-- Phase 01 auth recovery/verification delivery contract.
-- Phases 02-09 tenant, user, customer, order, payment, and expense events.
+Every tenant should operate independently with its own business identity, branding, subscription plan, configuration, and feature access while sharing the common platform infrastructure.
 
-Do not begin feature implementation until required earlier behavior is present and its critical tests pass. If a dependency is incomplete, repair only the minimum dependency defect necessary for this phase, document it, and rerun the dependency's affected acceptance tests.
+The module must provide a scalable SaaS architecture capable of supporting thousands of independent organizations.
 
-## Architecture Notes
+---
 
-The checked-in scaffold establishes a pnpm/TurboRepo monorepo; NestJS/TypeScript backend applications; MongoDB/Mongoose persistence; Redis/BullMQ messaging and jobs; a Flutter web application; a Flutter Android/iOS application; shared packages; Docker; initial Terraform/Helm assets; and GitHub Actions CI.
+# Scope
 
-- notification-service owns templates, preferences, delivery records, and adapters; scheduler-service executes durable jobs without owning notification policy.
-- Use inbox deduplication for source events and idempotent delivery keys to prevent duplicate sends.
-- Templates are data, sandboxed and context-allowlisted; never evaluate arbitrary code.
-- Provider adapters expose normalized results and redact content/credentials from logs.
+This phase includes:
 
-Any material deviation requires an ADR explaining context, options, decision, consequences, migration, and rollback.
+- Tenant Registration
+- Tenant Creation
+- Company Profile Management
+- Tenant Configuration
+- Business Information Management
+- Subscription Initialization
+- Feature Configuration
+- Branding Configuration
+- Tenant Status Management
+- Trial Management
+- Subscription Validation
+- Tenant Isolation
+- Default Configuration Creation
+- Default Workspace Initialization
+- Tenant APIs
+- Tenant Documentation
+- Tenant Testing
 
-## Tasks to Perform
+---
 
-1. Re-read the phase scope and build a private implementation checklist mapped to acceptance criteria.
-2. Inspect the current repository state, earlier completion evidence, dependency versions, tests, and uncommitted changes.
-3. Define or update the contracts, ownership boundaries, data classification, failure modes, and migration/compatibility plan before coding.
-4. Define event-to-notification policies, template schema/versioning, recipient resolution, preferences, delivery state machine, and adapter contracts.
-5. Implement notification-service persistence, APIs, template rendering, preferences, delivery history, suppression, inbox/outbox, and events.
-6. Implement deterministic console/test and in-app adapters; implement email only through approved configuration.
-7. Implement BullMQ delivery jobs with idempotency, bounded retries/backoff, rate controls, dead-letter handling, and operator replay.
-8. Consume approved domain events and prevent duplicate notifications under redelivery or concurrency.
-9. Build accessible web notification center, read/unread controls, preferences, and authorized template administration/preview.
-10. Add safe template variable validation, locale/timezone hooks, and personal-data minimization.
-11. Update notification architecture, service, API, event, template, provider, frontend, and runbook documentation.
-12. Run every required validation, inspect the diff for scope/security/data-isolation regressions, and remove generated junk or secrets.
-13. Replace the instructional content in the matching completion report with factual evidence from this implementation.
+# Out of Scope
 
-Do not implement anything listed as out of scope. Do not leave simulated success paths, dormant insecure fallbacks, undocumented breaking changes, or unowned data.
+Do not implement:
 
-## Coding Standards
+- Branch Management
+- User Management
+- Customer Management
+- Order Management
+- Inventory
+- Payment Processing
+- Notification Delivery
+- Reports
+- Dashboard
+- Expense Management
+- Search
 
-- Preserve the monorepo boundaries: deployable applications remain in apps/*, reusable infrastructure in packages/*, planning in ERP-PLANNING/*, documentation in docs/*, and deployment assets in docker/* or infra/*.
-- Use Node.js 22+, pnpm 10, strict TypeScript with no implicit any, NestJS dependency injection, class-validator/class-transformer DTO boundaries, and Mongoose repositories with explicit tenant-aware indexes.
-- Keep controllers and transport handlers thin; place invariants in testable application/domain services and persistence details behind repositories/adapters.
-- Use structured redacted logs, correlation/causation IDs, typed configuration validated at startup, stable machine-readable errors, UTC timestamps, opaque IDs, optimistic concurrency, and integer minor units for money.
-- Use versioned API, event, job, and stored-data contracts. Producers and consumers must tolerate documented compatible evolution; breaking changes require migration and ADR.
-- Use outbox/inbox and idempotency patterns for cross-service effects. Never reach into another service's private MongoDB collections.
-- For Flutter, follow analyzer rules, feature-oriented modules, immutable typed models, accessible Material 3 components, go_router, centralized API/error handling, and no secrets in client assets.
-- Format, lint, type-check, test, and build every touched workspace. Do not disable rules, skip tests, weaken types, or catch and ignore errors to obtain a green result.
-- Preserve unrelated user changes. Make the smallest coherent changes for this phase and do not rename top-level repository directories.
+These modules belong to later implementation phases.
 
-## Backend Requirements
+---
 
-- Persist source event ID, tenant, recipient reference, template version, channel, idempotency key, status, attempts, timestamps, and redacted provider result.
-- Recipient addresses are resolved at send time under tenant policy and are never trusted from arbitrary event payload fields.
-- Template rendering must fail on missing/unknown variables and escape output for the target channel.
-- Preferences cannot suppress mandatory security/transactional messages when policy classifies them as mandatory.
+# Functional Requirements
 
-All backend work must retain global validation, consistent errors, correlation, graceful shutdown, health/readiness, tenant-aware authorization where applicable, and safe telemetry established in earlier phases.
+The Multi-Tenancy module shall provide:
 
-## Frontend Requirements
+## Tenant Registration
 
-- Notification center must paginate and virtualize as needed, expose read state, and avoid leaking message content across tenant switches.
-- Template preview uses representative non-sensitive sample data and the same escaping/rendering engine as delivery.
-- Preference controls clearly distinguish mandatory and optional categories.
+The system shall support:
 
-Frontend behavior must never be the only enforcement point. Handle loading, empty, validation, forbidden, conflict, retryable failure, terminal failure, and stale-data states explicitly.
+- Business registration.
+- Company information collection.
+- Business contact information.
+- Business owner details.
+- Tenant code generation.
+- Initial subscription assignment.
+- Default workspace creation.
 
-## Security Requirements
+---
 
-- Protect provider credentials, sender identities, recipient personal data, and rendered content from logs and unauthorized APIs.
-- Prevent template injection, HTML/script injection, header injection, cross-tenant template use, and malicious redirect links.
-- Rate-limit high-risk security messages and alert on delivery abuse or repeated failures.
+## Tenant Management
 
-Apply deny-by-default authorization, data minimization, secret redaction, input validation, output encoding, least privilege, and tenant/branch isolation to every new access path. Add regression tests for each material threat addressed.
+The system shall allow:
 
-## Performance Requirements
+- Create tenant.
+- View tenant information.
+- Update tenant profile.
+- Activate tenant.
+- Suspend tenant.
+- Deactivate tenant.
+- Archive tenant.
+- Restore tenant.
 
-- Keep notification delivery off request paths; enqueue durably and return accepted status when appropriate.
-- Index tenant/recipient/status/source event/created time and expire low-value delivery details according to documented retention.
-- Apply provider-aware concurrency and rate limits without starving tenants.
+---
 
-Define representative data/workloads and record measurements rather than claiming performance from code inspection alone. Do not trade away correctness, security, or isolation for benchmark results.
+## Company Profile Management
 
-## Testing Requirements
+Each tenant shall maintain:
 
-- Unit-test rendering, escaping, variables, preferences, policy classification, idempotency, retry decisions, and redaction.
-- Integration-test event consumption, queue processing, duplicate delivery prevention, adapter failures, dead-letter/replay, and read state.
-- Run tenant isolation, template injection, header injection, malicious-link, and credential-redaction tests.
-- End-to-end test notification center, preferences, preview, and representative transactional flows.
+- Business name.
+- Legal company name.
+- Business logo.
+- Contact details.
+- Address.
+- Tax information.
+- Registration details.
+- Business category.
 
-At minimum, run all touched-package format/lint/type/test/build commands plus relevant root gates. Tests must cover success, validation, authentication, authorization, tenant/branch isolation, concurrency, idempotency, dependency failure, and recovery wherever applicable.
+---
 
-## Documentation Requirements
+## Subscription Management
 
-- Complete notification architecture, event mapping, template variables, channels, preferences, delivery states, retries, DLQ, provider setup, and operator runbooks.
-- Document which notifications are mandatory and the approved basis for that classification.
-- Record template sandbox and idempotency decisions in ADRs.
+Support:
 
-Documentation must describe implemented behavior only, use safe synthetic examples, contain no secrets, and link to authoritative schemas/tests/ADRs.
+- Trial plans.
+- Paid subscriptions.
+- Subscription upgrades.
+- Subscription downgrades.
+- Subscription renewal.
+- Subscription expiry.
+- Subscription cancellation.
+- Feature limitations.
 
-## Deliverables
+---
 
-- Notification-service templates, preferences, delivery records, adapters, and event consumers.
-- Durable notification jobs and web notification experiences.
-- Injection, idempotency, retry, isolation, and end-to-end tests.
-- A completed Phase 10 report at ERP-PLANNING/phase-completions/PHASE_10_NOTIFICATION_SYSTEM_COMPLETION.md.
+## Feature Management
 
-## Acceptance Criteria
+Each tenant shall have configurable:
 
-- [ ] A source event produces at most one delivery per intended recipient/channel/template policy despite redelivery.
-- [ ] Failed deliveries retry within bounds, enter a visible dead-letter state, and can be replayed safely.
-- [ ] Templates cannot execute code or inject unsafe channel content.
-- [ ] Preferences and mandatory-message rules are enforced server-side.
-- [ ] Notification web flows, provider abstraction, isolation, and load tests pass.
-- [ ] Every task and deliverable in this prompt is complete, and every out-of-scope boundary remains intact.
-- [ ] Formatting, linting, type checks, tests, security checks, and builds relevant to touched work pass from documented commands.
-- [ ] The completion report is factual, contains exact file lists and test evidence, and identifies all limitations or pending external gates.
+- Enabled modules.
+- Feature flags.
+- Business rules.
+- Storage limits.
+- User limits.
+- Branch limits.
+- API limits.
 
-## Completion Instructions
+---
 
-1. Review the final diff and map each acceptance criterion to code, configuration, tests, documentation, or measured evidence.
-2. Run the full relevant validation suite and record exact commands and outcomes. Never report a check as passing if it was skipped, unavailable, or failed.
-3. Update `ERP-PLANNING/phase-completions/PHASE_10_NOTIFICATION_SYSTEM_COMPLETION.md` in place. Replace its authoring guidance with the actual Phase 10 report while retaining every required heading.
-4. Under Files Created and Files Modified, list repository-relative paths exactly. State `None` when a category is empty.
-5. Under Known Limitations and Pending Work, state `None` only after verifying there is nothing to report; otherwise include impact, owner or required authority, and the next safe action.
-6. Include architecture/security decisions, migrations, compatibility notes, test evidence, measured performance, and notes needed by Phase 11 when another phase follows.
-7. End work after the completion report and documentation are accurate. Do not begin the next phase.
+# Non-Functional Requirements
+
+The Multi-Tenancy module must be:
+
+- Secure.
+- Highly Available.
+- Scalable.
+- Fault Tolerant.
+- Cloud Native.
+- Enterprise Grade.
+- Multi-Tenant Aware.
+- Production Ready.
+- Maintainable.
+- Extensible.
+
+Performance requirements:
+
+- Fast tenant lookup.
+- Optimized tenant resolution.
+- Efficient tenant filtering.
+- Low-latency configuration loading.
+- Horizontal scalability.
+
+---
+
+# Architecture Overview
+
+The Multi-Tenancy module is the foundation of the SaaS architecture.
+
+Every business registered on the platform becomes an independent tenant.
+
+Each tenant owns its own:
+
+- Users
+- Branches
+- Customers
+- Services
+- Orders
+- Payments
+- Expenses
+- Reports
+- Settings
+- Audit Logs
+
+No business operation should ever access another tenant's data.
+
+Authentication identifies the user, while Multi-Tenancy identifies the organization to which the user belongs.
+
+Every subsequent ERP module depends on the tenant context established during this phase.
+
+---
+
+# Repository Responsibilities
+
+## Backend
+
+Responsible for:
+
+- Tenant APIs.
+- Tenant services.
+- Tenant repositories.
+- Tenant validation.
+- Subscription management.
+- Feature management.
+- Branding configuration.
+- Tenant configuration.
+- Tenant middleware.
+
+---
+
+## Frontend (Flutter Web)
+
+Responsible for:
+
+- Tenant registration screens.
+- Company profile management.
+- Subscription information.
+- Branding management.
+- Tenant settings.
+- Business information management.
+
+---
+
+## Mobile (Flutter)
+
+Responsible for:
+
+- Business registration.
+- Company profile viewing.
+- Subscription status.
+- Branding information.
+- Tenant settings.
+- Business information updates.
+
+---
+
+## Shared Packages
+
+Should contain:
+
+- Shared tenant models.
+- Common DTO contracts.
+- Configuration interfaces.
+- Feature definitions.
+- Subscription models.
+- API contracts.
+- Shared validation utilities.
+
+---
+
+# Module Responsibilities
+
+The Multi-Tenancy module owns:
+
+- Tenant lifecycle.
+- Company information.
+- Subscription information.
+- Feature availability.
+- Tenant configuration.
+- Branding.
+- Business identity.
+- Tenant isolation.
+- Default tenant initialization.
+
+The module must not directly manage users, branches, customers, or orders, but it must provide the tenant context required by those modules.
+
+# Collection: tenants
+
+## Purpose
+
+The `tenants` collection stores the master information of every business registered on the Nexoraa CleanSoft platform. Each document represents one independent organization with its own business identity, subscription, branding, configuration, and operational workspace.
+
+---
+
+## Fields
+
+### _id
+- Type: ObjectId
+- Required
+- Primary identifier of the tenant.
+
+### businessName
+- Type: String
+- Required
+- Stores the registered business name.
+
+### businessType
+- Type: String
+- Required
+- Defines the type of business such as Laundry, Salon, Tailoring, Repair Shop, Car Wash, etc.
+
+### ownerName
+- Type: String
+- Required
+- Stores the name of the business owner.
+
+### ownerEmail
+- Type: String
+- Required
+- Stores the owner's primary email address.
+
+### ownerPhone
+- Type: String
+- Required
+- Stores the owner's contact number.
+
+### currency
+- Type: String
+- Required
+- Defines the default currency used throughout the tenant.
+
+### branding
+- Type: Object
+- Required
+- Stores branding information for the tenant.
+
+#### branding Fields
+
+- logo
+- favicon
+- primaryColor
+- secondaryColor
+- theme
+- companyDisplayName
+
+### billingContact
+- Type: Object
+- Required
+- Stores billing contact information.
+
+#### billingContact Fields
+
+- name
+- email
+- phone
+- address
+
+### subscriptionPlanId
+- Type: ObjectId
+- Required
+- References the active subscription plan.
+
+### status
+- Type: Enum
+- Required
+- Represents the current tenant status.
+
+Possible Values:
+
+- Trial
+- Active
+- Suspended
+- Expired
+- Disabled
+
+### createdBy
+- Type: ObjectId
+- Required
+- References the user who created the tenant.
+
+### updatedBy
+- Type: ObjectId
+- Optional
+- References the last user who updated the tenant.
+
+### deletedBy
+- Type: ObjectId
+- Optional
+- References the user who performed the soft delete.
+
+### createdAt
+- Type: Date
+- Automatically generated.
+
+### updatedAt
+- Type: Date
+- Automatically updated.
+
+### deletedAt
+- Type: Date
+- Optional.
+- Populated during soft deletion.
+
+### isDeleted
+- Type: Boolean
+- Default: false
+- Indicates whether the tenant has been soft deleted.
+
+---
+
+## Validation Rules
+
+- businessName is mandatory.
+- businessType is mandatory.
+- ownerName is mandatory.
+- ownerEmail must be a valid email address.
+- ownerPhone must be a valid mobile number.
+- currency must contain a supported currency code.
+- subscriptionPlanId must reference an existing subscription plan.
+- status must contain a valid enum value.
+- Soft deleted tenants cannot authenticate.
+- Every tenant must have a unique business identity.
+
+---
+
+## Relationships
+
+- One Tenant owns many Branches.
+- One Tenant owns many Users.
+- One Tenant owns many Customers.
+- One Tenant owns many Services.
+- One Tenant owns many Orders.
+- One Tenant owns many Payments.
+- One Tenant owns many Expenses.
+- One Tenant owns many Cash Registers.
+- One Tenant owns many Notifications.
+- One Tenant owns many Audit Logs.
+- One Tenant has one Configuration.
+- One Tenant has one Active Subscription.
+
+---
+
+## Recommended Indexes
+
+- businessName
+- ownerEmail
+- ownerPhone
+- subscriptionPlanId
+- status
+- createdAt
+
+---
+
+## Audit Fields
+
+- createdBy
+- updatedBy
+- deletedBy
+- createdAt
+- updatedAt
+- deletedAt
+- isDeleted
+
+# Security Architecture
+
+The Multi-Tenancy module is responsible for enforcing complete tenant isolation across the Nexoraa CleanSoft ERP. Every request processed by the platform must belong to a valid tenant, and no operation should allow one tenant to access another tenant's data. The security architecture should ensure logical isolation while allowing multiple businesses to securely share the same application infrastructure.
+
+---
+
+# Tenant Isolation
+
+Tenant isolation is the core principle of the SaaS architecture.
+
+### Requirements
+
+- Every authenticated request must include a valid tenant context.
+- Every database query must be filtered using the tenantId.
+- Users must only access data belonging to their own tenant.
+- Cross-tenant access must never be allowed.
+- Tenant context should be propagated across all modules.
+- Every new record created in the system must include tenantId.
+- Tenant validation must occur before executing any business logic.
+
+---
+
+# Business Workspace Isolation
+
+Each tenant should operate within its own isolated workspace.
+
+### Workspace Components
+
+- Company Profile
+- Branches
+- Users
+- Customers
+- Services
+- Orders
+- Payments
+- Expenses
+- Reports
+- Dashboard
+- Notifications
+- Settings
+- Audit Logs
+
+No workspace component should be shared between tenants unless explicitly designed for platform-level administration.
+
+---
+
+# Subscription Management
+
+The Multi-Tenancy module should manage the complete lifecycle of tenant subscriptions.
+
+### Responsibilities
+
+- Trial activation.
+- Subscription activation.
+- Subscription renewal.
+- Subscription upgrade.
+- Subscription downgrade.
+- Subscription suspension.
+- Subscription expiration.
+- Subscription cancellation.
+
+### Subscription Validation
+
+- Verify active subscription before granting access.
+- Validate subscription limits.
+- Restrict disabled features.
+- Notify tenants before subscription expiry.
+- Prevent expired tenants from accessing restricted modules.
+
+---
+
+# Feature Management
+
+Each tenant should have configurable feature access based on the subscribed plan.
+
+### Supported Features
+
+- Module Enable/Disable
+- User Limits
+- Branch Limits
+- Storage Limits
+- API Limits
+- Reporting Features
+- Notification Features
+- Premium Features
+
+Feature availability should be validated before executing any protected operation.
+
+---
+
+# Branding Management
+
+Each tenant should be able to customize its business identity.
+
+### Branding Components
+
+- Company Name
+- Logo
+- Favicon
+- Theme
+- Primary Color
+- Secondary Color
+- Invoice Branding
+- Business Contact Information
+
+Branding updates should only affect the current tenant.
+
+---
+
+# Configuration Management
+
+Every tenant should maintain independent business configurations.
+
+### Configuration Categories
+
+- Business Settings
+- Invoice Settings
+- Order Settings
+- Tax Configuration
+- Currency Settings
+- Timezone
+- Language
+- Working Hours
+- Notification Preferences
+- Feature Flags
+
+Configuration changes should never impact other tenants.
+
+---
+
+# Environment Variables
+
+The Multi-Tenancy module should support configurable environment variables.
+
+### Tenant Configuration
+
+- DEFAULT_TRIAL_DAYS
+- DEFAULT_CURRENCY
+- DEFAULT_LANGUAGE
+- DEFAULT_TIMEZONE
+
+### Subscription Configuration
+
+- MAX_TENANTS
+- DEFAULT_PLAN
+- ENABLE_TRIAL
+- TRIAL_DURATION_DAYS
+
+### Storage Configuration
+
+- MAX_STORAGE_PER_TENANT
+- FILE_UPLOAD_LIMIT
+- DEFAULT_LOGO_PATH
+
+---
+
+# Logging Strategy
+
+Every tenant operation should generate structured logs.
+
+### Log Events
+
+- Tenant Created
+- Tenant Updated
+- Tenant Activated
+- Tenant Suspended
+- Tenant Deleted
+- Subscription Updated
+- Feature Updated
+- Branding Updated
+- Configuration Updated
+
+Sensitive business information should never be written to application logs.
+
+---
+
+# Audit Strategy
+
+Every critical tenant operation must generate an audit record.
+
+### Audit Events
+
+- Tenant Registration
+- Tenant Activation
+- Tenant Suspension
+- Subscription Changes
+- Branding Changes
+- Configuration Changes
+- Feature Flag Changes
+- Tenant Deletion
+
+Each audit record should include:
+
+- Tenant ID
+- User ID
+- Action
+- Module
+- Previous Value
+- New Value
+- Timestamp
+- IP Address
+- Correlation ID
+
+---
+
+# Error Handling
+
+The module should return standardized errors for all tenant operations.
+
+### Common Errors
+
+- Tenant Not Found
+- Tenant Already Exists
+- Invalid Tenant Code
+- Subscription Expired
+- Subscription Not Found
+- Feature Disabled
+- Maximum User Limit Reached
+- Maximum Branch Limit Reached
+- Unauthorized Tenant Access
+- Invalid Configuration
+
+Errors should use a consistent response format with machine-readable error codes.
+
+---
+
+# Background Jobs
+
+The Multi-Tenancy module should support background processing for long-running tasks.
+
+### Scheduled Jobs
+
+- Trial Expiry Check
+- Subscription Renewal Check
+- Subscription Expiry Reminder
+- Tenant Suspension
+- Tenant Reactivation
+- Feature Synchronization
+- Configuration Synchronization
+- Inactive Tenant Cleanup
+
+---
+
+# Third-Party Integrations
+
+The module should integrate with supporting platform services.
+
+### Internal Integrations
+
+- Authentication Module
+- Branch Management
+- User Management
+- Settings Module
+- Notification Module
+- Audit Module
+- Reports Module
+- Dashboard Module
+
+### External Integrations
+
+- Payment Gateway
+- Email Service
+- SMS Provider
+- Cloud Storage
+- Subscription Billing Platform
+
+---
+
+# Security Requirements
+
+The Multi-Tenancy module should enforce enterprise-grade security.
+
+### Security Controls
+
+- Complete Tenant Isolation
+- Server-Side Validation
+- Subscription Validation
+- Feature Authorization
+- Role-Based Access Control (RBAC)
+- Input Validation
+- Output Sanitization
+- Secure Configuration Updates
+- Least Privilege Access
+- Data Encryption for Sensitive Information
+
+---
+
+# Tenant Lifecycle
+
+Every tenant should follow a controlled lifecycle.
+
+### Lifecycle States
+
+- Trial
+- Active
+- Suspended
+- Expired
+- Disabled
+
+### Lifecycle Rules
+
+- Only active tenants can access all enabled modules.
+- Trial tenants are limited by trial configuration.
+- Suspended tenants cannot perform business operations.
+- Expired tenants require subscription renewal.
+- Disabled tenants cannot authenticate or access the platform.
+
+---
+
+# Cross-Module Dependencies
+
+The Multi-Tenancy module provides tenant context for all ERP modules.
+
+### Dependent Modules
+
+- Authentication
+- Branch Management
+- User Management
+- Customer Management
+- Service Management
+- Order Management
+- Payment Management
+- Expense Management
+- Reports
+- Dashboard
+- Notifications
+- Settings
+
+Every dependent module must use the tenant context established by this module before processing any business request.
+
+# Testing Strategy
+
+The Multi-Tenancy module must be thoroughly tested to ensure complete tenant isolation, secure business registration, reliable subscription management, and consistent configuration handling. Since every ERP module depends on the tenant context, this module must be validated before any business module is implemented.
+
+Testing should verify business functionality, security, performance, scalability, integration, and data isolation across multiple tenants.
+
+---
+
+# Unit Testing
+
+Unit tests should validate individual business components independently.
+
+### Tenant Management
+
+- Tenant creation.
+- Tenant update.
+- Tenant activation.
+- Tenant suspension.
+- Tenant deactivation.
+- Tenant deletion.
+
+### Company Profile
+
+- Company information validation.
+- Contact information validation.
+- Branding validation.
+- Business type validation.
+
+### Subscription Management
+
+- Subscription creation.
+- Trial activation.
+- Subscription renewal.
+- Subscription expiry.
+- Subscription upgrade.
+- Subscription downgrade.
+
+### Feature Management
+
+- Feature enable.
+- Feature disable.
+- Module access validation.
+- User limit validation.
+- Branch limit validation.
+
+### Configuration Management
+
+- Configuration creation.
+- Configuration update.
+- Default configuration initialization.
+- Localization validation.
+- Currency validation.
+- Timezone validation.
+
+---
+
+# Integration Testing
+
+Integration tests should verify communication between the Multi-Tenancy module and dependent services.
+
+### Authentication Integration
+
+- Tenant resolution during login.
+- Active tenant validation.
+- Disabled tenant restriction.
+
+### Branch Integration
+
+- Default branch creation.
+- Branch ownership validation.
+- Branch limit enforcement.
+
+### User Integration
+
+- Business owner creation.
+- User association with tenant.
+- User access validation.
+
+### Notification Integration
+
+- Welcome notification.
+- Subscription reminder.
+- Trial expiry notification.
+
+### Audit Integration
+
+- Tenant creation logs.
+- Configuration changes.
+- Subscription updates.
+- Branding updates.
+
+---
+
+# Security Testing
+
+The module should be tested against common SaaS security threats.
+
+### Tenant Isolation
+
+- Cross-tenant access prevention.
+- Unauthorized tenant access.
+- Tenant ID tampering.
+- Direct database access validation.
+- API isolation validation.
+
+### Authorization
+
+- Unauthorized configuration updates.
+- Unauthorized branding changes.
+- Unauthorized subscription updates.
+- Invalid permission validation.
+
+### Input Validation
+
+- Invalid company information.
+- Invalid email addresses.
+- Invalid phone numbers.
+- Invalid subscription plans.
+- Invalid feature configuration.
+- Invalid tenant status.
+
+---
+
+# Performance Testing
+
+The Multi-Tenancy module should maintain high performance under normal and peak workloads.
+
+### Performance Validation
+
+- Tenant registration response time.
+- Tenant lookup performance.
+- Configuration loading.
+- Subscription retrieval.
+- Branding retrieval.
+- Feature validation.
+
+### Load Testing
+
+- Concurrent tenant registration.
+- Concurrent tenant updates.
+- Large-scale tenant retrieval.
+- Multiple tenant configuration requests.
+- High-volume subscription validation.
+
+---
+
+# End-to-End Testing
+
+The complete tenant lifecycle should be verified.
+
+### Tenant Registration
+
+- Register a new business.
+- Generate tenant workspace.
+- Create default configuration.
+- Initialize subscription.
+- Create default branch.
+- Verify successful activation.
+
+### Tenant Management
+
+- Update company profile.
+- Update branding.
+- Update configuration.
+- Change subscription.
+- Suspend tenant.
+- Reactivate tenant.
+
+### Subscription Lifecycle
+
+- Trial activation.
+- Subscription renewal.
+- Subscription expiry.
+- Upgrade plan.
+- Downgrade plan.
+- Cancel subscription.
+
+---
+
+# Flutter Testing
+
+The Flutter Web and Mobile applications should provide a consistent tenant management experience.
+
+### Widget Testing
+
+- Business registration form.
+- Company profile form.
+- Branding form.
+- Configuration form.
+- Subscription information.
+- Validation messages.
+
+### Integration Testing
+
+- Complete business registration.
+- Tenant profile updates.
+- Branding updates.
+- Configuration updates.
+- Subscription viewing.
+
+---
+
+# Web Application Testing
+
+The web application should support secure and responsive tenant management.
+
+### UI Validation
+
+- Responsive layouts.
+- Form validation.
+- Error handling.
+- Loading states.
+- Success messages.
+- Accessibility compliance.
+
+---
+
+# Deliverables
+
+The Multi-Tenancy phase should deliver:
+
+### Backend
+
+- Tenant module.
+- Tenant APIs.
+- Company profile management.
+- Subscription management.
+- Feature management.
+- Configuration management.
+- Branding management.
+- Tenant isolation middleware.
+
+### Frontend
+
+- Business registration pages.
+- Company profile pages.
+- Branding management.
+- Subscription management.
+- Tenant settings.
+
+### Mobile
+
+- Business registration flow.
+- Company profile management.
+- Tenant settings.
+- Subscription information.
+- Branding management.
+
+### Documentation
+
+- Tenant architecture.
+- Database documentation.
+- API documentation.
+- Security documentation.
+- Configuration guide.
+- Testing documentation.
+
+---
+
+# Acceptance Criteria
+
+The Multi-Tenancy module will be considered complete when all of the following conditions are satisfied.
+
+### Functional Acceptance
+
+- New tenants can be registered successfully.
+- Company profiles can be managed.
+- Tenant configuration is initialized automatically.
+- Branding updates function correctly.
+- Subscription management works correctly.
+- Feature configuration is applied successfully.
+
+### Security Acceptance
+
+- Complete tenant isolation is enforced.
+- Cross-tenant access is impossible.
+- Subscription validation works correctly.
+- RBAC permissions are enforced.
+- Sensitive configuration updates are protected.
+
+### Performance Acceptance
+
+- Tenant registration meets performance requirements.
+- Tenant lookup is optimized.
+- Configuration loading is efficient.
+- Subscription validation scales correctly.
+
+### Quality Acceptance
+
+- Unit tests pass.
+- Integration tests pass.
+- Security tests pass.
+- End-to-End tests pass.
+- Flutter tests pass.
+- Web application tests pass.
+
+---
+
+# Implementation Sequence
+
+The Multi-Tenancy implementation should follow this sequence:
+
+1. Verify previous phase completion.
+2. Review repository architecture.
+3. Design the tenant data model.
+4. Create tenant lifecycle management.
+5. Implement company profile management.
+6. Implement subscription management.
+7. Implement tenant configuration.
+8. Implement branding management.
+9. Configure feature management.
+10. Enforce tenant isolation.
+11. Integrate with Authentication.
+12. Configure logging and audit support.
+13. Complete frontend implementation.
+14. Complete Flutter implementation.
+15. Execute all testing.
+16. Validate acceptance criteria.
+17. Update documentation.
+18. Update the corresponding Phase Completion Report.
+19. Stop execution without starting the next phase.
+
+---
+
+# Completion Instructions
+
+Before closing this phase:
+
+- Verify every acceptance criterion.
+- Ensure all required tests have passed.
+- Review architecture consistency.
+- Confirm tenant isolation across all modules.
+- Validate subscription and feature management.
+- Review API documentation.
+- Review database documentation.
+- Update only the corresponding Multi-Tenancy Phase Completion report.
+- Record architecture decisions, assumptions, and known limitations.
+- Do not modify future phase documentation.
+- Stop execution immediately after completing this phase.
+
+The completion report should accurately document the implementation, repository changes, testing evidence, security validations, performance observations, limitations, and recommendations for the next phase.

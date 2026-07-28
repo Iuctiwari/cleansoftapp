@@ -1,193 +1,994 @@
-# Phase 11 — File Storage
+# PHASE 11 — BRANCH MANAGEMENT IMPLEMENTATION PROMPT
 
-## Phase Number
+## Phase Information
 
-11
+- Phase Number: 11.
+- Phase Name: Branch Management.
+- Module: Branch Management.
+- Status: Implementation prompt.
+- Scope: One tenant and its physical or operational branches.
+- Completion Report: `ERP-PLANNING/phase-completions/PHASE_11_BRANCH_MANAGEMENT_COMPLETION.md`.
 
-## Phase Name
+## Role
 
-File Storage
+- Act as a Senior Enterprise Software Architect and Lead Full Stack Engineer.
+- Implement a secure, scalable, production-ready Branch Management module.
+- Treat the repository as the authoritative source of current project state.
+- Preserve all unrelated and previously completed work.
+- Implement only the work authorized by this phase.
+- Stop immediately after completing Phase 11.
 
-## Execution Contract
+## Module Context
 
-You are the implementation agent for Nexoraa CleanSoft Phase 11. Work from the repository root. Execute this prompt end to end without asking the user to restate it or manually fill in values that can be discovered from the repository.
-
-The repository is the single source of truth. Read the mandatory material before changing files, inspect current code and git status, preserve unrelated work, and reconcile this prompt with newer authoritative repository decisions. If documentation is still skeletal or conflicts with tested implementation, use the narrowest safe interpretation consistent with the existing scaffold and this phase; record every material assumption as an ADR and in the completion report. Never invent extra product scope.
-
-This file retains the original scaffold filename `PHASE_11_BRANCHES.md`; its canonical identity is Phase 11 — File Storage. Implement only this canonical phase.
+- Authentication identifies the user.
+- Multi-Tenancy identifies the organization.
+- Branch Management identifies the operating location.
+- Every branch belongs to exactly one tenant.
+- A branch can never belong to multiple tenants.
+- A branch can never be transferred between tenants.
+- Downstream business records must reference a valid tenant branch.
+- Branch Management owns branch identity and operating context.
+- Branch Management does not own downstream business transactions.
 
 ## Objective
 
-Implement a provider-neutral, tenant-isolated file metadata and object-storage subsystem for secure uploads, downloads, scanning, retention hooks, and domain attachments.
+- Implement branch creation and registration.
+- Implement branch profile management.
+- Implement branch address management.
+- Implement branch contact management.
+- Implement working-hours management.
+- Implement branch manager assignment.
+- Implement branch lifecycle management.
+- Implement default-branch management.
+- Implement branch configuration management.
+- Implement branch-context validation.
+- Implement tenant and branch isolation.
+- Implement RBAC enforcement.
+- Implement required APIs and events.
+- Implement required background jobs.
+- Implement approved frontend workflows.
+- Implement complete testing and documentation.
 
-## Scope
+## Business Purpose
 
-- File metadata, object keys, upload/download authorization, presigned transfer flow or secure streaming, content validation, scan/quarantine states, and lifecycle events.
-- Local development storage adapter and production adapter interface without requiring a specific cloud provider.
-- Integration with expense attachments and future customer/order documents.
-- Web upload/download components and status/error handling.
-
-## Out of Scope
-
-- Document editing, media transcoding, OCR, e-signatures, public anonymous file sharing, and provider-specific production provisioning.
-- Business-specific retention periods not established by authoritative requirements.
-- Storing file binaries in MongoDB.
+- Allow a tenant to operate one or more locations.
+- Maintain centralized tenant ownership.
+- Allow branch-level operational independence.
+- Provide a stable branch identity for all operational modules.
+- Prevent unauthorized cross-tenant access.
+- Prevent unauthorized cross-branch access.
+- Support subscription-aware branch limits.
+- Support auditable branch administration.
 
 ## Mandatory Reading
 
-Read all of the following completely before implementation:
+- Read `ERP-PLANNING/PROJECT_BIBLE.md`.
+- Read `ERP-PLANNING/SOFTWARE_IDEA.md`.
+- Read `ERP-PLANNING/BUSINESS_REQUIREMENTS.md`.
+- Read `ERP-PLANNING/BUSINESS_GOALS.md`.
+- Read `ERP-PLANNING/TARGET_USERS.md`.
+- Read `ERP-PLANNING/FEATURE_LIST.md`.
+- Read `ERP-PLANNING/SYSTEM_ARCHITECTURE.md`.
+- Read `ERP-PLANNING/TECH_STACK.md`.
+- Read `ERP-PLANNING/MICROSERVICES.md`.
+- Read `ERP-PLANNING/MODULE_BREAKDOWN.md`.
+- Read `ERP-PLANNING/DATABASE_DESIGN.md`.
+- Read `ERP-PLANNING/DOMAIN_MODEL.md`.
+- Read `ERP-PLANNING/ENTITY_RELATIONSHIP.md`.
+- Read `ERP-PLANNING/API_DESIGN.md`.
+- Read `ERP-PLANNING/EVENT_ARCHITECTURE.md`.
+- Read `ERP-PLANNING/MULTI_TENANCY.md`.
+- Read `ERP-PLANNING/RBAC.md`.
+- Read `ERP-PLANNING/SECURITY_ARCHITECTURE.md`.
+- Read `ERP-PLANNING/CODING_GUIDELINES.md`.
+- Read `ERP-PLANNING/NAMING_CONVENTIONS.md`.
+- Read `ERP-PLANNING/DIRECTORY_GUIDE.md`.
+- Read the root `README.md`.
+- Read `docs/README.md`.
+- Read `apps/README.md`.
+- Read `packages/README.md`.
+- Read every README in directories touched by this phase.
+- Read Authentication and Multi-Tenancy prompts.
+- Read Authentication and Multi-Tenancy completion reports.
+- Read applicable Architecture Decision Records.
+- Read relevant API, event, job, persistence, and test contracts.
+- Inspect the current repository tree.
+- Inspect the current Git status.
+- Inspect all existing Branch-related work.
 
-- ERP-PLANNING/PROJECT_BIBLE.md
-- ERP-PLANNING/SOFTWARE_IDEA.md
-- ERP-PLANNING/BUSINESS_REQUIREMENTS.md
-- ERP-PLANNING/BUSINESS_GOALS.md
-- ERP-PLANNING/TARGET_USERS.md
-- ERP-PLANNING/FEATURE_LIST.md
-- ERP-PLANNING/SYSTEM_ARCHITECTURE.md
-- ERP-PLANNING/TECH_STACK.md
-- ERP-PLANNING/MICROSERVICES.md
-- ERP-PLANNING/MODULE_BREAKDOWN.md
-- ERP-PLANNING/DATABASE_DESIGN.md
-- ERP-PLANNING/DOMAIN_MODEL.md
-- ERP-PLANNING/ENTITY_RELATIONSHIP.md
-- ERP-PLANNING/API_DESIGN.md
-- ERP-PLANNING/EVENT_ARCHITECTURE.md
-- ERP-PLANNING/MULTI_TENANCY.md
-- ERP-PLANNING/RBAC.md
-- ERP-PLANNING/SECURITY_ARCHITECTURE.md
-- ERP-PLANNING/CODING_GUIDELINES.md
-- ERP-PLANNING/NAMING_CONVENTIONS.md
-- ERP-PLANNING/DIRECTORY_GUIDE.md
-- README.md, docs/README.md, apps/README.md, packages/README.md, and every README in a directory touched by this phase
-- All earlier phase prompts, completion reports, ADRs, schemas, and tests that define dependencies for this phase
-- The current git status and actual repository tree; current implementation and executable tests outrank stale prose
+## Dependency Requirements
 
-Also read the relevant application/package source, manifests, environment examples, Docker/infra assets, API/event/job schemas, and tests for every component named in this prompt.
+### Authentication
 
-## Dependencies
+- Verify authenticated user identity.
+- Verify active session or token validation.
+- Verify tenant-context propagation.
+- Verify stable user identifiers.
+- Verify role and permission integration.
+- Verify request-correlation support.
 
-Verify all earlier completion reports, especially the direct dependencies listed below, before implementation. Do not assume a report is true when the repository or tests disagree.
+### Multi-Tenancy
 
-- Phase 02 tenant isolation, Phase 04 permissions, Phase 09 attachment-reference contract, and Phase 15-compatible job semantics.
-- Local Docker infrastructure from Phase 00.
+- Verify tenant identity.
+- Verify tenant lifecycle status.
+- Verify tenant ownership validation.
+- Verify subscription and branch limits.
+- Verify tenant settings and defaults.
+- Verify tenant-context resolution.
+- Verify tenant-isolation standards.
 
-Do not begin feature implementation until required earlier behavior is present and its critical tests pass. If a dependency is incomplete, repair only the minimum dependency defect necessary for this phase, document it, and rerun the dependency's affected acceptance tests.
+### Platform
 
-## Architecture Notes
+- Verify MongoDB connectivity.
+- Verify configuration validation.
+- Verify API versioning conventions.
+- Verify common error handling.
+- Verify structured logging.
+- Verify health and readiness support.
+- Verify testing and build commands.
 
-The checked-in scaffold establishes a pnpm/TurboRepo monorepo; NestJS/TypeScript backend applications; MongoDB/Mongoose persistence; Redis/BullMQ messaging and jobs; a Flutter web application; a Flutter Android/iOS application; shared packages; Docker; initial Terraform/Helm assets; and GitHub Actions CI.
+### Dependency Rules
 
-- Store binaries in object storage and metadata in an owning backend module/service selected and documented in an ADR; do not create a new top-level application directory.
-- Object keys include non-guessable IDs and tenant partitioning but never raw personal data or original filenames.
-- Files move through explicit pending, uploaded, scanning, available, quarantined, failed, and deleted lifecycle states as supported.
-- Domain services store file IDs and verify ownership/status through contracts, never direct object-store paths.
+- Verify completion reports against repository evidence.
+- Run critical dependency tests before implementation.
+- Do not trust stale documentation over verified behavior.
+- Repair only a minimal dependency defect when necessary.
+- Document every dependency repair.
+- Do not hide missing predecessor work inside this phase.
+- Escalate missing security or ownership decisions.
 
-Any material deviation requires an ADR explaining context, options, decision, consequences, migration, and rollback.
+## Scope
 
-## Tasks to Perform
+- Branch registration.
+- Branch creation.
+- Branch-code generation.
+- Branch profile updates.
+- Branch type management.
+- Branch address updates.
+- Branch contact updates.
+- Working-hours updates.
+- Branch manager assignment.
+- Branch manager replacement.
+- Branch manager removal.
+- Branch activation.
+- Branch suspension.
+- Branch reactivation.
+- Branch deactivation.
+- Default-branch designation.
+- Branch configuration.
+- Tenant branch-limit enforcement.
+- Branch-context validation.
+- Branch-level access control.
+- RBAC integration.
+- Audit integration.
+- Domain events.
+- Required background jobs.
+- Flutter web administration.
+- Approved Flutter mobile workflows.
+- Testing and documentation.
 
-1. Re-read the phase scope and build a private implementation checklist mapped to acceptance criteria.
-2. Inspect the current repository state, earlier completion evidence, dependency versions, tests, and uncommitted changes.
-3. Define or update the contracts, ownership boundaries, data classification, failure modes, and migration/compatibility plan before coding.
-4. Define file metadata, ownership, lifecycle, purpose, size/type limits, checksum, scanning, retention, deletion, and event contracts.
-5. Implement metadata persistence, tenant-scoped APIs, upload authorization, finalization/checksum verification, safe download authorization, and lifecycle transitions.
-6. Implement a local filesystem or compatible development adapter behind the same provider interface used by production adapters.
-7. Implement asynchronous malware-scan integration boundary with a deterministic test scanner and quarantine behavior; never mark unscanned content safe.
-8. Integrate expense attachment validation and reusable web upload/download components with progress and scan state.
-9. Implement orphan cleanup, expired-upload cleanup, and deletion jobs with idempotency and legal-hold/retention hooks.
-10. Test path traversal, key guessing, cross-tenant access, content-type spoofing, oversized files, checksum mismatch, malicious files, and race conditions.
-11. Update FILE_STORAGE.md, API, security, domain integration, frontend, configuration, and operator documentation.
-12. Run every required validation, inspect the diff for scope/security/data-isolation regressions, and remove generated junk or secrets.
-13. Replace the instructional content in the matching completion report with factual evidence from this implementation.
+## Out of Scope
 
-Do not implement anything listed as out of scope. Do not leave simulated success paths, dormant insecure fallbacks, undocumented breaking changes, or unowned data.
+- Customer Management.
+- Service Management.
+- Order Management.
+- Payment Management.
+- Expense Management.
+- Inventory Management.
+- Reporting implementation.
+- Dashboard implementation.
+- Payroll.
+- Attendance.
+- Employee scheduling.
+- Route optimization.
+- Geocoding.
+- Location tracking.
+- Tax calculation.
+- Notification delivery infrastructure.
+- Tenant subscription implementation.
+- Physical deletion of historical branches.
+- Cross-tenant branch transfer.
+- Downstream module implementation.
+- Unapproved business rules.
 
-## Coding Standards
+## Architecture Requirements
 
-- Preserve the monorepo boundaries: deployable applications remain in apps/*, reusable infrastructure in packages/*, planning in ERP-PLANNING/*, documentation in docs/*, and deployment assets in docker/* or infra/*.
-- Use Node.js 22+, pnpm 10, strict TypeScript with no implicit any, NestJS dependency injection, class-validator/class-transformer DTO boundaries, and Mongoose repositories with explicit tenant-aware indexes.
-- Keep controllers and transport handlers thin; place invariants in testable application/domain services and persistence details behind repositories/adapters.
-- Use structured redacted logs, correlation/causation IDs, typed configuration validated at startup, stable machine-readable errors, UTC timestamps, opaque IDs, optimistic concurrency, and integer minor units for money.
-- Use versioned API, event, job, and stored-data contracts. Producers and consumers must tolerate documented compatible evolution; breaking changes require migration and ADR.
-- Use outbox/inbox and idempotency patterns for cross-service effects. Never reach into another service's private MongoDB collections.
-- For Flutter, follow analyzer rules, feature-oriented modules, immutable typed models, accessible Material 3 components, go_router, centralized API/error handling, and no secrets in client assets.
-- Format, lint, type-check, test, and build every touched workspace. Do not disable rules, skip tests, weaken types, or catch and ignore errors to obtain a green result.
-- Preserve unrelated user changes. Make the smallest coherent changes for this phase and do not rename top-level repository directories.
+- Use the approved Branch owning service or module.
+- Use `apps/branch-service/` only when current architecture supports it.
+- Do not create a competing service.
+- Keep controllers thin.
+- Keep business invariants in domain or application services.
+- Keep persistence behind repositories or adapters.
+- Keep shared packages domain-neutral.
+- Do not access another service's private collections.
+- Use versioned API contracts.
+- Use versioned event contracts.
+- Use versioned job contracts.
+- Use optimistic concurrency.
+- Use idempotency for retryable commands.
+- Use outbox and inbox patterns for cross-service effects.
+- Record material architecture changes in ADRs.
 
-## Backend Requirements
+## Data Ownership
 
-- Generate server-authoritative object keys and enforce maximum size, allowlisted content types/extensions, checksum, purpose, owner, tenant, and expiration.
-- Presigned URLs must be short-lived, operation-specific, content-constrained where supported, and returned only after authorization.
-- Downloads require current authorization and available scan state; quarantine and deleted objects are not downloadable.
-- Metadata and provider operations must be reconciled for partial failures without pretending to have distributed transactions.
+- Branch Management owns branch identity.
+- Branch Management owns branch lifecycle.
+- Branch Management owns branch profile.
+- Branch Management owns branch address.
+- Branch Management owns branch contact data.
+- Branch Management owns branch working hours.
+- Branch Management owns branch manager reference.
+- Branch Management owns default designation.
+- Branch Management owns branch configuration.
+- Tenant Management owns tenant identity.
+- Tenant Management owns subscriptions and entitlements.
+- User Management owns users, roles, and assignments.
+- Audit Service owns audit records.
+- Notification Service owns notification delivery.
+- Downstream services own their business records.
 
-All backend work must retain global validation, consistent errors, correlation, graceful shutdown, health/readiness, tenant-aware authorization where applicable, and safe telemetry established in earlier phases.
+## Branch Lifecycle
 
-## Frontend Requirements
+- Support `DRAFT` or the approved equivalent.
+- Support `ACTIVE`.
+- Support `SUSPENDED`.
+- Support `INACTIVE` or `DEACTIVATED`.
+- Define every allowed transition.
+- Reject every undocumented transition.
+- Require permission for every transition.
+- Require a reason for suspension.
+- Require a reason for deactivation.
+- Record the actor for every transition.
+- Record the transition timestamp.
+- Record correlation context.
+- Publish one event per committed transition.
+- Keep suspended and deactivated branches.
+- Never physically delete referenced branches.
+- Prevent general updates from changing status.
 
-- Use reusable upload components with client-side early validation, progress, cancellation, retry, and server-authoritative final status.
-- Never render active file content inline unless the type and sandbox policy explicitly allow it.
-- Clear tenant-bound upload state on tenant/branch switch and avoid exposing object keys.
+## Default Branch Rules
 
-Frontend behavior must never be the only enforcement point. Handle loading, empty, validation, forbidden, conflict, retryable failure, terminal failure, and stale-data states explicitly.
+- Allow no more than one default branch per tenant.
+- Require one default when tenant policy requires it.
+- Make the first eligible branch default when required.
+- Allow only an active branch to become default.
+- Apply default changes atomically.
+- Make repeated default selection idempotent.
+- Prevent concurrent requests from creating two defaults.
+- Require replacement before disabling the default when necessary.
+
+## Branch Registration
+
+- Authenticate the requesting user.
+- Resolve trusted tenant context.
+- Authorize branch creation.
+- Verify tenant status.
+- Verify subscription branch limits.
+- Validate branch information.
+- Generate the branch code on the server.
+- Prevent duplicate creation under retries.
+- Create the branch.
+- Initialize branch configuration.
+- Assign an optional eligible manager.
+- Set the default branch when required.
+- Record audit context.
+- Publish the branch-created event.
+
+## Branch Profile
+
+- Require a branch name.
+- Support an optional display name.
+- Support an approved branch type.
+- Support an optional description.
+- Support a valid time zone.
+- Support an approved locale.
+- Support an approved language.
+- Support currency only when branch override is permitted.
+- Keep tenant ownership immutable.
+- Keep branch code immutable after creation.
+
+## Branch Address
+
+- Support address line one.
+- Support address line two.
+- Support locality or city.
+- Support state, province, or region.
+- Support postal code.
+- Support ISO country code.
+- Support an optional landmark.
+- Support international formats.
+- Do not require geolocation.
+- Protect address fields from unsafe content.
+
+## Branch Contact
+
+- Support primary email.
+- Support primary telephone number.
+- Support optional alternate telephone number.
+- Support only approved public contact channels.
+- Normalize email values.
+- Normalize telephone values.
+- Bound every contact field.
+- Redact contact values from logs.
+
+## Working Hours
+
+- Support a seven-day schedule.
+- Support closed days.
+- Support approved daily intervals.
+- Support multiple intervals when approved.
+- Support overnight intervals only when approved.
+- Require a valid time zone.
+- Reject invalid time formats.
+- Reject overlapping intervals.
+- Reject duplicate day definitions.
+- Reject intervals on closed days.
+- Do not implement employee shifts.
+- Do not implement attendance.
+
+## Branch Manager
+
+- Reference an existing user.
+- Verify the user belongs to the same tenant.
+- Verify the user is active.
+- Verify the user is eligible to manage the branch.
+- Verify required role or permission.
+- Prevent cross-tenant assignment.
+- Support manager replacement.
+- Support manager removal when policy permits it.
+- Record the assigning actor.
+- Record the assignment timestamp.
+- Publish manager-change events.
+- Do not modify the user record directly.
+
+## Branch Configuration
+
+- Initialize configuration during branch creation.
+- Support order prefix.
+- Support invoice prefix.
+- Support receipt prefix.
+- Support approved tax-setting references.
+- Support working-hours settings in one authoritative location.
+- Support notification preferences.
+- Support printing preferences.
+- Support default language.
+- Support default currency.
+- Support approved feature overrides.
+- Inherit tenant defaults where required.
+- Permit only allowlisted overrides.
+- Prevent branch overrides from weakening tenant policy.
+- Prevent unavailable features from being enabled.
+- Validate prefixes.
+- Do not store secrets.
+
+## Branch Context
+
+- Include trusted tenant identifier.
+- Include branch identifier.
+- Include branch status.
+- Include user branch access.
+- Include permission scope.
+- Include correlation context.
+- Reject a branch outside the tenant.
+- Reject an inaccessible branch.
+- Reject suspended branches for new operational writes.
+- Reject inactive branches for new operational writes.
+- Define historical read access.
+- Clear branch-scoped client caches after switching.
+- Never trust a body tenant identifier.
+- Never trust a query tenant identifier.
+
+## MongoDB Collections
+
+### `branches`
+
+- Store one authoritative document per branch.
+- Store an opaque branch identifier.
+- Store tenant identifier.
+- Store server-generated branch code.
+- Store branch name.
+- Store optional display name.
+- Store branch type.
+- Store optional description.
+- Store lifecycle status.
+- Store status reason.
+- Store status-change metadata.
+- Store default-branch designation.
+- Store manager user identifier.
+- Store manager-assignment metadata.
+- Store contact information.
+- Store address information.
+- Store time zone.
+- Store locale.
+- Store language.
+- Store currency when permitted.
+- Store working hours in the approved canonical location.
+- Store created-by and updated-by identifiers.
+- Store created and updated timestamps.
+- Store optimistic-concurrency version.
+
+### `branches` Invariants
+
+- Require tenant identifier.
+- Keep tenant identifier immutable.
+- Require branch code.
+- Keep branch code immutable.
+- Make branch code unique within tenant.
+- Require valid lifecycle status.
+- Keep manager within tenant.
+- Keep at most one tenant default.
+- Prevent physical deletion after operational use.
+
+### `branches` Indexes
+
+- Unique index on tenant and branch code.
+- Lookup index on tenant and branch identifier.
+- List index on tenant and status.
+- Default lookup index on tenant and default designation.
+- Search index on tenant and normalized branch name.
+- Manager index on tenant and manager identifier.
+- Pagination index on tenant and created timestamp.
+- Pagination index on tenant and updated timestamp.
+
+### `branchConfigurations`
+
+- Store one current configuration per branch.
+- Store an opaque configuration identifier.
+- Store tenant identifier.
+- Store branch identifier.
+- Store configuration version.
+- Store order prefix.
+- Store invoice prefix.
+- Store receipt prefix.
+- Store approved tax-setting references.
+- Store working hours only when canonical here.
+- Store notification preferences.
+- Store printing preferences.
+- Store default language.
+- Store default currency.
+- Store approved feature overrides.
+- Store inheritance indicators.
+- Store override indicators.
+- Store created-by and updated-by identifiers.
+- Store created and updated timestamps.
+- Store optimistic-concurrency version.
+
+### `branchConfigurations` Invariants
+
+- Require tenant identifier.
+- Require branch identifier.
+- Match configuration tenant to branch tenant.
+- Allow one current configuration per branch.
+- Reject protected setting overrides.
+- Reject unavailable feature overrides.
+- Reject secrets.
+- Keep configuration after branch deactivation.
+
+### `branchConfigurations` Indexes
+
+- Unique index on tenant and branch identifier.
+- Lookup index on tenant and branch identifier.
+- Reconciliation index on tenant and updated timestamp.
+- Add prefix uniqueness only when business rules require it.
+
+## API Standards
+
+- Follow the approved API version prefix.
+- Require authentication.
+- Resolve tenant context from trusted identity.
+- Apply RBAC to every endpoint.
+- Apply branch access to every endpoint.
+- Validate path parameters.
+- Validate query parameters.
+- Validate request bodies.
+- Use stable machine-readable errors.
+- Return correlation information.
+- Use bounded pagination.
+- Use allowlisted filters and sorting.
+- Use optimistic concurrency for updates.
+- Use idempotency for high-impact commands.
+- Audit material mutations.
+- Hide cross-tenant resource existence.
+- Register static routes before `:branchId` routes.
+
+## Branch APIs
+
+| Method | Path | Purpose |
+|---|---|---|
+| `POST` | `/branches` | Create a branch and initialize configuration; require create permission and idempotency. |
+| `GET` | `/branches` | List visible branches with bounded pagination, filters, search, and sorting. |
+| `GET` | `/branches/accessible` | List minimal branch choices available to the current user; omit if the main list safely covers this. |
+| `GET` | `/branches/current` | Return trusted current branch context without accepting an arbitrary branch ID. |
+| `GET` | `/branches/default` | Return the visible tenant default branch. |
+| `GET` | `/branches/:branchId` | Return authorized branch details, version, and permitted actions. |
+| `PUT/PATCH` | `/branches/:branchId` | Update mutable profile fields with update permission and expected version. |
+| `GET` | `/branches/:branchId/contact` | Return authorized contact information. |
+| `PUT` | `/branches/:branchId/contact` | Update validated contact information with expected version. |
+| `GET` | `/branches/:branchId/address` | Return authorized address information. |
+| `PUT` | `/branches/:branchId/address` | Update validated address information with expected version. |
+| `GET` | `/branches/:branchId/working-hours` | Return canonical working hours and time zone. |
+| `PUT` | `/branches/:branchId/working-hours` | Update validated working hours and publish an event. |
+| `GET` | `/branches/:branchId/configuration` | Return effective, inherited, and overridden settings. |
+| `PUT/PATCH` | `/branches/:branchId/configuration` | Update allowlisted settings with expected version. |
+| `POST` | `/branches/:branchId/configuration/reset` | Reset selected overrides to tenant defaults. |
+| `GET` | `/branches/:branchId/manager` | Return the current authorized manager summary. |
+| `PUT` | `/branches/:branchId/manager` | Assign or replace an eligible same-tenant manager. |
+| `DELETE` | `/branches/:branchId/manager` | Remove the manager when policy permits it. |
+| `PATCH` | `/branches/:branchId/default` | Atomically set an eligible active branch as default. |
+| `PATCH` | `/branches/:branchId/activate` | Activate an eligible branch with version and idempotency checks. |
+| `PATCH` | `/branches/:branchId/suspend` | Suspend a branch with version, idempotency, and reason. |
+| `PATCH` | `/branches/:branchId/reactivate` | Reactivate a suspended branch; omit if activation covers this transition. |
+| `PATCH` | `/branches/:branchId/deactivate` | Deactivate a branch with version, idempotency, and reason. |
+| `POST` | `/branches/:branchId/select` | Select an accessible active branch through the Authentication-owned session contract. |
+
+## API Errors
+
+- Invalid input.
+- Unauthenticated.
+- Forbidden.
+- Branch not found.
+- Tenant inactive.
+- Branch inactive.
+- Branch suspended.
+- Invalid lifecycle transition.
+- Branch limit exceeded.
+- Duplicate branch code.
+- Invalid manager.
+- Cross-tenant manager.
+- Invalid working hours.
+- Invalid configuration.
+- Default-branch conflict.
+- Concurrency conflict.
+- Idempotency conflict.
+- Dependency unavailable.
+
+## Validation Rules
+
+- Require branch name.
+- Trim and bound branch name.
+- Generate branch code on the server.
+- Make branch code tenant-unique.
+- Require an existing tenant.
+- Require an operational tenant.
+- Enforce subscription branch limits.
+- Prevent concurrent limit bypass.
+- Require an approved branch type.
+- Validate email.
+- Validate telephone values.
+- Validate country code.
+- Validate address fields.
+- Validate time zone.
+- Validate working-hours intervals.
+- Reject overlapping intervals.
+- Require same-tenant manager.
+- Require active manager.
+- Require eligible manager role.
+- Allow one default branch.
+- Require active default branch.
+- Validate configuration keys.
+- Validate prefixes.
+- Validate language and currency.
+- Reject secrets.
+- Reject stale versions.
+- Reject invalid transitions.
+
+## RBAC Requirements
+
+- Define branch-view permission.
+- Define branch-create permission.
+- Define branch-update permission.
+- Define contact-update permission.
+- Define address-update permission.
+- Define working-hours-update permission.
+- Define configuration-view permission.
+- Define configuration-update permission.
+- Define manager-assign permission.
+- Define default-branch-update permission.
+- Define branch-activate permission.
+- Define branch-suspend permission.
+- Define branch-deactivate permission.
+- Define branch-select permission.
+- Use approved permission naming conventions.
+- Apply deny-by-default authorization.
+- Keep backend authorization authoritative.
 
 ## Security Requirements
 
-- Prevent path traversal, SSRF through provider URLs, content sniffing, polyglot upload abuse, stored XSS, cross-tenant access, and unrestricted public ACLs.
-- Use safe Content-Disposition and Content-Type headers and separate quarantined objects from available content.
-- Encrypt in transit and require provider-side encryption-at-rest capabilities for production adapters.
+- Enforce tenant ownership on every operation.
+- Enforce branch access on every operation.
+- Prevent cross-tenant access.
+- Prevent unauthorized cross-branch access.
+- Prevent tenant identifier tampering.
+- Prevent branch identifier tampering.
+- Prevent manager identifier tampering.
+- Prevent mass assignment.
+- Prevent NoSQL injection.
+- Prevent unsafe filtering and sorting.
+- Prevent stored cross-site scripting.
+- Rate-limit sensitive mutations.
+- Redact sensitive values from logs.
+- Minimize returned contact data.
+- Use opaque identifiers.
+- Protect default-branch concurrency.
+- Protect branch-limit concurrency.
+- Require idempotency for high-impact actions.
+- Audit every material change.
+- Store no credentials or secrets.
 
-Apply deny-by-default authorization, data minimization, secret redaction, input validation, output encoding, least privilege, and tenant/branch isolation to every new access path. Add regression tests for each material threat addressed.
+## Integration Requirements
+
+- Authentication: consume trusted user and tenant context, validate branch context, and delegate session ownership.
+- Multi-Tenancy: validate tenant identity, status, branch limits, defaults, and initial branch creation.
+- User Management: validate manager identity, membership, status, and eligibility without direct collection access.
+- Customer Management: provide stable branch identity and validation without implementing customers.
+- Service Management: provide branch identity and configuration events without implementing services.
+- Order Management: provide branch identity and lifecycle events without implementing orders.
+- Payment Management: preserve historical branch references without implementing payments.
+- Expense Management: preserve historical branch references without implementing expenses.
+- Reports and Dashboard: publish branch events without implementing projections or dashboards.
+- Notification Service: submit approved manager and lifecycle events without implementing delivery.
+- Audit Service: audit creation, profile, address, contact, hours, configuration, manager, default, and lifecycle changes.
+
+## Domain Events
+
+- Publish created, profile-updated, contact-updated, address-updated, and working-hours-updated events.
+- Publish configuration-updated, manager-assigned, manager-replaced, and manager-removed events.
+- Publish default-changed, activated, suspended, reactivated, and deactivated events.
+- Use the established envelope with tenant, branch, event, version, time, correlation, and causation data.
+- Exclude sensitive payload data, publish through outbox, and require idempotent consumers.
+
+## Background Jobs
+
+- Configuration reconciliation: refresh effective settings in bounded, idempotent, resumable batches.
+- Lifecycle processing: retry approved asynchronous effects without changing committed branch state.
+- Working-hours refresh: refresh approved derived caches without creating employee schedules.
+- Manager notification: submit deduplicated requests without implementing notification delivery.
+- Every job must define ownership, version, idempotency, retry, backoff, concurrency, dead-letter, monitoring, and recovery.
+
+## Backend Requirements
+
+- Use strict TypeScript.
+- Use approved NestJS patterns.
+- Use validated DTO boundaries.
+- Use tenant-aware repositories.
+- Use stable error codes.
+- Use UTC timestamps.
+- Use structured redacted logs.
+- Use correlation identifiers.
+- Use optimistic concurrency.
+- Use idempotency.
+- Use outbox and inbox patterns.
+- Support graceful shutdown.
+- Support health and readiness checks.
+- Avoid direct cross-service database access.
+
+## Flutter Requirements
+
+- Build a branch list.
+- Build branch search and filters.
+- Build branch registration.
+- Build branch details.
+- Build profile editing.
+- Build contact editing.
+- Build address editing.
+- Build working-hours editing.
+- Build configuration editing.
+- Build manager assignment.
+- Build default-branch selection.
+- Build lifecycle actions.
+- Build current-branch selection when approved.
+- Show loading states.
+- Show empty states.
+- Show validation errors.
+- Show forbidden states.
+- Show conflict states.
+- Show retryable errors.
+- Show terminal errors.
+- Clear caches after branch switching.
+- Follow Material 3.
+- Follow accessibility standards.
+- Keep server authorization authoritative.
 
 ## Performance Requirements
 
-- Transfer binaries directly to/from object storage when safe; do not buffer large files in application memory.
-- Index tenant/owner/purpose/status/created time and process scans/cleanup asynchronously.
-- Set bounded upload sizes, concurrency, timeouts, and provider retry policies.
+- Paginate every branch list.
+- Bound every page size.
+- Use tenant-scoped indexes.
+- Use projections for list responses.
+- Avoid unbounded regular expressions.
+- Avoid collection scans.
+- Bound filters and sorting.
+- Measure branch creation.
+- Measure branch lookup.
+- Measure branch listing.
+- Measure default lookup.
+- Measure accessible-branch lookup.
+- Measure configuration retrieval.
+- Test concurrent branch creation.
+- Test concurrent default changes.
+- Record dataset and environment.
+- Record actual results.
 
-Define representative data/workloads and record measurements rather than claiming performance from code inspection alone. Do not trade away correctness, security, or isolation for benchmark results.
+## Reliability Requirements
 
-## Testing Requirements
+- Prevent duplicate branches under retries.
+- Prevent duplicate configurations.
+- Preserve default-branch invariants.
+- Recover failed event publication.
+- Make jobs idempotent.
+- Report dependency failures honestly.
+- Avoid inconsistent success responses.
+- Support graceful recovery.
 
-- Unit-test lifecycle, key generation, authorization, type/size/checksum validation, retention decisions, and error mapping.
-- Integration-test local adapter, metadata/object consistency, scan outcomes, cleanup, retries, and domain association.
-- Run security tests for traversal, spoofing, malicious content, presigned URL expiry, and cross-tenant access.
-- End-to-end test web upload through available/quarantined/failure and authorized download.
+## Observability Requirements
 
-At minimum, run all touched-package format/lint/type/test/build commands plus relevant root gates. Tests must cover success, validation, authentication, authorization, tenant/branch isolation, concurrency, idempotency, dependency failure, and recovery wherever applicable.
+- Log branch operations safely.
+- Emit creation metrics.
+- Emit lifecycle metrics.
+- Emit authorization-denial metrics.
+- Emit dependency-failure metrics.
+- Emit job-retry metrics.
+- Emit event-lag metrics.
+- Trace cross-service calls.
+- Alert on default invariant violations.
+- Alert on repeated reconciliation failures.
+- Document recovery actions.
+
+## Unit Tests
+
+- Test creation, code generation, collisions, profile, address, contact, and working-hours validation.
+- Test configuration, manager eligibility, lifecycle, defaults, branch limits, permissions, and errors.
+- Test idempotency and optimistic concurrency.
+
+## Persistence Tests
+
+- Test tenant queries, unique codes, one default, configuration consistency, indexes, and retained branches.
+- Test concurrent creation, concurrent default changes, and version conflicts.
+
+## API Tests
+
+- Test every endpoint for success, validation, authentication, authorization, tenant, branch, and not-found cases.
+- Test transitions, conflicts, idempotency, dependency failures, pagination, filtering, sorting, and stable errors.
+
+## Integration Tests
+
+- Test Authentication context, tenant validation, tenant status, branch limits, and configuration initialization.
+- Test manager validation, branch selection, outbox, audit, notification submission, and reconciliation.
+
+## Security Tests
+
+- Test tenant and branch isolation, identifier tampering, RBAC, escalation, and mass assignment.
+- Test NoSQL injection, unsafe queries, stored XSS, rate limits, leakage, and concurrency races.
+
+## End-to-End Tests
+
+- Test first and additional branch creation, configuration initialization, default designation, and branch limits.
+- Test profile, contact, address, hours, configuration, manager, and accessible branch selection.
+- Test activation, suspension, reactivation, deactivation, invalid transitions, isolation, and history.
+
+## Quality Gates
+
+- Run formatting, linting, type checking, builds, root checks, and every required test category.
+- Do not weaken rules, skip required checks, or misreport failed or unavailable validation.
 
 ## Documentation Requirements
 
-- Complete file architecture, lifecycle, metadata, provider interface, security controls, limits, scan integration, APIs, events, cleanup, and incident procedures.
-- Record service/module ownership and direct-upload decisions in ADRs.
-- Document local development usage and production-provider requirements without embedding credentials.
+- Document Branch architecture.
+- Document service ownership.
+- Document lifecycle transitions.
+- Document branch context.
+- Document tenant isolation.
+- Document branch isolation.
+- Document default-branch rules.
+- Document branch-code generation.
+- Document manager assignment.
+- Document configuration inheritance.
+- Document collections.
+- Document indexes.
+- Document APIs.
+- Document errors.
+- Document events.
+- Document jobs.
+- Document RBAC.
+- Document security.
+- Document performance results.
+- Document frontend workflows.
+- Document operator recovery.
+- Record ADRs.
+- Update the completion report.
+- Describe implemented behavior only.
+- Use repository-relative paths.
+- Include no secrets.
 
-Documentation must describe implemented behavior only, use safe synthetic examples, contain no secrets, and link to authoritative schemas/tests/ADRs.
+## Implementation Sequence
+
+1. Confirm Phase 11 scope.
+2. Inspect Git status.
+3. Inspect existing Branch work.
+4. Read mandatory sources.
+5. Verify dependencies.
+6. Confirm service ownership.
+7. Define lifecycle.
+8. Define permissions.
+9. Define branch context.
+10. Define collections and indexes.
+11. Define APIs.
+12. Define events and jobs.
+13. Implement domain rules.
+14. Implement persistence.
+15. Implement branch creation.
+16. Implement configuration initialization.
+17. Implement profile management.
+18. Implement contact and address.
+19. Implement working hours.
+20. Implement manager assignment.
+21. Implement default-branch management.
+22. Implement lifecycle commands.
+23. Implement security and RBAC.
+24. Implement audit and events.
+25. Implement approved jobs.
+26. Implement approved Flutter workflows.
+27. Implement all tests.
+28. Run quality gates.
+29. Review scope and security.
+30. Update documentation.
+31. Update the completion report.
+32. Stop without starting another phase.
 
 ## Deliverables
 
-- Tenant-isolated file metadata and object-storage abstraction with local adapter.
-- Secure upload/download, scan/quarantine, cleanup, and expense attachment integration.
-- Reusable web components, security tests, and full storage documentation.
-- A completed Phase 11 report at ERP-PLANNING/phase-completions/PHASE_11_FILE_STORAGE_COMPLETION.md.
+### Backend
+
+- Branch owning module or service.
+- Branch lifecycle.
+- Branch validation.
+- Branch-code generation.
+- Profile management.
+- Address management.
+- Contact management.
+- Working-hours management.
+- Manager assignment.
+- Default-branch management.
+- Configuration management.
+- Tenant and RBAC enforcement.
+- Complete REST APIs.
+- Domain events.
+- Required background jobs.
+- Observability and recovery.
+
+### MongoDB
+
+- `branches`.
+- `branchConfigurations`.
+- Required tenant-safe indexes.
+- Required uniqueness rules.
+- Default-branch invariant.
+- Concurrency metadata.
+- Persistence tests.
+
+### Frontend
+
+- Branch list.
+- Branch registration.
+- Branch details.
+- Branch editing workflows.
+- Manager workflow.
+- Default-branch workflow.
+- Lifecycle workflows.
+- Branch selection when approved.
+- Accessible error and loading states.
+
+### Documentation
+
+- Architecture guide.
+- Collection guide.
+- API guide.
+- Security guide.
+- RBAC guide.
+- Event and job guide.
+- Operator guide.
+- ADRs.
+- Phase completion report.
 
 ## Acceptance Criteria
 
-- [ ] Only authorized users can upload, associate, or download files within their tenant and allowed domain scope.
-- [ ] Unscanned, quarantined, failed, deleted, oversized, spoofed, or checksum-mismatched content is unavailable.
-- [ ] Large files do not cause unbounded application memory use.
-- [ ] Partial failures and orphaned objects are detected and recoverable.
-- [ ] Storage lifecycle, isolation, security, and web tests pass.
-- [ ] Every task and deliverable in this prompt is complete, and every out-of-scope boundary remains intact.
-- [ ] Formatting, linting, type checks, tests, security checks, and builds relevant to touched work pass from documented commands.
-- [ ] The completion report is factual, contains exact file lists and test evidence, and identifies all limitations or pending external gates.
+### Functional
+
+- [ ] Authorized users can create branches.
+- [ ] Branch limits are enforced.
+- [ ] Branch codes are tenant-unique.
+- [ ] Branch profiles can be updated.
+- [ ] Addresses can be updated.
+- [ ] Contacts can be updated.
+- [ ] Working hours can be updated.
+- [ ] Configurations initialize automatically.
+- [ ] Configuration overrides follow tenant policy.
+- [ ] Eligible managers can be assigned.
+- [ ] Lifecycle transitions follow documented rules.
+- [ ] Default-branch invariants are preserved.
+- [ ] Historical branches are retained.
+
+### API
+
+- [ ] Every approved endpoint is implemented.
+- [ ] Every endpoint is versioned.
+- [ ] Every endpoint is validated.
+- [ ] Every endpoint is authorized.
+- [ ] Every endpoint is documented.
+- [ ] Lists use bounded pagination.
+- [ ] Updates enforce concurrency.
+- [ ] High-impact commands enforce idempotency.
+- [ ] Stable errors are returned.
+
+### Security
+
+- [ ] Tenant ownership is enforced.
+- [ ] Branch access is enforced.
+- [ ] Cross-tenant access is prevented.
+- [ ] Unauthorized cross-branch access is prevented.
+- [ ] Manager assignment cannot cross tenants.
+- [ ] Branch selection validates access.
+- [ ] Security tests pass.
+- [ ] Sensitive data is redacted.
+
+### Data
+
+- [ ] `branches` is authoritative for branch identity.
+- [ ] `branchConfigurations` is authoritative for overrides.
+- [ ] Every configuration matches its branch tenant.
+- [ ] Required indexes support queries.
+- [ ] Concurrent creation preserves branch limits.
+- [ ] Concurrent default changes preserve one default.
+
+### Integration
+
+- [ ] Authentication supplies trusted context.
+- [ ] Multi-Tenancy supplies ownership and limits.
+- [ ] User Management validates managers.
+- [ ] Audit evidence exists.
+- [ ] Events use the approved reliable pattern.
+- [ ] Downstream contracts are documented.
+- [ ] Downstream modules are not implemented.
+
+### Frontend
+
+- [ ] Approved Branch workflows are complete.
+- [ ] Only accessible branches are selectable.
+- [ ] Branch switching clears stale state.
+- [ ] Accessibility requirements pass.
+- [ ] Error and loading states are handled.
+- [ ] Backend authorization remains authoritative.
+
+### Quality
+
+- [ ] Formatting passes.
+- [ ] Linting passes.
+- [ ] Type checking passes.
+- [ ] Required tests pass.
+- [ ] Security checks pass.
+- [ ] Builds pass.
+- [ ] Documentation matches behavior.
+- [ ] ADRs record material decisions.
+- [ ] No placeholders remain.
+- [ ] No secrets remain.
+- [ ] No out-of-scope work remains.
 
 ## Completion Instructions
 
-1. Review the final diff and map each acceptance criterion to code, configuration, tests, documentation, or measured evidence.
-2. Run the full relevant validation suite and record exact commands and outcomes. Never report a check as passing if it was skipped, unavailable, or failed.
-3. Update `ERP-PLANNING/phase-completions/PHASE_11_FILE_STORAGE_COMPLETION.md` in place. Replace its authoring guidance with the actual Phase 11 report while retaining every required heading.
-4. Under Files Created and Files Modified, list repository-relative paths exactly. State `None` when a category is empty.
-5. Under Known Limitations and Pending Work, state `None` only after verifying there is nothing to report; otherwise include impact, owner or required authority, and the next safe action.
-6. Include architecture/security decisions, migrations, compatibility notes, test evidence, measured performance, and notes needed by Phase 12 when another phase follows.
-7. End work after the completion report and documentation are accurate. Do not begin the next phase.
+1. Review the final diff.
+2. Confirm Branch-only scope.
+3. Map acceptance criteria to evidence.
+4. Run all required checks.
+5. Record exact commands and outcomes.
+6. Report failed or unavailable checks honestly.
+7. List every created file.
+8. List every modified file.
+9. Record decisions and assumptions.
+10. Record migrations and index changes.
+11. Record security and performance evidence.
+12. Record limitations and pending work.
+13. Update `ERP-PLANNING/phase-completions/PHASE_11_BRANCH_MANAGEMENT_COMPLETION.md`.
+14. Confirm no downstream module was implemented.
+15. Stop execution.
+
+Do not start another phase.

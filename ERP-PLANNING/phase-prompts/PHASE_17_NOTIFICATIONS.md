@@ -1,194 +1,973 @@
-# Phase 17 — Admin Panel and Settings
+# PHASE 17 — NOTIFICATION MANAGEMENT IMPLEMENTATION PROMPT
 
-## Phase Number
+## Phase Information
 
-17
+- Phase Number: 17.
+- Phase Name: Notification Management.
+- Module: Notification Management.
+- Scope: ERP user and customer communications.
+- Status: Implementation prompt.
 
-## Phase Name
+## Role
 
-Admin Panel and Settings
+- Implement the Nexoraa CleanSoft Notification Management module.
+- Use only the requirements defined in this prompt.
+- Preserve existing Authentication functionality.
+- Preserve existing Multi-Tenancy functionality.
+- Preserve existing Branch Management functionality.
+- Preserve existing User Management functionality.
+- Preserve existing Customer Management functionality.
+- Preserve existing Service Management functionality.
+- Preserve existing Order Management functionality.
+- Preserve existing Payment Management functionality.
+- Do not implement unrelated modules.
+- Stop after completing Notification Management.
 
-## Execution Contract
+## Overall Purpose
 
-You are the implementation agent for Nexoraa CleanSoft Phase 17. Work from the repository root. Execute this prompt end to end without asking the user to restate it or manually fill in values that can be discovered from the repository.
+- Deliver timely notifications.
+- Deliver reliable notifications.
+- Deliver configurable notifications.
+- Deliver notifications to users.
+- Deliver notifications to customers.
+- Centralize all communication channels.
+- Convert business events into notifications.
+- Maintain tenant isolation.
+- Maintain branch awareness.
+- Respect user notification preferences.
+- Respect customer notification preferences.
+- Support Email.
+- Support SMS.
+- Support WhatsApp.
+- Support Push Notifications.
+- Support In-App Notifications.
+- Act as the ERP communication hub.
 
-The repository is the single source of truth. Read the mandatory material before changing files, inspect current code and git status, preserve unrelated work, and reconcile this prompt with newer authoritative repository decisions. If documentation is still skeletal or conflicts with tested implementation, use the narrowest safe interpretation consistent with the existing scaffold and this phase; record every material assumption as an ADR and in the completion report. Never invent extra product scope.
+## Notification Management Position
 
-This file retains the original scaffold filename `PHASE_17_NOTIFICATIONS.md`; its canonical identity is Phase 17 — Admin Panel and Settings. Implement only this canonical phase.
+- Authentication identifies who initiated the action.
+- Multi-Tenancy identifies which business owns the communication.
+- Branch Management identifies which location generated the event.
+- User Management controls who can send or receive notifications.
+- Customer Management identifies customer recipients.
+- Order Management provides order lifecycle events.
+- Payment Management provides payment events.
+- Notification Management converts events into communications.
+- Reports consume notification data.
+- Dashboards consume notification data.
+- Search uses notification records.
+- Audit Service records notification changes.
 
-## Objective
+## Core Responsibilities
 
-Deliver a cohesive, permission-safe Flutter web administration panel for platform and tenant operations, configuration, audit review, and system health.
+- Notification Generation.
+- Notification Delivery.
+- Notification Template Management.
+- Notification Channel Management.
+- Notification Preferences.
+- Customer Notifications.
+- Employee Notifications.
+- In-App Notifications.
+- Email Notifications.
+- SMS Notifications.
+- WhatsApp Notifications.
+- Push Notifications.
+- Scheduled Notifications.
+- Notification History.
+- Notification Retry Management.
+- Notification Audit Management.
 
-## Scope
+## Responsibility Boundaries
 
-- Unified navigation and administration surfaces for tenant, branch, users/RBAC, customers, catalog, orders, payments, expenses, notifications, files, jobs, audit, and supported settings.
-- Strict separation of platform-admin, tenant-admin, and branch-operational views.
-- Settings registry with typed ownership, validation, versioning, defaults, and safe change history.
-- Operational health summaries and approved job/audit controls.
+- Manage notification records only.
+- Manage notification templates only.
+- Manage notification preferences only.
+- Manage notification delivery logs only.
+- Receive events from ERP modules.
+- Select configured delivery channels.
+- Use external delivery providers.
+- Preserve notification history.
+- Preserve delivery status.
+- Preserve retry information.
+- Do not replace source business modules.
+- Do not replace Email Provider.
+- Do not replace SMS Gateway.
+- Do not replace WhatsApp Business API.
+- Do not replace Push Notification Service.
 
-## Out of Scope
+## Functional Areas
 
-- Support impersonation unless explicitly approved with step-up authentication and audit policy.
-- Direct database editing, arbitrary configuration keys, secret-value display/editing, and bypass of domain APIs.
-- New domain behavior or analytics beyond completed services.
+### 1. Notification Generation
 
-## Mandatory Reading
+- Receive a business event.
+- Evaluate notification rules.
+- Select a notification type.
+- Select an appropriate template.
+- Select a recipient.
+- Select a delivery channel.
+- Generate message content.
+- Validate required variables.
+- Create a notification record.
+- Queue the notification.
 
-Read all of the following completely before implementation:
+### 2. Notification Template Management
 
-- ERP-PLANNING/PROJECT_BIBLE.md
-- ERP-PLANNING/SOFTWARE_IDEA.md
-- ERP-PLANNING/BUSINESS_REQUIREMENTS.md
-- ERP-PLANNING/BUSINESS_GOALS.md
-- ERP-PLANNING/TARGET_USERS.md
-- ERP-PLANNING/FEATURE_LIST.md
-- ERP-PLANNING/SYSTEM_ARCHITECTURE.md
-- ERP-PLANNING/TECH_STACK.md
-- ERP-PLANNING/MICROSERVICES.md
-- ERP-PLANNING/MODULE_BREAKDOWN.md
-- ERP-PLANNING/DATABASE_DESIGN.md
-- ERP-PLANNING/DOMAIN_MODEL.md
-- ERP-PLANNING/ENTITY_RELATIONSHIP.md
-- ERP-PLANNING/API_DESIGN.md
-- ERP-PLANNING/EVENT_ARCHITECTURE.md
-- ERP-PLANNING/MULTI_TENANCY.md
-- ERP-PLANNING/RBAC.md
-- ERP-PLANNING/SECURITY_ARCHITECTURE.md
-- ERP-PLANNING/CODING_GUIDELINES.md
-- ERP-PLANNING/NAMING_CONVENTIONS.md
-- ERP-PLANNING/DIRECTORY_GUIDE.md
-- README.md, docs/README.md, apps/README.md, packages/README.md, and every README in a directory touched by this phase
-- All earlier phase prompts, completion reports, ADRs, schemas, and tests that define dependencies for this phase
-- The current git status and actual repository tree; current implementation and executable tests outrank stale prose
+- Store reusable templates.
+- Maintain template name.
+- Maintain template code.
+- Maintain notification type.
+- Maintain channel.
+- Maintain subject template.
+- Maintain body template.
+- Maintain required variables.
+- Maintain template status.
+- Update templates through the listed API.
+- Secure template management.
 
-Also read the relevant application/package source, manifests, environment examples, Docker/infra assets, API/event/job schemas, and tests for every component named in this prompt.
+### 3. Notification Channel Management
 
-## Dependencies
+- Support Email delivery.
+- Support SMS delivery.
+- Support WhatsApp delivery.
+- Support Push Notification delivery.
+- Support In-App Notification delivery.
+- Validate the selected channel.
+- Select a channel using preferences.
+- Track delivery by channel.
+- Store channel in notification history.
 
-Verify all earlier completion reports, especially the direct dependencies listed below, before implementation. Do not assume a report is true when the repository or tests disagree.
+### 4. Customer Notifications
 
-- Phases 02-16 and their stable APIs, permissions, health, job, and audit contracts.
-- Phase 14 dashboard design system and web shell.
+- Send notifications to customers.
+- Validate customer recipient.
+- Validate customer tenant ownership.
+- Apply customer communication preferences.
+- Support order-related notifications.
+- Support payment-related notifications.
+- Preserve customer notification history.
 
-Do not begin feature implementation until required earlier behavior is present and its critical tests pass. If a dependency is incomplete, repair only the minimum dependency defect necessary for this phase, document it, and rerun the dependency's affected acceptance tests.
+### 5. Employee Notifications
 
-## Architecture Notes
+- Send notifications to employees.
+- Validate user recipient.
+- Validate user tenant ownership.
+- Apply user notification preferences.
+- Support business-event notifications.
+- Preserve employee notification history.
 
-The checked-in scaffold establishes a pnpm/TurboRepo monorepo; NestJS/TypeScript backend applications; MongoDB/Mongoose persistence; Redis/BullMQ messaging and jobs; a Flutter web application; a Flutter Android/iOS application; shared packages; Docker; initial Terraform/Helm assets; and GitHub Actions CI.
+### 6. Notification Preferences
 
-- The admin panel is an API client, not an authorization boundary. Every action remains enforced by the owning backend service.
-- Separate platform routes/permissions from tenant routes/permissions and make active scope visually unmistakable.
-- Settings are typed and owned by a specific service; a registry/composition layer may expose them but must not create an unowned global settings document.
-- High-impact operations require explicit confirmation, reason capture where appropriate, optimistic concurrency, and audit records.
+- Store preferences for users.
+- Store preferences for customers.
+- Store Email Enabled.
+- Store SMS Enabled.
+- Store WhatsApp Enabled.
+- Store Push Enabled.
+- Store In-App Enabled.
+- Store preferred language.
+- Store quiet hours.
+- Validate preferences.
+- Respect preferences during channel selection.
 
-Any material deviation requires an ADR explaining context, options, decision, consequences, migration, and rollback.
+### 7. Scheduled Notifications
 
-## Tasks to Perform
+- Store scheduled delivery time.
+- Validate scheduled time.
+- Queue scheduled notifications.
+- Deliver notifications at scheduled time.
+- Track scheduled notification status.
+- Preserve scheduled notification history.
 
-1. Re-read the phase scope and build a private implementation checklist mapped to acceptance criteria.
-2. Inspect the current repository state, earlier completion evidence, dependency versions, tests, and uncommitted changes.
-3. Define or update the contracts, ownership boundaries, data classification, failure modes, and migration/compatibility plan before coding.
-4. Create an admin information architecture, route/permission matrix, navigation model, design-system components, and platform-versus-tenant visual boundaries.
-5. Integrate completed administration screens into a consistent responsive shell with breadcrumbs, search, tables, forms, error/loading/empty states, and scope switching.
-6. Implement missing tenant/platform settings APIs through their owning services with typed schemas, validation, defaults, versions, and events.
-7. Implement audit viewer filters/details/export handoff, redaction display, and integrity/ingestion status for authorized users.
-8. Implement redacted job/queue health and safe pause/retry/replay/cancel controls using Phase 15 APIs.
-9. Implement platform tenant lifecycle/support views without cross-tenant data browsing beyond explicit permissions.
-10. Run comprehensive route, permission, accessibility, responsive, concurrency, scope-switch, and dangerous-action tests.
-11. Update admin IA, permission matrix, settings registry, operator workflows, accessibility, and support documentation.
-12. Run every required validation, inspect the diff for scope/security/data-isolation regressions, and remove generated junk or secrets.
-13. Replace the instructional content in the matching completion report with factual evidence from this implementation.
+### 8. Notification History
 
-Do not implement anything listed as out of scope. Do not leave simulated success paths, dormant insecure fallbacks, undocumented breaking changes, or unowned data.
+- Store every notification.
+- Store every delivery attempt.
+- Store delivery channel.
+- Store delivery status.
+- Store error message.
+- Store retry count.
+- Store sent time.
+- Store delivered time.
+- Preserve notification history.
+- Make history available to authorized users.
 
-## Coding Standards
+### 9. Notification Status Management
 
-- Preserve the monorepo boundaries: deployable applications remain in apps/*, reusable infrastructure in packages/*, planning in ERP-PLANNING/*, documentation in docs/*, and deployment assets in docker/* or infra/*.
-- Use Node.js 22+, pnpm 10, strict TypeScript with no implicit any, NestJS dependency injection, class-validator/class-transformer DTO boundaries, and Mongoose repositories with explicit tenant-aware indexes.
-- Keep controllers and transport handlers thin; place invariants in testable application/domain services and persistence details behind repositories/adapters.
-- Use structured redacted logs, correlation/causation IDs, typed configuration validated at startup, stable machine-readable errors, UTC timestamps, opaque IDs, optimistic concurrency, and integer minor units for money.
-- Use versioned API, event, job, and stored-data contracts. Producers and consumers must tolerate documented compatible evolution; breaking changes require migration and ADR.
-- Use outbox/inbox and idempotency patterns for cross-service effects. Never reach into another service's private MongoDB collections.
-- For Flutter, follow analyzer rules, feature-oriented modules, immutable typed models, accessible Material 3 components, go_router, centralized API/error handling, and no secrets in client assets.
-- Format, lint, type-check, test, and build every touched workspace. Do not disable rules, skip tests, weaken types, or catch and ignore errors to obtain a green result.
-- Preserve unrelated user changes. Make the smallest coherent changes for this phase and do not rename top-level repository directories.
+- Maintain notification status.
+- Maintain delivery status.
+- Validate status values.
+- Track queued notifications.
+- Track sent notifications.
+- Track delivered notifications.
+- Track failed notifications.
+- Track retried notifications.
+- Preserve status changes.
 
-## Backend Requirements
+### 10. MongoDB Collections
 
-- Add only the composition/settings endpoints required by the admin experience; continue routing mutations to owning services.
-- Settings updates require schema validation, scope validation, version checks, permission checks, events, and audit records.
-- Operational endpoints return bounded/redacted summaries and never raw queue payloads, environment values, or credentials.
-- High-risk platform operations must support reason, correlation, and step-up hooks where policy requires.
+- Implement the `notifications` collection.
+- Implement the `notificationTemplates` collection.
+- Implement the `notificationPreferences` collection.
+- Implement the `notificationLogs` collection.
+- Link every log to the correct notification.
+- Keep records isolated by tenant.
+- Keep branch-specific records branch-aware.
+- Preserve notification history.
 
-All backend work must retain global validation, consistent errors, correlation, graceful shutdown, health/readiness, tenant-aware authorization where applicable, and safe telemetry established in earlier phases.
+### 11. REST APIs
 
-## Frontend Requirements
+- Implement notification creation.
+- Implement notification retrieval.
+- Implement notification listing.
+- Implement notification sending.
+- Implement notification retry.
+- Implement template retrieval.
+- Implement template updates.
+- Implement preference updates.
+- Do not add APIs outside the listed scope.
 
-- Meet WCAG 2.2 AA-oriented behavior: keyboard access, focus management, labels, contrast, text scaling, reduced motion, and accessible validation.
-- Use server-side pagination/filtering and virtualized tables where measured data size requires it.
-- Clear all scoped state on logout/tenant/branch change and prevent opening stale deep links without reauthorization.
-- Use consistent confirmation patterns and never rely on color alone for risk/status.
+### 12. Validation Rules
 
-Frontend behavior must never be the only enforcement point. Handle loading, empty, validation, forbidden, conflict, retryable failure, terminal failure, and stale-data states explicitly.
+- Validate recipient existence.
+- Validate template existence.
+- Validate delivery channel support.
+- Validate required template variables.
+- Validate notification type.
+- Validate scheduled delivery time.
+- Validate priority.
+- Validate recipient tenant ownership.
+- Validate branch-specific ownership.
+
+### 13. Security
+
+- Enforce tenant-level isolation.
+- Enforce branch-level notification access.
+- Apply RBAC.
+- Secure template management.
+- Audit notification changes.
+- Prevent unauthorized message sending.
+- Protect recipient information.
+- Prevent duplicate delivery.
+
+### 14. Background Jobs
+
+- Process notification queue.
+- Deliver scheduled notifications.
+- Retry failed notifications.
+- Clean up notifications.
+- Synchronize delivery status.
+- Synchronize templates.
+- Generate daily notification summary.
+- Process audit logs.
+
+### 15. Integrations
+
+- Integrate with Authentication.
+- Integrate with Multi-Tenancy.
+- Integrate with Branch Management.
+- Integrate with User Management.
+- Integrate with Customer Management.
+- Integrate with Service Management.
+- Integrate with Order Management.
+- Integrate with Payment Management.
+- Integrate with Reports.
+- Integrate with Dashboard.
+- Integrate with Search.
+- Integrate with Audit Service.
+- Integrate with Settings.
+- Integrate with Email Provider.
+- Integrate with SMS Gateway.
+- Integrate with WhatsApp Business API.
+- Integrate with Push Notification Service.
+
+### 16. Testing
+
+- Implement notification unit tests.
+- Implement notification integration tests.
+- Implement notification security tests.
+- Implement notification performance tests.
+- Test notification creation.
+- Test template rendering.
+- Test channel selection.
+- Test preference validation.
+- Test retry logic.
+- Test scheduling.
+
+### 17. Acceptance Criteria
+
+- Verify notification generation.
+- Verify multiple delivery channels.
+- Verify templates.
+- Verify user preferences.
+- Verify customer preferences.
+- Verify scheduled delivery.
+- Verify automatic retry.
+- Verify notification history.
+- Verify delivery tracking.
+- Verify tenant isolation.
+- Verify branch isolation.
+- Verify listed integrations.
+- Verify all required tests.
+
+## Business Workflow
+
+1. Receive a business event.
+2. Receive the published event.
+3. Process the event in Notification Management.
+4. Evaluate notification rules.
+5. Select the appropriate template.
+6. Determine the delivery channel.
+7. Generate the message content.
+8. Queue the notification.
+9. Deliver the notification.
+10. Track delivery status.
+11. Retry failed delivery.
+12. Store notification history for auditing.
+
+## Workflow Requirements
+
+- Keep every notification linked to its tenant.
+- Keep branch-specific notifications linked to the correct branch.
+- Keep every notification linked to a recipient.
+- Keep every notification linked to a template when used.
+- Keep every delivery attempt linked to a notification.
+- Apply notification preferences.
+- Validate the delivery channel.
+- Validate required template variables.
+- Preserve all delivery attempts.
+- Prevent duplicate delivery.
+
+## Supported Channels
+
+### Email
+
+- Support Email notifications.
+- Use Email Provider integration.
+- Respect Email Enabled preference.
+- Store Email delivery status.
+- Store Email delivery logs.
+
+### SMS
+
+- Support SMS notifications.
+- Use SMS Gateway integration.
+- Respect SMS Enabled preference.
+- Store SMS delivery status.
+- Store SMS delivery logs.
+
+### WhatsApp
+
+- Support WhatsApp notifications.
+- Use WhatsApp Business API integration.
+- Respect WhatsApp Enabled preference.
+- Store WhatsApp delivery status.
+- Store WhatsApp delivery logs.
+
+### Push
+
+- Support Push Notifications.
+- Use Push Notification Service integration.
+- Respect Push Enabled preference.
+- Store Push delivery status.
+- Store Push delivery logs.
+
+### In-App
+
+- Support In-App Notifications.
+- Respect In-App Enabled preference.
+- Store In-App status.
+- Store In-App notification history.
+
+## Database Collections
+
+### `notifications`
+
+#### Purpose
+
+- Store the master notification record.
+- Keep notifications tenant-scoped.
+- Keep branch-specific notifications branch-aware.
+- Track notification and delivery status.
+
+#### Fields
+
+- Tenant ID.
+- Branch ID.
+- Notification ID.
+- Notification Type.
+- Notification Channel.
+- Recipient ID.
+- Recipient Type.
+- Subject.
+- Message.
+- Status.
+- Priority.
+- Scheduled Time.
+- Sent Time.
+- Delivery Status.
+- CreatedBy.
+- UpdatedBy.
+- CreatedAt.
+- UpdatedAt.
+
+#### Requirements
+
+- Require tenant ownership.
+- Validate branch ownership when provided.
+- Require valid recipient.
+- Require valid recipient type.
+- Require valid notification type.
+- Require supported channel.
+- Validate priority.
+- Validate scheduled time.
+- Maintain status.
+- Maintain delivery status.
+- Preserve audit information.
+
+### `notificationTemplates`
+
+#### Purpose
+
+- Store reusable notification templates.
+- Support notification content generation.
+- Support channel-specific templates.
+- Keep templates tenant-scoped.
+
+#### Fields
+
+- Tenant ID.
+- Template Name.
+- Template Code.
+- Notification Type.
+- Channel.
+- Subject Template.
+- Body Template.
+- Variables.
+- Status.
+
+#### Requirements
+
+- Require tenant ownership.
+- Maintain template name.
+- Maintain template code.
+- Validate notification type.
+- Validate delivery channel.
+- Maintain subject template.
+- Maintain body template.
+- Maintain required variables.
+- Validate template status.
+- Protect template updates.
+
+### `notificationPreferences`
+
+#### Purpose
+
+- Store user preferences.
+- Store customer preferences.
+- Control channel selection.
+- Control language and quiet hours.
+
+#### Fields
+
+- Tenant ID.
+- User ID or Customer ID.
+- Email Enabled.
+- SMS Enabled.
+- WhatsApp Enabled.
+- Push Enabled.
+- In-App Enabled.
+- Language.
+- Quiet Hours.
+
+#### Requirements
+
+- Require tenant ownership.
+- Require user or customer identity.
+- Validate enabled channels.
+- Validate language.
+- Validate quiet hours.
+- Apply preferences during notification generation.
+- Preserve preference updates.
+
+### `notificationLogs`
+
+#### Purpose
+
+- Store delivery history.
+- Store every delivery attempt.
+- Track errors and retries.
+- Track sent and delivered times.
+
+#### Fields
+
+- Notification ID.
+- Delivery Channel.
+- Delivery Status.
+- Error Message.
+- Retry Count.
+- Sent At.
+- Delivered At.
+
+#### Requirements
+
+- Require valid notification.
+- Store delivery channel.
+- Store delivery status.
+- Store error message when applicable.
+- Store retry count.
+- Store sent time.
+- Store delivered time.
+- Preserve delivery history.
+
+## Collection Relationships
+
+- Link every notification to one tenant.
+- Link branch-specific notifications to one branch.
+- Link every notification to one recipient.
+- Link every notification to its channel.
+- Link every delivery log to one notification.
+- Link preferences to one user or customer.
+- Keep templates within tenant scope.
+- Preserve notification and delivery history.
+
+## REST APIs
+
+### Create Notification
+
+- Method: `POST`.
+- Path: `/notifications`.
+- Purpose: Create a notification request.
+- Validate tenant.
+- Validate branch when applicable.
+- Validate recipient.
+- Validate notification type.
+- Validate channel.
+- Validate template and variables when used.
+- Validate priority and schedule.
+
+### Get Notification
+
+- Method: `GET`.
+- Path: `/notifications/:notificationId`.
+- Purpose: Return notification details.
+- Validate notification identity.
+- Validate tenant ownership.
+- Apply branch access.
+- Apply RBAC.
+- Return delivery status.
+- Return authorized delivery history.
+
+### List Notifications
+
+- Method: `GET`.
+- Path: `/notifications`.
+- Purpose: Return paginated notification records.
+- Support pagination.
+- Support filtering.
+- Support sorting.
+- Support searching.
+- Support status filters.
+- Support channel filters.
+- Enforce tenant isolation.
+- Enforce branch access.
+
+### Send Notification
+
+- Method: `POST`.
+- Path: `/notifications/send`.
+- Purpose: Queue or send a notification.
+- Validate notification request.
+- Validate recipient and tenant.
+- Validate template and variables.
+- Validate channel.
+- Apply preferences.
+- Prevent duplicate delivery.
+- Queue the notification.
+
+### Retry Notification
+
+- Method: `POST`.
+- Path: `/notifications/:notificationId/retry`.
+- Purpose: Retry a failed notification.
+- Validate notification identity.
+- Validate tenant ownership.
+- Apply branch access.
+- Apply RBAC.
+- Require failed delivery state.
+- Increment retry count.
+- Preserve retry history.
+
+### Get Templates
+
+- Method: `GET`.
+- Path: `/notifications/templates`.
+- Purpose: Return available templates.
+- Validate tenant ownership.
+- Apply RBAC.
+- Support available notification types.
+- Support available channels.
+
+### Update Template
+
+- Method: `PUT`.
+- Path: `/notifications/templates/:templateId`.
+- Purpose: Update a notification template.
+- Validate template identity.
+- Validate tenant ownership.
+- Apply RBAC.
+- Validate type and channel.
+- Validate subject and body template.
+- Validate required variables.
+- Audit template changes.
+
+### Update Preferences
+
+- Method: `PUT`.
+- Path: `/notifications/preferences`.
+- Purpose: Update user or customer preferences.
+- Validate tenant ownership.
+- Validate user or customer.
+- Validate channel preferences.
+- Validate language.
+- Validate quiet hours.
+- Preserve preference changes.
+
+## API Limit
+
+- Implement only the eight listed Notification APIs.
+- Do not add template creation APIs.
+- Do not add template deletion APIs.
+- Do not add log APIs.
+- Do not add channel APIs.
+- Do not add separate scheduling APIs.
+- Keep unlisted work within the listed API scope.
+
+## Validation Rules
+
+- Require an existing recipient.
+- Require an existing template when used.
+- Require a supported delivery channel.
+- Require all template variables.
+- Require valid notification type.
+- Require valid scheduled delivery time.
+- Require valid priority.
+- Require recipient to belong to authenticated tenant.
+- Require branch-specific notifications to use the correct branch.
+
+## Validation Checklist
+
+- Validate tenant ownership.
+- Validate branch ownership.
+- Validate recipient identity.
+- Validate recipient type.
+- Validate template identity.
+- Validate template status.
+- Validate notification type.
+- Validate delivery channel.
+- Validate required variables.
+- Validate scheduled time.
+- Validate priority.
+- Validate preferences.
 
 ## Security Requirements
 
-- Test every route and action against the permission matrix at frontend and backend layers.
-- Prevent confused-deputy operations between platform and tenant contexts, stale-scope mutations, CSRF where applicable, and unsafe redirects.
-- Never render secrets, raw tokens, credentials, sensitive job payloads, or unredacted audit fields.
+- Enforce tenant isolation for notifications, templates, preferences, lists, and search.
+- Enforce branch ownership and branch-level notification access.
+- Apply RBAC to create, view, send, retry, template, and preference operations.
+- Secure every template update.
+- Audit notification, template, preference, send, and retry changes.
+- Prevent unauthorized message sending.
+- Protect recipient identity, contact details, and message information.
+- Prevent duplicate notification delivery.
 
-Apply deny-by-default authorization, data minimization, secret redaction, input validation, output encoding, least privilege, and tenant/branch isolation to every new access path. Add regression tests for each material threat addressed.
+## Integration Requirements
 
-## Performance Requirements
+- Authentication: use authenticated user, tenant, and acting-user context.
+- Multi-Tenancy: validate tenant ownership and isolation.
+- Branch Management: validate branch ownership and branch awareness.
+- User Management: validate employee recipients and sending permissions.
+- Customer Management: validate customer recipients and preferences.
+- Service Management: receive listed service-related events.
+- Order Management: receive order lifecycle events.
+- Payment Management: receive payment-related events.
+- Reports: provide notification data for listed reports.
+- Dashboard: provide notification data for listed dashboards.
+- Search: support notification search and listed synchronization.
+- Audit Service: audit notification and delivery changes.
+- Settings: provide channel and notification settings.
+- Email Provider: deliver Email notifications.
+- SMS Gateway: deliver SMS notifications.
+- WhatsApp Business API: deliver WhatsApp notifications.
+- Push Notification Service: deliver Push Notifications.
 
-- Lazy-load feature areas, paginate large datasets, cancel stale requests, and set frontend bundle/render budgets.
-- Compose health summaries with short timeouts and partial failure instead of synchronous unbounded fan-out.
-- Measure route transition, table interaction, and high-volume audit/job page performance.
+## Background Jobs
 
-Define representative data/workloads and record measurements rather than claiming performance from code inspection alone. Do not trade away correctness, security, or isolation for benchmark results.
+- Queue processing: process queued notifications.
+- Scheduled delivery: send notifications at valid scheduled times.
+- Failed retry: retry failed notifications and preserve retry history.
+- Notification cleanup: clean notification data through the listed process.
+- Delivery synchronization: update delivery status from providers.
+- Template synchronization: synchronize notification templates.
+- Daily summary: prepare daily notification information.
+- Audit processing: preserve notification changes and delivery history.
 
 ## Testing Requirements
 
-- Unit/widget-test permission-aware components, forms, settings validation, scope boundaries, and dangerous-action confirmations.
-- Integration-test settings ownership/events/audit, admin composition endpoints, job controls, and audit viewer.
-- End-to-end test platform admin, tenant admin, branch user, and denied-user journeys across routes/actions.
-- Run automated accessibility scans plus keyboard/screen-reader-oriented manual checks recorded in the completion report.
+### Unit Tests
 
-At minimum, run all touched-package format/lint/type/test/build commands plus relevant root gates. Tests must cover success, validation, authentication, authorization, tenant/branch isolation, concurrency, idempotency, dependency failure, and recovery wherever applicable.
+- Test notification creation.
+- Test recipient validation.
+- Test template rendering.
+- Test required variables.
+- Test channel selection.
+- Test preference validation.
+- Test retry logic.
+- Test scheduling validation.
+- Test priority validation.
+- Test duplicate prevention.
 
-## Documentation Requirements
+### Integration Tests
 
-- Document admin navigation, route/permission matrix, settings registry/ownership, dangerous operations, support workflows, accessibility, and troubleshooting.
-- Document platform-versus-tenant boundaries and explicitly prohibited admin capabilities.
-- Record the settings ownership/composition decision in an ADR.
+- Test Order Management integration.
+- Test Payment Management integration.
+- Test Customer Management integration.
+- Test User Management integration.
+- Test Email Provider integration.
+- Test SMS Gateway integration.
+- Test WhatsApp Business API integration.
+- Test Push Notification Service integration.
+- Test Audit Service integration.
 
-Documentation must describe implemented behavior only, use safe synthetic examples, contain no secrets, and link to authoritative schemas/tests/ADRs.
+### Security Tests
+
+- Test tenant isolation.
+- Test branch isolation.
+- Test unauthorized notification access.
+- Test unauthorized message sending.
+- Test template permission validation.
+- Test unauthorized preference updates.
+- Test duplicate notification prevention.
+- Test RBAC validation.
+- Test recipient information protection.
+
+### Performance Tests
+
+- Test notification queue processing.
+- Test bulk notification delivery.
+- Test template retrieval.
+- Test notification search.
+- Test high-volume concurrent processing.
+- Test delivery tracking performance.
+- Verify pagination performance.
+- Verify retry processing.
+
+## Implementation Sequence
+
+1. Confirm Phase 17 Notification Management scope.
+2. Review the listed module purpose.
+3. Review the listed responsibilities.
+4. Review the listed functional areas.
+5. Review the business workflow.
+6. Implement `notifications`.
+7. Implement `notificationTemplates`.
+8. Implement `notificationPreferences`.
+9. Implement `notificationLogs`.
+10. Implement Notification Generation.
+11. Implement Template Management.
+12. Implement Channel Management.
+13. Implement Customer Notifications.
+14. Implement Employee Notifications.
+15. Implement Notification Preferences.
+16. Implement Scheduled Notifications.
+17. Implement Notification History.
+18. Implement Status Management.
+19. Implement the eight listed APIs.
+20. Implement the listed validation rules.
+21. Implement the listed security controls.
+22. Implement the listed background jobs.
+23. Implement the listed integrations.
+24. Implement the listed tests.
+25. Verify the acceptance criteria.
+26. Update Notification Management documentation.
+27. Record completion evidence.
+28. Stop without starting another phase.
 
 ## Deliverables
 
-- Cohesive Flutter web admin panel and design-system integration.
-- Typed settings registry/owned APIs, audit viewer, and safe job/system controls.
-- Permission, scope, accessibility, responsive, security, and end-to-end tests.
-- A completed Phase 17 report at ERP-PLANNING/phase-completions/PHASE_17_ADMIN_PANEL_COMPLETION.md.
+### Notification Features
+
+- Notification Generation.
+- Notification Delivery.
+- Notification Template Management.
+- Notification Channel Management.
+- Notification Preferences.
+- Customer Notifications.
+- Employee Notifications.
+- In-App Notifications.
+- Email Notifications.
+- SMS Notifications.
+- WhatsApp Notifications.
+- Push Notifications.
+- Scheduled Notifications.
+- Notification History.
+- Notification Retry Management.
+- Notification Audit Management.
+
+### Collections
+
+- `notifications`.
+- `notificationTemplates`.
+- `notificationPreferences`.
+- `notificationLogs`.
+
+### APIs
+
+- `POST /notifications`.
+- `GET /notifications/:notificationId`.
+- `GET /notifications`.
+- `POST /notifications/send`.
+- `POST /notifications/:notificationId/retry`.
+- `GET /notifications/templates`.
+- `PUT /notifications/templates/:templateId`.
+- `PUT /notifications/preferences`.
+
+### Tests
+
+- Notification unit tests.
+- Notification integration tests.
+- Notification security tests.
+- Notification performance tests.
+
+### Documentation
+
+- Notification module documentation.
+- Collection documentation.
+- API documentation.
+- Validation documentation.
+- Security documentation.
+- Integration documentation.
+- Testing documentation.
+- Completion evidence.
 
 ## Acceptance Criteria
 
-- [ ] Every admin route/action is protected by the documented backend permission matrix.
-- [ ] Platform, tenant, and branch contexts are never confused or mixed in state, cache, navigation, or mutations.
-- [ ] Settings are typed, validated, versioned, owned, evented, and audited.
-- [ ] Audit/job operational data is redacted and dangerous controls are attributable.
-- [ ] Accessibility, responsive, permission, and performance suites meet documented gates.
-- [ ] Every task and deliverable in this prompt is complete, and every out-of-scope boundary remains intact.
-- [ ] Formatting, linting, type checks, tests, security checks, and builds relevant to touched work pass from documented commands.
-- [ ] The completion report is factual, contains exact file lists and test evidence, and identifies all limitations or pending external gates.
+### Notification Generation
+
+- [ ] Notifications can be generated successfully.
+- [ ] Recipients are validated.
+- [ ] Notification types are valid.
+- [ ] Required variables are provided.
+- [ ] Priorities are valid.
+- [ ] Scheduled times are valid.
+
+### Delivery Channels
+
+- [ ] Email is supported.
+- [ ] SMS is supported.
+- [ ] WhatsApp is supported.
+- [ ] Push Notifications are supported.
+- [ ] In-App Notifications are supported.
+- [ ] Unsupported channels are rejected.
+
+### Templates
+
+- [ ] Templates function correctly.
+- [ ] Template types are validated.
+- [ ] Template channels are validated.
+- [ ] Template variables are validated.
+- [ ] Template updates are secured.
+
+### Preferences
+
+- [ ] User preferences are respected.
+- [ ] Customer preferences are respected.
+- [ ] Email preference is respected.
+- [ ] SMS preference is respected.
+- [ ] WhatsApp preference is respected.
+- [ ] Push preference is respected.
+- [ ] In-App preference is respected.
+- [ ] Language is maintained.
+- [ ] Quiet hours are maintained.
+
+### Scheduling and Retry
+
+- [ ] Scheduled notifications are delivered.
+- [ ] Failed notifications are retried.
+- [ ] Retry counts are maintained.
+- [ ] Retry history is preserved.
+- [ ] Duplicate delivery is prevented.
+
+### History
+
+- [ ] Notification history is preserved.
+- [ ] Delivery history is preserved.
+- [ ] Error information is preserved.
+- [ ] Sent time is preserved.
+- [ ] Delivered time is preserved.
+- [ ] Delivery status is accurate.
+
+### Security
+
+- [ ] Tenant isolation is enforced.
+- [ ] Branch access is enforced.
+- [ ] RBAC is enforced.
+- [ ] Unauthorized sending is prevented.
+- [ ] Template management is secured.
+- [ ] Recipient information is protected.
+- [ ] Notification changes are audited.
+
+### Integrations
+
+- [ ] Authentication integration works.
+- [ ] Multi-Tenancy integration works.
+- [ ] Branch Management integration works.
+- [ ] User Management integration works.
+- [ ] Customer Management integration works.
+- [ ] Service Management integration works.
+- [ ] Order Management integration works.
+- [ ] Payment Management integration works.
+- [ ] Reports integration works.
+- [ ] Dashboard integration works.
+- [ ] Search integration works.
+- [ ] Audit Service integration works.
+- [ ] Settings integration works.
+- [ ] Email Provider integration works.
+- [ ] SMS Gateway integration works.
+- [ ] WhatsApp Business API integration works.
+- [ ] Push Notification Service integration works.
+
+### Testing
+
+- [ ] Unit tests pass.
+- [ ] Integration tests pass.
+- [ ] Security tests pass.
+- [ ] Performance tests pass.
+- [ ] Validation tests pass.
+- [ ] Template tests pass.
+- [ ] Channel tests pass.
+- [ ] Retry tests pass.
 
 ## Completion Instructions
 
-1. Review the final diff and map each acceptance criterion to code, configuration, tests, documentation, or measured evidence.
-2. Run the full relevant validation suite and record exact commands and outcomes. Never report a check as passing if it was skipped, unavailable, or failed.
-3. Update `ERP-PLANNING/phase-completions/PHASE_17_ADMIN_PANEL_COMPLETION.md` in place. Replace its authoring guidance with the actual Phase 17 report while retaining every required heading.
-4. Under Files Created and Files Modified, list repository-relative paths exactly. State `None` when a category is empty.
-5. Under Known Limitations and Pending Work, state `None` only after verifying there is nothing to report; otherwise include impact, owner or required authority, and the next safe action.
-6. Include architecture/security decisions, migrations, compatibility notes, test evidence, measured performance, and notes needed by Phase 18 when another phase follows.
-7. End work after the completion report and documentation are accurate. Do not begin the next phase.
+1. Verify every listed responsibility.
+2. Verify every listed functional area.
+3. Verify the complete business workflow.
+4. Verify all four collections.
+5. Verify all eight APIs.
+6. Verify every validation rule.
+7. Verify every security requirement.
+8. Verify every background job.
+9. Verify every listed integration.
+10. Run every listed test category.
+11. Record test outcomes.
+12. Record created files.
+13. Record modified files.
+14. Record known limitations.
+15. Record completion evidence.
+16. Confirm that no extra API was added.
+17. Confirm that no extra collection was added.
+18. Confirm that no unrelated module was implemented.
+19. Update the corresponding Notification Management completion report.
+20. Stop execution.
+
+Do not start another phase.

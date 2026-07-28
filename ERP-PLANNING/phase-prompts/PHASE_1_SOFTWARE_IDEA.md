@@ -1,195 +1,458 @@
-# Phase 01 — Authentication
+Yes. The **Software Idea** phase should not be a coding prompt. It should comprehensively explain **what Nexoraa CleanSoft is**, **why it exists**, **who will use it**, **what problems it solves**, and **how the complete ERP ecosystem works**. It should act as the vision document before any architecture or implementation begins.
 
-## Phase Number
+Because this is too large for one response, here's **Part 1**.
 
-01
+```md
+# PHASE 1 – SOFTWARE IDEA
 
-## Phase Name
+# Nexoraa CleanSoft ERP – Software Vision
 
-Authentication
+## Introduction
 
-## Execution Contract
+Nexoraa CleanSoft is envisioned as a next-generation cloud-based Enterprise Resource Planning (ERP) platform specifically designed for service-oriented businesses. Unlike traditional ERP systems that are built around manufacturing or inventory-heavy industries, Nexoraa CleanSoft focuses on businesses whose primary operations revolve around receiving customer items, performing a service, managing workflow, collecting payments, and delivering completed work back to customers.
 
-You are the implementation agent for Nexoraa CleanSoft Phase 01. Work from the repository root. Execute this prompt end to end without asking the user to restate it or manually fill in values that can be discovered from the repository.
+The software is designed as a modern Software-as-a-Service (SaaS) platform where a single application can securely serve thousands of independent businesses while ensuring complete isolation of their data. Every registered business becomes an independent tenant with its own users, branches, customers, orders, reports, settings, and business configurations. No tenant should ever have access to another tenant's information.
 
-The repository is the single source of truth. Read the mandatory material before changing files, inspect current code and git status, preserve unrelated work, and reconcile this prompt with newer authoritative repository decisions. If documentation is still skeletal or conflicts with tested implementation, use the narrowest safe interpretation consistent with the existing scaffold and this phase; record every material assumption as an ADR and in the completion report. Never invent extra product scope.
+The goal of Nexoraa CleanSoft is to eliminate manual record keeping, disconnected spreadsheets, paper registers, WhatsApp-only communication, and fragmented business processes by bringing every operational activity into one centralized digital platform.
 
-This file retains the original scaffold filename `PHASE_1_SOFTWARE_IDEA.md`; its canonical identity is Phase 01 — Authentication. Implement only this canonical phase.
+---
 
-## Objective
+# Vision
 
-Implement secure identity authentication and session lifecycle capabilities in auth-service, expose them through the gateway, and provide the web authentication experience.
+The vision of Nexoraa CleanSoft is to become a complete operating system for service businesses.
 
-## Scope
+Instead of offering isolated software for billing, customer management, payments, or reporting, the platform aims to manage the complete lifecycle of a business from customer onboarding to order completion, payment collection, business analytics, staff management, financial tracking, notifications, and operational insights.
 
-- Credential-based sign-in, sign-out, access-token renewal, password reset, email verification, session revocation, and lockout/rate-limit controls.
-- Authentication identity records and session records owned exclusively by auth-service.
-- Gateway authentication enforcement and trusted propagation of identity context.
-- Accessible Flutter web screens and state handling for authentication flows.
+The software should become the central platform that business owners use every day to run their entire organization.
 
-## Out of Scope
+Every department should work from the same data source, eliminating duplicate records and reducing manual effort.
 
-- Tenant provisioning, tenant authorization, branch assignment, user profile administration, and full RBAC policy management.
-- Third-party social identity providers, SAML/OIDC enterprise federation, and mobile authentication UI.
-- Business-module permissions or domain data.
+The platform should enable business owners to monitor operations from anywhere while providing employees with role-specific interfaces that simplify their daily work.
 
-## Mandatory Reading
+---
 
-Read all of the following completely before implementation:
+# Mission
 
-- ERP-PLANNING/PROJECT_BIBLE.md
-- ERP-PLANNING/SOFTWARE_IDEA.md
-- ERP-PLANNING/BUSINESS_REQUIREMENTS.md
-- ERP-PLANNING/BUSINESS_GOALS.md
-- ERP-PLANNING/TARGET_USERS.md
-- ERP-PLANNING/FEATURE_LIST.md
-- ERP-PLANNING/SYSTEM_ARCHITECTURE.md
-- ERP-PLANNING/TECH_STACK.md
-- ERP-PLANNING/MICROSERVICES.md
-- ERP-PLANNING/MODULE_BREAKDOWN.md
-- ERP-PLANNING/DATABASE_DESIGN.md
-- ERP-PLANNING/DOMAIN_MODEL.md
-- ERP-PLANNING/ENTITY_RELATIONSHIP.md
-- ERP-PLANNING/API_DESIGN.md
-- ERP-PLANNING/EVENT_ARCHITECTURE.md
-- ERP-PLANNING/MULTI_TENANCY.md
-- ERP-PLANNING/RBAC.md
-- ERP-PLANNING/SECURITY_ARCHITECTURE.md
-- ERP-PLANNING/CODING_GUIDELINES.md
-- ERP-PLANNING/NAMING_CONVENTIONS.md
-- ERP-PLANNING/DIRECTORY_GUIDE.md
-- README.md, docs/README.md, apps/README.md, packages/README.md, and every README in a directory touched by this phase
-- All earlier phase prompts, completion reports, ADRs, schemas, and tests that define dependencies for this phase
-- The current git status and actual repository tree; current implementation and executable tests outrank stale prose
+The mission of Nexoraa CleanSoft is to digitally transform small and medium-sized service businesses by providing enterprise-grade software that is affordable, scalable, easy to use, and adaptable to different industries.
 
-Also read the relevant application/package source, manifests, environment examples, Docker/infra assets, API/event/job schemas, and tests for every component named in this prompt.
+The platform should reduce operational complexity while improving productivity, transparency, accountability, customer satisfaction, and profitability.
 
-## Dependencies
+Instead of forcing businesses to change their workflow, Nexoraa CleanSoft should be flexible enough to adapt to different business models while maintaining a standardized architecture internally.
 
-Verify all earlier completion reports, especially the direct dependencies listed below, before implementation. Do not assume a report is true when the repository or tests disagree.
+---
 
-- Phase 00 completion and its verified platform foundation.
-- Approved email-delivery abstraction may be stubbed behind an interface until Phase 10; secrets and real provider credentials are not required.
+# Business Problem
 
-Do not begin feature implementation until required earlier behavior is present and its critical tests pass. If a dependency is incomplete, repair only the minimum dependency defect necessary for this phase, document it, and rerun the dependency's affected acceptance tests.
+Across many service industries, business owners still rely on handwritten registers, paper receipts, spreadsheets, phone calls, and messaging applications to manage their daily operations.
 
-## Architecture Notes
+Customer information is often incomplete or duplicated. Orders are difficult to track. Employees have no centralized system for updating work progress. Owners cannot easily monitor multiple branches. Payments are tracked separately from orders, resulting in reconciliation issues. Reports require manual calculations. Customer communication depends on employees remembering to send updates.
 
-The checked-in scaffold establishes a pnpm/TurboRepo monorepo; NestJS/TypeScript backend applications; MongoDB/Mongoose persistence; Redis/BullMQ messaging and jobs; a Flutter web application; a Flutter Android/iOS application; shared packages; Docker; initial Terraform/Helm assets; and GitHub Actions CI.
+As businesses grow, these problems become more severe. Managing multiple branches becomes difficult because data is scattered across locations. Owners lack real-time visibility into operations, making informed business decisions challenging.
 
-- Separate authentication identity and credentials from the user-service profile. Reference identities by immutable opaque IDs.
-- Use short-lived access tokens and server-controlled rotating refresh sessions; store only hashed refresh-token material.
-- Publish versioned authentication lifecycle events through the shared event envelope without embedding credentials or tokens.
-- Gateway verification must fail closed and must not trust caller-supplied identity headers.
+Traditional ERP systems are often expensive, overly complex, or designed for industries with different workflows. Small businesses require a solution that is powerful yet simple to adopt.
 
-Any material deviation requires an ADR explaining context, options, decision, consequences, migration, and rollback.
+Nexoraa CleanSoft addresses these challenges by providing a unified digital platform that centralizes every operational process while remaining flexible enough to support different service industries.
 
-## Tasks to Perform
+---
 
-1. Re-read the phase scope and build a private implementation checklist mapped to acceptance criteria.
-2. Inspect the current repository state, earlier completion evidence, dependency versions, tests, and uncommitted changes.
-3. Define or update the contracts, ownership boundaries, data classification, failure modes, and migration/compatibility plan before coding.
-4. Define and document authentication API contracts, error codes, token/session model, and abuse-control behavior.
-5. Implement identity persistence with unique normalized identifiers, password hashing, verification state, lockout metadata, refresh-session rotation, and revocation.
-6. Implement register or invitation-acceptance behavior only to the extent supported by current requirements; do not create tenant or user-profile behavior here.
-7. Implement sign-in, sign-out, refresh rotation, sign-out-all, email verification, forgot-password, and reset-password workflows with single-use expiring tokens.
-8. Add gateway guards, decorators, and trusted context propagation with uniform unauthorized and forbidden responses.
-9. Build web sign-in, forgot/reset password, verification, session-expired, and sign-out experiences with safe loading/error states.
-10. Emit audit-ready security events and authentication lifecycle events without sensitive payloads.
-11. Update API, security, auth-service, gateway, and web-auth documentation and complete the phase report.
-12. Run every required validation, inspect the diff for scope/security/data-isolation regressions, and remove generated junk or secrets.
-13. Replace the instructional content in the matching completion report with factual evidence from this implementation.
+# Target Industries
 
-Do not implement anything listed as out of scope. Do not leave simulated success paths, dormant insecure fallbacks, undocumented breaking changes, or unowned data.
+The platform is designed to support a wide variety of service-based businesses through configurable modules rather than industry-specific software.
 
-## Coding Standards
+Examples include:
 
-- Preserve the monorepo boundaries: deployable applications remain in apps/*, reusable infrastructure in packages/*, planning in ERP-PLANNING/*, documentation in docs/*, and deployment assets in docker/* or infra/*.
-- Use Node.js 22+, pnpm 10, strict TypeScript with no implicit any, NestJS dependency injection, class-validator/class-transformer DTO boundaries, and Mongoose repositories with explicit tenant-aware indexes.
-- Keep controllers and transport handlers thin; place invariants in testable application/domain services and persistence details behind repositories/adapters.
-- Use structured redacted logs, correlation/causation IDs, typed configuration validated at startup, stable machine-readable errors, UTC timestamps, opaque IDs, optimistic concurrency, and integer minor units for money.
-- Use versioned API, event, job, and stored-data contracts. Producers and consumers must tolerate documented compatible evolution; breaking changes require migration and ADR.
-- Use outbox/inbox and idempotency patterns for cross-service effects. Never reach into another service's private MongoDB collections.
-- For Flutter, follow analyzer rules, feature-oriented modules, immutable typed models, accessible Material 3 components, go_router, centralized API/error handling, and no secrets in client assets.
-- Format, lint, type-check, test, and build every touched workspace. Do not disable rules, skip tests, weaken types, or catch and ignore errors to obtain a green result.
-- Preserve unrelated user changes. Make the smallest coherent changes for this phase and do not rename top-level repository directories.
+- Laundry Services
+- Dry Cleaning
+- Shoe Cleaning
+- Tailoring
+- Alteration Services
+- Mobile Repair
+- Laptop Repair
+- Electronics Repair
+- Appliance Repair
+- Car Wash
+- Bike Wash
+- Salon
+- Spa
+- Beauty Clinic
+- Pet Grooming
+- Printing Services
+- Custom Service Shops
 
-## Backend Requirements
+Although these industries differ in the services they provide, their operational workflow is fundamentally similar.
 
-- Use an industry-standard adaptive password hash with centrally configured cost and migration support; never encrypt or log plaintext passwords.
-- Refresh rotation must detect replay, revoke the affected token family, and be safe under concurrent requests.
-- Verification and reset tokens must be random, hashed at rest, single use, purpose bound, and expire.
-- All write endpoints require validated DTOs, consistent errors, explicit idempotency where retries are expected, and structured security logging.
+Customers submit items or request services.
 
-All backend work must retain global validation, consistent errors, correlation, graceful shutdown, health/readiness, tenant-aware authorization where applicable, and safe telemetry established in earlier phases.
+The business records the request.
 
-## Frontend Requirements
+Employees perform the work.
 
-- Implement web authentication routes, guarded navigation, session restoration, token refresh coordination, and accessible forms.
-- Keep access credentials in the safest platform-appropriate mechanism; do not persist long-lived secrets in browser local storage.
-- Prevent duplicate submissions, avoid account enumeration in recovery messaging, and clear sensitive form state after use.
-- Mobile UI remains out of scope; publish reusable API contracts for Phase 18.
+Payments are collected.
 
-Frontend behavior must never be the only enforcement point. Handle loading, empty, validation, forbidden, conflict, retryable failure, terminal failure, and stale-data states explicitly.
+The completed work is delivered.
 
-## Security Requirements
+The platform standardizes this workflow while allowing each business to customize terminology, services, pricing, categories, and operational rules.
 
-- Apply rate limits by route, account signal, and network signal without enabling easy denial of service against a single account.
-- Use constant-behavior recovery responses, strong password-policy validation, secure cookie attributes when cookies are used, CSRF protection where applicable, and token audience/issuer checks.
-- Redact authorization headers, cookies, credentials, reset tokens, and verification tokens from all telemetry.
-- Test brute force, token replay, session fixation, open redirect, account enumeration, and expired/revoked token cases.
+---
 
-Apply deny-by-default authorization, data minimization, secret redaction, input validation, output encoding, least privilege, and tenant/branch isolation to every new access path. Add regression tests for each material threat addressed.
+# Product Philosophy
 
-## Performance Requirements
+Nexoraa CleanSoft is designed around flexibility rather than rigid workflows.
 
-- Index normalized login identifiers, token hashes, session ownership, and expiration fields.
-- Bound password-hash concurrency and response latency without weakening the configured hash cost.
-- Avoid authentication database lookups on every request when cryptographic verification is sufficient; perform revocation checks according to the documented threat model.
+Instead of hardcoding business rules for one industry, the platform allows tenants to configure services, categories, pricing models, tax rules, invoice formats, notification templates, and branding.
 
-Define representative data/workloads and record measurements rather than claiming performance from code inspection alone. Do not trade away correctness, security, or isolation for benchmark results.
+This approach enables a single software platform to support multiple business domains without requiring separate codebases.
 
-## Testing Requirements
+Every business should feel that the software was built specifically for them while internally sharing the same robust architecture.
 
-- Unit-test token issuance/verification, password hashing, normalization, expiry, rotation, replay detection, and error mapping.
-- Integration-test all auth endpoints against real test persistence and Redis-based rate limiting.
-- End-to-end test web sign-in, refresh, protected navigation, recovery, verification, sign-out, and forced expiry.
-- Include negative security tests for tampering, replay, enumeration resistance, lockout boundaries, and concurrent refresh.
+The platform emphasizes simplicity in the user interface while maintaining enterprise-level capabilities behind the scenes.
 
-At minimum, run all touched-package format/lint/type/test/build commands plus relevant root gates. Tests must cover success, validation, authentication, authorization, tenant/branch isolation, concurrency, idempotency, dependency failure, and recovery wherever applicable.
+Business owners should be able to perform complex administrative tasks with minimal training, while employees should interact only with the functionality relevant to their responsibilities.
 
-## Documentation Requirements
+The software should prioritize reliability, consistency, security, and performance over unnecessary complexity.
+```
 
-- Document auth endpoints, schemas, status/error codes, session lifecycle, configuration, event contracts, and operational revocation procedures.
-- Record the token storage and refresh architecture in an ADR.
-- Add safe developer instructions for test accounts without committing reusable credentials.
+This completes **Part 1 (Software Vision & Business Idea)**. The next part would cover:
 
-Documentation must describe implemented behavior only, use safe synthetic examples, contain no secrets, and link to authoritative schemas/tests/ADRs.
+* Core Business Workflow
+* End-to-End Customer Journey
+* User Roles
+* Multi-Tenant SaaS Concept
+* Branch Operations
+* Business Modules
+* Platform Goals
+* Future Vision
+* AI Integration
+* Scalability Strategy
+* Why this architecture was chosen.
 
-## Deliverables
+# Core Business Workflow
 
-- Production-grade auth-service identity and session lifecycle implementation.
-- Gateway authentication enforcement and web authentication flows.
-- Versioned contracts, tests, security documentation, and authentication events.
-- A completed Phase 01 report at ERP-PLANNING/phase-completions/PHASE_01_AUTHENTICATION_COMPLETION.md.
+At its core, Nexoraa CleanSoft revolves around one fundamental business lifecycle. Regardless of whether the business is a laundry, repair shop, tailoring business, salon, or another service provider, the operational flow remains remarkably similar. A customer approaches the business with a service request, the business records the request, the work is assigned and completed by staff, payment is collected, and the completed service or item is returned to the customer. Every feature in the ERP is designed to support, optimize, and monitor this lifecycle.
 
-## Acceptance Criteria
+The workflow begins when a customer visits a branch or contacts the business through supported channels. Existing customers can be identified immediately using their registered mobile number, while new customers can be added in seconds with essential contact information. Walk-in customers who require minimal registration can also be accommodated to ensure that customer onboarding never becomes a bottleneck during busy business hours.
 
-- [ ] Valid users can complete the supported authentication lifecycle; invalid, expired, replayed, and revoked credentials fail consistently.
-- [ ] Refresh tokens rotate atomically and replay revokes the token family.
-- [ ] Protected gateway routes cannot be reached with caller-forged identity context.
-- [ ] The web authentication flows pass accessibility-focused widget/end-to-end tests.
-- [ ] No plaintext credential or live token appears in persistence, logs, events, fixtures, or reports.
-- [ ] Every task and deliverable in this prompt is complete, and every out-of-scope boundary remains intact.
-- [ ] Formatting, linting, type checks, tests, security checks, and builds relevant to touched work pass from documented commands.
-- [ ] The completion report is factual, contains exact file lists and test evidence, and identifies all limitations or pending external gates.
+Once the customer has been identified, a new order is created. The order contains all relevant information including the customer details, selected services, item categories, pricing, estimated completion time, special instructions, assigned staff members, applicable taxes, discounts, and payment status. The system automatically calculates totals while preserving pricing snapshots so that historical orders remain accurate even if future service prices change.
 
-## Completion Instructions
+After an order is created, it progresses through multiple operational stages. Employees update the order status as work moves from one department to another. Managers and business owners can monitor every active order in real time, allowing them to identify delays, workload distribution, and operational bottlenecks. Every status transition is recorded in the audit history, ensuring complete transparency and accountability throughout the order lifecycle.
 
-1. Review the final diff and map each acceptance criterion to code, configuration, tests, documentation, or measured evidence.
-2. Run the full relevant validation suite and record exact commands and outcomes. Never report a check as passing if it was skipped, unavailable, or failed.
-3. Update `ERP-PLANNING/phase-completions/PHASE_01_AUTHENTICATION_COMPLETION.md` in place. Replace its authoring guidance with the actual Phase 01 report while retaining every required heading.
-4. Under Files Created and Files Modified, list repository-relative paths exactly. State `None` when a category is empty.
-5. Under Known Limitations and Pending Work, state `None` only after verifying there is nothing to report; otherwise include impact, owner or required authority, and the next safe action.
-6. Include architecture/security decisions, migrations, compatibility notes, test evidence, measured performance, and notes needed by Phase 02 when another phase follows.
-7. End work after the completion report and documentation are accurate. Do not begin the next phase.
+Payments are handled independently from order creation. Customers may pay the entire amount immediately, make partial payments, or settle outstanding balances later. This flexibility allows businesses to accommodate different payment practices while maintaining accurate financial records. Every payment is automatically linked to its corresponding order, customer, and branch, enabling complete financial traceability.
+
+When work is completed, the order is marked as ready for delivery or collection. Depending on the business model, customers may either collect their completed items directly from the branch or request delivery. Proof of delivery, customer confirmation, signatures, photographs, or OTP verification can be incorporated to ensure that completed work is successfully handed over.
+
+Throughout this entire journey, the customer receives timely notifications regarding order confirmation, work progress, payment reminders, and completion status. These notifications reduce manual communication while improving customer satisfaction and transparency.
+
+---
+
+# End-to-End Customer Journey
+
+The customer experience has been designed to remain simple while providing complete visibility into every stage of the service process.
+
+A customer first interacts with the business by requesting a service. The business immediately records the request inside the ERP, eliminating handwritten records and reducing data entry errors. From the customer's perspective, the business becomes more organized because every interaction is tracked digitally.
+
+As work progresses, the customer remains informed through automated communication channels. Instead of repeatedly calling the business for updates, customers receive notifications when their order enters important stages such as confirmation, processing, completion, payment due, or delivery.
+
+If additional charges or modifications become necessary during processing, authorized employees can update the order while maintaining a complete audit trail of every change. Customers receive accurate invoices that clearly explain services, quantities, taxes, discounts, and payment history.
+
+Once payment is completed and the service has been delivered, the customer's transaction becomes part of their permanent business history. Future visits become significantly faster because previous orders, preferences, outstanding balances, and communication history are already available to authorized staff members.
+
+This continuous digital relationship transforms occasional customers into long-term clients while enabling businesses to provide consistent service quality across every interaction.
+
+---
+
+# Multi-Tenant SaaS Platform
+
+Nexoraa CleanSoft is built as a Software-as-a-Service platform where a single application instance securely serves multiple independent businesses. Each registered business operates as its own tenant with complete logical isolation from every other tenant.
+
+When a new business registers, the platform automatically creates an isolated workspace containing its branches, users, customers, services, pricing rules, reports, configurations, branding, and business settings. Although multiple businesses share the same application infrastructure, they never share business data.
+
+Tenant isolation is one of the most critical architectural principles of the platform. Every request processed by the backend automatically determines the authenticated user's tenant context and restricts access exclusively to data belonging to that tenant. Client-side filtering alone is never trusted; isolation is enforced at the backend for every database query and service operation.
+
+This architecture enables Nexoraa CleanSoft to scale efficiently while maintaining enterprise-grade security. Thousands of businesses can operate simultaneously on the same infrastructure without compromising data privacy or operational independence.
+
+Because each tenant maintains its own configuration, businesses can customize terminology, pricing models, tax settings, branding, notification templates, currencies, and workflows without affecting other organizations. This flexibility allows the platform to support a wide variety of industries using the same underlying architecture while preserving a personalized experience for every tenant.
+
+The SaaS approach also simplifies software maintenance. Platform updates, security improvements, performance enhancements, and new features can be deployed centrally without requiring manual installation at each customer's location. Businesses always operate on the latest stable version while benefiting from continuous improvements to the platform.
+# 2. Business Goals
+
+## 2.1 Digital Transformation
+
+### Purpose
+Nexoraa CleanSoft aims to replace manual business operations with a centralized digital platform. Instead of maintaining paper registers, spreadsheets, and disconnected software, businesses can manage every activity from one integrated ERP system.
+
+### Benefits
+- Eliminates duplicate data entry.
+- Reduces manual errors.
+- Improves operational efficiency.
+- Provides real-time business visibility.
+- Standardizes business processes across branches.
+
+### Expected Outcome
+Business owners gain complete control over daily operations while employees work through a structured and consistent workflow.
+
+---
+
+## 2.2 Unified Business Management
+
+### Purpose
+The platform combines customer management, order processing, payments, staff management, reports, notifications, and settings into a single ecosystem. Every module shares the same database and business rules.
+
+### Key Features
+- Centralized customer database.
+- Integrated order lifecycle.
+- Automated payment tracking.
+- Unified reporting.
+- Shared business configurations.
+
+### Expected Outcome
+Information flows automatically between modules, reducing repetitive work and improving collaboration.
+
+---
+
+## 2.3 Multi-Tenant SaaS Platform
+
+### Purpose
+Nexoraa CleanSoft is designed as a Software-as-a-Service platform where multiple businesses share the same application while keeping their data completely isolated.
+
+### Key Characteristics
+- One application for multiple businesses.
+- Complete tenant data isolation.
+- Independent configurations.
+- Shared infrastructure.
+- Automatic software updates.
+
+# Business Value
+Businesses benefit from enterprise-grade software without maintaining their own servers or infrastructure.
+
+---
+
+## 2.4 Scalability
+
+### Objectives
+The system must support growth from a single-branch business to a multi-branch enterprise without architectural changes.
+
+### Design Principles
+- Modular architecture.
+- Horizontal scalability.
+- High availability.
+- Optimized database design.
+- Efficient caching strategy.
+
+### Long-Term Vision
+The platform should be capable of serving thousands of tenants and millions of transactions while maintaining performance and reliability.
+
+# Software Architecture Philosophy
+
+## Modular Architecture
+
+### Purpose
+
+Nexoraa CleanSoft follows a modular architecture where every business capability is developed as an independent module. Each module has a clearly defined responsibility and communicates with other modules through standardized interfaces rather than direct dependencies. This approach makes the system easier to develop, test, maintain, and extend over time.
+
+### Benefits
+
+- Independent development of each module.
+- Easier maintenance and debugging.
+- Better scalability.
+- Reduced coupling between modules.
+- Faster onboarding for new developers.
+- Future modules can be added without affecting existing functionality.
+
+### Modules Included
+
+- Authentication
+- Multi-Tenancy
+- Branch Management
+- User Management
+- Customer Management
+- Service Management
+- Order Management
+- Payment Management
+- Expense Management
+- Notification Management
+- Reports
+- Dashboard
+- Search
+- Settings
+- Audit Logs
+
+---
+
+## Multi-Tenant Architecture
+
+### Purpose
+
+The ERP is designed as a Software-as-a-Service (SaaS) platform where multiple businesses share the same application while maintaining complete isolation of their data. Every business registered on the platform is treated as an independent tenant with its own branches, users, customers, services, orders, and settings.
+
+### Key Characteristics
+
+- One platform serves multiple businesses.
+- Every tenant has isolated data.
+- Independent business configurations.
+- Separate branding for each tenant.
+- Independent subscription plans.
+- Independent reports and dashboards.
+
+### Advantages
+
+- Lower infrastructure cost.
+- Easy maintenance.
+- Centralized software updates.
+- Better resource utilization.
+- Enterprise-grade security.
+- Highly scalable architecture.
+
+---
+
+## Branch-Based Operations
+
+### Purpose
+
+A tenant may operate one or multiple branches. Each branch performs day-to-day business operations independently while remaining connected to the organization's centralized database.
+
+### Branch Responsibilities
+
+- Customer handling.
+- Order processing.
+- Payment collection.
+- Expense management.
+- Delivery management.
+- Staff management.
+- Daily reporting.
+
+### Business Advantages
+
+- Centralized monitoring.
+- Independent branch performance.
+- Branch-level reporting.
+- Better operational visibility.
+- Simplified expansion to new locations.
+
+---
+
+## Centralized Data Management
+
+### Purpose
+
+Instead of storing information in multiple disconnected systems, Nexoraa CleanSoft maintains a single source of truth. Every module shares the same centralized database while following strict tenant and branch isolation rules.
+
+### Data Managed
+
+- Customers
+- Users
+- Branches
+- Orders
+- Payments
+- Services
+- Expenses
+- Reports
+- Notifications
+- Audit Logs
+
+### Benefits
+
+- Eliminates duplicate records.
+- Maintains data consistency.
+- Improves reporting accuracy.
+- Simplifies business analytics.
+- Reduces synchronization issues.
+
+---
+
+## API-First Development
+
+### Purpose
+
+Every business capability is exposed through secure REST APIs. Both the web application and Flutter mobile application consume the same APIs, ensuring consistent business logic across all platforms.
+
+### Advantages
+
+- Shared business logic.
+- Platform independence.
+- Easier third-party integrations.
+- Simplified testing.
+- Better maintainability.
+- Future API expansion.
+
+### Future Integrations
+
+- Payment Gateways
+- WhatsApp Business API
+- SMS Providers
+- Email Services
+- Accounting Software
+- CRM Platforms
+- Shipping Providers
+- AI Services
+
+---
+
+## Security by Design
+
+### Purpose
+
+Security is considered a core architectural principle rather than an afterthought. Every request is authenticated, authorized, validated, and audited before business operations are performed.
+
+### Security Principles
+
+- JWT Authentication.
+- Role-Based Access Control (RBAC).
+- Tenant Isolation.
+- Branch Isolation.
+- Secure Password Storage.
+- Input Validation.
+- Audit Logging.
+- Rate Limiting.
+- Secure API Access.
+
+### Expected Outcome
+
+The platform ensures that users can only access data and perform actions permitted by their assigned roles while protecting business information against unauthorized access.
+
+---
+
+## Scalability Strategy
+
+### Purpose
+
+The system is designed to support businesses of all sizes, from a single local shop to large enterprises operating multiple branches across different cities.
+
+### Scalability Features
+
+- Modular backend architecture.
+- Independent business modules.
+- Efficient database indexing.
+- Background job processing.
+- Redis caching.
+- Queue-based processing.
+- Horizontal scaling capability.
+- Cloud-native deployment.
+
+### Long-Term Vision
+
+The architecture should support thousands of businesses, millions of customers, and high daily transaction volumes while maintaining reliability, performance, and data security.
+
+---
+
+## Future Vision
+
+### Product Evolution
+
+Nexoraa CleanSoft is intended to become more than an ERP. It is envisioned as a complete digital operating platform for service businesses, continuously evolving to meet changing business needs.
+
+### Future Enhancements
+
+- AI-powered business insights.
+- Predictive analytics.
+- Smart inventory recommendations.
+- Voice-assisted operations.
+- Customer mobile application.
+- Employee mobile application.
+- Advanced workflow automation.
+- IoT device integration.
+- Business intelligence dashboards.
+- Marketplace integrations.
+
+### Final Goal
+
+The long-term objective is to build a unified, intelligent, cloud-native ERP platform that enables service businesses to manage their complete operations efficiently, scale confidently, and make data-driven decisions while delivering an exceptional customer experience.
