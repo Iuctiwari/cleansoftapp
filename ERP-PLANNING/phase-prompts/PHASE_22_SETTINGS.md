@@ -103,7 +103,7 @@ Do not implement anything listed as out of scope. Do not leave simulated success
 
 ## Coding Standards
 
-- Preserve the monorepo boundaries: deployable applications remain in apps/*, reusable infrastructure in packages/*, planning in ERP-PLANNING/*, documentation in docs/*, and deployment assets in docker/* or infra/*.
+- Preserve the monorepo boundaries: backend deployables remain in apps/backend/*, the Flutter application remains in apps/mobile-app, reusable infrastructure in packages/*, planning in ERP-PLANNING/*, documentation in docs/*, and deployment assets in docker/* or infra/*.
 - Use Node.js 22+, pnpm 10, strict TypeScript with no implicit any, NestJS dependency injection, class-validator/class-transformer DTO boundaries, and Mongoose repositories with explicit tenant-aware indexes.
 - Keep controllers and transport handlers thin; place invariants in testable application/domain services and persistence details behind repositories/adapters.
 - Use structured redacted logs, correlation/causation IDs, typed configuration validated at startup, stable machine-readable errors, UTC timestamps, opaque IDs, optimistic concurrency, and integer minor units for money.

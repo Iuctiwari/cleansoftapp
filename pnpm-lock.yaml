@@ -21,7 +21,7 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
 
-  apps/api-gateway:
+  apps/backend/api-gateway:
     dependencies:
       '@nestjs/common':
         specifier: ^11.1.28
@@ -118,7 +118,7 @@ importers:
         specifier: 8.65.0
         version: 8.65.0(eslint@10.8.0)(typescript@5.8.3)
 
-  apps/audit-service:
+  apps/backend/audit-service:
     dependencies:
       '@nestjs/common':
         specifier: 11.1.0
@@ -145,7 +145,7 @@ importers:
         specifier: 7.8.2
         version: 7.8.2
 
-  apps/auth-service:
+  apps/backend/auth-service:
     dependencies:
       '@nestjs/common':
         specifier: 11.1.0
@@ -172,7 +172,7 @@ importers:
         specifier: 7.8.2
         version: 7.8.2
 
-  apps/branch-service:
+  apps/backend/branch-service:
     dependencies:
       '@nestjs/common':
         specifier: 11.1.0
@@ -199,7 +199,7 @@ importers:
         specifier: 7.8.2
         version: 7.8.2
 
-  apps/customer-service:
+  apps/backend/customer-service:
     dependencies:
       '@nestjs/common':
         specifier: 11.1.0
@@ -226,7 +226,7 @@ importers:
         specifier: 7.8.2
         version: 7.8.2
 
-  apps/expense-service:
+  apps/backend/expense-service:
     dependencies:
       '@nestjs/common':
         specifier: 11.1.0
@@ -255,7 +255,7 @@ importers:
 
   apps/mobile-app: {}
 
-  apps/notification-service:
+  apps/backend/notification-service:
     dependencies:
       '@nestjs/common':
         specifier: 11.1.0
@@ -282,7 +282,7 @@ importers:
         specifier: 7.8.2
         version: 7.8.2
 
-  apps/order-service:
+  apps/backend/order-service:
     dependencies:
       '@nestjs/common':
         specifier: 11.1.0
@@ -309,7 +309,7 @@ importers:
         specifier: 7.8.2
         version: 7.8.2
 
-  apps/payment-service:
+  apps/backend/payment-service:
     dependencies:
       '@nestjs/common':
         specifier: 11.1.0
@@ -336,7 +336,7 @@ importers:
         specifier: 7.8.2
         version: 7.8.2
 
-  apps/report-service:
+  apps/backend/report-service:
     dependencies:
       '@nestjs/common':
         specifier: 11.1.0
@@ -363,7 +363,7 @@ importers:
         specifier: 7.8.2
         version: 7.8.2
 
-  apps/scheduler-service:
+  apps/backend/scheduler-service:
     dependencies:
       '@nestjs/common':
         specifier: 11.1.0
@@ -390,7 +390,7 @@ importers:
         specifier: 7.8.2
         version: 7.8.2
 
-  apps/search-service:
+  apps/backend/search-service:
     dependencies:
       '@nestjs/common':
         specifier: 11.1.0
@@ -417,7 +417,7 @@ importers:
         specifier: 7.8.2
         version: 7.8.2
 
-  apps/service-service:
+  apps/backend/service-service:
     dependencies:
       '@nestjs/common':
         specifier: 11.1.0
@@ -444,7 +444,7 @@ importers:
         specifier: 7.8.2
         version: 7.8.2
 
-  apps/tenant-service:
+  apps/backend/tenant-service:
     dependencies:
       '@nestjs/common':
         specifier: 11.1.0
@@ -471,7 +471,7 @@ importers:
         specifier: 7.8.2
         version: 7.8.2
 
-  apps/user-service:
+  apps/backend/user-service:
     dependencies:
       '@nestjs/common':
         specifier: 11.1.0
@@ -497,8 +497,6 @@ importers:
       rxjs:
         specifier: 7.8.2
         version: 7.8.2
-
-  apps/web-frontend: {}
 
   packages/common: {}
 

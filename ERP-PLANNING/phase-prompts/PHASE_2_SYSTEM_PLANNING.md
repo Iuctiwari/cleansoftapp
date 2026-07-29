@@ -294,21 +294,21 @@ Every backend application remains an explicit deployable unit. During early deve
 
 | Application | Primary responsibility | Authoritative ownership |
 |---|---|---|
-| `apps/api-gateway/` | Public ingress, transport policy, request correlation, context propagation, throttling, compatibility | No domain records |
-| `apps/auth-service/` | Credentials, login, access/refresh sessions, lockout, OTP, password lifecycle | Authentication and session records |
-| `apps/tenant-service/` | Tenant onboarding, lifecycle, plans, entitlements, terminology, business settings | Tenants, subscriptions, settings |
-| `apps/branch-service/` | Branch identity, lifecycle, contact, operating context | Branches |
-| `apps/user-service/` | Staff, roles, permissions, invitations, branch assignment | Users and authorization assignments |
-| `apps/customer-service/` | Customer profiles, walk-in policy, customer summaries | Customers and customer projections |
-| `apps/service-service/` | Services, item categories, pricing types, branch availability | Tenant catalog |
-| `apps/order-service/` | Orders, items, pricing snapshots, status history, assignments, delivery | Order and delivery lifecycle |
-| `apps/payment-service/` | Payments, refunds, adjustments, receipts, settlement state | Payment and receipt records |
-| `apps/expense-service/` | Expenses, categories, cash registers, cash reconciliation | Expenses and registers |
-| `apps/notification-service/` | In-app notifications, templates, external dispatch, delivery state | Notification records and templates |
-| `apps/report-service/` | Dashboard projections, reports, exports | Reporting read models and export jobs |
-| `apps/audit-service/` | Immutable tenant and platform audit evidence | Audit records |
-| `apps/search-service/` | Tenant/branch-scoped search projections | Search indexes and search projections |
-| `apps/scheduler-service/` | Schedules, orchestration triggers, job visibility | Schedule definitions and orchestration state |
+| `apps/backend/api-gateway/` | Public ingress, transport policy, request correlation, context propagation, throttling, compatibility | No domain records |
+| `apps/backend/auth-service/` | Credentials, login, access/refresh sessions, lockout, OTP, password lifecycle | Authentication and session records |
+| `apps/backend/tenant-service/` | Tenant onboarding, lifecycle, plans, entitlements, terminology, business settings | Tenants, subscriptions, settings |
+| `apps/backend/branch-service/` | Branch identity, lifecycle, contact, operating context | Branches |
+| `apps/backend/user-service/` | Staff, roles, permissions, invitations, branch assignment | Users and authorization assignments |
+| `apps/backend/customer-service/` | Customer profiles, walk-in policy, customer summaries | Customers and customer projections |
+| `apps/backend/service-service/` | Services, item categories, pricing types, branch availability | Tenant catalog |
+| `apps/backend/order-service/` | Orders, items, pricing snapshots, status history, assignments, delivery | Order and delivery lifecycle |
+| `apps/backend/payment-service/` | Payments, refunds, adjustments, receipts, settlement state | Payment and receipt records |
+| `apps/backend/expense-service/` | Expenses, categories, cash registers, cash reconciliation | Expenses and registers |
+| `apps/backend/notification-service/` | In-app notifications, templates, external dispatch, delivery state | Notification records and templates |
+| `apps/backend/report-service/` | Dashboard projections, reports, exports | Reporting read models and export jobs |
+| `apps/backend/audit-service/` | Immutable tenant and platform audit evidence | Audit records |
+| `apps/backend/search-service/` | Tenant/branch-scoped search projections | Search indexes and search projections |
+| `apps/backend/scheduler-service/` | Schedules, orchestration triggers, job visibility | Schedule definitions and orchestration state |
 
 ### Boundary decisions
 

@@ -128,7 +128,7 @@
 ## Architecture Requirements
 
 - Use the approved User owning service or module.
-- Use `apps/user-service/` when supported by current architecture.
+- Use `apps/backend/user-service/` when supported by current architecture.
 - Do not create a competing user service.
 - Keep Authentication credential ownership separate.
 - Keep controllers thin.

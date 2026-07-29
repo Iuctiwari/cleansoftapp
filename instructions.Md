@@ -1,6 +1,6 @@
 # Nexoraa CleanSoft — Getting Started
 
-This guide explains how to prepare and run the complete Nexoraa CleanSoft monorepo for local development. It is intended for new developers working on the NestJS API gateway, Flutter web application, Flutter mobile application, shared packages, and local Docker services.
+This guide explains how to prepare and run the complete Nexoraa CleanSoft monorepo for local development. It is intended for new developers working on the NestJS API gateway, Flutter mobile application, shared packages, and local Docker services.
 
 All paths in this document are relative to the repository root unless an absolute path is explicitly required.
 
@@ -9,7 +9,6 @@ All paths in this document are relative to the repository root unless an absolut
 Nexoraa CleanSoft is an enterprise multi-tenant ERP monorepo. The repository currently contains:
 
 - A NestJS API gateway and backend service foundations.
-- A Flutter web application.
 - A Flutter Android/iOS mobile application.
 - Shared TypeScript packages.
 - MongoDB and Redis development containers.
@@ -37,7 +36,7 @@ D:\flutter\nexoraa-cleansoft
 
 ### Expected result
 
-After completing this guide, MongoDB and Redis should be running in Docker, the API gateway should answer at `http://localhost:3000/api/v1/health`, Flutter web should run in Chrome, and Flutter mobile should run on an Android emulator.
+After completing this guide, MongoDB and Redis should be running in Docker, the API gateway should answer at `http://localhost:3000/api/v1/health`, and Flutter mobile should run on an Android emulator.
 
 ### Common errors
 
@@ -66,7 +65,6 @@ nexoraa-cleansoft/
 │   ├── report-service/          Reporting service foundation
 │   ├── audit-service/           Audit service foundation
 │   ├── search-service/          Search service foundation
-│   ├── web-frontend/            Flutter web application
 │   └── mobile-app/              Flutter Android/iOS application
 ├── packages/                    Reusable TypeScript workspace packages
 │   ├── common/                  Common infrastructure primitives
@@ -118,7 +116,7 @@ Install the following tools before setting up the repository.
 | Node.js | `22.13.0` or newer Node.js 22 release | NestJS, pnpm, Turbo, and scripts |
 | pnpm | `10.13.1` recommended; `10.x` supported | Root workspace package manager |
 | npm | Included with Node.js | Independent API-gateway commands requested by this repository |
-| Flutter SDK | Stable release compatible with Flutter `3.38+` | Flutter web and mobile development |
+| Flutter SDK | Stable release compatible with Flutter `3.38+` | Flutter mobile development |
 | Dart SDK | Bundled with Flutter; Dart `3.10+` recommended | Flutter compilation and analysis |
 | Android Studio | Current stable release | Android SDK, emulator, AVD, and mobile tooling |
 | Android SDK | Installed through Android Studio | Android compilation and emulation |
@@ -177,14 +175,7 @@ cd D:\flutter\nexoraa-cleansoft
 pnpm install
 ```
 
-Then fetch Flutter dependencies independently for each Flutter application.
-
-Folder: `apps/web-frontend`
-
-```powershell
-cd D:\flutter\nexoraa-cleansoft\apps\web-frontend
-flutter pub get
-```
+Then fetch Flutter dependencies for the mobile application.
 
 Folder: `apps/mobile-app`
 
@@ -195,8 +186,8 @@ flutter pub get
 
 ### Expected output
 
-- `pnpm install` discovers packages under `apps/*` and `packages/*`, resolves dependencies, and finishes without an error.
-- Each `flutter pub get` resolves the application packages and prints a successful dependency-resolution message.
+- `pnpm install` discovers packages under `apps/*`, `apps/backend/*`, and `packages/*`, resolves dependencies, and finishes without an error.
+- `flutter pub get` resolves the mobile application packages and prints a successful dependency-resolution message.
 - Local generated folders such as `node_modules` and `.dart_tool` are created.
 
 ### Common errors
@@ -209,7 +200,7 @@ flutter pub get
 
 ## Environment Configuration
 
-The monorepo uses separate environment files for root Docker services, the API gateway, Flutter web, and Flutter mobile. Never commit credentials, tokens, private keys, or production values.
+The monorepo uses separate environment files for root Docker services, the API gateway, and Flutter mobile. Never commit credentials, tokens, private keys, or production values.
 
 ### Root Docker environment
 
@@ -234,10 +225,10 @@ LOG_LEVEL=debug
 
 ### API gateway environment
 
-Command location: `apps/api-gateway`
+Command location: `apps/backend/api-gateway`
 
 ```powershell
-cd D:\flutter\nexoraa-cleansoft\apps\api-gateway
+cd D:\flutter\nexoraa-cleansoft\apps\backend\api-gateway
 Copy-Item .env.example .env
 ```
 
@@ -250,23 +241,6 @@ HOST=0.0.0.0
 PORT=3000
 API_PREFIX=api
 API_VERSION=v1
-```
-
-### Flutter web environment
-
-Command location: `apps/web-frontend`
-
-```powershell
-cd D:\flutter\nexoraa-cleansoft\apps\web-frontend
-Copy-Item .env.example .env
-```
-
-Recommended local values:
-
-```dotenv
-APP_NAME=Nexoraa CleanSoft
-APP_ENV=development
-API_BASE_URL=http://localhost:3000/api/v1
 ```
 
 ### Flutter mobile environment
@@ -290,7 +264,7 @@ Each application folder should contain an untracked `.env` file. The API gateway
 ### Common errors
 
 - **`Copy-Item` says the destination exists:** Inspect the existing local `.env` and update only the required development values.
-- **API gateway reports a required variable:** Compare `apps/api-gateway/.env` with `apps/api-gateway/.env.example`.
+- **API gateway reports a required variable:** Compare `apps/backend/api-gateway/.env` with `apps/backend/api-gateway/.env.example`.
 - **Flutter reports `.env` as a missing asset:** Confirm `.env` exists in the same folder as that application's `pubspec.yaml`, then run `flutter pub get`.
 - **Mobile app cannot reach `localhost:3000`:** Use `http://10.0.2.2:3000` for the standard Android emulator. A physical device requires a reachable host LAN address and appropriate firewall configuration.
 - **A secret was committed:** Stop using it, rotate it through the approved secret-management process, and remove it from Git history using the team's security procedure.
@@ -301,10 +275,10 @@ The currently runnable NestJS backend application is the API gateway.
 
 ### Command location
 
-Folder: `apps/api-gateway`
+Folder: `apps/backend/api-gateway`
 
 ```powershell
-cd D:\flutter\nexoraa-cleansoft\apps\api-gateway
+cd D:\flutter\nexoraa-cleansoft\apps\backend\api-gateway
 ```
 
 Install the API gateway dependencies independently when required:
@@ -352,65 +326,19 @@ Expected health response:
 
 - `npm install` finishes without changing declared dependency versions and prepares local `node_modules`.
 - `npm run start:dev` starts NestJS in watch mode and logs that the API gateway is listening on port `3000`.
-- `npm run build` creates or refreshes `apps/api-gateway/dist`.
+- `npm run build` creates or refreshes `apps/backend/api-gateway/dist`.
 - `npm test` exits successfully; while no tests exist, the configured command may report that no tests were found and exit with code `0`.
 - The health request returns HTTP `200` and the JSON shown above.
 
 ### Common errors
 
-- **`EADDRINUSE` on port 3000:** Stop the process using port `3000` or choose another unused `PORT` in `apps/api-gateway/.env`.
-- **Missing environment variable:** Recreate `apps/api-gateway/.env` from `.env.example`.
-- **`npm` cannot resolve packages:** Confirm Node.js 22 and network/registry settings, then retry from `apps/api-gateway`.
+- **`EADDRINUSE` on port 3000:** Stop the process using port `3000` or choose another unused `PORT` in `apps/backend/api-gateway/.env`.
+- **Missing environment variable:** Recreate `apps/backend/api-gateway/.env` from `.env.example`.
+- **`npm` cannot resolve packages:** Confirm Node.js 22 and network/registry settings, then retry from `apps/backend/api-gateway`.
 - **Health endpoint returns 404:** Confirm the URL includes both `/api` and `/v1`, and verify `API_PREFIX=api` and `API_VERSION=v1`.
-- **TypeScript compilation fails:** Run `npm run typecheck` from `apps/api-gateway`, review the first error, and do not bypass strict compiler rules.
-- **Formatting or lint failures:** Run `npm run format` and `npm run lint` from `apps/api-gateway`, then review the resulting changes.
+- **TypeScript compilation fails:** Run `npm run typecheck` from `apps/backend/api-gateway`, review the first error, and do not bypass strict compiler rules.
+- **Formatting or lint failures:** Run `npm run format` and `npm run lint` from `apps/backend/api-gateway`, then review the resulting changes.
 - **Mixed package-manager state:** The monorepo uses pnpm at root while the API gateway also has an npm lockfile. Do not alternate package managers in the same folder unless the team intends to update dependency state.
-
-## Flutter Web Setup
-
-The Flutter web application is located at `apps/web-frontend`.
-
-### Command location
-
-Folder: `apps/web-frontend`
-
-```powershell
-cd D:\flutter\nexoraa-cleansoft\apps\web-frontend
-```
-
-Fetch dependencies:
-
-```powershell
-flutter pub get
-```
-
-Start the application in Chrome:
-
-```powershell
-flutter run -d chrome
-```
-
-Build production web assets:
-
-```powershell
-flutter build web
-```
-
-### Expected output
-
-- `flutter pub get` reports that dependencies were resolved.
-- `flutter run -d chrome` starts a Flutter development session and opens Chrome.
-- `flutter build web` creates production assets under `apps/web-frontend/build/web`.
-- The browser displays the Nexoraa CleanSoft Flutter web foundation.
-
-### Common errors
-
-- **Chrome is not available:** Install Google Chrome and run `flutter devices` from `apps/web-frontend` to confirm the `chrome` device appears.
-- **Web support is disabled:** Run `flutter config --enable-web` from any folder, then restart the terminal and check `flutter devices`.
-- **`.env` cannot be loaded:** Create `apps/web-frontend/.env` from `.env.example` and rerun `flutter pub get`.
-- **Backend requests fail:** Start the API gateway, verify its health endpoint, and ensure `API_BASE_URL=http://localhost:3000/api/v1`.
-- **CORS error in the browser:** Confirm the API gateway is running with CORS enabled and that the browser is calling the expected local URL.
-- **Port conflict:** Use `flutter run -d chrome --web-port 8081` from `apps/web-frontend`, substituting an available port.
 
 ## Flutter Mobile Setup
 
@@ -698,15 +626,15 @@ Expected results:
 Common errors:
 
 - **Turbo says no task exists for a package:** That workspace does not yet expose the requested script.
-- **Multiple Flutter applications start unexpectedly with `pnpm dev`:** Root development mode is parallel. For controlled startup, use each application's folder-specific command.
+- **Multiple applications start unexpectedly with `pnpm dev`:** Root development mode is parallel. For controlled startup, use each application's folder-specific command.
 - **`pnpm verify` fails after documentation or implementation work:** The original verifier may enforce scaffold-era expectations. Review its reported rule and current project phase before changing files.
 
 ### API gateway commands
 
-Command location: `apps/api-gateway`
+Command location: `apps/backend/api-gateway`
 
 ```powershell
-cd D:\flutter\nexoraa-cleansoft\apps\api-gateway
+cd D:\flutter\nexoraa-cleansoft\apps\backend\api-gateway
 npm run start:dev
 npm run typecheck
 npm run lint
@@ -719,23 +647,6 @@ npm run start:prod
 Expected results: development watch mode starts, static checks pass, tests exit successfully, `dist` is generated, and production mode runs the compiled application.
 
 Common errors: verify `.env`, Node.js version, installed dependencies, port availability, and the first reported TypeScript/ESLint error.
-
-### Flutter web commands
-
-Command location: `apps/web-frontend`
-
-```powershell
-cd D:\flutter\nexoraa-cleansoft\apps\web-frontend
-flutter pub get
-flutter analyze
-flutter test
-flutter run -d chrome
-flutter build web
-```
-
-Expected results: dependencies resolve, analysis/tests pass, Chrome opens in development mode, and `build/web` is created.
-
-Common errors: verify Flutter web support, Chrome detection, `.env`, and API gateway/CORS availability.
 
 ### Flutter mobile commands
 
@@ -781,35 +692,20 @@ Common error: if a port is occupied, resolve the conflict before starting the ba
 
 Open a second terminal.
 
-Command location: `apps/api-gateway`
+Command location: `apps/backend/api-gateway`
 
 ```powershell
-cd D:\flutter\nexoraa-cleansoft\apps\api-gateway
+cd D:\flutter\nexoraa-cleansoft\apps\backend\api-gateway
 npm run start:dev
 ```
 
 Expected output: NestJS listens on `0.0.0.0:3000`, and `/api/v1/health` returns HTTP `200`.
 
-Common error: if configuration validation fails, repair `apps/api-gateway/.env`.
+Common error: if configuration validation fails, repair `apps/backend/api-gateway/.env`.
 
-### 3. Start Flutter Web
+### 3. Start Flutter Mobile
 
-Open a third terminal.
-
-Command location: `apps/web-frontend`
-
-```powershell
-cd D:\flutter\nexoraa-cleansoft\apps\web-frontend
-flutter run -d chrome
-```
-
-Expected output: Chrome opens the Flutter web application.
-
-Common error: if Chrome is not listed, check `flutter devices` and enable Flutter web support.
-
-### 4. Start Flutter Mobile
-
-Start the AVD in Android Studio Device Manager or from the command line, then open a fourth terminal.
+Start the AVD in Android Studio Device Manager or from the command line, then open a third terminal.
 
 Command location: `apps/mobile-app`
 
@@ -918,9 +814,9 @@ Solutions:
 
 ### Reset Flutter generated output
 
-Use this only for the affected Flutter application.
+Use this only for the Flutter mobile application.
 
-Command location: `apps/web-frontend` or `apps/mobile-app`
+Command location: `apps/mobile-app`
 
 ```powershell
 flutter clean
@@ -945,10 +841,9 @@ Expected output: generated build state is recreated and checks run against a cle
 |---|---|---|
 | Root pnpm/Turbo commands | Repository Root | `.` |
 | Docker Compose | Repository Root | `.` |
-| NestJS API gateway | API gateway folder | `apps/api-gateway` |
-| Flutter web | Web application folder | `apps/web-frontend` |
+| NestJS API gateway | API gateway folder | `apps/backend/api-gateway` |
 | Flutter mobile | Mobile application folder | `apps/mobile-app` |
-| Backend service foundations | Individual service folder | `apps/*-service` |
+| Backend service foundations | Individual service folder | `apps/backend/*-service` |
 | Shared TypeScript packages | Individual package folder | `packages/*` |
 | General documentation | Documentation folder | `docs` |
 | ERP planning and phase prompts | Planning folder | `ERP-PLANNING` |
@@ -998,10 +893,10 @@ Common error: create the root `.env` when Compose cannot resolve port variables.
 
 ### Terminal 2 — API gateway
 
-Command location: `apps/api-gateway`
+Command location: `apps/backend/api-gateway`
 
 ```powershell
-cd D:\flutter\nexoraa-cleansoft\apps\api-gateway
+cd D:\flutter\nexoraa-cleansoft\apps\backend\api-gateway
 npm install
 npm run start:dev
 ```
@@ -1010,21 +905,7 @@ Expected output: the API gateway listens on port `3000`.
 
 Common error: copy `.env.example` to `.env` and resolve port `3000` conflicts.
 
-### Terminal 3 — Flutter web
-
-Command location: `apps/web-frontend`
-
-```powershell
-cd D:\flutter\nexoraa-cleansoft\apps\web-frontend
-flutter pub get
-flutter run -d chrome
-```
-
-Expected output: Chrome opens the Flutter web application.
-
-Common error: install/detect Chrome and create `apps/web-frontend/.env`.
-
-### Terminal 4 — Flutter mobile
+### Terminal 3 — Flutter mobile
 
 Start an AVD in Android Studio first.
 
@@ -1062,5 +943,4 @@ The recommended development order is always:
 
 1. Start Docker.
 2. Start Backend.
-3. Start Flutter Web.
-4. Start Flutter Mobile.
+3. Start Flutter Mobile.

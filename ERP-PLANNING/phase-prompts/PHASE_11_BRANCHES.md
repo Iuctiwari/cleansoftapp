@@ -194,7 +194,7 @@
 ## Architecture Requirements
 
 - Use the approved Branch owning service or module.
-- Use `apps/branch-service/` only when current architecture supports it.
+- Use `apps/backend/branch-service/` only when current architecture supports it.
 - Do not create a competing service.
 - Keep controllers thin.
 - Keep business invariants in domain or application services.

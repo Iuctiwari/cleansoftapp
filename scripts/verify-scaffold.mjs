@@ -37,8 +37,8 @@ for (const file of ["README.md", "LICENSE", ".gitignore", ".editorconfig", ".pre
 }
 
 for (const app of backendApps) {
-  const base = path.join(root, "apps", app);
-  exists("apps/" + app, "directory");
+  const base = path.join(root, "apps", "backend", app);
+  exists("apps/backend/" + app, "directory");
   if (fs.existsSync(base)) {
     const actual = fs.readdirSync(base).sort();
     if (JSON.stringify(actual) !== JSON.stringify(exactServiceEntries)) {
