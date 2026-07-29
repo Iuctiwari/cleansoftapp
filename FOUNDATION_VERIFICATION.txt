@@ -1,0 +1,1380 @@
+NEXORAA CLEANSOFT SCAFFOLD VERIFICATION
+Status: FAIL
+Backend services checked: 15
+Shared packages checked: 9
+Planning documents checked: 28
+Phase prompts checked: 27
+Failures: 1373
+- Missing file: README.md
+- Missing file: LICENSE
+- Missing file: .editorconfig
+- Missing file: .eslintrc
+- Missing file: .env.example
+- Unexpected service contents: api-gateway => .env, .env.example, .prettierrc, .turbo, README.md, backend-runtime.err, backend-runtime.log, dist, nest-cli.json, node_modules, package.json, src, test, tsconfig.build.json, tsconfig.json
+- Unexpected service contents: auth-service => .env.example, .turbo, README.md, dist, node_modules, package.json, src, test, tsconfig.build.json, tsconfig.json
+- Unexpected service contents: tenant-service => .env.example, .turbo, README.md, dist, node_modules, package.json, src, test, tsconfig.build.json, tsconfig.json
+- Unexpected service contents: branch-service => .env.example, .turbo, README.md, dist, node_modules, package.json, src, test, tsconfig.build.json, tsconfig.json
+- Unexpected service contents: user-service => .env.example, .turbo, README.md, dist, node_modules, package.json, src, test, tsconfig.build.json, tsconfig.json
+- Unexpected service contents: customer-service => .env.example, .turbo, README.md, dist, node_modules, package.json, src, test, tsconfig.build.json, tsconfig.json
+- Unexpected service contents: service-service => .env.example, .turbo, README.md, dist, node_modules, package.json, src, test, tsconfig.build.json, tsconfig.json
+- Unexpected service contents: order-service => .env.example, .turbo, README.md, dist, node_modules, package.json, src, test, tsconfig.build.json, tsconfig.json
+- Unexpected service contents: payment-service => .env.example, .turbo, README.md, dist, node_modules, package.json, src, test, tsconfig.build.json, tsconfig.json
+- Unexpected service contents: expense-service => .env.example, .turbo, README.md, dist, node_modules, package.json, src, test, tsconfig.build.json, tsconfig.json
+- Unexpected service contents: notification-service => .env.example, .turbo, README.md, dist, node_modules, package.json, src, test, tsconfig.build.json, tsconfig.json
+- Unexpected service contents: scheduler-service => .env.example, .turbo, README.md, dist, node_modules, package.json, src, test, tsconfig.build.json, tsconfig.json
+- Unexpected service contents: report-service => .env.example, .turbo, README.md, dist, node_modules, package.json, src, test, tsconfig.build.json, tsconfig.json
+- Unexpected service contents: audit-service => .env.example, .turbo, README.md, dist, node_modules, package.json, src, test, tsconfig.build.json, tsconfig.json
+- Unexpected service contents: search-service => .env.example, .turbo, README.md, dist, node_modules, package.json, src, test, tsconfig.build.json, tsconfig.json
+- Invalid Markdown section Purpose: apps\backend\README.md
+- Invalid Markdown section Scope: apps\backend\README.md
+- Invalid Markdown section Inputs: apps\backend\README.md
+- Invalid Markdown section Outputs: apps\backend\README.md
+- Invalid Markdown section Dependencies: apps\backend\README.md
+- Invalid Markdown section Deliverables: apps\backend\README.md
+- Invalid Markdown section Acceptance Criteria: apps\backend\README.md
+- Invalid Markdown section Notes: apps\backend\README.md
+- Non-placeholder Markdown content: apps\backend\README.md
+- Invalid Markdown section Purpose: apps\README.md
+- Invalid Markdown section Scope: apps\README.md
+- Invalid Markdown section Inputs: apps\README.md
+- Invalid Markdown section Outputs: apps\README.md
+- Invalid Markdown section Dependencies: apps\README.md
+- Invalid Markdown section Deliverables: apps\README.md
+- Invalid Markdown section Acceptance Criteria: apps\README.md
+- Invalid Markdown section Notes: apps\README.md
+- Non-placeholder Markdown content: apps\README.md
+- Invalid Markdown section Purpose: docs\deployment\README.md
+- Invalid Markdown section Scope: docs\deployment\README.md
+- Invalid Markdown section Inputs: docs\deployment\README.md
+- Invalid Markdown section Outputs: docs\deployment\README.md
+- Invalid Markdown section Dependencies: docs\deployment\README.md
+- Invalid Markdown section Deliverables: docs\deployment\README.md
+- Invalid Markdown section Acceptance Criteria: docs\deployment\README.md
+- Invalid Markdown section Notes: docs\deployment\README.md
+- Non-placeholder Markdown content: docs\deployment\README.md
+- Invalid Markdown section Purpose: ERP-PLANNING\implementation-prompts\README.md
+- Invalid Markdown section Scope: ERP-PLANNING\implementation-prompts\README.md
+- Invalid Markdown section Inputs: ERP-PLANNING\implementation-prompts\README.md
+- Invalid Markdown section Outputs: ERP-PLANNING\implementation-prompts\README.md
+- Invalid Markdown section Dependencies: ERP-PLANNING\implementation-prompts\README.md
+- Invalid Markdown section Deliverables: ERP-PLANNING\implementation-prompts\README.md
+- Invalid Markdown section Acceptance Criteria: ERP-PLANNING\implementation-prompts\README.md
+- Invalid Markdown section Notes: ERP-PLANNING\implementation-prompts\README.md
+- Non-placeholder Markdown content: ERP-PLANNING\implementation-prompts\README.md
+- Invalid Markdown section Purpose: ERP-PLANNING\phase-completions\AUDIT_PHASE_COMPLETION.md
+- Invalid Markdown section Scope: ERP-PLANNING\phase-completions\AUDIT_PHASE_COMPLETION.md
+- Invalid Markdown section Inputs: ERP-PLANNING\phase-completions\AUDIT_PHASE_COMPLETION.md
+- Invalid Markdown section Outputs: ERP-PLANNING\phase-completions\AUDIT_PHASE_COMPLETION.md
+- Invalid Markdown section Dependencies: ERP-PLANNING\phase-completions\AUDIT_PHASE_COMPLETION.md
+- Invalid Markdown section Deliverables: ERP-PLANNING\phase-completions\AUDIT_PHASE_COMPLETION.md
+- Invalid Markdown section Acceptance Criteria: ERP-PLANNING\phase-completions\AUDIT_PHASE_COMPLETION.md
+- Invalid Markdown section Notes: ERP-PLANNING\phase-completions\AUDIT_PHASE_COMPLETION.md
+- Non-placeholder Markdown content: ERP-PLANNING\phase-completions\AUDIT_PHASE_COMPLETION.md
+- Invalid Markdown section Purpose: ERP-PLANNING\phase-completions\PHASE_00_PROJECT_SETUP_COMPLETION.md
+- Invalid Markdown section Scope: ERP-PLANNING\phase-completions\PHASE_00_PROJECT_SETUP_COMPLETION.md
+- Invalid Markdown section Inputs: ERP-PLANNING\phase-completions\PHASE_00_PROJECT_SETUP_COMPLETION.md
+- Invalid Markdown section Outputs: ERP-PLANNING\phase-completions\PHASE_00_PROJECT_SETUP_COMPLETION.md
+- Invalid Markdown section Dependencies: ERP-PLANNING\phase-completions\PHASE_00_PROJECT_SETUP_COMPLETION.md
+- Invalid Markdown section Deliverables: ERP-PLANNING\phase-completions\PHASE_00_PROJECT_SETUP_COMPLETION.md
+- Invalid Markdown section Acceptance Criteria: ERP-PLANNING\phase-completions\PHASE_00_PROJECT_SETUP_COMPLETION.md
+- Invalid Markdown section Notes: ERP-PLANNING\phase-completions\PHASE_00_PROJECT_SETUP_COMPLETION.md
+- Non-placeholder Markdown content: ERP-PLANNING\phase-completions\PHASE_00_PROJECT_SETUP_COMPLETION.md
+- Invalid Markdown section Purpose: ERP-PLANNING\phase-completions\PHASE_01_AUTHENTICATION_COMPLETION.md
+- Invalid Markdown section Scope: ERP-PLANNING\phase-completions\PHASE_01_AUTHENTICATION_COMPLETION.md
+- Invalid Markdown section Inputs: ERP-PLANNING\phase-completions\PHASE_01_AUTHENTICATION_COMPLETION.md
+- Invalid Markdown section Outputs: ERP-PLANNING\phase-completions\PHASE_01_AUTHENTICATION_COMPLETION.md
+- Invalid Markdown section Dependencies: ERP-PLANNING\phase-completions\PHASE_01_AUTHENTICATION_COMPLETION.md
+- Invalid Markdown section Deliverables: ERP-PLANNING\phase-completions\PHASE_01_AUTHENTICATION_COMPLETION.md
+- Invalid Markdown section Acceptance Criteria: ERP-PLANNING\phase-completions\PHASE_01_AUTHENTICATION_COMPLETION.md
+- Invalid Markdown section Notes: ERP-PLANNING\phase-completions\PHASE_01_AUTHENTICATION_COMPLETION.md
+- Non-placeholder Markdown content: ERP-PLANNING\phase-completions\PHASE_01_AUTHENTICATION_COMPLETION.md
+- Invalid Markdown section Purpose: ERP-PLANNING\phase-completions\PHASE_02_MULTI_TENANCY_COMPLETION.md
+- Invalid Markdown section Scope: ERP-PLANNING\phase-completions\PHASE_02_MULTI_TENANCY_COMPLETION.md
+- Invalid Markdown section Inputs: ERP-PLANNING\phase-completions\PHASE_02_MULTI_TENANCY_COMPLETION.md
+- Invalid Markdown section Outputs: ERP-PLANNING\phase-completions\PHASE_02_MULTI_TENANCY_COMPLETION.md
+- Invalid Markdown section Dependencies: ERP-PLANNING\phase-completions\PHASE_02_MULTI_TENANCY_COMPLETION.md
+- Invalid Markdown section Deliverables: ERP-PLANNING\phase-completions\PHASE_02_MULTI_TENANCY_COMPLETION.md
+- Invalid Markdown section Acceptance Criteria: ERP-PLANNING\phase-completions\PHASE_02_MULTI_TENANCY_COMPLETION.md
+- Invalid Markdown section Notes: ERP-PLANNING\phase-completions\PHASE_02_MULTI_TENANCY_COMPLETION.md
+- Non-placeholder Markdown content: ERP-PLANNING\phase-completions\PHASE_02_MULTI_TENANCY_COMPLETION.md
+- Invalid Markdown section Purpose: ERP-PLANNING\phase-completions\PHASE_03_BRANCH_MANAGEMENT_COMPLETION.md
+- Invalid Markdown section Scope: ERP-PLANNING\phase-completions\PHASE_03_BRANCH_MANAGEMENT_COMPLETION.md
+- Invalid Markdown section Inputs: ERP-PLANNING\phase-completions\PHASE_03_BRANCH_MANAGEMENT_COMPLETION.md
+- Invalid Markdown section Outputs: ERP-PLANNING\phase-completions\PHASE_03_BRANCH_MANAGEMENT_COMPLETION.md
+- Invalid Markdown section Dependencies: ERP-PLANNING\phase-completions\PHASE_03_BRANCH_MANAGEMENT_COMPLETION.md
+- Invalid Markdown section Deliverables: ERP-PLANNING\phase-completions\PHASE_03_BRANCH_MANAGEMENT_COMPLETION.md
+- Invalid Markdown section Acceptance Criteria: ERP-PLANNING\phase-completions\PHASE_03_BRANCH_MANAGEMENT_COMPLETION.md
+- Invalid Markdown section Notes: ERP-PLANNING\phase-completions\PHASE_03_BRANCH_MANAGEMENT_COMPLETION.md
+- Non-placeholder Markdown content: ERP-PLANNING\phase-completions\PHASE_03_BRANCH_MANAGEMENT_COMPLETION.md
+- Invalid Markdown section Purpose: ERP-PLANNING\phase-completions\PHASE_04_USER_MANAGEMENT_COMPLETION.md
+- Invalid Markdown section Scope: ERP-PLANNING\phase-completions\PHASE_04_USER_MANAGEMENT_COMPLETION.md
+- Invalid Markdown section Inputs: ERP-PLANNING\phase-completions\PHASE_04_USER_MANAGEMENT_COMPLETION.md
+- Invalid Markdown section Outputs: ERP-PLANNING\phase-completions\PHASE_04_USER_MANAGEMENT_COMPLETION.md
+- Invalid Markdown section Dependencies: ERP-PLANNING\phase-completions\PHASE_04_USER_MANAGEMENT_COMPLETION.md
+- Invalid Markdown section Deliverables: ERP-PLANNING\phase-completions\PHASE_04_USER_MANAGEMENT_COMPLETION.md
+- Invalid Markdown section Acceptance Criteria: ERP-PLANNING\phase-completions\PHASE_04_USER_MANAGEMENT_COMPLETION.md
+- Invalid Markdown section Notes: ERP-PLANNING\phase-completions\PHASE_04_USER_MANAGEMENT_COMPLETION.md
+- Non-placeholder Markdown content: ERP-PLANNING\phase-completions\PHASE_04_USER_MANAGEMENT_COMPLETION.md
+- Invalid Markdown section Purpose: ERP-PLANNING\phase-completions\PHASE_05_CUSTOMER_MANAGEMENT_COMPLETION.md
+- Invalid Markdown section Scope: ERP-PLANNING\phase-completions\PHASE_05_CUSTOMER_MANAGEMENT_COMPLETION.md
+- Invalid Markdown section Inputs: ERP-PLANNING\phase-completions\PHASE_05_CUSTOMER_MANAGEMENT_COMPLETION.md
+- Invalid Markdown section Outputs: ERP-PLANNING\phase-completions\PHASE_05_CUSTOMER_MANAGEMENT_COMPLETION.md
+- Invalid Markdown section Dependencies: ERP-PLANNING\phase-completions\PHASE_05_CUSTOMER_MANAGEMENT_COMPLETION.md
+- Invalid Markdown section Deliverables: ERP-PLANNING\phase-completions\PHASE_05_CUSTOMER_MANAGEMENT_COMPLETION.md
+- Invalid Markdown section Acceptance Criteria: ERP-PLANNING\phase-completions\PHASE_05_CUSTOMER_MANAGEMENT_COMPLETION.md
+- Invalid Markdown section Notes: ERP-PLANNING\phase-completions\PHASE_05_CUSTOMER_MANAGEMENT_COMPLETION.md
+- Non-placeholder Markdown content: ERP-PLANNING\phase-completions\PHASE_05_CUSTOMER_MANAGEMENT_COMPLETION.md
+- Invalid Markdown section Purpose: ERP-PLANNING\phase-completions\PHASE_06_SERVICE_MANAGEMENT_COMPLETION.md
+- Invalid Markdown section Scope: ERP-PLANNING\phase-completions\PHASE_06_SERVICE_MANAGEMENT_COMPLETION.md
+- Invalid Markdown section Inputs: ERP-PLANNING\phase-completions\PHASE_06_SERVICE_MANAGEMENT_COMPLETION.md
+- Invalid Markdown section Outputs: ERP-PLANNING\phase-completions\PHASE_06_SERVICE_MANAGEMENT_COMPLETION.md
+- Invalid Markdown section Dependencies: ERP-PLANNING\phase-completions\PHASE_06_SERVICE_MANAGEMENT_COMPLETION.md
+- Invalid Markdown section Deliverables: ERP-PLANNING\phase-completions\PHASE_06_SERVICE_MANAGEMENT_COMPLETION.md
+- Invalid Markdown section Acceptance Criteria: ERP-PLANNING\phase-completions\PHASE_06_SERVICE_MANAGEMENT_COMPLETION.md
+- Invalid Markdown section Notes: ERP-PLANNING\phase-completions\PHASE_06_SERVICE_MANAGEMENT_COMPLETION.md
+- Non-placeholder Markdown content: ERP-PLANNING\phase-completions\PHASE_06_SERVICE_MANAGEMENT_COMPLETION.md
+- Invalid Markdown section Purpose: ERP-PLANNING\phase-completions\PHASE_07_ORDER_MANAGEMENT_COMPLETION.md
+- Invalid Markdown section Scope: ERP-PLANNING\phase-completions\PHASE_07_ORDER_MANAGEMENT_COMPLETION.md
+- Invalid Markdown section Inputs: ERP-PLANNING\phase-completions\PHASE_07_ORDER_MANAGEMENT_COMPLETION.md
+- Invalid Markdown section Outputs: ERP-PLANNING\phase-completions\PHASE_07_ORDER_MANAGEMENT_COMPLETION.md
+- Invalid Markdown section Dependencies: ERP-PLANNING\phase-completions\PHASE_07_ORDER_MANAGEMENT_COMPLETION.md
+- Invalid Markdown section Deliverables: ERP-PLANNING\phase-completions\PHASE_07_ORDER_MANAGEMENT_COMPLETION.md
+- Invalid Markdown section Acceptance Criteria: ERP-PLANNING\phase-completions\PHASE_07_ORDER_MANAGEMENT_COMPLETION.md
+- Invalid Markdown section Notes: ERP-PLANNING\phase-completions\PHASE_07_ORDER_MANAGEMENT_COMPLETION.md
+- Non-placeholder Markdown content: ERP-PLANNING\phase-completions\PHASE_07_ORDER_MANAGEMENT_COMPLETION.md
+- Invalid Markdown section Purpose: ERP-PLANNING\phase-completions\PHASE_08_PAYMENT_MANAGEMENT_COMPLETION.md
+- Invalid Markdown section Scope: ERP-PLANNING\phase-completions\PHASE_08_PAYMENT_MANAGEMENT_COMPLETION.md
+- Invalid Markdown section Inputs: ERP-PLANNING\phase-completions\PHASE_08_PAYMENT_MANAGEMENT_COMPLETION.md
+- Invalid Markdown section Outputs: ERP-PLANNING\phase-completions\PHASE_08_PAYMENT_MANAGEMENT_COMPLETION.md
+- Invalid Markdown section Dependencies: ERP-PLANNING\phase-completions\PHASE_08_PAYMENT_MANAGEMENT_COMPLETION.md
+- Invalid Markdown section Deliverables: ERP-PLANNING\phase-completions\PHASE_08_PAYMENT_MANAGEMENT_COMPLETION.md
+- Invalid Markdown section Acceptance Criteria: ERP-PLANNING\phase-completions\PHASE_08_PAYMENT_MANAGEMENT_COMPLETION.md
+- Invalid Markdown section Notes: ERP-PLANNING\phase-completions\PHASE_08_PAYMENT_MANAGEMENT_COMPLETION.md
+- Non-placeholder Markdown content: ERP-PLANNING\phase-completions\PHASE_08_PAYMENT_MANAGEMENT_COMPLETION.md
+- Invalid Markdown section Purpose: ERP-PLANNING\phase-completions\PHASE_09_EXPENSE_MANAGEMENT_COMPLETION.md
+- Invalid Markdown section Scope: ERP-PLANNING\phase-completions\PHASE_09_EXPENSE_MANAGEMENT_COMPLETION.md
+- Invalid Markdown section Inputs: ERP-PLANNING\phase-completions\PHASE_09_EXPENSE_MANAGEMENT_COMPLETION.md
+- Invalid Markdown section Outputs: ERP-PLANNING\phase-completions\PHASE_09_EXPENSE_MANAGEMENT_COMPLETION.md
+- Invalid Markdown section Dependencies: ERP-PLANNING\phase-completions\PHASE_09_EXPENSE_MANAGEMENT_COMPLETION.md
+- Invalid Markdown section Deliverables: ERP-PLANNING\phase-completions\PHASE_09_EXPENSE_MANAGEMENT_COMPLETION.md
+- Invalid Markdown section Acceptance Criteria: ERP-PLANNING\phase-completions\PHASE_09_EXPENSE_MANAGEMENT_COMPLETION.md
+- Invalid Markdown section Notes: ERP-PLANNING\phase-completions\PHASE_09_EXPENSE_MANAGEMENT_COMPLETION.md
+- Non-placeholder Markdown content: ERP-PLANNING\phase-completions\PHASE_09_EXPENSE_MANAGEMENT_COMPLETION.md
+- Invalid Markdown section Purpose: ERP-PLANNING\phase-completions\PHASE_10_NOTIFICATION_SYSTEM_COMPLETION.md
+- Invalid Markdown section Scope: ERP-PLANNING\phase-completions\PHASE_10_NOTIFICATION_SYSTEM_COMPLETION.md
+- Invalid Markdown section Inputs: ERP-PLANNING\phase-completions\PHASE_10_NOTIFICATION_SYSTEM_COMPLETION.md
+- Invalid Markdown section Outputs: ERP-PLANNING\phase-completions\PHASE_10_NOTIFICATION_SYSTEM_COMPLETION.md
+- Invalid Markdown section Dependencies: ERP-PLANNING\phase-completions\PHASE_10_NOTIFICATION_SYSTEM_COMPLETION.md
+- Invalid Markdown section Deliverables: ERP-PLANNING\phase-completions\PHASE_10_NOTIFICATION_SYSTEM_COMPLETION.md
+- Invalid Markdown section Acceptance Criteria: ERP-PLANNING\phase-completions\PHASE_10_NOTIFICATION_SYSTEM_COMPLETION.md
+- Invalid Markdown section Notes: ERP-PLANNING\phase-completions\PHASE_10_NOTIFICATION_SYSTEM_COMPLETION.md
+- Non-placeholder Markdown content: ERP-PLANNING\phase-completions\PHASE_10_NOTIFICATION_SYSTEM_COMPLETION.md
+- Invalid Markdown section Purpose: ERP-PLANNING\phase-completions\PHASE_11_FILE_STORAGE_COMPLETION.md
+- Invalid Markdown section Scope: ERP-PLANNING\phase-completions\PHASE_11_FILE_STORAGE_COMPLETION.md
+- Invalid Markdown section Inputs: ERP-PLANNING\phase-completions\PHASE_11_FILE_STORAGE_COMPLETION.md
+- Invalid Markdown section Outputs: ERP-PLANNING\phase-completions\PHASE_11_FILE_STORAGE_COMPLETION.md
+- Invalid Markdown section Dependencies: ERP-PLANNING\phase-completions\PHASE_11_FILE_STORAGE_COMPLETION.md
+- Invalid Markdown section Deliverables: ERP-PLANNING\phase-completions\PHASE_11_FILE_STORAGE_COMPLETION.md
+- Invalid Markdown section Acceptance Criteria: ERP-PLANNING\phase-completions\PHASE_11_FILE_STORAGE_COMPLETION.md
+- Invalid Markdown section Notes: ERP-PLANNING\phase-completions\PHASE_11_FILE_STORAGE_COMPLETION.md
+- Non-placeholder Markdown content: ERP-PLANNING\phase-completions\PHASE_11_FILE_STORAGE_COMPLETION.md
+- Invalid Markdown section Purpose: ERP-PLANNING\phase-completions\PHASE_12_SEARCH_COMPLETION.md
+- Invalid Markdown section Scope: ERP-PLANNING\phase-completions\PHASE_12_SEARCH_COMPLETION.md
+- Invalid Markdown section Inputs: ERP-PLANNING\phase-completions\PHASE_12_SEARCH_COMPLETION.md
+- Invalid Markdown section Outputs: ERP-PLANNING\phase-completions\PHASE_12_SEARCH_COMPLETION.md
+- Invalid Markdown section Dependencies: ERP-PLANNING\phase-completions\PHASE_12_SEARCH_COMPLETION.md
+- Invalid Markdown section Deliverables: ERP-PLANNING\phase-completions\PHASE_12_SEARCH_COMPLETION.md
+- Invalid Markdown section Acceptance Criteria: ERP-PLANNING\phase-completions\PHASE_12_SEARCH_COMPLETION.md
+- Invalid Markdown section Notes: ERP-PLANNING\phase-completions\PHASE_12_SEARCH_COMPLETION.md
+- Non-placeholder Markdown content: ERP-PLANNING\phase-completions\PHASE_12_SEARCH_COMPLETION.md
+- Invalid Markdown section Purpose: ERP-PLANNING\phase-completions\PHASE_13_REPORTING_COMPLETION.md
+- Invalid Markdown section Scope: ERP-PLANNING\phase-completions\PHASE_13_REPORTING_COMPLETION.md
+- Invalid Markdown section Inputs: ERP-PLANNING\phase-completions\PHASE_13_REPORTING_COMPLETION.md
+- Invalid Markdown section Outputs: ERP-PLANNING\phase-completions\PHASE_13_REPORTING_COMPLETION.md
+- Invalid Markdown section Dependencies: ERP-PLANNING\phase-completions\PHASE_13_REPORTING_COMPLETION.md
+- Invalid Markdown section Deliverables: ERP-PLANNING\phase-completions\PHASE_13_REPORTING_COMPLETION.md
+- Invalid Markdown section Acceptance Criteria: ERP-PLANNING\phase-completions\PHASE_13_REPORTING_COMPLETION.md
+- Invalid Markdown section Notes: ERP-PLANNING\phase-completions\PHASE_13_REPORTING_COMPLETION.md
+- Non-placeholder Markdown content: ERP-PLANNING\phase-completions\PHASE_13_REPORTING_COMPLETION.md
+- Invalid Markdown section Purpose: ERP-PLANNING\phase-completions\PHASE_14_DASHBOARD_COMPLETION.md
+- Invalid Markdown section Scope: ERP-PLANNING\phase-completions\PHASE_14_DASHBOARD_COMPLETION.md
+- Invalid Markdown section Inputs: ERP-PLANNING\phase-completions\PHASE_14_DASHBOARD_COMPLETION.md
+- Invalid Markdown section Outputs: ERP-PLANNING\phase-completions\PHASE_14_DASHBOARD_COMPLETION.md
+- Invalid Markdown section Dependencies: ERP-PLANNING\phase-completions\PHASE_14_DASHBOARD_COMPLETION.md
+- Invalid Markdown section Deliverables: ERP-PLANNING\phase-completions\PHASE_14_DASHBOARD_COMPLETION.md
+- Invalid Markdown section Acceptance Criteria: ERP-PLANNING\phase-completions\PHASE_14_DASHBOARD_COMPLETION.md
+- Invalid Markdown section Notes: ERP-PLANNING\phase-completions\PHASE_14_DASHBOARD_COMPLETION.md
+- Non-placeholder Markdown content: ERP-PLANNING\phase-completions\PHASE_14_DASHBOARD_COMPLETION.md
+- Invalid Markdown section Purpose: ERP-PLANNING\phase-completions\PHASE_15_BACKGROUND_JOBS_COMPLETION.md
+- Invalid Markdown section Scope: ERP-PLANNING\phase-completions\PHASE_15_BACKGROUND_JOBS_COMPLETION.md
+- Invalid Markdown section Inputs: ERP-PLANNING\phase-completions\PHASE_15_BACKGROUND_JOBS_COMPLETION.md
+- Invalid Markdown section Outputs: ERP-PLANNING\phase-completions\PHASE_15_BACKGROUND_JOBS_COMPLETION.md
+- Invalid Markdown section Dependencies: ERP-PLANNING\phase-completions\PHASE_15_BACKGROUND_JOBS_COMPLETION.md
+- Invalid Markdown section Deliverables: ERP-PLANNING\phase-completions\PHASE_15_BACKGROUND_JOBS_COMPLETION.md
+- Invalid Markdown section Acceptance Criteria: ERP-PLANNING\phase-completions\PHASE_15_BACKGROUND_JOBS_COMPLETION.md
+- Invalid Markdown section Notes: ERP-PLANNING\phase-completions\PHASE_15_BACKGROUND_JOBS_COMPLETION.md
+- Non-placeholder Markdown content: ERP-PLANNING\phase-completions\PHASE_15_BACKGROUND_JOBS_COMPLETION.md
+- Invalid Markdown section Purpose: ERP-PLANNING\phase-completions\PHASE_16_AUDIT_LOGGING_COMPLETION.md
+- Invalid Markdown section Scope: ERP-PLANNING\phase-completions\PHASE_16_AUDIT_LOGGING_COMPLETION.md
+- Invalid Markdown section Inputs: ERP-PLANNING\phase-completions\PHASE_16_AUDIT_LOGGING_COMPLETION.md
+- Invalid Markdown section Outputs: ERP-PLANNING\phase-completions\PHASE_16_AUDIT_LOGGING_COMPLETION.md
+- Invalid Markdown section Dependencies: ERP-PLANNING\phase-completions\PHASE_16_AUDIT_LOGGING_COMPLETION.md
+- Invalid Markdown section Deliverables: ERP-PLANNING\phase-completions\PHASE_16_AUDIT_LOGGING_COMPLETION.md
+- Invalid Markdown section Acceptance Criteria: ERP-PLANNING\phase-completions\PHASE_16_AUDIT_LOGGING_COMPLETION.md
+- Invalid Markdown section Notes: ERP-PLANNING\phase-completions\PHASE_16_AUDIT_LOGGING_COMPLETION.md
+- Non-placeholder Markdown content: ERP-PLANNING\phase-completions\PHASE_16_AUDIT_LOGGING_COMPLETION.md
+- Invalid Markdown section Purpose: ERP-PLANNING\phase-completions\PHASE_17_ADMIN_PANEL_COMPLETION.md
+- Invalid Markdown section Scope: ERP-PLANNING\phase-completions\PHASE_17_ADMIN_PANEL_COMPLETION.md
+- Invalid Markdown section Inputs: ERP-PLANNING\phase-completions\PHASE_17_ADMIN_PANEL_COMPLETION.md
+- Invalid Markdown section Outputs: ERP-PLANNING\phase-completions\PHASE_17_ADMIN_PANEL_COMPLETION.md
+- Invalid Markdown section Dependencies: ERP-PLANNING\phase-completions\PHASE_17_ADMIN_PANEL_COMPLETION.md
+- Invalid Markdown section Deliverables: ERP-PLANNING\phase-completions\PHASE_17_ADMIN_PANEL_COMPLETION.md
+- Invalid Markdown section Acceptance Criteria: ERP-PLANNING\phase-completions\PHASE_17_ADMIN_PANEL_COMPLETION.md
+- Invalid Markdown section Notes: ERP-PLANNING\phase-completions\PHASE_17_ADMIN_PANEL_COMPLETION.md
+- Non-placeholder Markdown content: ERP-PLANNING\phase-completions\PHASE_17_ADMIN_PANEL_COMPLETION.md
+- Invalid Markdown section Purpose: ERP-PLANNING\phase-completions\PHASE_18_MOBILE_APP_FOUNDATION_COMPLETION.md
+- Invalid Markdown section Scope: ERP-PLANNING\phase-completions\PHASE_18_MOBILE_APP_FOUNDATION_COMPLETION.md
+- Invalid Markdown section Inputs: ERP-PLANNING\phase-completions\PHASE_18_MOBILE_APP_FOUNDATION_COMPLETION.md
+- Invalid Markdown section Outputs: ERP-PLANNING\phase-completions\PHASE_18_MOBILE_APP_FOUNDATION_COMPLETION.md
+- Invalid Markdown section Dependencies: ERP-PLANNING\phase-completions\PHASE_18_MOBILE_APP_FOUNDATION_COMPLETION.md
+- Invalid Markdown section Deliverables: ERP-PLANNING\phase-completions\PHASE_18_MOBILE_APP_FOUNDATION_COMPLETION.md
+- Invalid Markdown section Acceptance Criteria: ERP-PLANNING\phase-completions\PHASE_18_MOBILE_APP_FOUNDATION_COMPLETION.md
+- Invalid Markdown section Notes: ERP-PLANNING\phase-completions\PHASE_18_MOBILE_APP_FOUNDATION_COMPLETION.md
+- Non-placeholder Markdown content: ERP-PLANNING\phase-completions\PHASE_18_MOBILE_APP_FOUNDATION_COMPLETION.md
+- Invalid Markdown section Purpose: ERP-PLANNING\phase-completions\PHASE_19_SECURITY_HARDENING_COMPLETION.md
+- Invalid Markdown section Scope: ERP-PLANNING\phase-completions\PHASE_19_SECURITY_HARDENING_COMPLETION.md
+- Invalid Markdown section Inputs: ERP-PLANNING\phase-completions\PHASE_19_SECURITY_HARDENING_COMPLETION.md
+- Invalid Markdown section Outputs: ERP-PLANNING\phase-completions\PHASE_19_SECURITY_HARDENING_COMPLETION.md
+- Invalid Markdown section Dependencies: ERP-PLANNING\phase-completions\PHASE_19_SECURITY_HARDENING_COMPLETION.md
+- Invalid Markdown section Deliverables: ERP-PLANNING\phase-completions\PHASE_19_SECURITY_HARDENING_COMPLETION.md
+- Invalid Markdown section Acceptance Criteria: ERP-PLANNING\phase-completions\PHASE_19_SECURITY_HARDENING_COMPLETION.md
+- Invalid Markdown section Notes: ERP-PLANNING\phase-completions\PHASE_19_SECURITY_HARDENING_COMPLETION.md
+- Non-placeholder Markdown content: ERP-PLANNING\phase-completions\PHASE_19_SECURITY_HARDENING_COMPLETION.md
+- Invalid Markdown section Purpose: ERP-PLANNING\phase-completions\PHASE_20_TESTING_COMPLETION.md
+- Invalid Markdown section Scope: ERP-PLANNING\phase-completions\PHASE_20_TESTING_COMPLETION.md
+- Invalid Markdown section Inputs: ERP-PLANNING\phase-completions\PHASE_20_TESTING_COMPLETION.md
+- Invalid Markdown section Outputs: ERP-PLANNING\phase-completions\PHASE_20_TESTING_COMPLETION.md
+- Invalid Markdown section Dependencies: ERP-PLANNING\phase-completions\PHASE_20_TESTING_COMPLETION.md
+- Invalid Markdown section Deliverables: ERP-PLANNING\phase-completions\PHASE_20_TESTING_COMPLETION.md
+- Invalid Markdown section Acceptance Criteria: ERP-PLANNING\phase-completions\PHASE_20_TESTING_COMPLETION.md
+- Invalid Markdown section Notes: ERP-PLANNING\phase-completions\PHASE_20_TESTING_COMPLETION.md
+- Non-placeholder Markdown content: ERP-PLANNING\phase-completions\PHASE_20_TESTING_COMPLETION.md
+- Invalid Markdown section Purpose: ERP-PLANNING\phase-completions\PHASE_21_DEVOPS_COMPLETION.md
+- Invalid Markdown section Scope: ERP-PLANNING\phase-completions\PHASE_21_DEVOPS_COMPLETION.md
+- Invalid Markdown section Inputs: ERP-PLANNING\phase-completions\PHASE_21_DEVOPS_COMPLETION.md
+- Invalid Markdown section Outputs: ERP-PLANNING\phase-completions\PHASE_21_DEVOPS_COMPLETION.md
+- Invalid Markdown section Dependencies: ERP-PLANNING\phase-completions\PHASE_21_DEVOPS_COMPLETION.md
+- Invalid Markdown section Deliverables: ERP-PLANNING\phase-completions\PHASE_21_DEVOPS_COMPLETION.md
+- Invalid Markdown section Acceptance Criteria: ERP-PLANNING\phase-completions\PHASE_21_DEVOPS_COMPLETION.md
+- Invalid Markdown section Notes: ERP-PLANNING\phase-completions\PHASE_21_DEVOPS_COMPLETION.md
+- Non-placeholder Markdown content: ERP-PLANNING\phase-completions\PHASE_21_DEVOPS_COMPLETION.md
+- Invalid Markdown section Purpose: ERP-PLANNING\phase-completions\PHASE_22_DEPLOYMENT_COMPLETION.md
+- Invalid Markdown section Scope: ERP-PLANNING\phase-completions\PHASE_22_DEPLOYMENT_COMPLETION.md
+- Invalid Markdown section Inputs: ERP-PLANNING\phase-completions\PHASE_22_DEPLOYMENT_COMPLETION.md
+- Invalid Markdown section Outputs: ERP-PLANNING\phase-completions\PHASE_22_DEPLOYMENT_COMPLETION.md
+- Invalid Markdown section Dependencies: ERP-PLANNING\phase-completions\PHASE_22_DEPLOYMENT_COMPLETION.md
+- Invalid Markdown section Deliverables: ERP-PLANNING\phase-completions\PHASE_22_DEPLOYMENT_COMPLETION.md
+- Invalid Markdown section Acceptance Criteria: ERP-PLANNING\phase-completions\PHASE_22_DEPLOYMENT_COMPLETION.md
+- Invalid Markdown section Notes: ERP-PLANNING\phase-completions\PHASE_22_DEPLOYMENT_COMPLETION.md
+- Non-placeholder Markdown content: ERP-PLANNING\phase-completions\PHASE_22_DEPLOYMENT_COMPLETION.md
+- Invalid Markdown section Purpose: ERP-PLANNING\phase-completions\PHASE_23_FINAL_VALIDATION_COMPLETION.md
+- Invalid Markdown section Scope: ERP-PLANNING\phase-completions\PHASE_23_FINAL_VALIDATION_COMPLETION.md
+- Invalid Markdown section Inputs: ERP-PLANNING\phase-completions\PHASE_23_FINAL_VALIDATION_COMPLETION.md
+- Invalid Markdown section Outputs: ERP-PLANNING\phase-completions\PHASE_23_FINAL_VALIDATION_COMPLETION.md
+- Invalid Markdown section Dependencies: ERP-PLANNING\phase-completions\PHASE_23_FINAL_VALIDATION_COMPLETION.md
+- Invalid Markdown section Deliverables: ERP-PLANNING\phase-completions\PHASE_23_FINAL_VALIDATION_COMPLETION.md
+- Invalid Markdown section Acceptance Criteria: ERP-PLANNING\phase-completions\PHASE_23_FINAL_VALIDATION_COMPLETION.md
+- Invalid Markdown section Notes: ERP-PLANNING\phase-completions\PHASE_23_FINAL_VALIDATION_COMPLETION.md
+- Non-placeholder Markdown content: ERP-PLANNING\phase-completions\PHASE_23_FINAL_VALIDATION_COMPLETION.md
+- Invalid Markdown section Purpose: ERP-PLANNING\phase-completions\PHASE_24_DOCUMENTATION_COMPLETION.md
+- Invalid Markdown section Scope: ERP-PLANNING\phase-completions\PHASE_24_DOCUMENTATION_COMPLETION.md
+- Invalid Markdown section Inputs: ERP-PLANNING\phase-completions\PHASE_24_DOCUMENTATION_COMPLETION.md
+- Invalid Markdown section Outputs: ERP-PLANNING\phase-completions\PHASE_24_DOCUMENTATION_COMPLETION.md
+- Invalid Markdown section Dependencies: ERP-PLANNING\phase-completions\PHASE_24_DOCUMENTATION_COMPLETION.md
+- Invalid Markdown section Deliverables: ERP-PLANNING\phase-completions\PHASE_24_DOCUMENTATION_COMPLETION.md
+- Invalid Markdown section Acceptance Criteria: ERP-PLANNING\phase-completions\PHASE_24_DOCUMENTATION_COMPLETION.md
+- Invalid Markdown section Notes: ERP-PLANNING\phase-completions\PHASE_24_DOCUMENTATION_COMPLETION.md
+- Non-placeholder Markdown content: ERP-PLANNING\phase-completions\PHASE_24_DOCUMENTATION_COMPLETION.md
+- Invalid Markdown section Purpose: ERP-PLANNING\phase-completions\PHASE_25_PRODUCTION_READINESS_COMPLETION.md
+- Invalid Markdown section Scope: ERP-PLANNING\phase-completions\PHASE_25_PRODUCTION_READINESS_COMPLETION.md
+- Invalid Markdown section Inputs: ERP-PLANNING\phase-completions\PHASE_25_PRODUCTION_READINESS_COMPLETION.md
+- Invalid Markdown section Outputs: ERP-PLANNING\phase-completions\PHASE_25_PRODUCTION_READINESS_COMPLETION.md
+- Invalid Markdown section Dependencies: ERP-PLANNING\phase-completions\PHASE_25_PRODUCTION_READINESS_COMPLETION.md
+- Invalid Markdown section Deliverables: ERP-PLANNING\phase-completions\PHASE_25_PRODUCTION_READINESS_COMPLETION.md
+- Invalid Markdown section Acceptance Criteria: ERP-PLANNING\phase-completions\PHASE_25_PRODUCTION_READINESS_COMPLETION.md
+- Invalid Markdown section Notes: ERP-PLANNING\phase-completions\PHASE_25_PRODUCTION_READINESS_COMPLETION.md
+- Non-placeholder Markdown content: ERP-PLANNING\phase-completions\PHASE_25_PRODUCTION_READINESS_COMPLETION.md
+- Invalid Markdown section Purpose: ERP-PLANNING\phase-completions\README.md
+- Invalid Markdown section Scope: ERP-PLANNING\phase-completions\README.md
+- Invalid Markdown section Inputs: ERP-PLANNING\phase-completions\README.md
+- Invalid Markdown section Outputs: ERP-PLANNING\phase-completions\README.md
+- Invalid Markdown section Dependencies: ERP-PLANNING\phase-completions\README.md
+- Invalid Markdown section Deliverables: ERP-PLANNING\phase-completions\README.md
+- Invalid Markdown section Acceptance Criteria: ERP-PLANNING\phase-completions\README.md
+- Invalid Markdown section Notes: ERP-PLANNING\phase-completions\README.md
+- Non-placeholder Markdown content: ERP-PLANNING\phase-completions\README.md
+- Invalid Markdown section Purpose: ERP-PLANNING\phase-prompts\AUDIT_PHASE_PROMPT.md
+- Invalid Markdown section Scope: ERP-PLANNING\phase-prompts\AUDIT_PHASE_PROMPT.md
+- Invalid Markdown section Inputs: ERP-PLANNING\phase-prompts\AUDIT_PHASE_PROMPT.md
+- Invalid Markdown section Outputs: ERP-PLANNING\phase-prompts\AUDIT_PHASE_PROMPT.md
+- Invalid Markdown section Dependencies: ERP-PLANNING\phase-prompts\AUDIT_PHASE_PROMPT.md
+- Invalid Markdown section Deliverables: ERP-PLANNING\phase-prompts\AUDIT_PHASE_PROMPT.md
+- Invalid Markdown section Acceptance Criteria: ERP-PLANNING\phase-prompts\AUDIT_PHASE_PROMPT.md
+- Invalid Markdown section Notes: ERP-PLANNING\phase-prompts\AUDIT_PHASE_PROMPT.md
+- Non-placeholder Markdown content: ERP-PLANNING\phase-prompts\AUDIT_PHASE_PROMPT.md
+- Invalid Markdown section Purpose: ERP-PLANNING\phase-prompts\PHASE_0_FOUNDATION.md
+- Invalid Markdown section Scope: ERP-PLANNING\phase-prompts\PHASE_0_FOUNDATION.md
+- Invalid Markdown section Inputs: ERP-PLANNING\phase-prompts\PHASE_0_FOUNDATION.md
+- Invalid Markdown section Outputs: ERP-PLANNING\phase-prompts\PHASE_0_FOUNDATION.md
+- Invalid Markdown section Dependencies: ERP-PLANNING\phase-prompts\PHASE_0_FOUNDATION.md
+- Invalid Markdown section Deliverables: ERP-PLANNING\phase-prompts\PHASE_0_FOUNDATION.md
+- Invalid Markdown section Acceptance Criteria: ERP-PLANNING\phase-prompts\PHASE_0_FOUNDATION.md
+- Invalid Markdown section Notes: ERP-PLANNING\phase-prompts\PHASE_0_FOUNDATION.md
+- Non-placeholder Markdown content: ERP-PLANNING\phase-prompts\PHASE_0_FOUNDATION.md
+- Invalid Markdown section Purpose: ERP-PLANNING\phase-prompts\PHASE_10_TENANTS.md
+- Invalid Markdown section Scope: ERP-PLANNING\phase-prompts\PHASE_10_TENANTS.md
+- Invalid Markdown section Inputs: ERP-PLANNING\phase-prompts\PHASE_10_TENANTS.md
+- Invalid Markdown section Outputs: ERP-PLANNING\phase-prompts\PHASE_10_TENANTS.md
+- Invalid Markdown section Dependencies: ERP-PLANNING\phase-prompts\PHASE_10_TENANTS.md
+- Invalid Markdown section Deliverables: ERP-PLANNING\phase-prompts\PHASE_10_TENANTS.md
+- Invalid Markdown section Acceptance Criteria: ERP-PLANNING\phase-prompts\PHASE_10_TENANTS.md
+- Invalid Markdown section Notes: ERP-PLANNING\phase-prompts\PHASE_10_TENANTS.md
+- Non-placeholder Markdown content: ERP-PLANNING\phase-prompts\PHASE_10_TENANTS.md
+- Invalid Markdown section Purpose: ERP-PLANNING\phase-prompts\PHASE_11_BRANCHES.md
+- Invalid Markdown section Scope: ERP-PLANNING\phase-prompts\PHASE_11_BRANCHES.md
+- Invalid Markdown section Inputs: ERP-PLANNING\phase-prompts\PHASE_11_BRANCHES.md
+- Invalid Markdown section Outputs: ERP-PLANNING\phase-prompts\PHASE_11_BRANCHES.md
+- Invalid Markdown section Dependencies: ERP-PLANNING\phase-prompts\PHASE_11_BRANCHES.md
+- Invalid Markdown section Deliverables: ERP-PLANNING\phase-prompts\PHASE_11_BRANCHES.md
+- Invalid Markdown section Acceptance Criteria: ERP-PLANNING\phase-prompts\PHASE_11_BRANCHES.md
+- Invalid Markdown section Notes: ERP-PLANNING\phase-prompts\PHASE_11_BRANCHES.md
+- Non-placeholder Markdown content: ERP-PLANNING\phase-prompts\PHASE_11_BRANCHES.md
+- Invalid Markdown section Purpose: ERP-PLANNING\phase-prompts\PHASE_12_USERS.md
+- Invalid Markdown section Scope: ERP-PLANNING\phase-prompts\PHASE_12_USERS.md
+- Invalid Markdown section Inputs: ERP-PLANNING\phase-prompts\PHASE_12_USERS.md
+- Invalid Markdown section Outputs: ERP-PLANNING\phase-prompts\PHASE_12_USERS.md
+- Invalid Markdown section Dependencies: ERP-PLANNING\phase-prompts\PHASE_12_USERS.md
+- Invalid Markdown section Deliverables: ERP-PLANNING\phase-prompts\PHASE_12_USERS.md
+- Invalid Markdown section Acceptance Criteria: ERP-PLANNING\phase-prompts\PHASE_12_USERS.md
+- Invalid Markdown section Notes: ERP-PLANNING\phase-prompts\PHASE_12_USERS.md
+- Non-placeholder Markdown content: ERP-PLANNING\phase-prompts\PHASE_12_USERS.md
+- Invalid Markdown section Purpose: ERP-PLANNING\phase-prompts\PHASE_13_CUSTOMERS.md
+- Invalid Markdown section Scope: ERP-PLANNING\phase-prompts\PHASE_13_CUSTOMERS.md
+- Invalid Markdown section Inputs: ERP-PLANNING\phase-prompts\PHASE_13_CUSTOMERS.md
+- Invalid Markdown section Outputs: ERP-PLANNING\phase-prompts\PHASE_13_CUSTOMERS.md
+- Invalid Markdown section Dependencies: ERP-PLANNING\phase-prompts\PHASE_13_CUSTOMERS.md
+- Invalid Markdown section Deliverables: ERP-PLANNING\phase-prompts\PHASE_13_CUSTOMERS.md
+- Invalid Markdown section Acceptance Criteria: ERP-PLANNING\phase-prompts\PHASE_13_CUSTOMERS.md
+- Invalid Markdown section Notes: ERP-PLANNING\phase-prompts\PHASE_13_CUSTOMERS.md
+- Non-placeholder Markdown content: ERP-PLANNING\phase-prompts\PHASE_13_CUSTOMERS.md
+- Invalid Markdown section Purpose: ERP-PLANNING\phase-prompts\PHASE_14_SERVICES.md
+- Invalid Markdown section Scope: ERP-PLANNING\phase-prompts\PHASE_14_SERVICES.md
+- Invalid Markdown section Inputs: ERP-PLANNING\phase-prompts\PHASE_14_SERVICES.md
+- Invalid Markdown section Outputs: ERP-PLANNING\phase-prompts\PHASE_14_SERVICES.md
+- Invalid Markdown section Dependencies: ERP-PLANNING\phase-prompts\PHASE_14_SERVICES.md
+- Invalid Markdown section Deliverables: ERP-PLANNING\phase-prompts\PHASE_14_SERVICES.md
+- Invalid Markdown section Acceptance Criteria: ERP-PLANNING\phase-prompts\PHASE_14_SERVICES.md
+- Invalid Markdown section Notes: ERP-PLANNING\phase-prompts\PHASE_14_SERVICES.md
+- Non-placeholder Markdown content: ERP-PLANNING\phase-prompts\PHASE_14_SERVICES.md
+- Invalid Markdown section Purpose: ERP-PLANNING\phase-prompts\PHASE_15_ORDERS.md
+- Invalid Markdown section Scope: ERP-PLANNING\phase-prompts\PHASE_15_ORDERS.md
+- Invalid Markdown section Inputs: ERP-PLANNING\phase-prompts\PHASE_15_ORDERS.md
+- Invalid Markdown section Outputs: ERP-PLANNING\phase-prompts\PHASE_15_ORDERS.md
+- Invalid Markdown section Dependencies: ERP-PLANNING\phase-prompts\PHASE_15_ORDERS.md
+- Invalid Markdown section Deliverables: ERP-PLANNING\phase-prompts\PHASE_15_ORDERS.md
+- Invalid Markdown section Acceptance Criteria: ERP-PLANNING\phase-prompts\PHASE_15_ORDERS.md
+- Invalid Markdown section Notes: ERP-PLANNING\phase-prompts\PHASE_15_ORDERS.md
+- Non-placeholder Markdown content: ERP-PLANNING\phase-prompts\PHASE_15_ORDERS.md
+- Invalid Markdown section Purpose: ERP-PLANNING\phase-prompts\PHASE_16_PAYMENTS.md
+- Invalid Markdown section Scope: ERP-PLANNING\phase-prompts\PHASE_16_PAYMENTS.md
+- Invalid Markdown section Inputs: ERP-PLANNING\phase-prompts\PHASE_16_PAYMENTS.md
+- Invalid Markdown section Outputs: ERP-PLANNING\phase-prompts\PHASE_16_PAYMENTS.md
+- Invalid Markdown section Dependencies: ERP-PLANNING\phase-prompts\PHASE_16_PAYMENTS.md
+- Invalid Markdown section Deliverables: ERP-PLANNING\phase-prompts\PHASE_16_PAYMENTS.md
+- Invalid Markdown section Acceptance Criteria: ERP-PLANNING\phase-prompts\PHASE_16_PAYMENTS.md
+- Invalid Markdown section Notes: ERP-PLANNING\phase-prompts\PHASE_16_PAYMENTS.md
+- Non-placeholder Markdown content: ERP-PLANNING\phase-prompts\PHASE_16_PAYMENTS.md
+- Invalid Markdown section Purpose: ERP-PLANNING\phase-prompts\PHASE_17_NOTIFICATIONS.md
+- Invalid Markdown section Scope: ERP-PLANNING\phase-prompts\PHASE_17_NOTIFICATIONS.md
+- Invalid Markdown section Inputs: ERP-PLANNING\phase-prompts\PHASE_17_NOTIFICATIONS.md
+- Invalid Markdown section Outputs: ERP-PLANNING\phase-prompts\PHASE_17_NOTIFICATIONS.md
+- Invalid Markdown section Dependencies: ERP-PLANNING\phase-prompts\PHASE_17_NOTIFICATIONS.md
+- Invalid Markdown section Deliverables: ERP-PLANNING\phase-prompts\PHASE_17_NOTIFICATIONS.md
+- Invalid Markdown section Acceptance Criteria: ERP-PLANNING\phase-prompts\PHASE_17_NOTIFICATIONS.md
+- Invalid Markdown section Notes: ERP-PLANNING\phase-prompts\PHASE_17_NOTIFICATIONS.md
+- Non-placeholder Markdown content: ERP-PLANNING\phase-prompts\PHASE_17_NOTIFICATIONS.md
+- Invalid Markdown section Purpose: ERP-PLANNING\phase-prompts\PHASE_18_EXPENSES.md
+- Invalid Markdown section Scope: ERP-PLANNING\phase-prompts\PHASE_18_EXPENSES.md
+- Invalid Markdown section Inputs: ERP-PLANNING\phase-prompts\PHASE_18_EXPENSES.md
+- Invalid Markdown section Outputs: ERP-PLANNING\phase-prompts\PHASE_18_EXPENSES.md
+- Invalid Markdown section Dependencies: ERP-PLANNING\phase-prompts\PHASE_18_EXPENSES.md
+- Invalid Markdown section Deliverables: ERP-PLANNING\phase-prompts\PHASE_18_EXPENSES.md
+- Invalid Markdown section Acceptance Criteria: ERP-PLANNING\phase-prompts\PHASE_18_EXPENSES.md
+- Invalid Markdown section Notes: ERP-PLANNING\phase-prompts\PHASE_18_EXPENSES.md
+- Non-placeholder Markdown content: ERP-PLANNING\phase-prompts\PHASE_18_EXPENSES.md
+- Invalid Markdown section Purpose: ERP-PLANNING\phase-prompts\PHASE_19_REPORTS.md
+- Invalid Markdown section Scope: ERP-PLANNING\phase-prompts\PHASE_19_REPORTS.md
+- Invalid Markdown section Inputs: ERP-PLANNING\phase-prompts\PHASE_19_REPORTS.md
+- Invalid Markdown section Outputs: ERP-PLANNING\phase-prompts\PHASE_19_REPORTS.md
+- Invalid Markdown section Dependencies: ERP-PLANNING\phase-prompts\PHASE_19_REPORTS.md
+- Invalid Markdown section Deliverables: ERP-PLANNING\phase-prompts\PHASE_19_REPORTS.md
+- Invalid Markdown section Acceptance Criteria: ERP-PLANNING\phase-prompts\PHASE_19_REPORTS.md
+- Invalid Markdown section Notes: ERP-PLANNING\phase-prompts\PHASE_19_REPORTS.md
+- Non-placeholder Markdown content: ERP-PLANNING\phase-prompts\PHASE_19_REPORTS.md
+- Missing Markdown title: ERP-PLANNING\phase-prompts\PHASE_1_SOFTWARE_IDEA.md
+- Invalid Markdown section Purpose: ERP-PLANNING\phase-prompts\PHASE_1_SOFTWARE_IDEA.md
+- Invalid Markdown section Scope: ERP-PLANNING\phase-prompts\PHASE_1_SOFTWARE_IDEA.md
+- Invalid Markdown section Inputs: ERP-PLANNING\phase-prompts\PHASE_1_SOFTWARE_IDEA.md
+- Invalid Markdown section Outputs: ERP-PLANNING\phase-prompts\PHASE_1_SOFTWARE_IDEA.md
+- Invalid Markdown section Dependencies: ERP-PLANNING\phase-prompts\PHASE_1_SOFTWARE_IDEA.md
+- Invalid Markdown section Deliverables: ERP-PLANNING\phase-prompts\PHASE_1_SOFTWARE_IDEA.md
+- Invalid Markdown section Acceptance Criteria: ERP-PLANNING\phase-prompts\PHASE_1_SOFTWARE_IDEA.md
+- Invalid Markdown section Notes: ERP-PLANNING\phase-prompts\PHASE_1_SOFTWARE_IDEA.md
+- Non-placeholder Markdown content: ERP-PLANNING\phase-prompts\PHASE_1_SOFTWARE_IDEA.md
+- Invalid Markdown section Purpose: ERP-PLANNING\phase-prompts\PHASE_20_DASHBOARD.md
+- Invalid Markdown section Scope: ERP-PLANNING\phase-prompts\PHASE_20_DASHBOARD.md
+- Invalid Markdown section Inputs: ERP-PLANNING\phase-prompts\PHASE_20_DASHBOARD.md
+- Invalid Markdown section Outputs: ERP-PLANNING\phase-prompts\PHASE_20_DASHBOARD.md
+- Invalid Markdown section Dependencies: ERP-PLANNING\phase-prompts\PHASE_20_DASHBOARD.md
+- Invalid Markdown section Deliverables: ERP-PLANNING\phase-prompts\PHASE_20_DASHBOARD.md
+- Invalid Markdown section Acceptance Criteria: ERP-PLANNING\phase-prompts\PHASE_20_DASHBOARD.md
+- Invalid Markdown section Notes: ERP-PLANNING\phase-prompts\PHASE_20_DASHBOARD.md
+- Non-placeholder Markdown content: ERP-PLANNING\phase-prompts\PHASE_20_DASHBOARD.md
+- Invalid Markdown section Purpose: ERP-PLANNING\phase-prompts\PHASE_21_SEARCH.md
+- Invalid Markdown section Scope: ERP-PLANNING\phase-prompts\PHASE_21_SEARCH.md
+- Invalid Markdown section Inputs: ERP-PLANNING\phase-prompts\PHASE_21_SEARCH.md
+- Invalid Markdown section Outputs: ERP-PLANNING\phase-prompts\PHASE_21_SEARCH.md
+- Invalid Markdown section Dependencies: ERP-PLANNING\phase-prompts\PHASE_21_SEARCH.md
+- Invalid Markdown section Deliverables: ERP-PLANNING\phase-prompts\PHASE_21_SEARCH.md
+- Invalid Markdown section Acceptance Criteria: ERP-PLANNING\phase-prompts\PHASE_21_SEARCH.md
+- Invalid Markdown section Notes: ERP-PLANNING\phase-prompts\PHASE_21_SEARCH.md
+- Non-placeholder Markdown content: ERP-PLANNING\phase-prompts\PHASE_21_SEARCH.md
+- Invalid Markdown section Purpose: ERP-PLANNING\phase-prompts\PHASE_22_SETTINGS.md
+- Invalid Markdown section Scope: ERP-PLANNING\phase-prompts\PHASE_22_SETTINGS.md
+- Invalid Markdown section Inputs: ERP-PLANNING\phase-prompts\PHASE_22_SETTINGS.md
+- Invalid Markdown section Outputs: ERP-PLANNING\phase-prompts\PHASE_22_SETTINGS.md
+- Invalid Markdown section Dependencies: ERP-PLANNING\phase-prompts\PHASE_22_SETTINGS.md
+- Invalid Markdown section Deliverables: ERP-PLANNING\phase-prompts\PHASE_22_SETTINGS.md
+- Invalid Markdown section Acceptance Criteria: ERP-PLANNING\phase-prompts\PHASE_22_SETTINGS.md
+- Invalid Markdown section Notes: ERP-PLANNING\phase-prompts\PHASE_22_SETTINGS.md
+- Non-placeholder Markdown content: ERP-PLANNING\phase-prompts\PHASE_22_SETTINGS.md
+- Invalid Markdown section Purpose: ERP-PLANNING\phase-prompts\PHASE_23_TESTING.md
+- Invalid Markdown section Scope: ERP-PLANNING\phase-prompts\PHASE_23_TESTING.md
+- Invalid Markdown section Inputs: ERP-PLANNING\phase-prompts\PHASE_23_TESTING.md
+- Invalid Markdown section Outputs: ERP-PLANNING\phase-prompts\PHASE_23_TESTING.md
+- Invalid Markdown section Dependencies: ERP-PLANNING\phase-prompts\PHASE_23_TESTING.md
+- Invalid Markdown section Deliverables: ERP-PLANNING\phase-prompts\PHASE_23_TESTING.md
+- Invalid Markdown section Acceptance Criteria: ERP-PLANNING\phase-prompts\PHASE_23_TESTING.md
+- Invalid Markdown section Notes: ERP-PLANNING\phase-prompts\PHASE_23_TESTING.md
+- Non-placeholder Markdown content: ERP-PLANNING\phase-prompts\PHASE_23_TESTING.md
+- Invalid Markdown section Purpose: ERP-PLANNING\phase-prompts\PHASE_24_DEPLOYMENT.md
+- Invalid Markdown section Scope: ERP-PLANNING\phase-prompts\PHASE_24_DEPLOYMENT.md
+- Invalid Markdown section Inputs: ERP-PLANNING\phase-prompts\PHASE_24_DEPLOYMENT.md
+- Invalid Markdown section Outputs: ERP-PLANNING\phase-prompts\PHASE_24_DEPLOYMENT.md
+- Invalid Markdown section Dependencies: ERP-PLANNING\phase-prompts\PHASE_24_DEPLOYMENT.md
+- Invalid Markdown section Deliverables: ERP-PLANNING\phase-prompts\PHASE_24_DEPLOYMENT.md
+- Invalid Markdown section Acceptance Criteria: ERP-PLANNING\phase-prompts\PHASE_24_DEPLOYMENT.md
+- Invalid Markdown section Notes: ERP-PLANNING\phase-prompts\PHASE_24_DEPLOYMENT.md
+- Non-placeholder Markdown content: ERP-PLANNING\phase-prompts\PHASE_24_DEPLOYMENT.md
+- Invalid Markdown section Purpose: ERP-PLANNING\phase-prompts\PHASE_25_RELEASE.md
+- Invalid Markdown section Scope: ERP-PLANNING\phase-prompts\PHASE_25_RELEASE.md
+- Invalid Markdown section Inputs: ERP-PLANNING\phase-prompts\PHASE_25_RELEASE.md
+- Invalid Markdown section Outputs: ERP-PLANNING\phase-prompts\PHASE_25_RELEASE.md
+- Invalid Markdown section Dependencies: ERP-PLANNING\phase-prompts\PHASE_25_RELEASE.md
+- Invalid Markdown section Deliverables: ERP-PLANNING\phase-prompts\PHASE_25_RELEASE.md
+- Invalid Markdown section Acceptance Criteria: ERP-PLANNING\phase-prompts\PHASE_25_RELEASE.md
+- Invalid Markdown section Notes: ERP-PLANNING\phase-prompts\PHASE_25_RELEASE.md
+- Non-placeholder Markdown content: ERP-PLANNING\phase-prompts\PHASE_25_RELEASE.md
+- Invalid Markdown section Purpose: ERP-PLANNING\phase-prompts\PHASE_2_SYSTEM_PLANNING.md
+- Invalid Markdown section Scope: ERP-PLANNING\phase-prompts\PHASE_2_SYSTEM_PLANNING.md
+- Invalid Markdown section Inputs: ERP-PLANNING\phase-prompts\PHASE_2_SYSTEM_PLANNING.md
+- Invalid Markdown section Outputs: ERP-PLANNING\phase-prompts\PHASE_2_SYSTEM_PLANNING.md
+- Invalid Markdown section Dependencies: ERP-PLANNING\phase-prompts\PHASE_2_SYSTEM_PLANNING.md
+- Invalid Markdown section Deliverables: ERP-PLANNING\phase-prompts\PHASE_2_SYSTEM_PLANNING.md
+- Invalid Markdown section Acceptance Criteria: ERP-PLANNING\phase-prompts\PHASE_2_SYSTEM_PLANNING.md
+- Invalid Markdown section Notes: ERP-PLANNING\phase-prompts\PHASE_2_SYSTEM_PLANNING.md
+- Non-placeholder Markdown content: ERP-PLANNING\phase-prompts\PHASE_2_SYSTEM_PLANNING.md
+- Invalid Markdown section Purpose: ERP-PLANNING\phase-prompts\PHASE_3_PLAN_AUDIT.md
+- Invalid Markdown section Scope: ERP-PLANNING\phase-prompts\PHASE_3_PLAN_AUDIT.md
+- Invalid Markdown section Inputs: ERP-PLANNING\phase-prompts\PHASE_3_PLAN_AUDIT.md
+- Invalid Markdown section Outputs: ERP-PLANNING\phase-prompts\PHASE_3_PLAN_AUDIT.md
+- Invalid Markdown section Dependencies: ERP-PLANNING\phase-prompts\PHASE_3_PLAN_AUDIT.md
+- Invalid Markdown section Deliverables: ERP-PLANNING\phase-prompts\PHASE_3_PLAN_AUDIT.md
+- Invalid Markdown section Acceptance Criteria: ERP-PLANNING\phase-prompts\PHASE_3_PLAN_AUDIT.md
+- Invalid Markdown section Notes: ERP-PLANNING\phase-prompts\PHASE_3_PLAN_AUDIT.md
+- Non-placeholder Markdown content: ERP-PLANNING\phase-prompts\PHASE_3_PLAN_AUDIT.md
+- Invalid Markdown section Purpose: ERP-PLANNING\phase-prompts\PHASE_4_IMPLEMENTATION_ROADMAP.md
+- Invalid Markdown section Scope: ERP-PLANNING\phase-prompts\PHASE_4_IMPLEMENTATION_ROADMAP.md
+- Invalid Markdown section Inputs: ERP-PLANNING\phase-prompts\PHASE_4_IMPLEMENTATION_ROADMAP.md
+- Invalid Markdown section Outputs: ERP-PLANNING\phase-prompts\PHASE_4_IMPLEMENTATION_ROADMAP.md
+- Invalid Markdown section Dependencies: ERP-PLANNING\phase-prompts\PHASE_4_IMPLEMENTATION_ROADMAP.md
+- Invalid Markdown section Deliverables: ERP-PLANNING\phase-prompts\PHASE_4_IMPLEMENTATION_ROADMAP.md
+- Invalid Markdown section Acceptance Criteria: ERP-PLANNING\phase-prompts\PHASE_4_IMPLEMENTATION_ROADMAP.md
+- Invalid Markdown section Notes: ERP-PLANNING\phase-prompts\PHASE_4_IMPLEMENTATION_ROADMAP.md
+- Non-placeholder Markdown content: ERP-PLANNING\phase-prompts\PHASE_4_IMPLEMENTATION_ROADMAP.md
+- Invalid Markdown section Purpose: ERP-PLANNING\phase-prompts\PHASE_5_ROADMAP_AUDIT.md
+- Invalid Markdown section Scope: ERP-PLANNING\phase-prompts\PHASE_5_ROADMAP_AUDIT.md
+- Invalid Markdown section Inputs: ERP-PLANNING\phase-prompts\PHASE_5_ROADMAP_AUDIT.md
+- Invalid Markdown section Outputs: ERP-PLANNING\phase-prompts\PHASE_5_ROADMAP_AUDIT.md
+- Invalid Markdown section Dependencies: ERP-PLANNING\phase-prompts\PHASE_5_ROADMAP_AUDIT.md
+- Invalid Markdown section Deliverables: ERP-PLANNING\phase-prompts\PHASE_5_ROADMAP_AUDIT.md
+- Invalid Markdown section Acceptance Criteria: ERP-PLANNING\phase-prompts\PHASE_5_ROADMAP_AUDIT.md
+- Invalid Markdown section Notes: ERP-PLANNING\phase-prompts\PHASE_5_ROADMAP_AUDIT.md
+- Non-placeholder Markdown content: ERP-PLANNING\phase-prompts\PHASE_5_ROADMAP_AUDIT.md
+- Invalid Markdown section Purpose: ERP-PLANNING\phase-prompts\PHASE_6_IMPLEMENTATION_PROMPTS.md
+- Invalid Markdown section Scope: ERP-PLANNING\phase-prompts\PHASE_6_IMPLEMENTATION_PROMPTS.md
+- Invalid Markdown section Inputs: ERP-PLANNING\phase-prompts\PHASE_6_IMPLEMENTATION_PROMPTS.md
+- Invalid Markdown section Outputs: ERP-PLANNING\phase-prompts\PHASE_6_IMPLEMENTATION_PROMPTS.md
+- Invalid Markdown section Dependencies: ERP-PLANNING\phase-prompts\PHASE_6_IMPLEMENTATION_PROMPTS.md
+- Invalid Markdown section Deliverables: ERP-PLANNING\phase-prompts\PHASE_6_IMPLEMENTATION_PROMPTS.md
+- Invalid Markdown section Acceptance Criteria: ERP-PLANNING\phase-prompts\PHASE_6_IMPLEMENTATION_PROMPTS.md
+- Invalid Markdown section Notes: ERP-PLANNING\phase-prompts\PHASE_6_IMPLEMENTATION_PROMPTS.md
+- Non-placeholder Markdown content: ERP-PLANNING\phase-prompts\PHASE_6_IMPLEMENTATION_PROMPTS.md
+- Invalid Markdown section Purpose: ERP-PLANNING\phase-prompts\PHASE_7_PROMPT_ENGINEERING.md
+- Invalid Markdown section Scope: ERP-PLANNING\phase-prompts\PHASE_7_PROMPT_ENGINEERING.md
+- Invalid Markdown section Inputs: ERP-PLANNING\phase-prompts\PHASE_7_PROMPT_ENGINEERING.md
+- Invalid Markdown section Outputs: ERP-PLANNING\phase-prompts\PHASE_7_PROMPT_ENGINEERING.md
+- Invalid Markdown section Dependencies: ERP-PLANNING\phase-prompts\PHASE_7_PROMPT_ENGINEERING.md
+- Invalid Markdown section Deliverables: ERP-PLANNING\phase-prompts\PHASE_7_PROMPT_ENGINEERING.md
+- Invalid Markdown section Acceptance Criteria: ERP-PLANNING\phase-prompts\PHASE_7_PROMPT_ENGINEERING.md
+- Invalid Markdown section Notes: ERP-PLANNING\phase-prompts\PHASE_7_PROMPT_ENGINEERING.md
+- Non-placeholder Markdown content: ERP-PLANNING\phase-prompts\PHASE_7_PROMPT_ENGINEERING.md
+- Invalid Markdown section Purpose: ERP-PLANNING\phase-prompts\PHASE_8_PLATFORM_SETUP.md
+- Invalid Markdown section Scope: ERP-PLANNING\phase-prompts\PHASE_8_PLATFORM_SETUP.md
+- Invalid Markdown section Inputs: ERP-PLANNING\phase-prompts\PHASE_8_PLATFORM_SETUP.md
+- Invalid Markdown section Outputs: ERP-PLANNING\phase-prompts\PHASE_8_PLATFORM_SETUP.md
+- Invalid Markdown section Dependencies: ERP-PLANNING\phase-prompts\PHASE_8_PLATFORM_SETUP.md
+- Invalid Markdown section Deliverables: ERP-PLANNING\phase-prompts\PHASE_8_PLATFORM_SETUP.md
+- Invalid Markdown section Acceptance Criteria: ERP-PLANNING\phase-prompts\PHASE_8_PLATFORM_SETUP.md
+- Invalid Markdown section Notes: ERP-PLANNING\phase-prompts\PHASE_8_PLATFORM_SETUP.md
+- Non-placeholder Markdown content: ERP-PLANNING\phase-prompts\PHASE_8_PLATFORM_SETUP.md
+- Invalid Markdown section Purpose: ERP-PLANNING\phase-prompts\PHASE_9_AUTH.md
+- Invalid Markdown section Scope: ERP-PLANNING\phase-prompts\PHASE_9_AUTH.md
+- Invalid Markdown section Inputs: ERP-PLANNING\phase-prompts\PHASE_9_AUTH.md
+- Invalid Markdown section Outputs: ERP-PLANNING\phase-prompts\PHASE_9_AUTH.md
+- Invalid Markdown section Dependencies: ERP-PLANNING\phase-prompts\PHASE_9_AUTH.md
+- Invalid Markdown section Deliverables: ERP-PLANNING\phase-prompts\PHASE_9_AUTH.md
+- Invalid Markdown section Acceptance Criteria: ERP-PLANNING\phase-prompts\PHASE_9_AUTH.md
+- Invalid Markdown section Notes: ERP-PLANNING\phase-prompts\PHASE_9_AUTH.md
+- Non-placeholder Markdown content: ERP-PLANNING\phase-prompts\PHASE_9_AUTH.md
+- Invalid Markdown section Purpose: ERP-PLANNING\phase-prompts\README.md
+- Invalid Markdown section Scope: ERP-PLANNING\phase-prompts\README.md
+- Invalid Markdown section Inputs: ERP-PLANNING\phase-prompts\README.md
+- Invalid Markdown section Outputs: ERP-PLANNING\phase-prompts\README.md
+- Invalid Markdown section Dependencies: ERP-PLANNING\phase-prompts\README.md
+- Invalid Markdown section Deliverables: ERP-PLANNING\phase-prompts\README.md
+- Invalid Markdown section Acceptance Criteria: ERP-PLANNING\phase-prompts\README.md
+- Invalid Markdown section Notes: ERP-PLANNING\phase-prompts\README.md
+- Non-placeholder Markdown content: ERP-PLANNING\phase-prompts\README.md
+- Invalid Markdown section Purpose: ERP-PLANNING\prompt-engineering\README.md
+- Invalid Markdown section Scope: ERP-PLANNING\prompt-engineering\README.md
+- Invalid Markdown section Inputs: ERP-PLANNING\prompt-engineering\README.md
+- Invalid Markdown section Outputs: ERP-PLANNING\prompt-engineering\README.md
+- Invalid Markdown section Dependencies: ERP-PLANNING\prompt-engineering\README.md
+- Invalid Markdown section Deliverables: ERP-PLANNING\prompt-engineering\README.md
+- Invalid Markdown section Acceptance Criteria: ERP-PLANNING\prompt-engineering\README.md
+- Invalid Markdown section Notes: ERP-PLANNING\prompt-engineering\README.md
+- Non-placeholder Markdown content: ERP-PLANNING\prompt-engineering\README.md
+- Invalid Markdown section Purpose: implementation_guide\01_plan\00_Documentation_Review_Checklist.md
+- Invalid Markdown section Scope: implementation_guide\01_plan\00_Documentation_Review_Checklist.md
+- Invalid Markdown section Inputs: implementation_guide\01_plan\00_Documentation_Review_Checklist.md
+- Invalid Markdown section Outputs: implementation_guide\01_plan\00_Documentation_Review_Checklist.md
+- Invalid Markdown section Dependencies: implementation_guide\01_plan\00_Documentation_Review_Checklist.md
+- Invalid Markdown section Deliverables: implementation_guide\01_plan\00_Documentation_Review_Checklist.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\01_plan\00_Documentation_Review_Checklist.md
+- Invalid Markdown section Notes: implementation_guide\01_plan\00_Documentation_Review_Checklist.md
+- Non-placeholder Markdown content: implementation_guide\01_plan\00_Documentation_Review_Checklist.md
+- Invalid Markdown section Purpose: implementation_guide\01_plan\01_Project_Vision.md
+- Invalid Markdown section Scope: implementation_guide\01_plan\01_Project_Vision.md
+- Invalid Markdown section Inputs: implementation_guide\01_plan\01_Project_Vision.md
+- Invalid Markdown section Outputs: implementation_guide\01_plan\01_Project_Vision.md
+- Invalid Markdown section Dependencies: implementation_guide\01_plan\01_Project_Vision.md
+- Invalid Markdown section Deliverables: implementation_guide\01_plan\01_Project_Vision.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\01_plan\01_Project_Vision.md
+- Invalid Markdown section Notes: implementation_guide\01_plan\01_Project_Vision.md
+- Non-placeholder Markdown content: implementation_guide\01_plan\01_Project_Vision.md
+- Invalid Markdown section Purpose: implementation_guide\01_plan\02_Product_Requirements.md
+- Invalid Markdown section Scope: implementation_guide\01_plan\02_Product_Requirements.md
+- Invalid Markdown section Inputs: implementation_guide\01_plan\02_Product_Requirements.md
+- Invalid Markdown section Outputs: implementation_guide\01_plan\02_Product_Requirements.md
+- Invalid Markdown section Dependencies: implementation_guide\01_plan\02_Product_Requirements.md
+- Invalid Markdown section Deliverables: implementation_guide\01_plan\02_Product_Requirements.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\01_plan\02_Product_Requirements.md
+- Invalid Markdown section Notes: implementation_guide\01_plan\02_Product_Requirements.md
+- Non-placeholder Markdown content: implementation_guide\01_plan\02_Product_Requirements.md
+- Invalid Markdown section Purpose: implementation_guide\01_plan\03_User_Personas.md
+- Invalid Markdown section Scope: implementation_guide\01_plan\03_User_Personas.md
+- Invalid Markdown section Inputs: implementation_guide\01_plan\03_User_Personas.md
+- Invalid Markdown section Outputs: implementation_guide\01_plan\03_User_Personas.md
+- Invalid Markdown section Dependencies: implementation_guide\01_plan\03_User_Personas.md
+- Invalid Markdown section Deliverables: implementation_guide\01_plan\03_User_Personas.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\01_plan\03_User_Personas.md
+- Invalid Markdown section Notes: implementation_guide\01_plan\03_User_Personas.md
+- Non-placeholder Markdown content: implementation_guide\01_plan\03_User_Personas.md
+- Invalid Markdown section Purpose: implementation_guide\01_plan\04_User_Journeys.md
+- Invalid Markdown section Scope: implementation_guide\01_plan\04_User_Journeys.md
+- Invalid Markdown section Inputs: implementation_guide\01_plan\04_User_Journeys.md
+- Invalid Markdown section Outputs: implementation_guide\01_plan\04_User_Journeys.md
+- Invalid Markdown section Dependencies: implementation_guide\01_plan\04_User_Journeys.md
+- Invalid Markdown section Deliverables: implementation_guide\01_plan\04_User_Journeys.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\01_plan\04_User_Journeys.md
+- Invalid Markdown section Notes: implementation_guide\01_plan\04_User_Journeys.md
+- Non-placeholder Markdown content: implementation_guide\01_plan\04_User_Journeys.md
+- Invalid Markdown section Purpose: implementation_guide\01_plan\05_Functional_Requirements.md
+- Invalid Markdown section Scope: implementation_guide\01_plan\05_Functional_Requirements.md
+- Invalid Markdown section Inputs: implementation_guide\01_plan\05_Functional_Requirements.md
+- Invalid Markdown section Outputs: implementation_guide\01_plan\05_Functional_Requirements.md
+- Invalid Markdown section Dependencies: implementation_guide\01_plan\05_Functional_Requirements.md
+- Invalid Markdown section Deliverables: implementation_guide\01_plan\05_Functional_Requirements.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\01_plan\05_Functional_Requirements.md
+- Invalid Markdown section Notes: implementation_guide\01_plan\05_Functional_Requirements.md
+- Non-placeholder Markdown content: implementation_guide\01_plan\05_Functional_Requirements.md
+- Invalid Markdown section Purpose: implementation_guide\01_plan\06_NonFunctional_Requirements.md
+- Invalid Markdown section Scope: implementation_guide\01_plan\06_NonFunctional_Requirements.md
+- Invalid Markdown section Inputs: implementation_guide\01_plan\06_NonFunctional_Requirements.md
+- Invalid Markdown section Outputs: implementation_guide\01_plan\06_NonFunctional_Requirements.md
+- Invalid Markdown section Dependencies: implementation_guide\01_plan\06_NonFunctional_Requirements.md
+- Invalid Markdown section Deliverables: implementation_guide\01_plan\06_NonFunctional_Requirements.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\01_plan\06_NonFunctional_Requirements.md
+- Invalid Markdown section Notes: implementation_guide\01_plan\06_NonFunctional_Requirements.md
+- Non-placeholder Markdown content: implementation_guide\01_plan\06_NonFunctional_Requirements.md
+- Invalid Markdown section Purpose: implementation_guide\01_plan\07_Product_Modules.md
+- Invalid Markdown section Scope: implementation_guide\01_plan\07_Product_Modules.md
+- Invalid Markdown section Inputs: implementation_guide\01_plan\07_Product_Modules.md
+- Invalid Markdown section Outputs: implementation_guide\01_plan\07_Product_Modules.md
+- Invalid Markdown section Dependencies: implementation_guide\01_plan\07_Product_Modules.md
+- Invalid Markdown section Deliverables: implementation_guide\01_plan\07_Product_Modules.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\01_plan\07_Product_Modules.md
+- Invalid Markdown section Notes: implementation_guide\01_plan\07_Product_Modules.md
+- Non-placeholder Markdown content: implementation_guide\01_plan\07_Product_Modules.md
+- Invalid Markdown section Purpose: implementation_guide\01_plan\08_Project_Glossary.md
+- Invalid Markdown section Scope: implementation_guide\01_plan\08_Project_Glossary.md
+- Invalid Markdown section Inputs: implementation_guide\01_plan\08_Project_Glossary.md
+- Invalid Markdown section Outputs: implementation_guide\01_plan\08_Project_Glossary.md
+- Invalid Markdown section Dependencies: implementation_guide\01_plan\08_Project_Glossary.md
+- Invalid Markdown section Deliverables: implementation_guide\01_plan\08_Project_Glossary.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\01_plan\08_Project_Glossary.md
+- Invalid Markdown section Notes: implementation_guide\01_plan\08_Project_Glossary.md
+- Non-placeholder Markdown content: implementation_guide\01_plan\08_Project_Glossary.md
+- Invalid Markdown section Purpose: implementation_guide\01_plan\09_Assumptions_and_Risks.md
+- Invalid Markdown section Scope: implementation_guide\01_plan\09_Assumptions_and_Risks.md
+- Invalid Markdown section Inputs: implementation_guide\01_plan\09_Assumptions_and_Risks.md
+- Invalid Markdown section Outputs: implementation_guide\01_plan\09_Assumptions_and_Risks.md
+- Invalid Markdown section Dependencies: implementation_guide\01_plan\09_Assumptions_and_Risks.md
+- Invalid Markdown section Deliverables: implementation_guide\01_plan\09_Assumptions_and_Risks.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\01_plan\09_Assumptions_and_Risks.md
+- Invalid Markdown section Notes: implementation_guide\01_plan\09_Assumptions_and_Risks.md
+- Non-placeholder Markdown content: implementation_guide\01_plan\09_Assumptions_and_Risks.md
+- Invalid Markdown section Purpose: implementation_guide\01_plan\10_Open_Questions.md
+- Invalid Markdown section Scope: implementation_guide\01_plan\10_Open_Questions.md
+- Invalid Markdown section Inputs: implementation_guide\01_plan\10_Open_Questions.md
+- Invalid Markdown section Outputs: implementation_guide\01_plan\10_Open_Questions.md
+- Invalid Markdown section Dependencies: implementation_guide\01_plan\10_Open_Questions.md
+- Invalid Markdown section Deliverables: implementation_guide\01_plan\10_Open_Questions.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\01_plan\10_Open_Questions.md
+- Invalid Markdown section Notes: implementation_guide\01_plan\10_Open_Questions.md
+- Non-placeholder Markdown content: implementation_guide\01_plan\10_Open_Questions.md
+- Invalid Markdown section Purpose: implementation_guide\architecture\00-ARCHITECTURE.md
+- Invalid Markdown section Scope: implementation_guide\architecture\00-ARCHITECTURE.md
+- Invalid Markdown section Inputs: implementation_guide\architecture\00-ARCHITECTURE.md
+- Invalid Markdown section Outputs: implementation_guide\architecture\00-ARCHITECTURE.md
+- Invalid Markdown section Dependencies: implementation_guide\architecture\00-ARCHITECTURE.md
+- Invalid Markdown section Deliverables: implementation_guide\architecture\00-ARCHITECTURE.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\architecture\00-ARCHITECTURE.md
+- Invalid Markdown section Notes: implementation_guide\architecture\00-ARCHITECTURE.md
+- Non-placeholder Markdown content: implementation_guide\architecture\00-ARCHITECTURE.md
+- Invalid Markdown section Purpose: implementation_guide\architecture\00-MASTER-PLAN.md
+- Invalid Markdown section Scope: implementation_guide\architecture\00-MASTER-PLAN.md
+- Invalid Markdown section Inputs: implementation_guide\architecture\00-MASTER-PLAN.md
+- Invalid Markdown section Outputs: implementation_guide\architecture\00-MASTER-PLAN.md
+- Invalid Markdown section Dependencies: implementation_guide\architecture\00-MASTER-PLAN.md
+- Invalid Markdown section Deliverables: implementation_guide\architecture\00-MASTER-PLAN.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\architecture\00-MASTER-PLAN.md
+- Invalid Markdown section Notes: implementation_guide\architecture\00-MASTER-PLAN.md
+- Non-placeholder Markdown content: implementation_guide\architecture\00-MASTER-PLAN.md
+- Invalid Markdown section Purpose: implementation_guide\architecture\API-CONTRACTS.md
+- Invalid Markdown section Scope: implementation_guide\architecture\API-CONTRACTS.md
+- Invalid Markdown section Inputs: implementation_guide\architecture\API-CONTRACTS.md
+- Invalid Markdown section Outputs: implementation_guide\architecture\API-CONTRACTS.md
+- Invalid Markdown section Dependencies: implementation_guide\architecture\API-CONTRACTS.md
+- Invalid Markdown section Deliverables: implementation_guide\architecture\API-CONTRACTS.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\architecture\API-CONTRACTS.md
+- Invalid Markdown section Notes: implementation_guide\architecture\API-CONTRACTS.md
+- Non-placeholder Markdown content: implementation_guide\architecture\API-CONTRACTS.md
+- Invalid Markdown section Purpose: implementation_guide\architecture\AUDIT-LOG.md
+- Invalid Markdown section Scope: implementation_guide\architecture\AUDIT-LOG.md
+- Invalid Markdown section Inputs: implementation_guide\architecture\AUDIT-LOG.md
+- Invalid Markdown section Outputs: implementation_guide\architecture\AUDIT-LOG.md
+- Invalid Markdown section Dependencies: implementation_guide\architecture\AUDIT-LOG.md
+- Invalid Markdown section Deliverables: implementation_guide\architecture\AUDIT-LOG.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\architecture\AUDIT-LOG.md
+- Invalid Markdown section Notes: implementation_guide\architecture\AUDIT-LOG.md
+- Non-placeholder Markdown content: implementation_guide\architecture\AUDIT-LOG.md
+- Invalid Markdown section Purpose: implementation_guide\architecture\CODING-STANDARDS.md
+- Invalid Markdown section Scope: implementation_guide\architecture\CODING-STANDARDS.md
+- Invalid Markdown section Inputs: implementation_guide\architecture\CODING-STANDARDS.md
+- Invalid Markdown section Outputs: implementation_guide\architecture\CODING-STANDARDS.md
+- Invalid Markdown section Dependencies: implementation_guide\architecture\CODING-STANDARDS.md
+- Invalid Markdown section Deliverables: implementation_guide\architecture\CODING-STANDARDS.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\architecture\CODING-STANDARDS.md
+- Invalid Markdown section Notes: implementation_guide\architecture\CODING-STANDARDS.md
+- Non-placeholder Markdown content: implementation_guide\architecture\CODING-STANDARDS.md
+- Invalid Markdown section Purpose: implementation_guide\architecture\CONTRACTS.md
+- Invalid Markdown section Scope: implementation_guide\architecture\CONTRACTS.md
+- Invalid Markdown section Inputs: implementation_guide\architecture\CONTRACTS.md
+- Invalid Markdown section Outputs: implementation_guide\architecture\CONTRACTS.md
+- Invalid Markdown section Dependencies: implementation_guide\architecture\CONTRACTS.md
+- Invalid Markdown section Deliverables: implementation_guide\architecture\CONTRACTS.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\architecture\CONTRACTS.md
+- Invalid Markdown section Notes: implementation_guide\architecture\CONTRACTS.md
+- Non-placeholder Markdown content: implementation_guide\architecture\CONTRACTS.md
+- Invalid Markdown section Purpose: implementation_guide\architecture\DATA-MODEL.md
+- Invalid Markdown section Scope: implementation_guide\architecture\DATA-MODEL.md
+- Invalid Markdown section Inputs: implementation_guide\architecture\DATA-MODEL.md
+- Invalid Markdown section Outputs: implementation_guide\architecture\DATA-MODEL.md
+- Invalid Markdown section Dependencies: implementation_guide\architecture\DATA-MODEL.md
+- Invalid Markdown section Deliverables: implementation_guide\architecture\DATA-MODEL.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\architecture\DATA-MODEL.md
+- Invalid Markdown section Notes: implementation_guide\architecture\DATA-MODEL.md
+- Non-placeholder Markdown content: implementation_guide\architecture\DATA-MODEL.md
+- Invalid Markdown section Purpose: implementation_guide\architecture\DECISIONS.md
+- Invalid Markdown section Scope: implementation_guide\architecture\DECISIONS.md
+- Invalid Markdown section Inputs: implementation_guide\architecture\DECISIONS.md
+- Invalid Markdown section Outputs: implementation_guide\architecture\DECISIONS.md
+- Invalid Markdown section Dependencies: implementation_guide\architecture\DECISIONS.md
+- Invalid Markdown section Deliverables: implementation_guide\architecture\DECISIONS.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\architecture\DECISIONS.md
+- Invalid Markdown section Notes: implementation_guide\architecture\DECISIONS.md
+- Non-placeholder Markdown content: implementation_guide\architecture\DECISIONS.md
+- Invalid Markdown section Purpose: implementation_guide\architecture\DEPENDENCY-GRAPH.md
+- Invalid Markdown section Scope: implementation_guide\architecture\DEPENDENCY-GRAPH.md
+- Invalid Markdown section Inputs: implementation_guide\architecture\DEPENDENCY-GRAPH.md
+- Invalid Markdown section Outputs: implementation_guide\architecture\DEPENDENCY-GRAPH.md
+- Invalid Markdown section Dependencies: implementation_guide\architecture\DEPENDENCY-GRAPH.md
+- Invalid Markdown section Deliverables: implementation_guide\architecture\DEPENDENCY-GRAPH.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\architecture\DEPENDENCY-GRAPH.md
+- Invalid Markdown section Notes: implementation_guide\architecture\DEPENDENCY-GRAPH.md
+- Non-placeholder Markdown content: implementation_guide\architecture\DEPENDENCY-GRAPH.md
+- Invalid Markdown section Purpose: implementation_guide\architecture\OBSERVABILITY.md
+- Invalid Markdown section Scope: implementation_guide\architecture\OBSERVABILITY.md
+- Invalid Markdown section Inputs: implementation_guide\architecture\OBSERVABILITY.md
+- Invalid Markdown section Outputs: implementation_guide\architecture\OBSERVABILITY.md
+- Invalid Markdown section Dependencies: implementation_guide\architecture\OBSERVABILITY.md
+- Invalid Markdown section Deliverables: implementation_guide\architecture\OBSERVABILITY.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\architecture\OBSERVABILITY.md
+- Invalid Markdown section Notes: implementation_guide\architecture\OBSERVABILITY.md
+- Non-placeholder Markdown content: implementation_guide\architecture\OBSERVABILITY.md
+- Invalid Markdown section Purpose: implementation_guide\architecture\PROJECT_STATE.md
+- Invalid Markdown section Scope: implementation_guide\architecture\PROJECT_STATE.md
+- Invalid Markdown section Inputs: implementation_guide\architecture\PROJECT_STATE.md
+- Invalid Markdown section Outputs: implementation_guide\architecture\PROJECT_STATE.md
+- Invalid Markdown section Dependencies: implementation_guide\architecture\PROJECT_STATE.md
+- Invalid Markdown section Deliverables: implementation_guide\architecture\PROJECT_STATE.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\architecture\PROJECT_STATE.md
+- Invalid Markdown section Notes: implementation_guide\architecture\PROJECT_STATE.md
+- Non-placeholder Markdown content: implementation_guide\architecture\PROJECT_STATE.md
+- Invalid Markdown section Purpose: implementation_guide\architecture\TESTING-STRATEGY.md
+- Invalid Markdown section Scope: implementation_guide\architecture\TESTING-STRATEGY.md
+- Invalid Markdown section Inputs: implementation_guide\architecture\TESTING-STRATEGY.md
+- Invalid Markdown section Outputs: implementation_guide\architecture\TESTING-STRATEGY.md
+- Invalid Markdown section Dependencies: implementation_guide\architecture\TESTING-STRATEGY.md
+- Invalid Markdown section Deliverables: implementation_guide\architecture\TESTING-STRATEGY.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\architecture\TESTING-STRATEGY.md
+- Invalid Markdown section Notes: implementation_guide\architecture\TESTING-STRATEGY.md
+- Non-placeholder Markdown content: implementation_guide\architecture\TESTING-STRATEGY.md
+- Invalid Markdown section Purpose: implementation_guide\MIGRATION-SOURCE-MAP.md
+- Invalid Markdown section Scope: implementation_guide\MIGRATION-SOURCE-MAP.md
+- Invalid Markdown section Inputs: implementation_guide\MIGRATION-SOURCE-MAP.md
+- Invalid Markdown section Outputs: implementation_guide\MIGRATION-SOURCE-MAP.md
+- Invalid Markdown section Dependencies: implementation_guide\MIGRATION-SOURCE-MAP.md
+- Invalid Markdown section Deliverables: implementation_guide\MIGRATION-SOURCE-MAP.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\MIGRATION-SOURCE-MAP.md
+- Invalid Markdown section Notes: implementation_guide\MIGRATION-SOURCE-MAP.md
+- Non-placeholder Markdown content: implementation_guide\MIGRATION-SOURCE-MAP.md
+- Invalid Markdown section Purpose: implementation_guide\phases\phase-00-platform-foundation\01-plan.md
+- Invalid Markdown section Scope: implementation_guide\phases\phase-00-platform-foundation\01-plan.md
+- Invalid Markdown section Inputs: implementation_guide\phases\phase-00-platform-foundation\01-plan.md
+- Invalid Markdown section Outputs: implementation_guide\phases\phase-00-platform-foundation\01-plan.md
+- Invalid Markdown section Dependencies: implementation_guide\phases\phase-00-platform-foundation\01-plan.md
+- Invalid Markdown section Deliverables: implementation_guide\phases\phase-00-platform-foundation\01-plan.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\phases\phase-00-platform-foundation\01-plan.md
+- Invalid Markdown section Notes: implementation_guide\phases\phase-00-platform-foundation\01-plan.md
+- Non-placeholder Markdown content: implementation_guide\phases\phase-00-platform-foundation\01-plan.md
+- Invalid Markdown section Purpose: implementation_guide\phases\phase-00-platform-foundation\02-prompt.md
+- Invalid Markdown section Scope: implementation_guide\phases\phase-00-platform-foundation\02-prompt.md
+- Invalid Markdown section Inputs: implementation_guide\phases\phase-00-platform-foundation\02-prompt.md
+- Invalid Markdown section Outputs: implementation_guide\phases\phase-00-platform-foundation\02-prompt.md
+- Invalid Markdown section Dependencies: implementation_guide\phases\phase-00-platform-foundation\02-prompt.md
+- Invalid Markdown section Deliverables: implementation_guide\phases\phase-00-platform-foundation\02-prompt.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\phases\phase-00-platform-foundation\02-prompt.md
+- Invalid Markdown section Notes: implementation_guide\phases\phase-00-platform-foundation\02-prompt.md
+- Non-placeholder Markdown content: implementation_guide\phases\phase-00-platform-foundation\02-prompt.md
+- Invalid Markdown section Purpose: implementation_guide\phases\phase-00-platform-foundation\04-status.md
+- Invalid Markdown section Scope: implementation_guide\phases\phase-00-platform-foundation\04-status.md
+- Invalid Markdown section Inputs: implementation_guide\phases\phase-00-platform-foundation\04-status.md
+- Invalid Markdown section Outputs: implementation_guide\phases\phase-00-platform-foundation\04-status.md
+- Invalid Markdown section Dependencies: implementation_guide\phases\phase-00-platform-foundation\04-status.md
+- Invalid Markdown section Deliverables: implementation_guide\phases\phase-00-platform-foundation\04-status.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\phases\phase-00-platform-foundation\04-status.md
+- Invalid Markdown section Notes: implementation_guide\phases\phase-00-platform-foundation\04-status.md
+- Non-placeholder Markdown content: implementation_guide\phases\phase-00-platform-foundation\04-status.md
+- Invalid Markdown section Purpose: implementation_guide\phases\phase-01-audit-foundation\01-plan.md
+- Invalid Markdown section Scope: implementation_guide\phases\phase-01-audit-foundation\01-plan.md
+- Invalid Markdown section Inputs: implementation_guide\phases\phase-01-audit-foundation\01-plan.md
+- Invalid Markdown section Outputs: implementation_guide\phases\phase-01-audit-foundation\01-plan.md
+- Invalid Markdown section Dependencies: implementation_guide\phases\phase-01-audit-foundation\01-plan.md
+- Invalid Markdown section Deliverables: implementation_guide\phases\phase-01-audit-foundation\01-plan.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\phases\phase-01-audit-foundation\01-plan.md
+- Invalid Markdown section Notes: implementation_guide\phases\phase-01-audit-foundation\01-plan.md
+- Non-placeholder Markdown content: implementation_guide\phases\phase-01-audit-foundation\01-plan.md
+- Invalid Markdown section Purpose: implementation_guide\phases\phase-01-audit-foundation\02-prompt.md
+- Invalid Markdown section Scope: implementation_guide\phases\phase-01-audit-foundation\02-prompt.md
+- Invalid Markdown section Inputs: implementation_guide\phases\phase-01-audit-foundation\02-prompt.md
+- Invalid Markdown section Outputs: implementation_guide\phases\phase-01-audit-foundation\02-prompt.md
+- Invalid Markdown section Dependencies: implementation_guide\phases\phase-01-audit-foundation\02-prompt.md
+- Invalid Markdown section Deliverables: implementation_guide\phases\phase-01-audit-foundation\02-prompt.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\phases\phase-01-audit-foundation\02-prompt.md
+- Invalid Markdown section Notes: implementation_guide\phases\phase-01-audit-foundation\02-prompt.md
+- Non-placeholder Markdown content: implementation_guide\phases\phase-01-audit-foundation\02-prompt.md
+- Invalid Markdown section Purpose: implementation_guide\phases\phase-01-audit-foundation\04-status.md
+- Invalid Markdown section Scope: implementation_guide\phases\phase-01-audit-foundation\04-status.md
+- Invalid Markdown section Inputs: implementation_guide\phases\phase-01-audit-foundation\04-status.md
+- Invalid Markdown section Outputs: implementation_guide\phases\phase-01-audit-foundation\04-status.md
+- Invalid Markdown section Dependencies: implementation_guide\phases\phase-01-audit-foundation\04-status.md
+- Invalid Markdown section Deliverables: implementation_guide\phases\phase-01-audit-foundation\04-status.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\phases\phase-01-audit-foundation\04-status.md
+- Invalid Markdown section Notes: implementation_guide\phases\phase-01-audit-foundation\04-status.md
+- Non-placeholder Markdown content: implementation_guide\phases\phase-01-audit-foundation\04-status.md
+- Invalid Markdown section Purpose: implementation_guide\phases\phase-02-job-foundation\01-plan.md
+- Invalid Markdown section Scope: implementation_guide\phases\phase-02-job-foundation\01-plan.md
+- Invalid Markdown section Inputs: implementation_guide\phases\phase-02-job-foundation\01-plan.md
+- Invalid Markdown section Outputs: implementation_guide\phases\phase-02-job-foundation\01-plan.md
+- Invalid Markdown section Dependencies: implementation_guide\phases\phase-02-job-foundation\01-plan.md
+- Invalid Markdown section Deliverables: implementation_guide\phases\phase-02-job-foundation\01-plan.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\phases\phase-02-job-foundation\01-plan.md
+- Invalid Markdown section Notes: implementation_guide\phases\phase-02-job-foundation\01-plan.md
+- Non-placeholder Markdown content: implementation_guide\phases\phase-02-job-foundation\01-plan.md
+- Invalid Markdown section Purpose: implementation_guide\phases\phase-02-job-foundation\02-prompt.md
+- Invalid Markdown section Scope: implementation_guide\phases\phase-02-job-foundation\02-prompt.md
+- Invalid Markdown section Inputs: implementation_guide\phases\phase-02-job-foundation\02-prompt.md
+- Invalid Markdown section Outputs: implementation_guide\phases\phase-02-job-foundation\02-prompt.md
+- Invalid Markdown section Dependencies: implementation_guide\phases\phase-02-job-foundation\02-prompt.md
+- Invalid Markdown section Deliverables: implementation_guide\phases\phase-02-job-foundation\02-prompt.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\phases\phase-02-job-foundation\02-prompt.md
+- Invalid Markdown section Notes: implementation_guide\phases\phase-02-job-foundation\02-prompt.md
+- Non-placeholder Markdown content: implementation_guide\phases\phase-02-job-foundation\02-prompt.md
+- Invalid Markdown section Purpose: implementation_guide\phases\phase-02-job-foundation\04-status.md
+- Invalid Markdown section Scope: implementation_guide\phases\phase-02-job-foundation\04-status.md
+- Invalid Markdown section Inputs: implementation_guide\phases\phase-02-job-foundation\04-status.md
+- Invalid Markdown section Outputs: implementation_guide\phases\phase-02-job-foundation\04-status.md
+- Invalid Markdown section Dependencies: implementation_guide\phases\phase-02-job-foundation\04-status.md
+- Invalid Markdown section Deliverables: implementation_guide\phases\phase-02-job-foundation\04-status.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\phases\phase-02-job-foundation\04-status.md
+- Invalid Markdown section Notes: implementation_guide\phases\phase-02-job-foundation\04-status.md
+- Non-placeholder Markdown content: implementation_guide\phases\phase-02-job-foundation\04-status.md
+- Invalid Markdown section Purpose: implementation_guide\phases\phase-03-authentication\01-plan.md
+- Invalid Markdown section Scope: implementation_guide\phases\phase-03-authentication\01-plan.md
+- Invalid Markdown section Inputs: implementation_guide\phases\phase-03-authentication\01-plan.md
+- Invalid Markdown section Outputs: implementation_guide\phases\phase-03-authentication\01-plan.md
+- Invalid Markdown section Dependencies: implementation_guide\phases\phase-03-authentication\01-plan.md
+- Invalid Markdown section Deliverables: implementation_guide\phases\phase-03-authentication\01-plan.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\phases\phase-03-authentication\01-plan.md
+- Invalid Markdown section Notes: implementation_guide\phases\phase-03-authentication\01-plan.md
+- Non-placeholder Markdown content: implementation_guide\phases\phase-03-authentication\01-plan.md
+- Invalid Markdown section Purpose: implementation_guide\phases\phase-03-authentication\02-prompt.md
+- Invalid Markdown section Scope: implementation_guide\phases\phase-03-authentication\02-prompt.md
+- Invalid Markdown section Inputs: implementation_guide\phases\phase-03-authentication\02-prompt.md
+- Invalid Markdown section Outputs: implementation_guide\phases\phase-03-authentication\02-prompt.md
+- Invalid Markdown section Dependencies: implementation_guide\phases\phase-03-authentication\02-prompt.md
+- Invalid Markdown section Deliverables: implementation_guide\phases\phase-03-authentication\02-prompt.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\phases\phase-03-authentication\02-prompt.md
+- Invalid Markdown section Notes: implementation_guide\phases\phase-03-authentication\02-prompt.md
+- Non-placeholder Markdown content: implementation_guide\phases\phase-03-authentication\02-prompt.md
+- Invalid Markdown section Purpose: implementation_guide\phases\phase-03-authentication\04-status.md
+- Invalid Markdown section Scope: implementation_guide\phases\phase-03-authentication\04-status.md
+- Invalid Markdown section Inputs: implementation_guide\phases\phase-03-authentication\04-status.md
+- Invalid Markdown section Outputs: implementation_guide\phases\phase-03-authentication\04-status.md
+- Invalid Markdown section Dependencies: implementation_guide\phases\phase-03-authentication\04-status.md
+- Invalid Markdown section Deliverables: implementation_guide\phases\phase-03-authentication\04-status.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\phases\phase-03-authentication\04-status.md
+- Invalid Markdown section Notes: implementation_guide\phases\phase-03-authentication\04-status.md
+- Non-placeholder Markdown content: implementation_guide\phases\phase-03-authentication\04-status.md
+- Invalid Markdown section Purpose: implementation_guide\phases\phase-04-tenant-settings\01-plan.md
+- Invalid Markdown section Scope: implementation_guide\phases\phase-04-tenant-settings\01-plan.md
+- Invalid Markdown section Inputs: implementation_guide\phases\phase-04-tenant-settings\01-plan.md
+- Invalid Markdown section Outputs: implementation_guide\phases\phase-04-tenant-settings\01-plan.md
+- Invalid Markdown section Dependencies: implementation_guide\phases\phase-04-tenant-settings\01-plan.md
+- Invalid Markdown section Deliverables: implementation_guide\phases\phase-04-tenant-settings\01-plan.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\phases\phase-04-tenant-settings\01-plan.md
+- Invalid Markdown section Notes: implementation_guide\phases\phase-04-tenant-settings\01-plan.md
+- Non-placeholder Markdown content: implementation_guide\phases\phase-04-tenant-settings\01-plan.md
+- Invalid Markdown section Purpose: implementation_guide\phases\phase-04-tenant-settings\02-prompt.md
+- Invalid Markdown section Scope: implementation_guide\phases\phase-04-tenant-settings\02-prompt.md
+- Invalid Markdown section Inputs: implementation_guide\phases\phase-04-tenant-settings\02-prompt.md
+- Invalid Markdown section Outputs: implementation_guide\phases\phase-04-tenant-settings\02-prompt.md
+- Invalid Markdown section Dependencies: implementation_guide\phases\phase-04-tenant-settings\02-prompt.md
+- Invalid Markdown section Deliverables: implementation_guide\phases\phase-04-tenant-settings\02-prompt.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\phases\phase-04-tenant-settings\02-prompt.md
+- Invalid Markdown section Notes: implementation_guide\phases\phase-04-tenant-settings\02-prompt.md
+- Non-placeholder Markdown content: implementation_guide\phases\phase-04-tenant-settings\02-prompt.md
+- Invalid Markdown section Purpose: implementation_guide\phases\phase-04-tenant-settings\04-status.md
+- Invalid Markdown section Scope: implementation_guide\phases\phase-04-tenant-settings\04-status.md
+- Invalid Markdown section Inputs: implementation_guide\phases\phase-04-tenant-settings\04-status.md
+- Invalid Markdown section Outputs: implementation_guide\phases\phase-04-tenant-settings\04-status.md
+- Invalid Markdown section Dependencies: implementation_guide\phases\phase-04-tenant-settings\04-status.md
+- Invalid Markdown section Deliverables: implementation_guide\phases\phase-04-tenant-settings\04-status.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\phases\phase-04-tenant-settings\04-status.md
+- Invalid Markdown section Notes: implementation_guide\phases\phase-04-tenant-settings\04-status.md
+- Non-placeholder Markdown content: implementation_guide\phases\phase-04-tenant-settings\04-status.md
+- Invalid Markdown section Purpose: implementation_guide\phases\phase-05-branch\01-plan.md
+- Invalid Markdown section Scope: implementation_guide\phases\phase-05-branch\01-plan.md
+- Invalid Markdown section Inputs: implementation_guide\phases\phase-05-branch\01-plan.md
+- Invalid Markdown section Outputs: implementation_guide\phases\phase-05-branch\01-plan.md
+- Invalid Markdown section Dependencies: implementation_guide\phases\phase-05-branch\01-plan.md
+- Invalid Markdown section Deliverables: implementation_guide\phases\phase-05-branch\01-plan.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\phases\phase-05-branch\01-plan.md
+- Invalid Markdown section Notes: implementation_guide\phases\phase-05-branch\01-plan.md
+- Non-placeholder Markdown content: implementation_guide\phases\phase-05-branch\01-plan.md
+- Invalid Markdown section Purpose: implementation_guide\phases\phase-05-branch\02-prompt.md
+- Invalid Markdown section Scope: implementation_guide\phases\phase-05-branch\02-prompt.md
+- Invalid Markdown section Inputs: implementation_guide\phases\phase-05-branch\02-prompt.md
+- Invalid Markdown section Outputs: implementation_guide\phases\phase-05-branch\02-prompt.md
+- Invalid Markdown section Dependencies: implementation_guide\phases\phase-05-branch\02-prompt.md
+- Invalid Markdown section Deliverables: implementation_guide\phases\phase-05-branch\02-prompt.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\phases\phase-05-branch\02-prompt.md
+- Invalid Markdown section Notes: implementation_guide\phases\phase-05-branch\02-prompt.md
+- Non-placeholder Markdown content: implementation_guide\phases\phase-05-branch\02-prompt.md
+- Invalid Markdown section Purpose: implementation_guide\phases\phase-05-branch\04-status.md
+- Invalid Markdown section Scope: implementation_guide\phases\phase-05-branch\04-status.md
+- Invalid Markdown section Inputs: implementation_guide\phases\phase-05-branch\04-status.md
+- Invalid Markdown section Outputs: implementation_guide\phases\phase-05-branch\04-status.md
+- Invalid Markdown section Dependencies: implementation_guide\phases\phase-05-branch\04-status.md
+- Invalid Markdown section Deliverables: implementation_guide\phases\phase-05-branch\04-status.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\phases\phase-05-branch\04-status.md
+- Invalid Markdown section Notes: implementation_guide\phases\phase-05-branch\04-status.md
+- Non-placeholder Markdown content: implementation_guide\phases\phase-05-branch\04-status.md
+- Invalid Markdown section Purpose: implementation_guide\phases\phase-06-users-rbac\01-plan.md
+- Invalid Markdown section Scope: implementation_guide\phases\phase-06-users-rbac\01-plan.md
+- Invalid Markdown section Inputs: implementation_guide\phases\phase-06-users-rbac\01-plan.md
+- Invalid Markdown section Outputs: implementation_guide\phases\phase-06-users-rbac\01-plan.md
+- Invalid Markdown section Dependencies: implementation_guide\phases\phase-06-users-rbac\01-plan.md
+- Invalid Markdown section Deliverables: implementation_guide\phases\phase-06-users-rbac\01-plan.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\phases\phase-06-users-rbac\01-plan.md
+- Invalid Markdown section Notes: implementation_guide\phases\phase-06-users-rbac\01-plan.md
+- Non-placeholder Markdown content: implementation_guide\phases\phase-06-users-rbac\01-plan.md
+- Invalid Markdown section Purpose: implementation_guide\phases\phase-06-users-rbac\02-prompt.md
+- Invalid Markdown section Scope: implementation_guide\phases\phase-06-users-rbac\02-prompt.md
+- Invalid Markdown section Inputs: implementation_guide\phases\phase-06-users-rbac\02-prompt.md
+- Invalid Markdown section Outputs: implementation_guide\phases\phase-06-users-rbac\02-prompt.md
+- Invalid Markdown section Dependencies: implementation_guide\phases\phase-06-users-rbac\02-prompt.md
+- Invalid Markdown section Deliverables: implementation_guide\phases\phase-06-users-rbac\02-prompt.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\phases\phase-06-users-rbac\02-prompt.md
+- Invalid Markdown section Notes: implementation_guide\phases\phase-06-users-rbac\02-prompt.md
+- Non-placeholder Markdown content: implementation_guide\phases\phase-06-users-rbac\02-prompt.md
+- Invalid Markdown section Purpose: implementation_guide\phases\phase-06-users-rbac\04-status.md
+- Invalid Markdown section Scope: implementation_guide\phases\phase-06-users-rbac\04-status.md
+- Invalid Markdown section Inputs: implementation_guide\phases\phase-06-users-rbac\04-status.md
+- Invalid Markdown section Outputs: implementation_guide\phases\phase-06-users-rbac\04-status.md
+- Invalid Markdown section Dependencies: implementation_guide\phases\phase-06-users-rbac\04-status.md
+- Invalid Markdown section Deliverables: implementation_guide\phases\phase-06-users-rbac\04-status.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\phases\phase-06-users-rbac\04-status.md
+- Invalid Markdown section Notes: implementation_guide\phases\phase-06-users-rbac\04-status.md
+- Non-placeholder Markdown content: implementation_guide\phases\phase-06-users-rbac\04-status.md
+- Invalid Markdown section Purpose: implementation_guide\phases\phase-07-file-storage\01-plan.md
+- Invalid Markdown section Scope: implementation_guide\phases\phase-07-file-storage\01-plan.md
+- Invalid Markdown section Inputs: implementation_guide\phases\phase-07-file-storage\01-plan.md
+- Invalid Markdown section Outputs: implementation_guide\phases\phase-07-file-storage\01-plan.md
+- Invalid Markdown section Dependencies: implementation_guide\phases\phase-07-file-storage\01-plan.md
+- Invalid Markdown section Deliverables: implementation_guide\phases\phase-07-file-storage\01-plan.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\phases\phase-07-file-storage\01-plan.md
+- Invalid Markdown section Notes: implementation_guide\phases\phase-07-file-storage\01-plan.md
+- Non-placeholder Markdown content: implementation_guide\phases\phase-07-file-storage\01-plan.md
+- Invalid Markdown section Purpose: implementation_guide\phases\phase-07-file-storage\02-prompt.md
+- Invalid Markdown section Scope: implementation_guide\phases\phase-07-file-storage\02-prompt.md
+- Invalid Markdown section Inputs: implementation_guide\phases\phase-07-file-storage\02-prompt.md
+- Invalid Markdown section Outputs: implementation_guide\phases\phase-07-file-storage\02-prompt.md
+- Invalid Markdown section Dependencies: implementation_guide\phases\phase-07-file-storage\02-prompt.md
+- Invalid Markdown section Deliverables: implementation_guide\phases\phase-07-file-storage\02-prompt.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\phases\phase-07-file-storage\02-prompt.md
+- Invalid Markdown section Notes: implementation_guide\phases\phase-07-file-storage\02-prompt.md
+- Non-placeholder Markdown content: implementation_guide\phases\phase-07-file-storage\02-prompt.md
+- Invalid Markdown section Purpose: implementation_guide\phases\phase-07-file-storage\04-status.md
+- Invalid Markdown section Scope: implementation_guide\phases\phase-07-file-storage\04-status.md
+- Invalid Markdown section Inputs: implementation_guide\phases\phase-07-file-storage\04-status.md
+- Invalid Markdown section Outputs: implementation_guide\phases\phase-07-file-storage\04-status.md
+- Invalid Markdown section Dependencies: implementation_guide\phases\phase-07-file-storage\04-status.md
+- Invalid Markdown section Deliverables: implementation_guide\phases\phase-07-file-storage\04-status.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\phases\phase-07-file-storage\04-status.md
+- Invalid Markdown section Notes: implementation_guide\phases\phase-07-file-storage\04-status.md
+- Non-placeholder Markdown content: implementation_guide\phases\phase-07-file-storage\04-status.md
+- Invalid Markdown section Purpose: implementation_guide\phases\phase-08-customers\01-plan.md
+- Invalid Markdown section Scope: implementation_guide\phases\phase-08-customers\01-plan.md
+- Invalid Markdown section Inputs: implementation_guide\phases\phase-08-customers\01-plan.md
+- Invalid Markdown section Outputs: implementation_guide\phases\phase-08-customers\01-plan.md
+- Invalid Markdown section Dependencies: implementation_guide\phases\phase-08-customers\01-plan.md
+- Invalid Markdown section Deliverables: implementation_guide\phases\phase-08-customers\01-plan.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\phases\phase-08-customers\01-plan.md
+- Invalid Markdown section Notes: implementation_guide\phases\phase-08-customers\01-plan.md
+- Non-placeholder Markdown content: implementation_guide\phases\phase-08-customers\01-plan.md
+- Invalid Markdown section Purpose: implementation_guide\phases\phase-08-customers\02-prompt.md
+- Invalid Markdown section Scope: implementation_guide\phases\phase-08-customers\02-prompt.md
+- Invalid Markdown section Inputs: implementation_guide\phases\phase-08-customers\02-prompt.md
+- Invalid Markdown section Outputs: implementation_guide\phases\phase-08-customers\02-prompt.md
+- Invalid Markdown section Dependencies: implementation_guide\phases\phase-08-customers\02-prompt.md
+- Invalid Markdown section Deliverables: implementation_guide\phases\phase-08-customers\02-prompt.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\phases\phase-08-customers\02-prompt.md
+- Invalid Markdown section Notes: implementation_guide\phases\phase-08-customers\02-prompt.md
+- Non-placeholder Markdown content: implementation_guide\phases\phase-08-customers\02-prompt.md
+- Invalid Markdown section Purpose: implementation_guide\phases\phase-08-customers\04-status.md
+- Invalid Markdown section Scope: implementation_guide\phases\phase-08-customers\04-status.md
+- Invalid Markdown section Inputs: implementation_guide\phases\phase-08-customers\04-status.md
+- Invalid Markdown section Outputs: implementation_guide\phases\phase-08-customers\04-status.md
+- Invalid Markdown section Dependencies: implementation_guide\phases\phase-08-customers\04-status.md
+- Invalid Markdown section Deliverables: implementation_guide\phases\phase-08-customers\04-status.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\phases\phase-08-customers\04-status.md
+- Invalid Markdown section Notes: implementation_guide\phases\phase-08-customers\04-status.md
+- Non-placeholder Markdown content: implementation_guide\phases\phase-08-customers\04-status.md
+- Invalid Markdown section Purpose: implementation_guide\phases\phase-09-catalog\01-plan.md
+- Invalid Markdown section Scope: implementation_guide\phases\phase-09-catalog\01-plan.md
+- Invalid Markdown section Inputs: implementation_guide\phases\phase-09-catalog\01-plan.md
+- Invalid Markdown section Outputs: implementation_guide\phases\phase-09-catalog\01-plan.md
+- Invalid Markdown section Dependencies: implementation_guide\phases\phase-09-catalog\01-plan.md
+- Invalid Markdown section Deliverables: implementation_guide\phases\phase-09-catalog\01-plan.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\phases\phase-09-catalog\01-plan.md
+- Invalid Markdown section Notes: implementation_guide\phases\phase-09-catalog\01-plan.md
+- Non-placeholder Markdown content: implementation_guide\phases\phase-09-catalog\01-plan.md
+- Invalid Markdown section Purpose: implementation_guide\phases\phase-09-catalog\02-prompt.md
+- Invalid Markdown section Scope: implementation_guide\phases\phase-09-catalog\02-prompt.md
+- Invalid Markdown section Inputs: implementation_guide\phases\phase-09-catalog\02-prompt.md
+- Invalid Markdown section Outputs: implementation_guide\phases\phase-09-catalog\02-prompt.md
+- Invalid Markdown section Dependencies: implementation_guide\phases\phase-09-catalog\02-prompt.md
+- Invalid Markdown section Deliverables: implementation_guide\phases\phase-09-catalog\02-prompt.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\phases\phase-09-catalog\02-prompt.md
+- Invalid Markdown section Notes: implementation_guide\phases\phase-09-catalog\02-prompt.md
+- Non-placeholder Markdown content: implementation_guide\phases\phase-09-catalog\02-prompt.md
+- Invalid Markdown section Purpose: implementation_guide\phases\phase-09-catalog\04-status.md
+- Invalid Markdown section Scope: implementation_guide\phases\phase-09-catalog\04-status.md
+- Invalid Markdown section Inputs: implementation_guide\phases\phase-09-catalog\04-status.md
+- Invalid Markdown section Outputs: implementation_guide\phases\phase-09-catalog\04-status.md
+- Invalid Markdown section Dependencies: implementation_guide\phases\phase-09-catalog\04-status.md
+- Invalid Markdown section Deliverables: implementation_guide\phases\phase-09-catalog\04-status.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\phases\phase-09-catalog\04-status.md
+- Invalid Markdown section Notes: implementation_guide\phases\phase-09-catalog\04-status.md
+- Non-placeholder Markdown content: implementation_guide\phases\phase-09-catalog\04-status.md
+- Invalid Markdown section Purpose: implementation_guide\phases\phase-10-orders-delivery\01-plan.md
+- Invalid Markdown section Scope: implementation_guide\phases\phase-10-orders-delivery\01-plan.md
+- Invalid Markdown section Inputs: implementation_guide\phases\phase-10-orders-delivery\01-plan.md
+- Invalid Markdown section Outputs: implementation_guide\phases\phase-10-orders-delivery\01-plan.md
+- Invalid Markdown section Dependencies: implementation_guide\phases\phase-10-orders-delivery\01-plan.md
+- Invalid Markdown section Deliverables: implementation_guide\phases\phase-10-orders-delivery\01-plan.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\phases\phase-10-orders-delivery\01-plan.md
+- Invalid Markdown section Notes: implementation_guide\phases\phase-10-orders-delivery\01-plan.md
+- Non-placeholder Markdown content: implementation_guide\phases\phase-10-orders-delivery\01-plan.md
+- Invalid Markdown section Purpose: implementation_guide\phases\phase-10-orders-delivery\02-prompt.md
+- Invalid Markdown section Scope: implementation_guide\phases\phase-10-orders-delivery\02-prompt.md
+- Invalid Markdown section Inputs: implementation_guide\phases\phase-10-orders-delivery\02-prompt.md
+- Invalid Markdown section Outputs: implementation_guide\phases\phase-10-orders-delivery\02-prompt.md
+- Invalid Markdown section Dependencies: implementation_guide\phases\phase-10-orders-delivery\02-prompt.md
+- Invalid Markdown section Deliverables: implementation_guide\phases\phase-10-orders-delivery\02-prompt.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\phases\phase-10-orders-delivery\02-prompt.md
+- Invalid Markdown section Notes: implementation_guide\phases\phase-10-orders-delivery\02-prompt.md
+- Non-placeholder Markdown content: implementation_guide\phases\phase-10-orders-delivery\02-prompt.md
+- Invalid Markdown section Purpose: implementation_guide\phases\phase-10-orders-delivery\04-status.md
+- Invalid Markdown section Scope: implementation_guide\phases\phase-10-orders-delivery\04-status.md
+- Invalid Markdown section Inputs: implementation_guide\phases\phase-10-orders-delivery\04-status.md
+- Invalid Markdown section Outputs: implementation_guide\phases\phase-10-orders-delivery\04-status.md
+- Invalid Markdown section Dependencies: implementation_guide\phases\phase-10-orders-delivery\04-status.md
+- Invalid Markdown section Deliverables: implementation_guide\phases\phase-10-orders-delivery\04-status.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\phases\phase-10-orders-delivery\04-status.md
+- Invalid Markdown section Notes: implementation_guide\phases\phase-10-orders-delivery\04-status.md
+- Non-placeholder Markdown content: implementation_guide\phases\phase-10-orders-delivery\04-status.md
+- Invalid Markdown section Purpose: implementation_guide\phases\phase-11-payments-receipts\01-plan.md
+- Invalid Markdown section Scope: implementation_guide\phases\phase-11-payments-receipts\01-plan.md
+- Invalid Markdown section Inputs: implementation_guide\phases\phase-11-payments-receipts\01-plan.md
+- Invalid Markdown section Outputs: implementation_guide\phases\phase-11-payments-receipts\01-plan.md
+- Invalid Markdown section Dependencies: implementation_guide\phases\phase-11-payments-receipts\01-plan.md
+- Invalid Markdown section Deliverables: implementation_guide\phases\phase-11-payments-receipts\01-plan.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\phases\phase-11-payments-receipts\01-plan.md
+- Invalid Markdown section Notes: implementation_guide\phases\phase-11-payments-receipts\01-plan.md
+- Non-placeholder Markdown content: implementation_guide\phases\phase-11-payments-receipts\01-plan.md
+- Invalid Markdown section Purpose: implementation_guide\phases\phase-11-payments-receipts\02-prompt.md
+- Invalid Markdown section Scope: implementation_guide\phases\phase-11-payments-receipts\02-prompt.md
+- Invalid Markdown section Inputs: implementation_guide\phases\phase-11-payments-receipts\02-prompt.md
+- Invalid Markdown section Outputs: implementation_guide\phases\phase-11-payments-receipts\02-prompt.md
+- Invalid Markdown section Dependencies: implementation_guide\phases\phase-11-payments-receipts\02-prompt.md
+- Invalid Markdown section Deliverables: implementation_guide\phases\phase-11-payments-receipts\02-prompt.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\phases\phase-11-payments-receipts\02-prompt.md
+- Invalid Markdown section Notes: implementation_guide\phases\phase-11-payments-receipts\02-prompt.md
+- Non-placeholder Markdown content: implementation_guide\phases\phase-11-payments-receipts\02-prompt.md
+- Invalid Markdown section Purpose: implementation_guide\phases\phase-11-payments-receipts\04-status.md
+- Invalid Markdown section Scope: implementation_guide\phases\phase-11-payments-receipts\04-status.md
+- Invalid Markdown section Inputs: implementation_guide\phases\phase-11-payments-receipts\04-status.md
+- Invalid Markdown section Outputs: implementation_guide\phases\phase-11-payments-receipts\04-status.md
+- Invalid Markdown section Dependencies: implementation_guide\phases\phase-11-payments-receipts\04-status.md
+- Invalid Markdown section Deliverables: implementation_guide\phases\phase-11-payments-receipts\04-status.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\phases\phase-11-payments-receipts\04-status.md
+- Invalid Markdown section Notes: implementation_guide\phases\phase-11-payments-receipts\04-status.md
+- Non-placeholder Markdown content: implementation_guide\phases\phase-11-payments-receipts\04-status.md
+- Invalid Markdown section Purpose: implementation_guide\phases\phase-12-notifications\01-plan.md
+- Invalid Markdown section Scope: implementation_guide\phases\phase-12-notifications\01-plan.md
+- Invalid Markdown section Inputs: implementation_guide\phases\phase-12-notifications\01-plan.md
+- Invalid Markdown section Outputs: implementation_guide\phases\phase-12-notifications\01-plan.md
+- Invalid Markdown section Dependencies: implementation_guide\phases\phase-12-notifications\01-plan.md
+- Invalid Markdown section Deliverables: implementation_guide\phases\phase-12-notifications\01-plan.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\phases\phase-12-notifications\01-plan.md
+- Invalid Markdown section Notes: implementation_guide\phases\phase-12-notifications\01-plan.md
+- Non-placeholder Markdown content: implementation_guide\phases\phase-12-notifications\01-plan.md
+- Invalid Markdown section Purpose: implementation_guide\phases\phase-12-notifications\02-prompt.md
+- Invalid Markdown section Scope: implementation_guide\phases\phase-12-notifications\02-prompt.md
+- Invalid Markdown section Inputs: implementation_guide\phases\phase-12-notifications\02-prompt.md
+- Invalid Markdown section Outputs: implementation_guide\phases\phase-12-notifications\02-prompt.md
+- Invalid Markdown section Dependencies: implementation_guide\phases\phase-12-notifications\02-prompt.md
+- Invalid Markdown section Deliverables: implementation_guide\phases\phase-12-notifications\02-prompt.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\phases\phase-12-notifications\02-prompt.md
+- Invalid Markdown section Notes: implementation_guide\phases\phase-12-notifications\02-prompt.md
+- Non-placeholder Markdown content: implementation_guide\phases\phase-12-notifications\02-prompt.md
+- Invalid Markdown section Purpose: implementation_guide\phases\phase-12-notifications\04-status.md
+- Invalid Markdown section Scope: implementation_guide\phases\phase-12-notifications\04-status.md
+- Invalid Markdown section Inputs: implementation_guide\phases\phase-12-notifications\04-status.md
+- Invalid Markdown section Outputs: implementation_guide\phases\phase-12-notifications\04-status.md
+- Invalid Markdown section Dependencies: implementation_guide\phases\phase-12-notifications\04-status.md
+- Invalid Markdown section Deliverables: implementation_guide\phases\phase-12-notifications\04-status.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\phases\phase-12-notifications\04-status.md
+- Invalid Markdown section Notes: implementation_guide\phases\phase-12-notifications\04-status.md
+- Non-placeholder Markdown content: implementation_guide\phases\phase-12-notifications\04-status.md
+- Invalid Markdown section Purpose: implementation_guide\phases\phase-13-expenses-registers\01-plan.md
+- Invalid Markdown section Scope: implementation_guide\phases\phase-13-expenses-registers\01-plan.md
+- Invalid Markdown section Inputs: implementation_guide\phases\phase-13-expenses-registers\01-plan.md
+- Invalid Markdown section Outputs: implementation_guide\phases\phase-13-expenses-registers\01-plan.md
+- Invalid Markdown section Dependencies: implementation_guide\phases\phase-13-expenses-registers\01-plan.md
+- Invalid Markdown section Deliverables: implementation_guide\phases\phase-13-expenses-registers\01-plan.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\phases\phase-13-expenses-registers\01-plan.md
+- Invalid Markdown section Notes: implementation_guide\phases\phase-13-expenses-registers\01-plan.md
+- Non-placeholder Markdown content: implementation_guide\phases\phase-13-expenses-registers\01-plan.md
+- Invalid Markdown section Purpose: implementation_guide\phases\phase-13-expenses-registers\02-prompt.md
+- Invalid Markdown section Scope: implementation_guide\phases\phase-13-expenses-registers\02-prompt.md
+- Invalid Markdown section Inputs: implementation_guide\phases\phase-13-expenses-registers\02-prompt.md
+- Invalid Markdown section Outputs: implementation_guide\phases\phase-13-expenses-registers\02-prompt.md
+- Invalid Markdown section Dependencies: implementation_guide\phases\phase-13-expenses-registers\02-prompt.md
+- Invalid Markdown section Deliverables: implementation_guide\phases\phase-13-expenses-registers\02-prompt.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\phases\phase-13-expenses-registers\02-prompt.md
+- Invalid Markdown section Notes: implementation_guide\phases\phase-13-expenses-registers\02-prompt.md
+- Non-placeholder Markdown content: implementation_guide\phases\phase-13-expenses-registers\02-prompt.md
+- Invalid Markdown section Purpose: implementation_guide\phases\phase-13-expenses-registers\04-status.md
+- Invalid Markdown section Scope: implementation_guide\phases\phase-13-expenses-registers\04-status.md
+- Invalid Markdown section Inputs: implementation_guide\phases\phase-13-expenses-registers\04-status.md
+- Invalid Markdown section Outputs: implementation_guide\phases\phase-13-expenses-registers\04-status.md
+- Invalid Markdown section Dependencies: implementation_guide\phases\phase-13-expenses-registers\04-status.md
+- Invalid Markdown section Deliverables: implementation_guide\phases\phase-13-expenses-registers\04-status.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\phases\phase-13-expenses-registers\04-status.md
+- Invalid Markdown section Notes: implementation_guide\phases\phase-13-expenses-registers\04-status.md
+- Non-placeholder Markdown content: implementation_guide\phases\phase-13-expenses-registers\04-status.md
+- Invalid Markdown section Purpose: implementation_guide\phases\phase-14-search\01-plan.md
+- Invalid Markdown section Scope: implementation_guide\phases\phase-14-search\01-plan.md
+- Invalid Markdown section Inputs: implementation_guide\phases\phase-14-search\01-plan.md
+- Invalid Markdown section Outputs: implementation_guide\phases\phase-14-search\01-plan.md
+- Invalid Markdown section Dependencies: implementation_guide\phases\phase-14-search\01-plan.md
+- Invalid Markdown section Deliverables: implementation_guide\phases\phase-14-search\01-plan.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\phases\phase-14-search\01-plan.md
+- Invalid Markdown section Notes: implementation_guide\phases\phase-14-search\01-plan.md
+- Non-placeholder Markdown content: implementation_guide\phases\phase-14-search\01-plan.md
+- Invalid Markdown section Purpose: implementation_guide\phases\phase-14-search\02-prompt.md
+- Invalid Markdown section Scope: implementation_guide\phases\phase-14-search\02-prompt.md
+- Invalid Markdown section Inputs: implementation_guide\phases\phase-14-search\02-prompt.md
+- Invalid Markdown section Outputs: implementation_guide\phases\phase-14-search\02-prompt.md
+- Invalid Markdown section Dependencies: implementation_guide\phases\phase-14-search\02-prompt.md
+- Invalid Markdown section Deliverables: implementation_guide\phases\phase-14-search\02-prompt.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\phases\phase-14-search\02-prompt.md
+- Invalid Markdown section Notes: implementation_guide\phases\phase-14-search\02-prompt.md
+- Non-placeholder Markdown content: implementation_guide\phases\phase-14-search\02-prompt.md
+- Invalid Markdown section Purpose: implementation_guide\phases\phase-14-search\04-status.md
+- Invalid Markdown section Scope: implementation_guide\phases\phase-14-search\04-status.md
+- Invalid Markdown section Inputs: implementation_guide\phases\phase-14-search\04-status.md
+- Invalid Markdown section Outputs: implementation_guide\phases\phase-14-search\04-status.md
+- Invalid Markdown section Dependencies: implementation_guide\phases\phase-14-search\04-status.md
+- Invalid Markdown section Deliverables: implementation_guide\phases\phase-14-search\04-status.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\phases\phase-14-search\04-status.md
+- Invalid Markdown section Notes: implementation_guide\phases\phase-14-search\04-status.md
+- Non-placeholder Markdown content: implementation_guide\phases\phase-14-search\04-status.md
+- Invalid Markdown section Purpose: implementation_guide\phases\phase-15-reports-exports\01-plan.md
+- Invalid Markdown section Scope: implementation_guide\phases\phase-15-reports-exports\01-plan.md
+- Invalid Markdown section Inputs: implementation_guide\phases\phase-15-reports-exports\01-plan.md
+- Invalid Markdown section Outputs: implementation_guide\phases\phase-15-reports-exports\01-plan.md
+- Invalid Markdown section Dependencies: implementation_guide\phases\phase-15-reports-exports\01-plan.md
+- Invalid Markdown section Deliverables: implementation_guide\phases\phase-15-reports-exports\01-plan.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\phases\phase-15-reports-exports\01-plan.md
+- Invalid Markdown section Notes: implementation_guide\phases\phase-15-reports-exports\01-plan.md
+- Non-placeholder Markdown content: implementation_guide\phases\phase-15-reports-exports\01-plan.md
+- Invalid Markdown section Purpose: implementation_guide\phases\phase-15-reports-exports\02-prompt.md
+- Invalid Markdown section Scope: implementation_guide\phases\phase-15-reports-exports\02-prompt.md
+- Invalid Markdown section Inputs: implementation_guide\phases\phase-15-reports-exports\02-prompt.md
+- Invalid Markdown section Outputs: implementation_guide\phases\phase-15-reports-exports\02-prompt.md
+- Invalid Markdown section Dependencies: implementation_guide\phases\phase-15-reports-exports\02-prompt.md
+- Invalid Markdown section Deliverables: implementation_guide\phases\phase-15-reports-exports\02-prompt.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\phases\phase-15-reports-exports\02-prompt.md
+- Invalid Markdown section Notes: implementation_guide\phases\phase-15-reports-exports\02-prompt.md
+- Non-placeholder Markdown content: implementation_guide\phases\phase-15-reports-exports\02-prompt.md
+- Invalid Markdown section Purpose: implementation_guide\phases\phase-15-reports-exports\04-status.md
+- Invalid Markdown section Scope: implementation_guide\phases\phase-15-reports-exports\04-status.md
+- Invalid Markdown section Inputs: implementation_guide\phases\phase-15-reports-exports\04-status.md
+- Invalid Markdown section Outputs: implementation_guide\phases\phase-15-reports-exports\04-status.md
+- Invalid Markdown section Dependencies: implementation_guide\phases\phase-15-reports-exports\04-status.md
+- Invalid Markdown section Deliverables: implementation_guide\phases\phase-15-reports-exports\04-status.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\phases\phase-15-reports-exports\04-status.md
+- Invalid Markdown section Notes: implementation_guide\phases\phase-15-reports-exports\04-status.md
+- Non-placeholder Markdown content: implementation_guide\phases\phase-15-reports-exports\04-status.md
+- Invalid Markdown section Purpose: implementation_guide\phases\phase-16-dashboard\01-plan.md
+- Invalid Markdown section Scope: implementation_guide\phases\phase-16-dashboard\01-plan.md
+- Invalid Markdown section Inputs: implementation_guide\phases\phase-16-dashboard\01-plan.md
+- Invalid Markdown section Outputs: implementation_guide\phases\phase-16-dashboard\01-plan.md
+- Invalid Markdown section Dependencies: implementation_guide\phases\phase-16-dashboard\01-plan.md
+- Invalid Markdown section Deliverables: implementation_guide\phases\phase-16-dashboard\01-plan.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\phases\phase-16-dashboard\01-plan.md
+- Invalid Markdown section Notes: implementation_guide\phases\phase-16-dashboard\01-plan.md
+- Non-placeholder Markdown content: implementation_guide\phases\phase-16-dashboard\01-plan.md
+- Invalid Markdown section Purpose: implementation_guide\phases\phase-16-dashboard\02-prompt.md
+- Invalid Markdown section Scope: implementation_guide\phases\phase-16-dashboard\02-prompt.md
+- Invalid Markdown section Inputs: implementation_guide\phases\phase-16-dashboard\02-prompt.md
+- Invalid Markdown section Outputs: implementation_guide\phases\phase-16-dashboard\02-prompt.md
+- Invalid Markdown section Dependencies: implementation_guide\phases\phase-16-dashboard\02-prompt.md
+- Invalid Markdown section Deliverables: implementation_guide\phases\phase-16-dashboard\02-prompt.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\phases\phase-16-dashboard\02-prompt.md
+- Invalid Markdown section Notes: implementation_guide\phases\phase-16-dashboard\02-prompt.md
+- Non-placeholder Markdown content: implementation_guide\phases\phase-16-dashboard\02-prompt.md
+- Invalid Markdown section Purpose: implementation_guide\phases\phase-16-dashboard\04-status.md
+- Invalid Markdown section Scope: implementation_guide\phases\phase-16-dashboard\04-status.md
+- Invalid Markdown section Inputs: implementation_guide\phases\phase-16-dashboard\04-status.md
+- Invalid Markdown section Outputs: implementation_guide\phases\phase-16-dashboard\04-status.md
+- Invalid Markdown section Dependencies: implementation_guide\phases\phase-16-dashboard\04-status.md
+- Invalid Markdown section Deliverables: implementation_guide\phases\phase-16-dashboard\04-status.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\phases\phase-16-dashboard\04-status.md
+- Invalid Markdown section Notes: implementation_guide\phases\phase-16-dashboard\04-status.md
+- Non-placeholder Markdown content: implementation_guide\phases\phase-16-dashboard\04-status.md
+- Invalid Markdown section Purpose: implementation_guide\phases\phase-17-flutter-mobile\01-plan.md
+- Invalid Markdown section Scope: implementation_guide\phases\phase-17-flutter-mobile\01-plan.md
+- Invalid Markdown section Inputs: implementation_guide\phases\phase-17-flutter-mobile\01-plan.md
+- Invalid Markdown section Outputs: implementation_guide\phases\phase-17-flutter-mobile\01-plan.md
+- Invalid Markdown section Dependencies: implementation_guide\phases\phase-17-flutter-mobile\01-plan.md
+- Invalid Markdown section Deliverables: implementation_guide\phases\phase-17-flutter-mobile\01-plan.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\phases\phase-17-flutter-mobile\01-plan.md
+- Invalid Markdown section Notes: implementation_guide\phases\phase-17-flutter-mobile\01-plan.md
+- Non-placeholder Markdown content: implementation_guide\phases\phase-17-flutter-mobile\01-plan.md
+- Invalid Markdown section Purpose: implementation_guide\phases\phase-17-flutter-mobile\02-prompt.md
+- Invalid Markdown section Scope: implementation_guide\phases\phase-17-flutter-mobile\02-prompt.md
+- Invalid Markdown section Inputs: implementation_guide\phases\phase-17-flutter-mobile\02-prompt.md
+- Invalid Markdown section Outputs: implementation_guide\phases\phase-17-flutter-mobile\02-prompt.md
+- Invalid Markdown section Dependencies: implementation_guide\phases\phase-17-flutter-mobile\02-prompt.md
+- Invalid Markdown section Deliverables: implementation_guide\phases\phase-17-flutter-mobile\02-prompt.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\phases\phase-17-flutter-mobile\02-prompt.md
+- Invalid Markdown section Notes: implementation_guide\phases\phase-17-flutter-mobile\02-prompt.md
+- Non-placeholder Markdown content: implementation_guide\phases\phase-17-flutter-mobile\02-prompt.md
+- Invalid Markdown section Purpose: implementation_guide\phases\phase-17-flutter-mobile\04-status.md
+- Invalid Markdown section Scope: implementation_guide\phases\phase-17-flutter-mobile\04-status.md
+- Invalid Markdown section Inputs: implementation_guide\phases\phase-17-flutter-mobile\04-status.md
+- Invalid Markdown section Outputs: implementation_guide\phases\phase-17-flutter-mobile\04-status.md
+- Invalid Markdown section Dependencies: implementation_guide\phases\phase-17-flutter-mobile\04-status.md
+- Invalid Markdown section Deliverables: implementation_guide\phases\phase-17-flutter-mobile\04-status.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\phases\phase-17-flutter-mobile\04-status.md
+- Invalid Markdown section Notes: implementation_guide\phases\phase-17-flutter-mobile\04-status.md
+- Non-placeholder Markdown content: implementation_guide\phases\phase-17-flutter-mobile\04-status.md
+- Invalid Markdown section Purpose: implementation_guide\phases\phase-18-testing-security\01-plan.md
+- Invalid Markdown section Scope: implementation_guide\phases\phase-18-testing-security\01-plan.md
+- Invalid Markdown section Inputs: implementation_guide\phases\phase-18-testing-security\01-plan.md
+- Invalid Markdown section Outputs: implementation_guide\phases\phase-18-testing-security\01-plan.md
+- Invalid Markdown section Dependencies: implementation_guide\phases\phase-18-testing-security\01-plan.md
+- Invalid Markdown section Deliverables: implementation_guide\phases\phase-18-testing-security\01-plan.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\phases\phase-18-testing-security\01-plan.md
+- Invalid Markdown section Notes: implementation_guide\phases\phase-18-testing-security\01-plan.md
+- Non-placeholder Markdown content: implementation_guide\phases\phase-18-testing-security\01-plan.md
+- Invalid Markdown section Purpose: implementation_guide\phases\phase-18-testing-security\02-prompt.md
+- Invalid Markdown section Scope: implementation_guide\phases\phase-18-testing-security\02-prompt.md
+- Invalid Markdown section Inputs: implementation_guide\phases\phase-18-testing-security\02-prompt.md
+- Invalid Markdown section Outputs: implementation_guide\phases\phase-18-testing-security\02-prompt.md
+- Invalid Markdown section Dependencies: implementation_guide\phases\phase-18-testing-security\02-prompt.md
+- Invalid Markdown section Deliverables: implementation_guide\phases\phase-18-testing-security\02-prompt.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\phases\phase-18-testing-security\02-prompt.md
+- Invalid Markdown section Notes: implementation_guide\phases\phase-18-testing-security\02-prompt.md
+- Non-placeholder Markdown content: implementation_guide\phases\phase-18-testing-security\02-prompt.md
+- Invalid Markdown section Purpose: implementation_guide\phases\phase-18-testing-security\04-status.md
+- Invalid Markdown section Scope: implementation_guide\phases\phase-18-testing-security\04-status.md
+- Invalid Markdown section Inputs: implementation_guide\phases\phase-18-testing-security\04-status.md
+- Invalid Markdown section Outputs: implementation_guide\phases\phase-18-testing-security\04-status.md
+- Invalid Markdown section Dependencies: implementation_guide\phases\phase-18-testing-security\04-status.md
+- Invalid Markdown section Deliverables: implementation_guide\phases\phase-18-testing-security\04-status.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\phases\phase-18-testing-security\04-status.md
+- Invalid Markdown section Notes: implementation_guide\phases\phase-18-testing-security\04-status.md
+- Non-placeholder Markdown content: implementation_guide\phases\phase-18-testing-security\04-status.md
+- Invalid Markdown section Purpose: implementation_guide\phases\phase-19-deployment\01-plan.md
+- Invalid Markdown section Scope: implementation_guide\phases\phase-19-deployment\01-plan.md
+- Invalid Markdown section Inputs: implementation_guide\phases\phase-19-deployment\01-plan.md
+- Invalid Markdown section Outputs: implementation_guide\phases\phase-19-deployment\01-plan.md
+- Invalid Markdown section Dependencies: implementation_guide\phases\phase-19-deployment\01-plan.md
+- Invalid Markdown section Deliverables: implementation_guide\phases\phase-19-deployment\01-plan.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\phases\phase-19-deployment\01-plan.md
+- Invalid Markdown section Notes: implementation_guide\phases\phase-19-deployment\01-plan.md
+- Non-placeholder Markdown content: implementation_guide\phases\phase-19-deployment\01-plan.md
+- Invalid Markdown section Purpose: implementation_guide\phases\phase-19-deployment\02-prompt.md
+- Invalid Markdown section Scope: implementation_guide\phases\phase-19-deployment\02-prompt.md
+- Invalid Markdown section Inputs: implementation_guide\phases\phase-19-deployment\02-prompt.md
+- Invalid Markdown section Outputs: implementation_guide\phases\phase-19-deployment\02-prompt.md
+- Invalid Markdown section Dependencies: implementation_guide\phases\phase-19-deployment\02-prompt.md
+- Invalid Markdown section Deliverables: implementation_guide\phases\phase-19-deployment\02-prompt.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\phases\phase-19-deployment\02-prompt.md
+- Invalid Markdown section Notes: implementation_guide\phases\phase-19-deployment\02-prompt.md
+- Non-placeholder Markdown content: implementation_guide\phases\phase-19-deployment\02-prompt.md
+- Invalid Markdown section Purpose: implementation_guide\phases\phase-19-deployment\04-status.md
+- Invalid Markdown section Scope: implementation_guide\phases\phase-19-deployment\04-status.md
+- Invalid Markdown section Inputs: implementation_guide\phases\phase-19-deployment\04-status.md
+- Invalid Markdown section Outputs: implementation_guide\phases\phase-19-deployment\04-status.md
+- Invalid Markdown section Dependencies: implementation_guide\phases\phase-19-deployment\04-status.md
+- Invalid Markdown section Deliverables: implementation_guide\phases\phase-19-deployment\04-status.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\phases\phase-19-deployment\04-status.md
+- Invalid Markdown section Notes: implementation_guide\phases\phase-19-deployment\04-status.md
+- Non-placeholder Markdown content: implementation_guide\phases\phase-19-deployment\04-status.md
+- Invalid Markdown section Purpose: implementation_guide\phases\phase-20-release\01-plan.md
+- Invalid Markdown section Scope: implementation_guide\phases\phase-20-release\01-plan.md
+- Invalid Markdown section Inputs: implementation_guide\phases\phase-20-release\01-plan.md
+- Invalid Markdown section Outputs: implementation_guide\phases\phase-20-release\01-plan.md
+- Invalid Markdown section Dependencies: implementation_guide\phases\phase-20-release\01-plan.md
+- Invalid Markdown section Deliverables: implementation_guide\phases\phase-20-release\01-plan.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\phases\phase-20-release\01-plan.md
+- Invalid Markdown section Notes: implementation_guide\phases\phase-20-release\01-plan.md
+- Non-placeholder Markdown content: implementation_guide\phases\phase-20-release\01-plan.md
+- Invalid Markdown section Purpose: implementation_guide\phases\phase-20-release\02-prompt.md
+- Invalid Markdown section Scope: implementation_guide\phases\phase-20-release\02-prompt.md
+- Invalid Markdown section Inputs: implementation_guide\phases\phase-20-release\02-prompt.md
+- Invalid Markdown section Outputs: implementation_guide\phases\phase-20-release\02-prompt.md
+- Invalid Markdown section Dependencies: implementation_guide\phases\phase-20-release\02-prompt.md
+- Invalid Markdown section Deliverables: implementation_guide\phases\phase-20-release\02-prompt.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\phases\phase-20-release\02-prompt.md
+- Invalid Markdown section Notes: implementation_guide\phases\phase-20-release\02-prompt.md
+- Non-placeholder Markdown content: implementation_guide\phases\phase-20-release\02-prompt.md
+- Invalid Markdown section Purpose: implementation_guide\phases\phase-20-release\04-status.md
+- Invalid Markdown section Scope: implementation_guide\phases\phase-20-release\04-status.md
+- Invalid Markdown section Inputs: implementation_guide\phases\phase-20-release\04-status.md
+- Invalid Markdown section Outputs: implementation_guide\phases\phase-20-release\04-status.md
+- Invalid Markdown section Dependencies: implementation_guide\phases\phase-20-release\04-status.md
+- Invalid Markdown section Deliverables: implementation_guide\phases\phase-20-release\04-status.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\phases\phase-20-release\04-status.md
+- Invalid Markdown section Notes: implementation_guide\phases\phase-20-release\04-status.md
+- Non-placeholder Markdown content: implementation_guide\phases\phase-20-release\04-status.md
+- Invalid Markdown section Purpose: implementation_guide\README.md
+- Invalid Markdown section Scope: implementation_guide\README.md
+- Invalid Markdown section Inputs: implementation_guide\README.md
+- Invalid Markdown section Outputs: implementation_guide\README.md
+- Invalid Markdown section Dependencies: implementation_guide\README.md
+- Invalid Markdown section Deliverables: implementation_guide\README.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\README.md
+- Invalid Markdown section Notes: implementation_guide\README.md
+- Non-placeholder Markdown content: implementation_guide\README.md
+- Invalid Markdown section Purpose: instructions.Md
+- Invalid Markdown section Scope: instructions.Md
+- Invalid Markdown section Inputs: instructions.Md
+- Invalid Markdown section Outputs: instructions.Md
+- Invalid Markdown section Dependencies: instructions.Md
+- Invalid Markdown section Deliverables: instructions.Md
+- Invalid Markdown section Acceptance Criteria: instructions.Md
+- Invalid Markdown section Notes: instructions.Md
+- Non-placeholder Markdown content: instructions.Md
+- Forbidden implementation in apps\backend\api-gateway\src\app.controller.ts
+- Forbidden implementation in apps\backend\api-gateway\src\app.controller.ts

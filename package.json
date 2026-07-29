@@ -11,16 +11,30 @@
   },
   "scripts": {
     "build": "turbo run build",
+    "build:backend": "pnpm --filter \"./apps/backend/**\" --recursive build",
+    "clean": "turbo run clean",
     "dev": "turbo run dev --parallel",
+    "format": "prettier --write \"eslint.config.mjs\" \"tsconfig.base.json\" \"package.json\" \"turbo.json\" \"pnpm-workspace.yaml\" \"docker-compose.yml\" \"scripts/run-typescript-project.mjs\" \"apps/backend/**/*.{ts,json}\" \"packages/**/*.{ts,json}\"",
+    "format:check": "prettier --check \"eslint.config.mjs\" \"tsconfig.base.json\" \"package.json\" \"turbo.json\" \"pnpm-workspace.yaml\" \"docker-compose.yml\" \"scripts/run-typescript-project.mjs\" \"apps/backend/**/*.{ts,json}\" \"packages/**/*.{ts,json}\"",
     "lint": "turbo run lint",
+    "lint:backend": "pnpm --filter \"./apps/backend/**\" --recursive lint",
     "test": "turbo run test",
-    "verify": "node scripts/verify-scaffold.mjs",
+    "typecheck": "turbo run typecheck",
+    "typecheck:backend": "pnpm --filter \"./apps/backend/**\" --recursive typecheck",
+    "verify": "pnpm format:check && pnpm lint:backend && pnpm typecheck:backend && pnpm build:backend",
     "tree": "node scripts/generate-tree.mjs"
   },
   "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@types/node": "22.15.3",
     "eslint": "10.8.0",
+    "eslint-config-prettier": "10.1.8",
+    "eslint-plugin-prettier": "5.5.6",
     "prettier": "3.5.3",
+    "rimraf": "6.0.1",
+    "ts-node": "10.9.2",
     "turbo": "2.5.2",
-    "typescript": "5.8.3"
+    "typescript": "5.8.3",
+    "typescript-eslint": "8.65.0"
   }
 }

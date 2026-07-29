@@ -2,11 +2,9 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 
 import { AppController } from './app.controller';
-import { AppService } from './app.service';
+import { AppHealth } from './app.service';
 
-function validateEnvironment(
-  configuration: Record<string, unknown>,
-): Record<string, unknown> {
+function validateEnvironment(configuration: Record<string, unknown>): Record<string, unknown> {
   const requiredVariables = [
     'APP_NAME',
     'NODE_ENV',
@@ -30,16 +28,12 @@ function validateEnvironment(
 
   const nodeEnvironment = String(configuration.NODE_ENV);
   if (!['development', 'test', 'production'].includes(nodeEnvironment)) {
-    throw new Error(
-      'Environment variable NODE_ENV must be development, test, or production',
-    );
+    throw new Error('Environment variable NODE_ENV must be development, test, or production');
   }
 
   const apiVersion = String(configuration.API_VERSION);
   if (!/^v?\d+$/.test(apiVersion)) {
-    throw new Error(
-      'Environment variable API_VERSION must use a numeric URI version such as v1',
-    );
+    throw new Error('Environment variable API_VERSION must use a numeric URI version such as v1');
   }
 
   return {
@@ -61,6 +55,6 @@ function validateEnvironment(
     }),
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppHealth],
 })
 export class AppModule {}

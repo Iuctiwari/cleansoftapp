@@ -3,7 +3,17 @@
   "version": "0.0.0",
   "private": true,
   "description": "Search Service foundation.",
-  "scripts": {},
+  "scripts": {
+    "build": "node ../../../scripts/run-typescript-project.mjs build",
+    "clean": "rimraf dist",
+    "dev": "node ../../../scripts/run-typescript-project.mjs dev",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "start": "node ../../../scripts/run-typescript-project.mjs start",
+    "start:prod": "node ../../../scripts/run-typescript-project.mjs start:prod",
+    "lint": "eslint \"src/**/*.ts\" \"test/**/*.ts\" --no-error-on-unmatched-pattern",
+    "typecheck": "node ../../../scripts/run-typescript-project.mjs typecheck"
+  },
   "dependencies": {
     "@nestjs/common": "11.1.0",
     "@nestjs/core": "11.1.0",

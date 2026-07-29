@@ -4,12 +4,20 @@ import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
   {
-    ignores: ['coverage/**', 'dist/**', 'node_modules/**'],
+    ignores: [
+      '**/.dart_tool/**',
+      '**/.pnpm-store/**',
+      '**/.turbo/**',
+      '**/build/**',
+      '**/coverage/**',
+      '**/dist/**',
+      '**/node_modules/**',
+    ],
   },
   eslint.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked,
   {
-    files: ['src/**/*.ts', 'test/**/*.ts'],
+    files: ['apps/backend/**/*.ts', 'packages/**/*.ts'],
     languageOptions: {
       parserOptions: {
         projectService: true,

@@ -9,7 +9,7 @@ export interface HealthResponse {
 }
 
 @Injectable()
-export class AppService {
+export class AppHealth {
   constructor(private readonly configService: ConfigService) {}
 
   getHealth(): HealthResponse {

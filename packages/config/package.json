@@ -3,5 +3,12 @@
   "version": "0.0.0",
   "private": true,
   "description": "Config shared package foundation.",
-  "scripts": {}
+  "scripts": {
+    "build": "node ../../scripts/run-typescript-project.mjs build",
+    "clean": "rimraf dist",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "eslint \"src/**/*.ts\" --no-error-on-unmatched-pattern",
+    "typecheck": "node ../../scripts/run-typescript-project.mjs typecheck"
+  }
 }

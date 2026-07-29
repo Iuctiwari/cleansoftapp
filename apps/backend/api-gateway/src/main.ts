@@ -16,9 +16,7 @@ async function bootstrap(): Promise<void> {
   app.setGlobalPrefix(configService.getOrThrow<string>('API_PREFIX'));
   app.enableVersioning({
     type: VersioningType.URI,
-    defaultVersion: configService
-      .getOrThrow<string>('API_VERSION')
-      .replace(/^v/i, ''),
+    defaultVersion: configService.getOrThrow<string>('API_VERSION').replace(/^v/i, ''),
   });
   app.useGlobalPipes(
     new ValidationPipe({
