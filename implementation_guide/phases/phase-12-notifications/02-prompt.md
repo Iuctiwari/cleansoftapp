@@ -1,4 +1,4 @@
-# PHASE 12— NOTIFICATION MANAGEMENT IMPLEMENTATION PROMPT
+# PHASE 12 — NOTIFICATION MANAGEMENT IMPLEMENTATION PROMPT
 
 ## Phase Information
 
@@ -8,375 +8,155 @@
 - Scope: ERP user and customer communications.
 - Status: Implementation prompt.
 
-## Role
+## Role, Purpose, and Boundaries
 
-- Implement the Nexoraa CleanSoft Notification Management module.
-- Use only the requirements defined in this prompt.
-- Preserve existing Authentication functionality.
-- Preserve existing Multi-Tenancy functionality.
-- Preserve existing Branch Management functionality.
-- Preserve existing User Management functionality.
-- Preserve existing Customer Management functionality.
-- Preserve existing Service Management functionality.
-- Preserve existing Order Management functionality.
-- Preserve existing Payment Management functionality.
-- Do not implement unrelated modules.
+- Implement the Nexoraa CleanSoft Notification Management module using only this prompt.
+- Deliver timely, reliable, configurable notifications to ERP users and customers.
+- Centralize Email, SMS, WhatsApp, Push, and In-App communication.
+- Convert business events into messages while respecting tenant isolation, branch awareness, recipient preferences, language, and quiet hours.
+- Manage notification records, templates, preferences, delivery logs, status, scheduling, retries, history, and audit information.
+- Receive events from ERP modules, select configured channels, and use external delivery providers.
+- Preserve existing Authentication, Multi-Tenancy, Branch, User, Customer, Service, Order, and Payment functionality.
+- Do not replace source business modules, Email Provider, SMS Gateway, WhatsApp Business API, or Push Notification Service.
+- Do not implement unrelated modules or APIs.
 - Stop after completing Notification Management.
-
-## Overall Purpose
-
-- Deliver timely notifications.
-- Deliver reliable notifications.
-- Deliver configurable notifications.
-- Deliver notifications to users.
-- Deliver notifications to customers.
-- Centralize all communication channels.
-- Convert business events into notifications.
-- Maintain tenant isolation.
-- Maintain branch awareness.
-- Respect user notification preferences.
-- Respect customer notification preferences.
-- Support Email.
-- Support SMS.
-- Support WhatsApp.
-- Support Push Notifications.
-- Support In-App Notifications.
-- Act as the ERP communication hub.
 
 ## Notification Management Position
 
-- Authentication identifies who initiated the action.
-- Multi-Tenancy identifies which business owns the communication.
-- Branch Management identifies which location generated the event.
-- User Management controls who can send or receive notifications.
-- Customer Management identifies customer recipients.
-- Order Management provides order lifecycle events.
-- Payment Management provides payment events.
-- Notification Management converts events into communications.
-- Reports consume notification data.
-- Dashboards consume notification data.
-- Search uses notification records.
-- Audit Service records notification changes.
-
-## Core Responsibilities
-
-- Notification Generation.
-- Notification Delivery.
-- Notification Template Management.
-- Notification Channel Management.
-- Notification Preferences.
-- Customer Notifications.
-- Employee Notifications.
-- In-App Notifications.
-- Email Notifications.
-- SMS Notifications.
-- WhatsApp Notifications.
-- Push Notifications.
-- Scheduled Notifications.
-- Notification History.
-- Notification Retry Management.
-- Notification Audit Management.
-
-## Responsibility Boundaries
-
-- Manage notification records only.
-- Manage notification templates only.
-- Manage notification preferences only.
-- Manage notification delivery logs only.
-- Receive events from ERP modules.
-- Select configured delivery channels.
-- Use external delivery providers.
-- Preserve notification history.
-- Preserve delivery status.
-- Preserve retry information.
-- Do not replace source business modules.
-- Do not replace Email Provider.
-- Do not replace SMS Gateway.
-- Do not replace WhatsApp Business API.
-- Do not replace Push Notification Service.
+- Authentication identifies the acting user.
+- Multi-Tenancy identifies the business that owns the communication.
+- Branch Management supplies branch context for branch-specific events.
+- User and Customer Management identify recipients and their preferences.
+- Service, Order, and Payment Management publish business events.
+- Notification Management converts those events into communications.
+- Reports, Dashboard, and Search consume notification data.
+- Audit Service records notification and delivery changes.
 
 ## Functional Areas
 
-### 1. Notification Generation
+### 1. Notification Generation and Delivery
 
 - Receive a business event.
 - Evaluate notification rules.
-- Select a notification type.
-- Select an appropriate template.
-- Select a recipient.
-- Select a delivery channel.
-- Generate message content.
-- Validate required variables.
-- Create a notification record.
-- Queue the notification.
+- Select the notification type.
+- Select a valid recipient.
+- Select a configured channel using preferences.
+- Select an active template when applicable.
+- Validate all required variables.
+- Render the subject and message content.
+- Create the notification record.
+- Queue immediate or scheduled delivery.
+- Deliver through the selected provider.
+- Track notification and delivery status.
+- Prevent duplicate delivery.
 
 ### 2. Notification Template Management
 
-- Store reusable templates.
-- Maintain template name.
-- Maintain template code.
-- Maintain notification type.
-- Maintain channel.
-- Maintain subject template.
-- Maintain body template.
-- Maintain required variables.
-- Maintain template status.
-- Update templates through the listed API.
-- Secure template management.
+- Store reusable tenant-scoped, channel-specific templates.
+- Maintain template name and code.
+- Maintain notification type and channel.
+- Maintain subject and body templates.
+- Maintain required variables and template status.
+- Retrieve and update templates through the listed APIs.
+- Secure and audit template changes.
 
 ### 3. Notification Channel Management
 
 - Support Email delivery.
 - Support SMS delivery.
 - Support WhatsApp delivery.
-- Support Push Notification delivery.
-- Support In-App Notification delivery.
-- Validate the selected channel.
-- Select a channel using preferences.
-- Track delivery by channel.
-- Store channel in notification history.
+- Support Push delivery.
+- Support In-App delivery.
+- Validate that the selected channel is supported and enabled.
+- Select channels using recipient preferences.
+- Track status and delivery attempts by channel.
 
 ### 4. Customer Notifications
 
-- Send notifications to customers.
-- Validate customer recipient.
+- Validate the customer recipient.
 - Validate customer tenant ownership.
+- Send authorized customer notifications.
 - Apply customer communication preferences.
-- Support order-related notifications.
-- Support payment-related notifications.
-- Preserve customer notification history.
+- Support order-related and payment-related messages.
+- Retain authorized customer notification history.
 
 ### 5. Employee Notifications
 
-- Send notifications to employees.
-- Validate user recipient.
-- Validate user tenant ownership.
-- Apply user notification preferences.
-- Support business-event notifications.
-- Preserve employee notification history.
+- Validate the employee recipient.
+- Validate employee tenant ownership.
+- Send authorized employee notifications.
+- Apply user communication preferences.
+- Support business-event messages.
+- Retain authorized employee notification history.
 
 ### 6. Notification Preferences
 
-- Store preferences for users.
-- Store preferences for customers.
-- Store Email Enabled.
-- Store SMS Enabled.
-- Store WhatsApp Enabled.
-- Store Push Enabled.
-- Store In-App Enabled.
-- Store preferred language.
-- Store quiet hours.
+- Store preferences for users and customers.
+- Maintain Email Enabled.
+- Maintain SMS Enabled.
+- Maintain WhatsApp Enabled.
+- Maintain Push Enabled.
+- Maintain In-App Enabled.
+- Maintain preferred language.
+- Maintain quiet hours.
 - Validate preferences.
-- Respect preferences during channel selection.
+- Apply preferences during channel selection.
 
 ### 7. Scheduled Notifications
 
-- Store scheduled delivery time.
-- Validate scheduled time.
+- Store and validate scheduled delivery time.
 - Queue scheduled notifications.
-- Deliver notifications at scheduled time.
-- Track scheduled notification status.
-- Preserve scheduled notification history.
+- Deliver notifications at the scheduled time.
+- Track scheduled status and history.
 
-### 8. Notification History
+### 8. History, Status, and Retry
 
-- Store every notification.
-- Store every delivery attempt.
-- Store delivery channel.
-- Store delivery status.
-- Store error message.
-- Store retry count.
-- Store sent time.
-- Store delivered time.
-- Preserve notification history.
-- Make history available to authorized users.
-
-### 9. Notification Status Management
-
-- Maintain notification status.
-- Maintain delivery status.
-- Validate status values.
+- Store every notification and delivery attempt.
 - Track queued notifications.
 - Track sent notifications.
 - Track delivered notifications.
 - Track failed notifications.
 - Track retried notifications.
-- Preserve status changes.
-
-### 10. MongoDB Collections
-
-- Implement the `notifications` collection.
-- Implement the `notificationTemplates` collection.
-- Implement the `notificationPreferences` collection.
-- Implement the `notificationLogs` collection.
-- Link every log to the correct notification.
-- Keep records isolated by tenant.
-- Keep branch-specific records branch-aware.
-- Preserve notification history.
-
-### 11. REST APIs
-
-- Implement notification creation.
-- Implement notification retrieval.
-- Implement notification listing.
-- Implement notification sending.
-- Implement notification retry.
-- Implement template retrieval.
-- Implement template updates.
-- Implement preference updates.
-- Do not add APIs outside the listed scope.
-
-### 12. Validation Rules
-
-- Validate recipient existence.
-- Validate template existence.
-- Validate delivery channel support.
-- Validate required template variables.
-- Validate notification type.
-- Validate scheduled delivery time.
-- Validate priority.
-- Validate recipient tenant ownership.
-- Validate branch-specific ownership.
-
-### 13. Security
-
-- Enforce tenant-level isolation.
-- Enforce branch-level notification access.
-- Apply RBAC.
-- Secure template management.
-- Audit notification changes.
-- Prevent unauthorized message sending.
-- Protect recipient information.
-- Prevent duplicate delivery.
-
-### 14. Background Jobs
-
-- Process notification queue.
-- Deliver scheduled notifications.
-- Retry failed notifications.
-- Clean up notifications.
-- Synchronize delivery status.
-- Synchronize templates.
-- Generate daily notification summary.
-- Process audit logs.
-
-### 15. Integrations
-
-- Integrate with Authentication.
-- Integrate with Multi-Tenancy.
-- Integrate with Branch Management.
-- Integrate with User Management.
-- Integrate with Customer Management.
-- Integrate with Service Management.
-- Integrate with Order Management.
-- Integrate with Payment Management.
-- Integrate with Reports.
-- Integrate with Dashboard.
-- Integrate with Search.
-- Integrate with Audit Service.
-- Integrate with Settings.
-- Integrate with Email Provider.
-- Integrate with SMS Gateway.
-- Integrate with WhatsApp Business API.
-- Integrate with Push Notification Service.
-
-### 16. Testing
-
-- Implement notification unit tests.
-- Implement notification integration tests.
-- Implement notification security tests.
-- Implement notification performance tests.
-- Test notification creation.
-- Test template rendering.
-- Test channel selection.
-- Test preference validation.
-- Test retry logic.
-- Test scheduling.
-
-### 17. Acceptance Criteria
-
-- Verify notification generation.
-- Verify multiple delivery channels.
-- Verify templates.
-- Verify user preferences.
-- Verify customer preferences.
-- Verify scheduled delivery.
-- Verify automatic retry.
-- Verify notification history.
-- Verify delivery tracking.
-- Verify tenant isolation.
-- Verify branch isolation.
-- Verify listed integrations.
-- Verify all required tests.
+- Store channel, provider error, retry count, sent time, and delivered time.
+- Retry eligible failed deliveries and retain all attempts.
+- Make history available only to authorized users.
 
 ## Business Workflow
 
-1. Receive a business event.
-2. Receive the published event.
-3. Process the event in Notification Management.
-4. Evaluate notification rules.
-5. Select the appropriate template.
-6. Determine the delivery channel.
-7. Generate the message content.
-8. Queue the notification.
-9. Deliver the notification.
-10. Track delivery status.
-11. Retry failed delivery.
-12. Store notification history for auditing.
-
-## Workflow Requirements
-
-- Keep every notification linked to its tenant.
-- Keep branch-specific notifications linked to the correct branch.
-- Keep every notification linked to a recipient.
-- Keep every notification linked to a template when used.
-- Keep every delivery attempt linked to a notification.
-- Apply notification preferences.
-- Validate the delivery channel.
-- Validate required template variables.
-- Preserve all delivery attempts.
-- Prevent duplicate delivery.
+1. Receive a published business event or an authorized API request.
+2. Evaluate rules and select the recipient, template, and preferred supported channel.
+3. Render validated content and create the notification.
+4. Queue it for immediate or scheduled delivery.
+5. Deliver through the configured provider.
+6. Track provider status and retry eligible failures.
+7. Store delivery history and audit evidence.
 
 ## Supported Channels
 
 ### Email
 
-- Support Email notifications.
-- Use Email Provider integration.
-- Respect Email Enabled preference.
-- Store Email delivery status.
-- Store Email delivery logs.
+- Use Email Provider integration when Email is enabled.
+- Store Email delivery status and logs.
 
 ### SMS
 
-- Support SMS notifications.
-- Use SMS Gateway integration.
-- Respect SMS Enabled preference.
-- Store SMS delivery status.
-- Store SMS delivery logs.
+- Use SMS Gateway integration when SMS is enabled.
+- Store SMS delivery status and logs.
 
 ### WhatsApp
 
-- Support WhatsApp notifications.
-- Use WhatsApp Business API integration.
-- Respect WhatsApp Enabled preference.
-- Store WhatsApp delivery status.
-- Store WhatsApp delivery logs.
+- Use WhatsApp Business API integration when WhatsApp is enabled.
+- Store WhatsApp delivery status and logs.
 
 ### Push
 
-- Support Push Notifications.
-- Use Push Notification Service integration.
-- Respect Push Enabled preference.
-- Store Push delivery status.
-- Store Push delivery logs.
+- Use Push Notification Service integration when Push is enabled.
+- Store Push delivery status and logs.
 
 ### In-App
 
-- Support In-App Notifications.
-- Respect In-App Enabled preference.
-- Store In-App status.
-- Store In-App notification history.
+- Create In-App Notifications when In-App is enabled.
+- Store In-App status and notification history.
 
 ## Database Collections
 
@@ -384,10 +164,7 @@
 
 #### Purpose
 
-- Store the master notification record.
-- Keep notifications tenant-scoped.
-- Keep branch-specific notifications branch-aware.
-- Track notification and delivery status.
+- Store the tenant-scoped master notification and its branch-aware delivery state.
 
 #### Fields
 
@@ -412,26 +189,19 @@
 
 #### Requirements
 
-- Require tenant ownership.
-- Validate branch ownership when provided.
-- Require valid recipient.
-- Require valid recipient type.
-- Require valid notification type.
-- Require supported channel.
-- Validate priority.
-- Validate scheduled time.
-- Maintain status.
+- Require a valid recipient and recipient type.
+- Require a valid notification type and supported channel.
+- Validate branch ownership when Branch ID is present.
+- Validate priority and scheduled time.
+- Maintain notification status.
 - Maintain delivery status.
-- Preserve audit information.
+- Maintain audit information.
 
 ### `notificationTemplates`
 
 #### Purpose
 
-- Store reusable notification templates.
-- Support notification content generation.
-- Support channel-specific templates.
-- Keep templates tenant-scoped.
+- Store reusable tenant-scoped, channel-specific content templates.
 
 #### Fields
 
@@ -447,25 +217,17 @@
 
 #### Requirements
 
-- Require tenant ownership.
-- Maintain template name.
-- Maintain template code.
-- Validate notification type.
-- Validate delivery channel.
-- Maintain subject template.
-- Maintain body template.
-- Maintain required variables.
-- Validate template status.
+- Validate template identity and status.
+- Validate notification type and delivery channel.
+- Validate subject and body templates.
+- Validate every required variable.
 - Protect template updates.
 
 ### `notificationPreferences`
 
 #### Purpose
 
-- Store user preferences.
-- Store customer preferences.
-- Control channel selection.
-- Control language and quiet hours.
+- Store user/customer channel, language, and quiet-hours preferences.
 
 #### Fields
 
@@ -481,22 +243,17 @@
 
 #### Requirements
 
-- Require tenant ownership.
-- Require user or customer identity.
+- Require exactly the applicable user or customer identity.
 - Validate enabled channels.
 - Validate language.
 - Validate quiet hours.
-- Apply preferences during notification generation.
-- Preserve preference updates.
+- Apply preferences during notification generation and retain preference changes.
 
 ### `notificationLogs`
 
 #### Purpose
 
-- Store delivery history.
-- Store every delivery attempt.
-- Track errors and retries.
-- Track sent and delivered times.
+- Store each delivery attempt, its outcome, timing, error, and retry data.
 
 #### Fields
 
@@ -510,25 +267,19 @@
 
 #### Requirements
 
-- Require valid notification.
-- Store delivery channel.
-- Store delivery status.
-- Store error message when applicable.
-- Store retry count.
-- Store sent time.
-- Store delivered time.
-- Preserve delivery history.
+- Link each log to a valid notification.
+- Record delivery channel and status.
+- Record provider error when applicable.
+- Record retry count.
+- Record sent and delivered times.
 
 ## Collection Relationships
 
-- Link every notification to one tenant.
-- Link branch-specific notifications to one branch.
-- Link every notification to one recipient.
-- Link every notification to its channel.
-- Link every delivery log to one notification.
-- Link preferences to one user or customer.
-- Keep templates within tenant scope.
-- Preserve notification and delivery history.
+- Each notification belongs to one tenant, optional branch, recipient, and channel.
+- A notification references its template when one is used.
+- Every delivery log belongs to one notification.
+- Preferences belong to one user or customer.
+- Templates remain within tenant scope.
 
 ## REST APIs
 
@@ -537,161 +288,97 @@
 - Method: `POST`.
 - Path: `/notifications`.
 - Purpose: Create a notification request.
-- Validate tenant.
-- Validate branch when applicable.
-- Validate recipient.
-- Validate notification type.
-- Validate channel.
-- Validate template and variables when used.
-- Validate priority and schedule.
+- Validate tenant, optional branch, recipient, type, channel, optional template/variables, priority, and schedule.
 
 ### Get Notification
 
 - Method: `GET`.
 - Path: `/notifications/:notificationId`.
-- Purpose: Return notification details.
-- Validate notification identity.
-- Validate tenant ownership.
-- Apply branch access.
-- Apply RBAC.
-- Return delivery status.
-- Return authorized delivery history.
+- Purpose: Return an authorized notification with delivery status and history.
+- Enforce notification identity, tenant, branch, and RBAC access.
 
 ### List Notifications
 
 - Method: `GET`.
 - Path: `/notifications`.
-- Purpose: Return paginated notification records.
-- Support pagination.
-- Support filtering.
-- Support sorting.
-- Support searching.
-- Support status filters.
-- Support channel filters.
-- Enforce tenant isolation.
-- Enforce branch access.
+- Purpose: Return tenant/branch-authorized notification records.
+- Support pagination, filtering, sorting, search, status filters, and channel filters.
 
 ### Send Notification
 
 - Method: `POST`.
 - Path: `/notifications/send`.
-- Purpose: Queue or send a notification.
-- Validate notification request.
-- Validate recipient and tenant.
-- Validate template and variables.
-- Validate channel.
-- Apply preferences.
-- Prevent duplicate delivery.
-- Queue the notification.
+- Purpose: Queue or send a validated notification request.
+- Validate recipient, tenant, template variables, and channel; apply preferences and duplicate prevention.
 
 ### Retry Notification
 
 - Method: `POST`.
 - Path: `/notifications/:notificationId/retry`.
-- Purpose: Retry a failed notification.
-- Validate notification identity.
-- Validate tenant ownership.
-- Apply branch access.
-- Apply RBAC.
-- Require failed delivery state.
-- Increment retry count.
-- Preserve retry history.
+- Purpose: Retry an authorized notification in failed delivery state.
+- Increment the retry count and create delivery history.
 
 ### Get Templates
 
 - Method: `GET`.
 - Path: `/notifications/templates`.
-- Purpose: Return available templates.
-- Validate tenant ownership.
-- Apply RBAC.
-- Support available notification types.
-- Support available channels.
+- Purpose: Return authorized tenant templates by available notification type and channel.
 
 ### Update Template
 
 - Method: `PUT`.
 - Path: `/notifications/templates/:templateId`.
-- Purpose: Update a notification template.
-- Validate template identity.
-- Validate tenant ownership.
-- Apply RBAC.
-- Validate type and channel.
-- Validate subject and body template.
-- Validate required variables.
-- Audit template changes.
+- Purpose: Update an authorized template.
+- Validate type, channel, subject, body, and required variables; audit the change.
 
 ### Update Preferences
 
 - Method: `PUT`.
 - Path: `/notifications/preferences`.
-- Purpose: Update user or customer preferences.
-- Validate tenant ownership.
-- Validate user or customer.
-- Validate channel preferences.
-- Validate language.
-- Validate quiet hours.
-- Preserve preference changes.
+- Purpose: Update authorized user or customer preferences.
+- Validate recipient, channel flags, language, and quiet hours; retain the change.
 
 ## API Limit
 
 - Implement only the eight listed Notification APIs.
-- Do not add template creation APIs.
-- Do not add template deletion APIs.
-- Do not add log APIs.
-- Do not add channel APIs.
-- Do not add separate scheduling APIs.
+- Do not add template creation/deletion, log, channel, or separate scheduling APIs.
 - Keep unlisted work within the listed API scope.
 
 ## Validation Rules
 
-- Require an existing recipient.
-- Require an existing template when used.
+- Require an existing recipient with a valid recipient type.
+- Require the recipient to belong to the authenticated tenant.
+- Require branch-specific notifications to use the correct tenant branch.
+- Require an existing active template when a template is used.
 - Require a supported delivery channel.
-- Require all template variables.
-- Require valid notification type.
-- Require valid scheduled delivery time.
-- Require valid priority.
-- Require recipient to belong to authenticated tenant.
-- Require branch-specific notifications to use the correct branch.
-
-## Validation Checklist
-
-- Validate tenant ownership.
-- Validate branch ownership.
-- Validate recipient identity.
-- Validate recipient type.
-- Validate template identity.
-- Validate template status.
-- Validate notification type.
-- Validate delivery channel.
-- Validate required variables.
-- Validate scheduled time.
-- Validate priority.
-- Validate preferences.
+- Require every variable declared by the selected template.
+- Require valid notification type, priority, and scheduled delivery time.
+- Validate template status, channel, subject, body, and variables during template updates.
+- Validate channel preferences, preferred language, and quiet hours.
+- Apply recipient preferences before delivery.
+- Reject duplicate notification delivery.
 
 ## Security Requirements
 
 - Enforce tenant isolation for notifications, templates, preferences, lists, and search.
-- Enforce branch ownership and branch-level notification access.
+- Enforce branch ownership and branch-level access.
 - Apply RBAC to create, view, send, retry, template, and preference operations.
-- Secure every template update.
-- Audit notification, template, preference, send, and retry changes.
-- Prevent unauthorized message sending.
+- Prevent unauthorized sending and secure every template/preference update.
 - Protect recipient identity, contact details, and message information.
-- Prevent duplicate notification delivery.
+- Audit notification, template, preference, send, retry, status, and delivery changes.
 
 ## Integration Requirements
 
-- Authentication: use authenticated user, tenant, and acting-user context.
-- Multi-Tenancy: validate tenant ownership and isolation.
-- Branch Management: validate branch ownership and branch awareness.
-- User Management: validate employee recipients and sending permissions.
+- Authentication: supply authenticated user, tenant, and acting-user context.
+- Multi-Tenancy: enforce ownership and isolation.
+- Branch Management: validate branch ownership and awareness.
+- User Management: validate employee recipients, preferences, and sending permissions.
 - Customer Management: validate customer recipients and preferences.
-- Service Management: receive listed service-related events.
-- Order Management: receive order lifecycle events.
-- Payment Management: receive payment-related events.
-- Reports: provide notification data for listed reports.
-- Dashboard: provide notification data for listed dashboards.
+- Service Management: publish listed service-related events.
+- Order Management: publish order lifecycle events.
+- Payment Management: publish payment-related events.
+- Reports: consume notification data for listed reports.
+- Dashboard: consume notification data for listed dashboards.
 - Search: support notification search and listed synchronization.
 - Audit Service: audit notification and delivery changes.
 - Settings: provide channel and notification settings.
@@ -704,12 +391,12 @@
 
 - Queue processing: process queued notifications.
 - Scheduled delivery: send notifications at valid scheduled times.
-- Failed retry: retry failed notifications and preserve retry history.
+- Failed retry: retry eligible failures and record every attempt.
 - Notification cleanup: clean notification data through the listed process.
-- Delivery synchronization: update delivery status from providers.
+- Delivery synchronization: synchronize provider delivery status.
 - Template synchronization: synchronize notification templates.
 - Daily summary: prepare daily notification information.
-- Audit processing: preserve notification changes and delivery history.
+- Audit processing: record notification changes and delivery history.
 
 ## Testing Requirements
 
@@ -718,13 +405,13 @@
 - Test notification creation.
 - Test recipient validation.
 - Test template rendering.
-- Test required variables.
-- Test channel selection.
+- Test required template variables.
+- Test supported-channel selection.
 - Test preference validation.
 - Test retry logic.
+- Test duplicate prevention.
 - Test scheduling validation.
 - Test priority validation.
-- Test duplicate prevention.
 
 ### Integration Tests
 
@@ -748,7 +435,7 @@
 - Test unauthorized preference updates.
 - Test duplicate notification prevention.
 - Test RBAC validation.
-- Test recipient information protection.
+- Test recipient-information protection.
 
 ### Performance Tests
 
@@ -759,7 +446,7 @@
 - Test high-volume concurrent processing.
 - Test delivery tracking performance.
 - Verify pagination performance.
-- Verify retry processing.
+- Verify retry processing performance.
 
 ## Implementation Sequence
 
@@ -794,180 +481,51 @@
 
 ## Deliverables
 
-### Notification Features
-
-- Notification Generation.
-- Notification Delivery.
-- Notification Template Management.
-- Notification Channel Management.
-- Notification Preferences.
-- Customer Notifications.
-- Employee Notifications.
-- In-App Notifications.
-- Email Notifications.
-- SMS Notifications.
-- WhatsApp Notifications.
-- Push Notifications.
-- Scheduled Notifications.
-- Notification History.
-- Notification Retry Management.
-- Notification Audit Management.
-
-### Collections
-
-- `notifications`.
-- `notificationTemplates`.
-- `notificationPreferences`.
-- `notificationLogs`.
-
-### APIs
-
-- `POST /notifications`.
-- `GET /notifications/:notificationId`.
-- `GET /notifications`.
-- `POST /notifications/send`.
-- `POST /notifications/:notificationId/retry`.
-- `GET /notifications/templates`.
-- `PUT /notifications/templates/:templateId`.
-- `PUT /notifications/preferences`.
-
-### Tests
-
-- Notification unit tests.
-- Notification integration tests.
-- Notification security tests.
-- Notification performance tests.
-
-### Documentation
-
-- Notification module documentation.
-- Collection documentation.
-- API documentation.
-- Validation documentation.
-- Security documentation.
-- Integration documentation.
-- Testing documentation.
-- Completion evidence.
+- Notification generation, delivery, templates, channels, preferences, customer/employee communication, scheduling, history, retry, status, and audit functionality.
+- Email, SMS, WhatsApp, Push, and In-App delivery support.
+- `notifications`, `notificationTemplates`, `notificationPreferences`, and `notificationLogs`.
+- The eight listed REST APIs only.
+- Notification unit, integration, security, and performance tests.
+- Module, collection, API, validation, security, integration, testing, and completion documentation.
 
 ## Acceptance Criteria
 
-### Notification Generation
+### Generation and Delivery
 
-- [ ] Notifications can be generated successfully.
-- [ ] Recipients are validated.
-- [ ] Notification types are valid.
-- [ ] Required variables are provided.
-- [ ] Priorities are valid.
-- [ ] Scheduled times are valid.
+- [ ] Valid notifications are generated, rendered, queued, sent, and tracked.
+- [ ] Recipient, type, required variables, priority, and scheduled time validation works.
+- [ ] Email, SMS, WhatsApp, Push, and In-App channels work; unsupported channels are rejected.
+- [ ] User/customer channel preferences, language, and quiet hours are respected.
 
-### Delivery Channels
+### Templates, Scheduling, Retry, and History
 
-- [ ] Email is supported.
-- [ ] SMS is supported.
-- [ ] WhatsApp is supported.
-- [ ] Push Notifications are supported.
-- [ ] In-App Notifications are supported.
-- [ ] Unsupported channels are rejected.
-
-### Templates
-
-- [ ] Templates function correctly.
-- [ ] Template types are validated.
-- [ ] Template channels are validated.
-- [ ] Template variables are validated.
-- [ ] Template updates are secured.
-
-### Preferences
-
-- [ ] User preferences are respected.
-- [ ] Customer preferences are respected.
-- [ ] Email preference is respected.
-- [ ] SMS preference is respected.
-- [ ] WhatsApp preference is respected.
-- [ ] Push preference is respected.
-- [ ] In-App preference is respected.
-- [ ] Language is maintained.
-- [ ] Quiet hours are maintained.
-
-### Scheduling and Retry
-
-- [ ] Scheduled notifications are delivered.
-- [ ] Failed notifications are retried.
-- [ ] Retry counts are maintained.
-- [ ] Retry history is preserved.
+- [ ] Tenant/channel templates render correctly and authorized updates validate type, channel, content, and variables.
+- [ ] Scheduled notifications are delivered at the valid scheduled time.
+- [ ] Failed notifications are retried with accurate retry counts and complete attempt history.
 - [ ] Duplicate delivery is prevented.
-
-### History
-
-- [ ] Notification history is preserved.
-- [ ] Delivery history is preserved.
-- [ ] Error information is preserved.
-- [ ] Sent time is preserved.
-- [ ] Delivered time is preserved.
-- [ ] Delivery status is accurate.
+- [ ] Notification/delivery status, errors, sent time, delivered time, and authorized history are accurate.
 
 ### Security
 
-- [ ] Tenant isolation is enforced.
-- [ ] Branch access is enforced.
-- [ ] RBAC is enforced.
-- [ ] Unauthorized sending is prevented.
-- [ ] Template management is secured.
-- [ ] Recipient information is protected.
-- [ ] Notification changes are audited.
+- [ ] Tenant and branch isolation, RBAC, authorized sending, and secured template/preference management work.
+- [ ] Recipient information is protected and all required changes are audited.
 
 ### Integrations
 
-- [ ] Authentication integration works.
-- [ ] Multi-Tenancy integration works.
-- [ ] Branch Management integration works.
-- [ ] User Management integration works.
-- [ ] Customer Management integration works.
-- [ ] Service Management integration works.
-- [ ] Order Management integration works.
-- [ ] Payment Management integration works.
-- [ ] Reports integration works.
-- [ ] Dashboard integration works.
-- [ ] Search integration works.
-- [ ] Audit Service integration works.
-- [ ] Settings integration works.
-- [ ] Email Provider integration works.
-- [ ] SMS Gateway integration works.
-- [ ] WhatsApp Business API integration works.
-- [ ] Push Notification Service integration works.
+- [ ] Authentication, Multi-Tenancy, Branch, User, Customer, Service, Order, and Payment integrations work.
+- [ ] Reports, Dashboard, Search, Audit Service, and Settings integrations work.
+- [ ] Email Provider, SMS Gateway, WhatsApp Business API, and Push Notification Service integrations work.
 
 ### Testing
 
-- [ ] Unit tests pass.
-- [ ] Integration tests pass.
-- [ ] Security tests pass.
-- [ ] Performance tests pass.
-- [ ] Validation tests pass.
-- [ ] Template tests pass.
-- [ ] Channel tests pass.
-- [ ] Retry tests pass.
+- [ ] Unit, integration, security, performance, validation, template, channel, and retry tests pass.
+- [ ] Queue, bulk delivery, search, delivery tracking, pagination, concurrency, and retry performance meet project requirements.
 
 ## Completion Instructions
 
-1. Verify every listed responsibility.
-2. Verify every listed functional area.
-3. Verify the complete business workflow.
-4. Verify all four collections.
-5. Verify all eight APIs.
-6. Verify every validation rule.
-7. Verify every security requirement.
-8. Verify every background job.
-9. Verify every listed integration.
-10. Run every listed test category.
-11. Record test outcomes.
-12. Record created files.
-13. Record modified files.
-14. Record known limitations.
-15. Record completion evidence.
-16. Confirm that no extra API was added.
-17. Confirm that no extra collection was added.
-18. Confirm that no unrelated module was implemented.
-19. Update the corresponding Notification Management completion report.
-20. Stop execution.
+1. Run the listed tests and record outcomes, changed files, known limitations, and completion evidence.
+2. Confirm all acceptance criteria pass and update the corresponding Notification Management completion report.
+3. Confirm exactly four collections and eight APIs, with no unrelated module or additional endpoint implemented.
+4. Stop execution.
 
 Do not start another phase.

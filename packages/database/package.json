@@ -3,12 +3,29 @@
   "version": "0.0.0",
   "private": true,
   "description": "Database shared package foundation.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
   "scripts": {
     "build": "node ../../scripts/run-typescript-project.mjs build",
     "clean": "rimraf dist",
-    "format": "prettier --write .",
-    "format:check": "prettier --check .",
+    "format": "prettier --write \"src/**/*.ts\" \"*.{json,md}\"",
+    "format:check": "prettier --check \"src/**/*.ts\" \"*.{json,md}\"",
     "lint": "eslint \"src/**/*.ts\" --no-error-on-unmatched-pattern",
     "typecheck": "node ../../scripts/run-typescript-project.mjs typecheck"
+  },
+  "dependencies": {
+    "@nestjs/common": "^11.1.28",
+    "@nestjs/config": "^4.0.4",
+    "@nestjs/core": "^11.1.28",
+    "@nestjs/mongoose": "^11.0.4",
+    "@nestjs/terminus": "^11.1.1",
+    "mongoose": "8.15.0",
+    "rxjs": "^7.8.2"
   }
 }

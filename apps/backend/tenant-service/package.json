@@ -15,9 +15,13 @@
     "typecheck": "node ../../../scripts/run-typescript-project.mjs typecheck"
   },
   "dependencies": {
+    "@nexoraa/config": "workspace:*",
+    "@nexoraa/database": "workspace:*",
     "@nestjs/common": "11.1.0",
+    "@nestjs/config": "^4.0.4",
     "@nestjs/core": "11.1.0",
     "@nestjs/microservices": "11.1.0",
+    "@nestjs/platform-express": "^11.1.28",
     "bullmq": "5.53.1",
     "ioredis": "5.6.1",
     "mongoose": "8.15.0",

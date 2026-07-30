@@ -2,927 +2,249 @@
 
 ## Phase Information
 
-- Phase Number: 16.
+- Phase Number: 11.
 - Phase Name: Payment Management.
 - Module: Payment Management.
-- Scope: Customer order payments and refunds.
+- Scope: Customer order payments, adjustments, refunds, receipts, reconciliation, and listed integrations.
 - Status: Implementation prompt.
 
-## Role
+## Role and Boundaries
 
-- Implement the Nexoraa CleanSoft Payment Management module.
-- Use only the requirements defined in this prompt.
-- Preserve existing Authentication functionality.
-- Preserve existing Multi-Tenancy functionality.
-- Preserve existing Branch Management functionality.
-- Preserve existing User Management functionality.
-- Preserve existing Customer Management functionality.
-- Preserve existing Service Management functionality.
-- Preserve existing Order Management functionality.
-- Do not implement unrelated modules.
-- Stop after completing Payment Management.
+- Implement only the Nexoraa CleanSoft Payment Management module defined here, then stop.
+- Preserve Authentication, Multi-Tenancy, Branch, User/RBAC, Customer, Service, Order, Cash Register, Delivery, Tenant Settings, Notification, Reporting, Dashboard, Search, Audit, and Gateway boundaries.
+- Preserve the current architecture, business workflow, four collections, eight REST APIs, integrations, test categories, and document structure.
+- Payment Management records financial transactions; it references but does not replace owning modules.
+- Do not add unrelated modules, collections, APIs, DTO scope, or business functionality.
 
-## Overall Purpose
+## Financial Source of Truth
 
-- Manage the complete financial transaction lifecycle for customer orders.
-- Record every payment received against an order.
-- Track every payment.
-- Validate every payment.
-- Reconcile every payment.
-- Support multiple payment methods.
-- Support partial payments.
-- Support advance payments.
-- Support refunds.
-- Track outstanding balances.
-- Generate payment receipts.
-- Preserve payment history.
-- Link payments to customers.
-- Link payments to orders.
-- Link payments to tenants.
-- Link payments to branches.
-- Supply financial data to listed integrations.
-
-## Payment Management Position
-
-- Authentication identifies who performs the transaction.
-- Multi-Tenancy identifies which business owns the payment.
-- Branch Management identifies where the payment is collected.
-- User Management controls who can process payments.
-- Customer Management identifies who makes the payment.
-- Service Management identifies the services being paid for.
-- Order Management identifies the business transaction.
-- Payment Management records the financial transaction.
-- Reports consume payment data.
-- Dashboards consume payment data.
-- Notifications use payment events.
-- Search uses payment data.
+- The immutable `payments` ledger is the financial source of truth.
+- Order payment fields are cached projections only and never override Payments.
+- Recalculate an Order projection from Payments whenever a write occurs or inconsistency is detected.
+- Use one calculation everywhere, including APIs, jobs, reports, dashboards, receipts, reconciliation, tests, and projections.
+- `paidAmountMinor = SUM(amountMinor)` for Successful `Advance`, `Partial`, and `Final` records only.
+- `refundedAmountMinor = SUM(amountMinor)` for Successful `Refund` and `Adjustment` records only.
+- `outstandingAmountMinor = grandTotalMinor - paidAmountMinor + refundedAmountMinor`.
+- Never include `Refund` or `Adjustment` in `paidAmountMinor`.
+- Use signed business meaning through `paymentType`; persist every `amountMinor` as a positive integer.
+- Use integer minor currency units for every monetary field; floating-point money is forbidden.
+- Currency precision and conversion rules come from Tenant Settings; do not mix currencies in one Order calculation.
 
 ## Core Responsibilities
 
-- Payment Collection.
-- Payment Processing.
-- Payment Verification.
-- Payment Method Management.
-- Partial Payment Management.
-- Advance Payment Management.
-- Outstanding Balance Management.
-- Refund Management.
-- Payment Status Management.
-- Receipt Generation.
-- Payment History.
-- Payment Search and Filtering.
-- Payment Reconciliation.
-- Payment Audit Management.
-- Payment Archive.
+- Collect, verify, search, reconcile, and permanently preserve Advance, Partial, Final, Refund, and Adjustment payments.
+- Support enabled payment methods, gateway references, partial payments, split tender, COD, and receipts.
+- Prevent duplicates, overpayments, unauthorized refunds, closed-register cash activity, and cross-tenant access while maintaining deterministic Order payment status and cached projections.
+- Publish existing payment events to the listed integrations without changing integration ownership.
 
-## Responsibility Boundaries
+## Immutability and Status Rules
 
-- Manage payment records only.
-- Manage payment transaction details only.
-- Manage payment receipt records only.
-- Manage refund records only.
-- Reference orders without replacing Order Management.
-- Reference customers without replacing Customer Management.
-- Reference branches without replacing Branch Management.
-- Reference users without replacing User Management.
-- Integrate with gateways without replacing Payment Gateway.
-- Integrate with reports without implementing Reports.
-- Integrate with dashboards without implementing Dashboard.
-- Preserve immutable financial history.
-- Preserve archived payments.
+- Never update or delete an original payment, transaction, receipt, refund, or financial history record.
+- Refunds and Adjustments always create new additive payment records linked to the affected payment and Order.
+- Require a non-empty normalized `reason` for every Refund and Adjustment.
+- Do not implement a `Reversed` status; represent reversals with additive Refund or Adjustment records.
+- Treat any legacy `Reversed` value as read-only migration data and never create it in new workflows.
+- Effective payment status is derived from the latest append-only transaction event as `Pending`, `Successful`, or `Failed`; approval status is separate, and verification appends evidence without mutating financial facts.
+- `PUT /payments/:paymentId` remains for compatibility but must reject persisted-record mutation with an immutable-record conflict.
 
-## Functional Areas
+## Deterministic Order Payment Status
 
-### 1. Payment Collection
-
-- Record payment against an order.
-- Require an existing order.
-- Require an existing customer.
-- Require payment amount greater than zero.
-- Select a valid payment method.
-- Record transaction reference when applicable.
-- Record payment date.
-- Record currency.
-- Record received-by user.
-- Generate a payment number.
-- Store payment notes.
-
-### 2. Payment Processing
-
-- Process recorded payment information.
-- Validate the order.
-- Validate the customer.
-- Validate the tenant.
-- Validate the branch.
-- Validate payment amount.
-- Validate payment method.
-- Validate currency.
-- Store payment status.
-- Store payment type.
-- Preserve processing information.
-
-### 3. Payment Method Management
-
-- Support multiple payment methods.
-- Validate selected payment method.
-- Store payment method.
-- Store gateway details when applicable.
-- Store transaction reference when applicable.
-- Keep transaction reference unique where applicable.
-- Use the selected method during verification.
-
-### 4. Partial and Advance Payments
-
-- Support partial payments.
-- Support advance payments.
-- Record multiple payments against one order.
-- Calculate remaining balance.
-- Keep accepting permitted payments until balance is cleared.
-- Prevent payment above outstanding balance unless configured.
-- Update order payment status.
-- Preserve every payment record.
-
-### 5. Outstanding Balance Management
-
-- Store outstanding amount.
-- Calculate outstanding balance after payment.
-- Recalculate balance after additional payments.
-- Recalculate balance after refunds.
-- Support outstanding balance reminders.
-- Keep balance linked to the order.
-- Keep order payment status current.
-
-### 6. Refund Management
-
-- Process refunds when applicable.
-- Link every refund to a payment.
-- Store refund amount.
-- Store refund reason.
-- Store refund date.
-- Store refund status.
-- Store approving user.
-- Store refund notes.
-- Prevent refund above original payment amount.
-- Secure refund authorization.
-- Preserve refund history.
-
-### 7. Receipt Management
-
-- Generate a receipt after payment verification.
-- Regenerate a receipt through the listed API.
-- Link receipt to payment.
-- Store receipt number.
-- Store receipt URL.
-- Store generating user.
-- Store generation time.
-- Support receipt generation background processing.
-- Preserve receipt information.
-
-### 8. Payment Status Management
-
-- Maintain payment status.
-- Validate payment status.
-- Support pending payment state.
-- Support verified payment state.
-- Support refund-related payment state.
-- Preserve payment status history through payment history.
-- Update order payment status.
-- Prevent unauthorized status changes.
-
-### 9. Payment Search and Filtering
-
-- Search payment records.
-- Filter payment records.
-- Sort payment records.
-- Paginate payment records.
-- Filter by order.
-- Filter by customer.
-- Filter by branch.
-- Filter by payment method.
-- Filter by payment status.
-- Keep search tenant-scoped.
-- Keep access branch-scoped.
-
-### 10. MongoDB Collections
-
-- Implement the `payments` collection.
-- Implement the `paymentTransactions` collection.
-- Implement the `paymentReceipts` collection.
-- Implement the `refunds` collection.
-- Link every record to the correct payment.
-- Keep payment data isolated by tenant.
-- Keep payment access controlled by branch.
-- Preserve financial history.
-
-### 11. REST APIs
-
-- Implement payment recording.
-- Implement payment retrieval.
-- Implement payment updates.
-- Implement payment listing.
-- Implement payment verification.
-- Implement refund processing.
-- Implement receipt generation.
-- Implement order payment history.
-- Do not add APIs outside the listed scope.
-
-### 12. Validation Rules
-
-- Validate order existence.
-- Validate customer existence.
-- Require payment amount greater than zero.
-- Validate payment against outstanding balance.
-- Validate payment method.
-- Validate transaction-reference uniqueness where applicable.
-- Validate refund amount.
-- Validate payment status.
-- Validate currency.
-- Protect closed or cancelled orders.
-
-### 13. Security
-
-- Enforce tenant-level isolation.
-- Enforce branch-level access control.
-- Apply RBAC.
-- Secure payment recording.
-- Keep payment history immutable.
-- Audit every financial transaction.
-- Prevent duplicate submissions.
-- Secure refund authorization.
-
-### 14. Background Jobs
-
-- Support payment verification.
-- Support payment reminder notifications.
-- Support outstanding balance reminders.
-- Support receipt generation.
-- Support refund processing.
-- Support financial reconciliation.
-- Support daily payment summaries.
-- Support revenue aggregation.
-- Support audit log processing.
-
-### 15. Integrations
-
-- Integrate with Authentication.
-- Integrate with Multi-Tenancy.
-- Integrate with Branch Management.
-- Integrate with User Management.
-- Integrate with Customer Management.
-- Integrate with Service Management.
-- Integrate with Order Management.
-- Integrate with Notification Management.
-- Integrate with Reports.
-- Integrate with Dashboard.
-- Integrate with Search.
-- Integrate with Audit Service.
-- Integrate with Settings.
-- Integrate with Payment Gateway.
-
-### 16. Testing
-
-- Implement payment unit tests.
-- Implement payment integration tests.
-- Implement payment security tests.
-- Implement payment performance tests.
-- Test payment recording.
-- Test partial payments.
-- Test outstanding balances.
-- Test refunds.
-- Test receipts.
-- Test status transitions.
-
-### 17. Acceptance Criteria
-
-- Verify payment recording.
-- Verify multiple payment methods.
-- Verify partial and advance payments.
-- Verify outstanding balances.
-- Verify receipts.
-- Verify refunds.
-- Verify permanent history.
-- Verify order payment status.
-- Verify tenant isolation.
-- Verify branch isolation.
-- Verify listed integrations.
-- Verify all required tests.
+- Recompute amounts first from Successful Payments using the single formula.
+- Apply this ordered decision tree exactly once and reuse it everywhere.
+- If `outstandingAmountMinor <= 0`, status is `Paid`.
+- Else if `refundedAmountMinor > 0` and `paidAmountMinor - refundedAmountMinor <= 0`, status is `Refunded`.
+- Else if `refundedAmountMinor > 0`, status is `PartiallyRefunded`.
+- Else if `paidAmountMinor > 0`, status is `PartiallyPaid`.
+- Else if at least one relevant transaction is Pending, status is `Pending`.
+- Else status is `Unpaid`.
+- Cancelled is an Order lifecycle status, not a payment status.
 
 ## Business Workflow
 
-1. Create the customer order.
-2. Calculate total payable amount.
-3. Select a valid payment method.
-4. Record the payment.
-5. Verify the payment.
-6. Generate the receipt.
-7. Update order payment status.
-8. Calculate remaining balance for partial payment.
-9. Record additional payments until permitted balance is cleared.
-10. Process refunds when applicable.
-11. Preserve payment history permanently.
-12. Update listed Reports and Dashboard integrations.
-
-## Workflow Requirements
-
-- Keep every payment linked to the correct order.
-- Keep every payment linked to the correct customer.
-- Keep every payment linked to the correct tenant.
-- Keep every payment linked to the correct branch.
-- Keep every refund linked to the original payment.
-- Keep every receipt linked to its payment.
-- Keep every gateway transaction linked to its payment.
-- Preserve all financial records.
-- Apply security at every workflow step.
-- Audit every financial change.
+1. Authenticate the actor and enforce tenant, branch, and RBAC context.
+2. Validate Order, Customer, currency, tenant-enabled method, and Idempotency-Key.
+3. Derive `businessDate` from tenant timezone and configured business-day cutoff.
+4. For Cash, validate the matching branch register is open for that active `businessDate`.
+5. Validate normal-payment Order state; block normal payments on Cancelled Orders.
+6. Explicitly allow authorized Refund and Adjustment creation for Cancelled Orders.
+7. Validate approval policy, reason, amounts, source links, and refund method rules where applicable.
+8. In one database transaction, reserve tenant numbering and prevent overpayment under concurrency.
+9. For split tender, validate and persist every tender atomically or persist none.
+10. Persist immutable Payments and transaction details, then generate or queue the receipt.
+11. Recalculate Order projections and deterministic payment status from Payments.
+12. Update Cash Register reconciliation projections and complete COD settlement when applicable.
+13. Emit existing audit, notification, search, report, and dashboard integration events.
+14. Store the successful response against the idempotency key and return it for every retry.
 
 ## Database Collections
 
 ### `payments`
 
-#### Purpose
-
-- Store master information for every payment.
-- Act as the primary payment record.
-- Keep payments tenant-scoped.
-- Keep payments branch-scoped.
-- Link payments to orders and customers.
-
-#### Fields
-
-- Tenant ID.
-- Branch ID.
-- Payment Number.
-- Order ID.
-- Customer ID.
-- Payment Date.
-- Payment Method.
-- Transaction Reference.
-- Amount Paid.
-- Outstanding Amount.
-- Currency.
-- Payment Status.
-- Payment Type.
-- Notes.
-- Received By.
-- CreatedBy.
-- UpdatedBy.
-- CreatedAt.
-- UpdatedAt.
-
-#### Requirements
-
-- Require tenant ownership.
-- Require valid branch.
-- Require valid order.
-- Require valid customer.
-- Require amount greater than zero.
-- Validate outstanding amount.
-- Validate currency.
-- Validate payment method.
-- Validate payment status.
-- Validate payment type.
-- Preserve audit information.
-- Preserve archived payments.
+- Store tenantId, branchId, registerId when applicable, paymentNumber, paymentGroupId for split tender, Order ID, Customer ID, and sourcePaymentId when applicable.
+- Store paymentType, method, amountMinor, currency, status, reason when required, transaction reference, notes, receivedBy, businessDate, paymentDate, and audit timestamps.
+- Store immutable idempotency identity sufficient to enforce `{ tenantId, idempotencyKey, operation }`.
+- Require the unique index `{ tenantId, paymentNumber }`; numbers may repeat across tenants.
+- Require index `{ tenantId, customerId }` for customer payment history.
+- Require Order, branch, businessDate, status, method, and reconciliation indexes to remain tenant-prefixed.
+- Advance, Partial, and Final increase paid amount only when Successful.
+- Refund and Adjustment increase refunded amount only when Successful.
 
 ### `paymentTransactions`
 
-#### Purpose
-
-- Store gateway details.
-- Store transaction-level details.
-- Keep every transaction linked to a payment.
-- Preserve verification information.
-
-#### Fields
-
-- Payment ID.
-- Gateway Name.
-- Transaction ID.
-- Gateway Reference.
-- Response Code.
-- Response Message.
-- Status.
-- Processed At.
-
-#### Requirements
-
-- Require valid payment.
-- Store gateway name.
-- Store transaction ID.
-- Store gateway reference.
-- Store response code.
-- Store response message.
-- Store transaction status.
-- Store processing time.
-- Preserve transaction history.
+- Preserve gateway, COD, settlement, verification, response, and safe provider-reference details linked to Payment.
+- Store tenantId, paymentId, transactionId, gateway/provider reference, status, processedAt, and reconciliation metadata.
+- Keep provider references uniquely scoped where applicable and preserve every attempt.
 
 ### `paymentReceipts`
 
-#### Purpose
-
-- Store generated receipt information.
-- Keep every receipt linked to a payment.
-- Preserve receipt generation details.
-
-#### Fields
-
-- Payment ID.
-- Receipt Number.
-- Receipt URL.
-- Generated By.
-- Generated At.
-
-#### Requirements
-
-- Require valid payment.
-- Store receipt number.
-- Store receipt URL.
-- Store generating user.
-- Store generation time.
-- Preserve receipt information.
+- Store tenantId, paymentId/paymentGroupId, receiptNumber, immutable artifact URL, generatedBy, generatedAt, generationVersion, and supersedesReceiptId.
+- Require the unique index `{ tenantId, receiptNumber }`; numbers may repeat across tenants.
+- First Successful Payment or atomic split-tender group receives a receipt.
+- Regeneration creates a new immutable receipt with a new tenant-scoped receiptNumber and `supersedesReceiptId`.
+- Never overwrite or reuse an earlier receipt artifact; expose the newest version while retaining the full chain.
 
 ### `refunds`
 
-#### Purpose
+- Preserve the existing collection as refund request, approval, and processing metadata linked to source and additive Refund Payment records.
+- Store tenantId, branchId, paymentId, refundPaymentId, amountMinor, currency, mandatory reason, method, requestedBy, requestedAt, approvalStatus, approvedBy, approvedAt, notes, and audit timestamps.
+- Approval statuses are `NotRequired`, `Pending`, `Approved`, or `Rejected`.
+- Refund financial effect exists only through a Successful additive Refund Payment.
 
-- Store payment refund records.
-- Keep every refund linked to a payment.
-- Preserve refund history.
+## Validation and Business Rules
 
-#### Fields
+- Require existing tenant-owned Order and Customer and authorized branch access.
+- Require positive safe-integer minor-unit amounts and the Order currency.
+- Validate methods against Tenant Settings `paymentMethodsEnabled`.
+- Require `Idempotency-Key` for Payment, Refund, and Adjustment creation.
+- Scope idempotency by tenant and operation; a retry with the same canonical request returns the original successful response.
+- Reject reuse of a key with a different canonical payload.
+- Lock or version the Order/payment aggregate inside a MongoDB transaction, recalculate from Payments, validate amount, and commit atomically.
+- Reject concurrent normal payments whose combined amount exceeds outstanding unless an existing tenant overpayment policy explicitly permits it.
+- Validate cumulative Successful Refunds against refundable paid amount and apply the same concurrency protection.
+- Block Advance, Partial, and Final creation on Cancelled Orders; permit authorized Refund and Adjustment transactions.
+- Require mandatory reason for Refund and Adjustment and validate the linked source.
+- Derive businessDate server-side; never accept createdAt as its substitute.
+- Cash requires an open register for the same tenant, branch, and active businessDate.
+- Reject Cash when the register is closed, absent, stale, or on another businessDate.
+- Track Successful cash inflows as `cashPayments` and Successful cash Refund outflows as `cashRefunds` for register reconciliation.
+- Default refunds to the original method; permit method changes only when Tenant Settings policy allows the requested method.
+- Read refund approval threshold and rules from Tenant Settings.
+- Above-threshold or policy-matched refunds remain Pending and have no financial effect until an authorized approver records Approved with `approvedBy` and `approvedAt`.
+- Rejected approvals create no Refund Payment; approved processing remains idempotent.
+- Preserve transaction-reference uniqueness where applicable.
 
-- Payment ID.
-- Refund Amount.
-- Refund Reason.
-- Refund Date.
-- Refund Status.
-- Approved By.
-- Notes.
+## Split Tender and COD
 
-#### Requirements
-
-- Require valid payment.
-- Require valid refund amount.
-- Prevent refund above original payment amount.
-- Store refund reason.
-- Store refund date.
-- Store refund status.
-- Store approving user.
-- Store refund notes.
-- Preserve refund information.
-
-## Collection Relationships
-
-- Link every payment to one tenant.
-- Link every payment to one branch.
-- Link every payment to one order.
-- Link every payment to one customer.
-- Link every transaction to one payment.
-- Link every receipt to one payment.
-- Link every refund to one payment.
-- Preserve payment and transaction history.
-- Preserve receipt information.
-- Preserve refund history.
+- Support split tender through existing `POST /payments` with two or more tender lines and one paymentGroupId.
+- Validate each method, amount, register requirement, and reference before writing.
+- Sum tender amounts using minor units and apply one overpayment check against the freshly calculated outstanding amount.
+- Create one immutable Payment per tender and one grouped successful response in a single transaction.
+- If any tender fails, roll back numbering, Payments, projections, receipt work, and register effects.
+- COD uses existing APIs and collections and is coordinated with Delivery Management.
+- Require delivery assignment/state authorization and Payment/COD RBAC before recording COD.
+- At delivery, record the enabled tender method, verify Cash register rules when Cash, generate a receipt, and create settlement details.
+- Delivery confirmation succeeds only after the COD Payment is Successful and settlement is recorded atomically or through the existing reliable integration contract.
+- Retries from Delivery use the same Idempotency-Key and return the original result.
 
 ## REST APIs
 
-### Record Payment
-
-- Method: `POST`.
-- Path: `/payments`.
-- Purpose: Record payment against an order.
-- Validate order.
-- Validate customer.
-- Validate tenant and branch.
-- Validate payment amount.
-- Validate payment method.
-- Validate currency.
-- Prevent duplicate submission.
-- Calculate outstanding balance.
-
-### Get Payment
-
-- Method: `GET`.
-- Path: `/payments/:paymentId`.
-- Purpose: Return complete payment details.
-- Validate payment identity.
-- Validate tenant ownership.
-- Apply branch access.
-- Apply RBAC.
-- Return transaction details.
-- Return receipt details.
-- Return refund details.
-
-### Update Payment
-
-- Method: `PUT`.
-- Path: `/payments/:paymentId`.
-- Purpose: Update editable payment information where permitted.
-- Validate payment identity.
-- Validate tenant ownership.
-- Apply branch access.
-- Apply RBAC.
-- Limit changes to editable information.
-- Preserve payment history.
-
-### List Payments
-
-- Method: `GET`.
-- Path: `/payments`.
-- Purpose: Return paginated payment records.
-- Support pagination.
-- Support filtering.
-- Support sorting.
-- Support searching.
-- Support order filters.
-- Support customer filters.
-- Support branch filters.
-- Support status filters.
-- Enforce tenant isolation.
-
-### Verify Payment
-
-- Method: `PATCH`.
-- Path: `/payments/:paymentId/verify`.
-- Purpose: Verify a pending payment.
-- Validate payment identity.
-- Validate tenant ownership.
-- Apply branch access.
-- Apply RBAC.
-- Validate transaction details.
-- Update payment status.
-- Update order payment status.
-- Trigger receipt generation.
-
-### Process Refund
-
-- Method: `POST`.
-- Path: `/payments/:paymentId/refund`.
-- Purpose: Create a refund transaction.
-- Validate payment identity.
-- Validate tenant ownership.
-- Apply branch access.
-- Apply RBAC.
-- Validate refund amount.
-- Secure refund authorization.
-- Preserve refund history.
-- Update outstanding balance when applicable.
-
-### Generate Receipt
-
-- Method: `POST`.
-- Path: `/payments/:paymentId/receipt`.
-- Purpose: Generate or regenerate a receipt.
-- Validate payment identity.
-- Validate tenant ownership.
-- Apply branch access.
-- Apply RBAC.
-- Store receipt information.
-- Preserve generated receipt history.
-
-### Payment History
-
-- Method: `GET`.
-- Path: `/payments/order/:orderId`.
-- Purpose: Return all payments associated with an order.
-- Validate order identity.
-- Validate tenant ownership.
-- Apply branch access.
-- Apply RBAC.
-- Return permanent payment history.
-- Return partial and advance payment records.
-- Return refund information.
-
-## API Limit
-
-- Implement only the eight listed Payment APIs.
-- Do not add payment-method APIs.
-- Do not add outstanding-balance APIs.
-- Do not add transaction APIs.
-- Do not add separate receipt retrieval APIs.
-- Do not add archive APIs.
-- Keep unlisted work within the listed API scope.
-
-## Validation Rules
-
-- Require an existing order.
-- Require an existing customer.
-- Require payment amount greater than zero.
-- Prevent payment above outstanding balance unless configured.
-- Require a valid payment method.
-- Keep transaction reference unique where applicable.
-- Prevent refund above original payment amount.
-- Require valid payment status.
-- Require currency to match tenant configuration.
-- Prevent new payments on closed or cancelled orders unless permitted.
-
-## Validation Checklist
-
-- Validate order before recording payment.
-- Validate customer before recording payment.
-- Validate tenant ownership.
-- Validate branch ownership.
-- Validate amount paid.
-- Validate outstanding amount.
-- Validate payment method.
-- Validate transaction reference.
-- Validate currency.
-- Validate payment status.
-- Validate payment type.
-- Validate refund amount.
-- Validate refund status.
-
-## Security Requirements
-
-- Enforce tenant isolation for payment access, updates, lists, and search.
-- Enforce branch ownership and branch-level access.
-- Apply RBAC to record, view, update, verify, refund, receipt, and history operations.
-- Secure every payment recording operation.
-- Preserve immutable payment, transaction, receipt, and refund history.
-- Audit every payment, verification, receipt, refund, and financial change.
-- Prevent duplicate payment submissions.
-- Require authorized refund approval.
+- `POST /payments`: create single/split Payment or Adjustment, require Idempotency-Key, and apply all transaction, register, COD, and concurrency rules.
+- `GET /payments/:paymentId`: return tenant/branch-authorized immutable details, transactions, receipts, refunds, and approval state.
+- `PUT /payments/:paymentId`: preserve the route but reject mutation because Payments are immutable.
+- `GET /payments`: return tenant-scoped paginated search/filter/sort, including Order, Customer, branch, method, type, status, and businessDate filters.
+- `PATCH /payments/:paymentId/verify`: idempotently verify Pending processing under RBAC without rewriting original financial facts.
+- `POST /payments/:paymentId/refund`: require Idempotency-Key and reason, apply approval policy, and create the additive Refund Payment only when approved.
+- `POST /payments/:paymentId/receipt`: generate or regenerate immutable, tenant-numbered receipt versions under RBAC.
+- `GET /payments/order/:orderId`: return permanent ledger history, grouped split tenders, refunds, adjustments, receipts, projections, and deterministic status.
+- Implement only these eight APIs; do not add payment-method, balance, transaction, receipt-retrieval, archive, adjustment-specific, split-tender-specific, or COD-specific routes.
 
 ## Integration Requirements
 
-- Authentication: use authenticated user, tenant, and acting-user context.
-- Multi-Tenancy: validate tenant ownership, isolation, and currency settings.
-- Branch Management: validate payment branch and branch access.
-- User Management: validate received-by and approving users and apply RBAC.
-- Customer Management: validate and associate the customer.
-- Service Management: provide service context through the linked order.
-- Order Management: validate order, payable amount, balance, and payment-status update.
-- Notification Management: support payment, receipt, and reminder notifications.
-- Reports: supply payment and refund data for listed reports.
-- Dashboard: supply payment and revenue data for listed dashboards.
-- Search: support payment search and listed synchronization.
-- Audit Service: audit every financial transaction.
-- Settings: provide currency and payment configuration.
-- Payment Gateway: provide gateway transaction and verification details.
+- Authentication supplies authenticated actor context; Multi-Tenancy enforces ownership, timezone, currency, cutoff, methods, and policy.
+- Branch Management validates branch ownership; User Management/RBAC authorizes record, verify, refund, approve, receipt, COD, and history actions.
+- Customer Management validates Customer; Service Management remains represented through the linked Order.
+- Order Management supplies grandTotalMinor and lifecycle state; it consumes recalculated cached projections but Payments remain authoritative.
+- Cash Register validates open register/businessDate and reconciles cashPayments separately from cashRefunds.
+- Delivery Management coordinates authorized COD recording, receipt, settlement, and delivery confirmation.
+- Tenant Settings supplies paymentMethodsEnabled, refund method-change policy, approval threshold/rules, timezone, cutoff, currency, and overpayment policy.
+- Payment Gateway supplies immutable attempts and verification; Notification Management uses existing payment/refund/receipt events.
+- Reports and Dashboard consume successful ledger facts and businessDate; Search synchronizes tenant-scoped payment data.
+- Audit Service records creation, verification, approvals, refunds, adjustments, receipt regeneration, projection repair, COD, and reconciliation.
 
 ## Background Jobs
 
-- Payment verification: verify pending payments and preserve transaction details.
-- Payment reminders: notify customers about pending payment.
-- Outstanding reminders: notify customers about remaining balances.
-- Receipt generation: create or regenerate payment receipts.
-- Refund processing: process authorized refunds and preserve history.
-- Financial reconciliation: reconcile payments and transaction details.
-- Daily summaries: prepare daily payment information for listed integrations.
-- Revenue aggregation: prepare revenue information for listed integrations.
-- Audit processing: preserve every financial action and acting user.
+- Preserve verification, reminder, receipt, approved-refund, reconciliation, daily-summary, revenue-aggregation, and audit jobs.
+- Jobs use businessDate and the authoritative ledger formula, are idempotent, and never mutate original financial records.
+- Reconciliation detects Order projection drift and repairs projections from Payments with audit evidence.
+- Receipt jobs preserve numbering/version chains; refund jobs enforce approval and register rules again at execution.
 
 ## Testing Requirements
 
 ### Unit Tests
 
-- Test payment recording.
-- Test order validation.
-- Test customer validation.
-- Test payment method validation.
-- Test partial payment calculation.
-- Test advance payment handling.
-- Test outstanding balance calculation.
-- Test refund calculation.
-- Test receipt generation.
-- Test payment status transitions.
-- Test duplicate prevention.
+- Test the single paid/refunded/outstanding formula, exclusion rules, minor-unit validation, and deterministic ordered payment status.
+- Test enabled methods, mandatory reasons, businessDate cutoff/timezone boundaries, refund policy/approval thresholds, method changes, and Cancelled-Order exceptions.
+- Test immutable records, additive Refund/Adjustment behavior, receipt regeneration, split-tender validation, and projection reconstruction.
 
 ### Integration Tests
 
-- Test Order Management integration.
-- Test Customer Management integration.
-- Test Notification Management integration.
-- Test Payment Gateway integration.
-- Test Reports integration.
-- Test Dashboard integration.
-- Test Search integration.
-- Test Audit Service integration.
-- Test Settings integration.
+- Test tenant-scoped paymentNumber/receiptNumber uniqueness and customer-history index behavior.
+- Test Idempotency-Key success replay, payload mismatch, per-operation scope, and concurrent retries.
+- Test transaction/optimistic-concurrency overpayment prevention, concurrent refunds, rollback, and projection consistency.
+- Test open/closed/stale Cash registers, active businessDate, cashPayments/cashRefunds reconciliation, and refund method policy.
+- Test refund approval Pending/Approved/Rejected paths and unauthorized approval.
+- Test atomic split tender success/failure and mixed Cash/non-Cash tenders.
+- Test COD recording, RBAC, receipt, settlement, retries, and delivery-confirmation gating.
+- Test Order, Customer, Gateway, Notification, Reports, Dashboard, Search, Audit, Settings, Cash Register, and Delivery integrations.
 
 ### Security Tests
 
-- Test tenant isolation.
-- Test branch isolation.
-- Test unauthorized payment access.
-- Test unauthorized payment modification.
-- Test duplicate payment prevention.
-- Test refund authorization.
-- Test RBAC validation.
-- Test immutable payment history.
-- Test closed or cancelled order protection.
+- Test tenant/branch isolation, RBAC, immutable PUT rejection, unauthorized refund/adjustment/COD, and audit coverage.
+- Test Cancelled-Order normal-payment rejection while Refund and Adjustment remain authorized.
 
 ### Performance Tests
 
-- Test payment recording performance.
-- Test payment listing with pagination.
-- Test receipt generation.
-- Test payment search.
-- Test high-volume concurrent payment processing.
-- Test financial report data retrieval.
-- Verify list performance.
-- Verify reconciliation performance.
+- Test high-volume concurrent payment/refund creation, listing, customer history, Order history, receipt generation, search, and reconciliation.
 
 ## Implementation Sequence
 
-1. Confirm Phase 16 Payment Management scope.
-2. Review the listed module purpose.
-3. Review the listed responsibilities.
-4. Review the listed functional areas.
-5. Review the business workflow.
-6. Implement `payments`.
-7. Implement `paymentTransactions`.
-8. Implement `paymentReceipts`.
-9. Implement `refunds`.
-10. Implement Payment Collection.
-11. Implement Payment Processing.
-12. Implement Payment Method Management.
-13. Implement Partial and Advance Payments.
-14. Implement Outstanding Balance Management.
-15. Implement Refund Management.
-16. Implement Receipt Management.
-17. Implement Payment Status Management.
-18. Implement Payment Search and Filtering.
-19. Implement the eight listed APIs.
-20. Implement the listed validation rules.
-21. Implement the listed security controls.
-22. Implement the listed background jobs.
-23. Implement the listed integrations.
-24. Implement the listed tests.
-25. Verify the acceptance criteria.
-26. Update Payment Management documentation.
-27. Record completion evidence.
-28. Stop without starting another phase.
+1. Preserve scope, collections, APIs, boundaries, and existing integrations.
+2. Implement minor-unit schemas, tenant indexes, businessDate, idempotency, immutable ledger types, approval metadata, and receipt versions.
+3. Implement authoritative calculations, deterministic status, transactional concurrency protection, projection repair, and numbering.
+4. Implement validation, Cash Register, Settings, split tender, refund approval, COD, receipt, RBAC, audit, and existing events.
+5. Implement the eight APIs, background jobs, complete tests, documentation, and completion evidence.
+6. Verify acceptance criteria and stop without starting another phase.
 
 ## Deliverables
 
-### Payment Features
-
-- Payment Collection.
-- Payment Processing.
-- Payment Verification.
-- Payment Method Management.
-- Partial Payment Management.
-- Advance Payment Management.
-- Outstanding Balance Management.
-- Refund Management.
-- Payment Status Management.
-- Receipt Generation.
-- Payment History.
-- Payment Search and Filtering.
-- Payment Reconciliation.
-- Payment Audit Management.
-- Payment Archive.
-
-### Collections
-
-- `payments`.
-- `paymentTransactions`.
-- `paymentReceipts`.
-- `refunds`.
-
-### APIs
-
-- `POST /payments`.
-- `GET /payments/:paymentId`.
-- `PUT /payments/:paymentId`.
-- `GET /payments`.
-- `PATCH /payments/:paymentId/verify`.
-- `POST /payments/:paymentId/refund`.
-- `POST /payments/:paymentId/receipt`.
-- `GET /payments/order/:orderId`.
-
-### Tests
-
-- Payment unit tests.
-- Payment integration tests.
-- Payment security tests.
-- Payment performance tests.
-
-### Documentation
-
-- Payment module documentation.
-- Collection documentation.
-- API documentation.
-- Validation documentation.
-- Security documentation.
-- Integration documentation.
-- Testing documentation.
-- Completion evidence.
+- Payment collection, verification, methods, Advance/Partial/Final, additive Refund/Adjustment, outstanding balance, status, receipt, history, search, reconciliation, audit, and archive behavior.
+- Existing `payments`, `paymentTransactions`, `paymentReceipts`, and `refunds` collections only.
+- Existing eight REST APIs only.
+- Unit, integration, security, and performance tests plus module, collection, API, validation, security, integration, and completion documentation.
 
 ## Acceptance Criteria
 
-### Payment Recording
-
-- [ ] Payments can be recorded successfully.
-- [ ] Orders are validated.
-- [ ] Customers are validated.
-- [ ] Payment amounts are positive.
-- [ ] Payment methods are valid.
-- [ ] Duplicate submissions are prevented.
-- [ ] Currency matches tenant configuration.
-
-### Payment Types
-
-- [ ] Multiple payment methods are supported.
-- [ ] Partial payments work.
-- [ ] Advance payments work.
-- [ ] Additional payments can be recorded.
-- [ ] Outstanding balances are calculated accurately.
-- [ ] Overpayments are prevented unless configured.
-
-### Verification and Receipts
-
-- [ ] Pending payments can be verified.
-- [ ] Payment status is maintained.
-- [ ] Receipts are generated successfully.
-- [ ] Receipt information is preserved.
-- [ ] Order payment status updates automatically.
-
-### Refunds
-
-- [ ] Refunds are processed correctly.
-- [ ] Refund amount is validated.
-- [ ] Refunds cannot exceed original payment amount.
-- [ ] Refund authorization is enforced.
-- [ ] Refund history is preserved.
-
-### History
-
-- [ ] Payment history is preserved permanently.
-- [ ] Transaction history is preserved.
-- [ ] Receipt history is preserved.
-- [ ] Refund history is preserved.
-- [ ] Financial audit history is preserved.
-
-### Search
-
-- [ ] Payment listing works.
-- [ ] Payment search works.
-- [ ] Filtering works.
-- [ ] Sorting works.
-- [ ] Pagination works.
-- [ ] Order payment history works.
-
-### Security
-
-- [ ] Tenant isolation is enforced.
-- [ ] Branch access is enforced.
-- [ ] RBAC is enforced.
-- [ ] Unauthorized modifications are prevented.
-- [ ] Duplicate submissions are prevented.
-- [ ] Refund authorization is protected.
-- [ ] Payment history is immutable.
-
-### Integrations
-
-- [ ] Authentication integration works.
-- [ ] Multi-Tenancy integration works.
-- [ ] Branch Management integration works.
-- [ ] User Management integration works.
-- [ ] Customer Management integration works.
-- [ ] Service Management integration works.
-- [ ] Order Management integration works.
-- [ ] Notification Management integration works.
-- [ ] Reports integration works.
-- [ ] Dashboard integration works.
-- [ ] Search integration works.
-- [ ] Audit Service integration works.
-- [ ] Settings integration works.
-- [ ] Payment Gateway integration works.
-
-### Testing
-
-- [ ] Unit tests pass.
-- [ ] Integration tests pass.
-- [ ] Security tests pass.
-- [ ] Performance tests pass.
-- [ ] Validation tests pass.
-- [ ] Balance tests pass.
-- [ ] Refund tests pass.
-- [ ] Receipt tests pass.
+- [ ] Payments are immutable; Refunds and Adjustments are additive records with mandatory reasons, and no new Reversed status is created.
+- [ ] Verification and effective-status changes are append-only and never rewrite original financial facts.
+- [ ] Successful Advance/Partial/Final alone form paidAmountMinor; Successful Refund/Adjustment alone form refundedAmountMinor; outstanding uses the single formula.
+- [ ] Every monetary value uses integer minor currency units without floating-point arithmetic.
+- [ ] `{ tenantId, paymentNumber }`, `{ tenantId, receiptNumber }`, and `{ tenantId, customerId }` indexes behave as specified.
+- [ ] Idempotency-Key is mandatory for Payment, Refund, and Adjustment and safely replays the original successful response.
+- [ ] Transactions or optimistic concurrency prevent concurrent overpayment/refund races and atomically protect split tender.
+- [ ] Cancelled Orders reject normal payments but permit authorized Refunds and Adjustments.
+- [ ] Payments are authoritative; Order projections and deterministic paymentStatus are rebuilt and repaired from the ledger.
+- [ ] Cash validates open register and active businessDate, while reconciliation separates cashPayments and cashRefunds.
+- [ ] businessDate is derived from tenant timezone/cutoff and used by APIs, jobs, reports, and reconciliation.
+- [ ] Tenant-enabled methods, refund method-change policy, configurable approval threshold/status/approver/timestamp, and RBAC are enforced.
+- [ ] COD recording, receipt, settlement, idempotent retry, and delivery confirmation integrate with Delivery Management under RBAC.
+- [ ] Receipt regeneration issues a new tenant-scoped number/version and preserves every prior receipt.
+- [ ] Unit, integration, security, performance, concurrency, numbering, idempotency, register, businessDate, method, approval, COD, split-tender, status, projection, and overpayment tests pass.
+- [ ] All listed integrations work, all history remains auditable, no extra API or collection exists, and no unrelated module is implemented.
 
 ## Completion Instructions
 
-1. Verify every listed responsibility.
-2. Verify every listed functional area.
-3. Verify the complete business workflow.
-4. Verify all four collections.
-5. Verify all eight APIs.
-6. Verify every validation rule.
-7. Verify every security requirement.
-8. Verify every background job.
-9. Verify every listed integration.
-10. Run every listed test category.
-11. Record test outcomes.
-12. Record created files.
-13. Record modified files.
-14. Record known limitations.
-15. Record completion evidence.
-16. Confirm that no extra API was added.
-17. Confirm that no extra collection was added.
-18. Confirm that no unrelated module was implemented.
-19. Update the corresponding Payment Management completion report.
-20. Stop execution.
+1. Verify every responsibility, workflow step, collection, API, rule, integration, job, test category, and acceptance criterion.
+2. Record test outcomes, created/modified files, limitations, migration notes for legacy Reversed data, and completion evidence.
+3. Confirm exactly four collections and eight APIs, confirm no unrelated implementation, update the Payment Management completion report, and stop.
 
 Do not start another phase.

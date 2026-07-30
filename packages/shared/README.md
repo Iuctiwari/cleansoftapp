@@ -1,33 +1,15 @@
 # Shared Package
 
-## Purpose
+Framework-neutral contracts and stable injection tokens used across application layers.
 
-TODO: Purpose.
+## Public API
 
-## Scope
+- `Clock`
+- `CorrelationContext`
+- `Identifiable`
+- `Timestamped`
+- `CLOCK_TOKEN`
+- `CORRELATION_CONTEXT_TOKEN`
 
-TODO: Scope.
-
-## Inputs
-
-TODO: Inputs.
-
-## Outputs
-
-TODO: Outputs.
-
-## Dependencies
-
-TODO: Dependencies.
-
-## Deliverables
-
-TODO: Deliverables.
-
-## Acceptance Criteria
-
-TODO: Acceptance Criteria.
-
-## Notes
-
-TODO: Notes.
+This package has no runtime-framework dependencies and must remain free of business-specific
+contracts.

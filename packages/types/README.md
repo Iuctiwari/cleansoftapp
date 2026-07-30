@@ -1,33 +1,12 @@
 # Types Package
 
-## Purpose
+Framework-neutral TypeScript types that are broadly reusable.
 
-TODO: Purpose.
+## Public API
 
-## Scope
+- Pagination input and result interfaces
+- Nullable and optional helpers
+- Dictionary and string-key helpers
+- Maybe-promise and deep-readonly helpers
 
-TODO: Scope.
-
-## Inputs
-
-TODO: Inputs.
-
-## Outputs
-
-TODO: Outputs.
-
-## Dependencies
-
-TODO: Dependencies.
-
-## Deliverables
-
-TODO: Deliverables.
-
-## Acceptance Criteria
-
-TODO: Acceptance Criteria.
-
-## Notes
-
-TODO: Notes.
+Business DTOs and feature-specific interfaces must remain with their owning modules.
