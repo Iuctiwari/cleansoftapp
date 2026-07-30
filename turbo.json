@@ -6,6 +6,14 @@
     "scripts/run-typescript-project.mjs",
     "tsconfig.base.json"
   ],
+  "globalPassThroughEnv": [
+    "ANDROID_HOME",
+    "ANDROID_SDK_ROOT",
+    "ANDROID_AVD_HOME",
+    "JAVA_HOME",
+    "PUB_CACHE",
+    "CHROME_EXECUTABLE"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
