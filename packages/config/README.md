@@ -1,33 +1,13 @@
 # Config Package
 
-## Purpose
+Central environment loading options and strict validation for gateway and domain-service profiles.
 
-TODO: Purpose.
+## Public API
 
-## Scope
+- `createEnvironmentConfig`
+- `createGatewayEnvironmentConfig`
+- `createServiceEnvironmentConfig`
+- Gateway and service validation functions
+- Environment configuration types
 
-TODO: Scope.
-
-## Inputs
-
-TODO: Inputs.
-
-## Outputs
-
-TODO: Outputs.
-
-## Dependencies
-
-TODO: Dependencies.
-
-## Deliverables
-
-TODO: Deliverables.
-
-## Acceptance Criteria
-
-TODO: Acceptance Criteria.
-
-## Notes
-
-TODO: Notes.
+The package owns environment parsing only. It does not own feature configuration or secrets.

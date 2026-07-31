@@ -1,11 +1,12 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { createGatewayEnvironmentConfig } from '@nexoraa/config';
+import { DatabaseModule } from '@nexoraa/database';
 
 import { AuditModule } from './audit/audit.module';
 import { AuthModule } from './auth/auth.module';
 import { PlatformModule } from './platform/platform.module';
 import { SchedulerModule } from './scheduler/scheduler.module';
-
 function getNumericEnvironmentValue(
   configuration: Record<string, unknown>,
   key: string,
@@ -97,13 +98,8 @@ function validateEnvironment(configuration: Record<string, unknown>): Record<str
 
 @Module({
   imports: [
-    ConfigModule.forRoot({
-      cache: true,
-      expandVariables: true,
-      envFilePath: '.env',
-      isGlobal: true,
-      validate: validateEnvironment,
-    }),
+    ConfigModule.forRoot(createGatewayEnvironmentConfig()),
+    DatabaseModule,
     PlatformModule,
     AuditModule,
     SchedulerModule,

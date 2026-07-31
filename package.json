@@ -11,17 +11,18 @@
   },
   "scripts": {
     "build": "turbo run build",
-    "build:backend": "pnpm --filter \"./apps/backend/**\" --recursive build",
+    "build:backend": "pnpm --filter @nexoraa/config build && pnpm --filter @nexoraa/database build && pnpm --filter \"./apps/backend/**\" --recursive build",
     "clean": "turbo run clean",
     "dev": "turbo run dev --parallel",
     "format": "prettier --write \"eslint.config.mjs\" \"tsconfig.base.json\" \"package.json\" \"turbo.json\" \"pnpm-workspace.yaml\" \"docker-compose.yml\" \"scripts/run-typescript-project.mjs\" \"apps/backend/**/*.{ts,json}\" \"packages/**/*.{ts,json}\"",
     "format:check": "prettier --check \"eslint.config.mjs\" \"tsconfig.base.json\" \"package.json\" \"turbo.json\" \"pnpm-workspace.yaml\" \"docker-compose.yml\" \"scripts/run-typescript-project.mjs\" \"apps/backend/**/*.{ts,json}\" \"packages/**/*.{ts,json}\"",
     "lint": "turbo run lint",
-    "lint:backend": "pnpm --filter \"./apps/backend/**\" --recursive lint",
+    "lint:backend": "pnpm --filter @nexoraa/config build && pnpm --filter @nexoraa/database build && pnpm --filter \"./apps/backend/**\" --recursive lint",
     "test": "turbo run test",
     "typecheck": "turbo run typecheck",
-    "typecheck:backend": "pnpm --filter \"./apps/backend/**\" --recursive typecheck",
-    "verify": "pnpm format:check && pnpm lint:backend && pnpm typecheck:backend && pnpm build:backend",
+    "typecheck:backend": "pnpm --filter @nexoraa/config build && pnpm --filter @nexoraa/database build && pnpm --filter \"./apps/backend/**\" --recursive typecheck",
+    "verify": "pnpm format:check && pnpm verify:shared && pnpm lint:backend && pnpm typecheck:backend && pnpm build:backend",
+    "verify:shared": "pnpm --filter @nexoraa/common --filter @nexoraa/shared --filter @nexoraa/utils --filter @nexoraa/constants --filter @nexoraa/config --filter @nexoraa/types --recursive build && pnpm --filter @nexoraa/common --filter @nexoraa/shared --filter @nexoraa/utils --filter @nexoraa/constants --filter @nexoraa/config --filter @nexoraa/types --recursive lint && pnpm --filter @nexoraa/common --filter @nexoraa/shared --filter @nexoraa/utils --filter @nexoraa/constants --filter @nexoraa/config --filter @nexoraa/types --recursive typecheck",
     "tree": "node scripts/generate-tree.mjs"
   },
   "devDependencies": {

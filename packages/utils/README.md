@@ -1,33 +1,12 @@
 # Utils Package
 
-## Purpose
+Small, deterministic, framework-neutral helpers.
 
-TODO: Purpose.
+## Public API
 
-## Scope
+- Exhaustiveness assertion
+- Error normalization
+- Generic type guards
+- Positive-integer parsing
 
-TODO: Scope.
-
-## Inputs
-
-TODO: Inputs.
-
-## Outputs
-
-TODO: Outputs.
-
-## Dependencies
-
-TODO: Dependencies.
-
-## Deliverables
-
-TODO: Deliverables.
-
-## Acceptance Criteria
-
-TODO: Acceptance Criteria.
-
-## Notes
-
-TODO: Notes.
+Utilities must remain stateless, side-effect free, and independent of application features.

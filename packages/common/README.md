@@ -1,33 +1,16 @@
 # Common Package
 
-## Purpose
+NestJS-specific, application-neutral foundations shared by backend services.
 
-TODO: Purpose.
+## Public API
 
-## Scope
+- `CommonModule`
+- `SystemClock` and `InjectClock`
+- `FoundationException`
 
-TODO: Scope.
+`CommonModule` is intentionally not global. A service opts into its providers by importing it.
 
-## Inputs
+## Dependency Boundary
 
-TODO: Inputs.
-
-## Outputs
-
-TODO: Outputs.
-
-## Dependencies
-
-TODO: Dependencies.
-
-## Deliverables
-
-TODO: Deliverables.
-
-## Acceptance Criteria
-
-TODO: Acceptance Criteria.
-
-## Notes
-
-TODO: Notes.
+This package may depend on NestJS and `@nexoraa/shared`. It must not contain business rules,
+transport handlers, persistence code, or feature-specific contracts.

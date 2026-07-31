@@ -1,0 +1,14 @@
+export const EXCEPTION_CODES = {
+  APPLICATION_ERROR: 'APPLICATION_ERROR',
+  HTTP_ERROR: 'HTTP_ERROR',
+  INTERNAL_SERVER_ERROR: 'INTERNAL_SERVER_ERROR',
+  VALIDATION_ERROR: 'VALIDATION_ERROR',
+} as const;
+
+export const EXCEPTION_MESSAGES = {
+  INTERNAL_SERVER_ERROR: 'An unexpected error occurred',
+  VALIDATION_ERROR: 'Validation failed',
+} as const;
+
+export const DEFAULT_ERROR_PATH = '/';
+export const DEFAULT_HTTP_METHOD = 'UNKNOWN';

@@ -1,994 +1,383 @@
-# PHASE 05 — BRANCH MANAGEMENT IMPLEMENTATION PROMPT
-
-## Phase Information
-
-- Phase Number: 5.
-- Phase Name: Branch Management.
-- Module: Branch Management.
-- Status: Implementation prompt.
-- Scope: One tenant and its physical or operational branches.
-- Completion Report: `ERP-PLANNING/phase-completions/PHASE_11_BRANCH_MANAGEMENT_COMPLETION.md`.
-
-## Role
-
-- Act as a Senior Enterprise Software Architect and Lead Full Stack Engineer.
-- Implement a secure, scalable, production-ready Branch Management module.
-- Treat the repository as the authoritative source of current project state.
-- Preserve all unrelated and previously completed work.
-- Implement only the work authorized by this phase.
-- Stop immediately after completing Phase 11.
-
-## Module Context
-
-- Authentication identifies the user.
-- Multi-Tenancy identifies the organization.
-- Branch Management identifies the operating location.
-- Every branch belongs to exactly one tenant.
-- A branch can never belong to multiple tenants.
-- A branch can never be transferred between tenants.
-- Downstream business records must reference a valid tenant branch.
-- Branch Management owns branch identity and operating context.
-- Branch Management does not own downstream business transactions.
-
-## Objective
-
-- Implement branch creation and registration.
-- Implement branch profile management.
-- Implement branch address management.
-- Implement branch contact management.
-- Implement working-hours management.
-- Implement branch manager assignment.
-- Implement branch lifecycle management.
-- Implement default-branch management.
-- Implement branch configuration management.
-- Implement branch-context validation.
-- Implement tenant and branch isolation.
-- Implement RBAC enforcement.
-- Implement required APIs and events.
-- Implement required background jobs.
-- Implement approved frontend workflows.
-- Implement complete testing and documentation.
-
-## Business Purpose
-
-- Allow a tenant to operate one or more locations.
-- Maintain centralized tenant ownership.
-- Allow branch-level operational independence.
-- Provide a stable branch identity for all operational modules.
-- Prevent unauthorized cross-tenant access.
-- Prevent unauthorized cross-branch access.
-- Support subscription-aware branch limits.
-- Support auditable branch administration.
-
-## Mandatory Reading
-
-- Read `ERP-PLANNING/PROJECT_BIBLE.md`.
-- Read `ERP-PLANNING/SOFTWARE_IDEA.md`.
-- Read `ERP-PLANNING/BUSINESS_REQUIREMENTS.md`.
-- Read `ERP-PLANNING/BUSINESS_GOALS.md`.
-- Read `ERP-PLANNING/TARGET_USERS.md`.
-- Read `ERP-PLANNING/FEATURE_LIST.md`.
-- Read `ERP-PLANNING/SYSTEM_ARCHITECTURE.md`.
-- Read `ERP-PLANNING/TECH_STACK.md`.
-- Read `ERP-PLANNING/MICROSERVICES.md`.
-- Read `ERP-PLANNING/MODULE_BREAKDOWN.md`.
-- Read `ERP-PLANNING/DATABASE_DESIGN.md`.
-- Read `ERP-PLANNING/DOMAIN_MODEL.md`.
-- Read `ERP-PLANNING/ENTITY_RELATIONSHIP.md`.
-- Read `ERP-PLANNING/API_DESIGN.md`.
-- Read `ERP-PLANNING/EVENT_ARCHITECTURE.md`.
-- Read `ERP-PLANNING/MULTI_TENANCY.md`.
-- Read `ERP-PLANNING/RBAC.md`.
-- Read `ERP-PLANNING/SECURITY_ARCHITECTURE.md`.
-- Read `ERP-PLANNING/CODING_GUIDELINES.md`.
-- Read `ERP-PLANNING/NAMING_CONVENTIONS.md`.
-- Read `ERP-PLANNING/DIRECTORY_GUIDE.md`.
-- Read the root `README.md`.
-- Read `docs/README.md`.
-- Read `apps/README.md`.
-- Read `packages/README.md`.
-- Read every README in directories touched by this phase.
-- Read Authentication and Multi-Tenancy prompts.
-- Read Authentication and Multi-Tenancy completion reports.
-- Read applicable Architecture Decision Records.
-- Read relevant API, event, job, persistence, and test contracts.
-- Inspect the current repository tree.
-- Inspect the current Git status.
-- Inspect all existing Branch-related work.
-
-## Dependency Requirements
-
-### Authentication
-
-- Verify authenticated user identity.
-- Verify active session or token validation.
-- Verify tenant-context propagation.
-- Verify stable user identifiers.
-- Verify role and permission integration.
-- Verify request-correlation support.
-
-### Multi-Tenancy
-
-- Verify tenant identity.
-- Verify tenant lifecycle status.
-- Verify tenant ownership validation.
-- Verify subscription and branch limits.
-- Verify tenant settings and defaults.
-- Verify tenant-context resolution.
-- Verify tenant-isolation standards.
-
-### Platform
-
-- Verify MongoDB connectivity.
-- Verify configuration validation.
-- Verify API versioning conventions.
-- Verify common error handling.
-- Verify structured logging.
-- Verify health and readiness support.
-- Verify testing and build commands.
-
-### Dependency Rules
-
-- Verify completion reports against repository evidence.
-- Run critical dependency tests before implementation.
-- Do not trust stale documentation over verified behavior.
-- Repair only a minimal dependency defect when necessary.
-- Document every dependency repair.
-- Do not hide missing predecessor work inside this phase.
-- Escalate missing security or ownership decisions.
-
-## Scope
-
-- Branch registration.
-- Branch creation.
-- Branch-code generation.
-- Branch profile updates.
-- Branch type management.
-- Branch address updates.
-- Branch contact updates.
-- Working-hours updates.
-- Branch manager assignment.
-- Branch manager replacement.
-- Branch manager removal.
-- Branch activation.
-- Branch suspension.
-- Branch reactivation.
-- Branch deactivation.
-- Default-branch designation.
-- Branch configuration.
-- Tenant branch-limit enforcement.
-- Branch-context validation.
-- Branch-level access control.
-- RBAC integration.
-- Audit integration.
-- Domain events.
-- Required background jobs.
-- Flutter web administration.
-- Approved Flutter mobile workflows.
-- Testing and documentation.
-
-## Out of Scope
-
-- Customer Management.
-- Service Management.
-- Order Management.
-- Payment Management.
-- Expense Management.
-- Inventory Management.
-- Reporting implementation.
-- Dashboard implementation.
-- Payroll.
-- Attendance.
-- Employee scheduling.
-- Route optimization.
-- Geocoding.
-- Location tracking.
-- Tax calculation.
-- Notification delivery infrastructure.
-- Tenant subscription implementation.
-- Physical deletion of historical branches.
-- Cross-tenant branch transfer.
-- Downstream module implementation.
-- Unapproved business rules.
-
-## Architecture Requirements
-
-- Use the approved Branch owning service or module.
-- Use `apps/backend/branch-service/` only when current architecture supports it.
-- Do not create a competing service.
-- Keep controllers thin.
-- Keep business invariants in domain or application services.
-- Keep persistence behind repositories or adapters.
-- Keep shared packages domain-neutral.
-- Do not access another service's private collections.
-- Use versioned API contracts.
-- Use versioned event contracts.
-- Use versioned job contracts.
-- Use optimistic concurrency.
-- Use idempotency for retryable commands.
-- Use outbox and inbox patterns for cross-service effects.
-- Record material architecture changes in ADRs.
-
-## Data Ownership
-
-- Branch Management owns branch identity.
-- Branch Management owns branch lifecycle.
-- Branch Management owns branch profile.
-- Branch Management owns branch address.
-- Branch Management owns branch contact data.
-- Branch Management owns branch working hours.
-- Branch Management owns branch manager reference.
-- Branch Management owns default designation.
-- Branch Management owns branch configuration.
-- Tenant Management owns tenant identity.
-- Tenant Management owns subscriptions and entitlements.
-- User Management owns users, roles, and assignments.
-- Audit Service owns audit records.
-- Notification Service owns notification delivery.
-- Downstream services own their business records.
-
-## Branch Lifecycle
-
-- Support `DRAFT` or the approved equivalent.
-- Support `ACTIVE`.
-- Support `SUSPENDED`.
-- Support `INACTIVE` or `DEACTIVATED`.
-- Define every allowed transition.
-- Reject every undocumented transition.
-- Require permission for every transition.
-- Require a reason for suspension.
-- Require a reason for deactivation.
-- Record the actor for every transition.
-- Record the transition timestamp.
-- Record correlation context.
-- Publish one event per committed transition.
-- Keep suspended and deactivated branches.
-- Never physically delete referenced branches.
-- Prevent general updates from changing status.
-
-## Default Branch Rules
-
-- Allow no more than one default branch per tenant.
-- Require one default when tenant policy requires it.
-- Make the first eligible branch default when required.
-- Allow only an active branch to become default.
-- Apply default changes atomically.
-- Make repeated default selection idempotent.
-- Prevent concurrent requests from creating two defaults.
-- Require replacement before disabling the default when necessary.
-
-## Branch Registration
-
-- Authenticate the requesting user.
-- Resolve trusted tenant context.
-- Authorize branch creation.
-- Verify tenant status.
-- Verify subscription branch limits.
-- Validate branch information.
-- Generate the branch code on the server.
-- Prevent duplicate creation under retries.
-- Create the branch.
-- Initialize branch configuration.
-- Assign an optional eligible manager.
-- Set the default branch when required.
-- Record audit context.
-- Publish the branch-created event.
-
-## Branch Profile
-
-- Require a branch name.
-- Support an optional display name.
-- Support an approved branch type.
-- Support an optional description.
-- Support a valid time zone.
-- Support an approved locale.
-- Support an approved language.
-- Support currency only when branch override is permitted.
-- Keep tenant ownership immutable.
-- Keep branch code immutable after creation.
-
-## Branch Address
-
-- Support address line one.
-- Support address line two.
-- Support locality or city.
-- Support state, province, or region.
-- Support postal code.
-- Support ISO country code.
-- Support an optional landmark.
-- Support international formats.
-- Do not require geolocation.
-- Protect address fields from unsafe content.
-
-## Branch Contact
-
-- Support primary email.
-- Support primary telephone number.
-- Support optional alternate telephone number.
-- Support only approved public contact channels.
-- Normalize email values.
-- Normalize telephone values.
-- Bound every contact field.
-- Redact contact values from logs.
-
-## Working Hours
-
-- Support a seven-day schedule.
-- Support closed days.
-- Support approved daily intervals.
-- Support multiple intervals when approved.
-- Support overnight intervals only when approved.
-- Require a valid time zone.
-- Reject invalid time formats.
-- Reject overlapping intervals.
-- Reject duplicate day definitions.
-- Reject intervals on closed days.
-- Do not implement employee shifts.
-- Do not implement attendance.
-
-## Branch Manager
-
-- Reference an existing user.
-- Verify the user belongs to the same tenant.
-- Verify the user is active.
-- Verify the user is eligible to manage the branch.
-- Verify required role or permission.
-- Prevent cross-tenant assignment.
-- Support manager replacement.
-- Support manager removal when policy permits it.
-- Record the assigning actor.
-- Record the assignment timestamp.
-- Publish manager-change events.
-- Do not modify the user record directly.
-
-## Branch Configuration
-
-- Initialize configuration during branch creation.
-- Support order prefix.
-- Support invoice prefix.
-- Support receipt prefix.
-- Support approved tax-setting references.
-- Support working-hours settings in one authoritative location.
-- Support notification preferences.
-- Support printing preferences.
-- Support default language.
-- Support default currency.
-- Support approved feature overrides.
-- Inherit tenant defaults where required.
-- Permit only allowlisted overrides.
-- Prevent branch overrides from weakening tenant policy.
-- Prevent unavailable features from being enabled.
-- Validate prefixes.
-- Do not store secrets.
-
-## Branch Context
-
-- Include trusted tenant identifier.
-- Include branch identifier.
-- Include branch status.
-- Include user branch access.
-- Include permission scope.
-- Include correlation context.
-- Reject a branch outside the tenant.
-- Reject an inaccessible branch.
-- Reject suspended branches for new operational writes.
-- Reject inactive branches for new operational writes.
-- Define historical read access.
-- Clear branch-scoped client caches after switching.
-- Never trust a body tenant identifier.
-- Never trust a query tenant identifier.
-
-## MongoDB Collections
-
-### `branches`
-
-- Store one authoritative document per branch.
-- Store an opaque branch identifier.
-- Store tenant identifier.
-- Store server-generated branch code.
-- Store branch name.
-- Store optional display name.
-- Store branch type.
-- Store optional description.
-- Store lifecycle status.
-- Store status reason.
-- Store status-change metadata.
-- Store default-branch designation.
-- Store manager user identifier.
-- Store manager-assignment metadata.
-- Store contact information.
-- Store address information.
-- Store time zone.
-- Store locale.
-- Store language.
-- Store currency when permitted.
-- Store working hours in the approved canonical location.
-- Store created-by and updated-by identifiers.
-- Store created and updated timestamps.
-- Store optimistic-concurrency version.
-
-### `branches` Invariants
-
-- Require tenant identifier.
-- Keep tenant identifier immutable.
-- Require branch code.
-- Keep branch code immutable.
-- Make branch code unique within tenant.
-- Require valid lifecycle status.
-- Keep manager within tenant.
-- Keep at most one tenant default.
-- Prevent physical deletion after operational use.
-
-### `branches` Indexes
-
-- Unique index on tenant and branch code.
-- Lookup index on tenant and branch identifier.
-- List index on tenant and status.
-- Default lookup index on tenant and default designation.
-- Search index on tenant and normalized branch name.
-- Manager index on tenant and manager identifier.
-- Pagination index on tenant and created timestamp.
-- Pagination index on tenant and updated timestamp.
-
-### `branchConfigurations`
-
-- Store one current configuration per branch.
-- Store an opaque configuration identifier.
-- Store tenant identifier.
-- Store branch identifier.
-- Store configuration version.
-- Store order prefix.
-- Store invoice prefix.
-- Store receipt prefix.
-- Store approved tax-setting references.
-- Store working hours only when canonical here.
-- Store notification preferences.
-- Store printing preferences.
-- Store default language.
-- Store default currency.
-- Store approved feature overrides.
-- Store inheritance indicators.
-- Store override indicators.
-- Store created-by and updated-by identifiers.
-- Store created and updated timestamps.
-- Store optimistic-concurrency version.
-
-### `branchConfigurations` Invariants
-
-- Require tenant identifier.
-- Require branch identifier.
-- Match configuration tenant to branch tenant.
-- Allow one current configuration per branch.
-- Reject protected setting overrides.
-- Reject unavailable feature overrides.
-- Reject secrets.
-- Keep configuration after branch deactivation.
-
-### `branchConfigurations` Indexes
-
-- Unique index on tenant and branch identifier.
-- Lookup index on tenant and branch identifier.
-- Reconciliation index on tenant and updated timestamp.
-- Add prefix uniqueness only when business rules require it.
-
-## API Standards
-
-- Follow the approved API version prefix.
-- Require authentication.
-- Resolve tenant context from trusted identity.
-- Apply RBAC to every endpoint.
-- Apply branch access to every endpoint.
-- Validate path parameters.
-- Validate query parameters.
-- Validate request bodies.
-- Use stable machine-readable errors.
-- Return correlation information.
-- Use bounded pagination.
-- Use allowlisted filters and sorting.
-- Use optimistic concurrency for updates.
-- Use idempotency for high-impact commands.
-- Audit material mutations.
-- Hide cross-tenant resource existence.
-- Register static routes before `:branchId` routes.
-
-## Branch APIs
-
-| Method | Path | Purpose |
+# Implementation Prompt 05 —  Branch Management
+
+**Project:** Nexoraa CleanSoft — Multi-Tenant Shop Management System
+**Stack:** NestJS (TypeScript) · MongoDB · Mongoose ODM · Redis/BullMQ
+**NestJS Path:** `src/branches/`
+**Supersedes:** the combined `branches-users.md` specification (Module 3), which is now split into two independent modules.
+
+---
+
+## 0. Objective
+
+Implement Branch Management as a **self-contained module that owns branch data only**. All user lifecycle concerns — creation, invitation, updates, roles, activation, deletion, credentials, sessions, permissions — belong to the **User Management module** (`src/users/`) and must not appear anywhere in this codebase.
+
+The Branch Manager is stored on the branch as a **reference (`managerId`) only**. Assigning or removing a manager writes exactly one field on one document: `branches.managerId`. It never touches a user record.
+
+---
+
+## 1. Ownership Boundary
+
+### 1.1 This module owns
+
+| Concern | Detail |
+|---|---|
+| Branch creation | Including subscription `branchLimit` enforcement |
+| Branch updates | Name, address, city, contact details |
+| Branch status lifecycle | `Active` ⇄ `Inactive` |
+| Branch operating settings | `openingTime`, `closingTime`, branch `code` |
+| Branch contact information | `phone`, `email` |
+| Manager reference assignment | The value of `branches.managerId` — nothing else |
+
+### 1.2 User Management exclusively owns
+
+User creation · user invitation · user updates · profile management · activation/deactivation · deletion · role assignment · **`User.branchIds`** · passwords · authentication credentials · sessions · permissions · RBAC definitions.
+
+### 1.3 Hard prohibitions
+
+Branch Management **must never**:
+
+- Create, update, delete, activate, or deactivate a user.
+- Change a user's role, permissions, profile, status, or `branchIds`.
+- Modify passwords, credentials, tokens, or any authentication data.
+- Import `UserSchema`, `RoleSchema`, `PermissionSchema`, or any User Management Mongoose model.
+- Register `MongooseModule.forFeature([{ name: User.name, ... }])` for user-owned collections.
+- Read from or write to the `users`, `roles`, `permissions`, `refreshTokens`, or `passwordResetTokens` collections — directly, via aggregation, via `$lookup`, or via `populate()`.
+
+> **`populate('managerId')` is banned.** Manager display data is fetched through `usersService.getDisplayInfo()`. A `populate` call reaches into the users collection from inside this module and violates the boundary even though it is read-only.
+
+### 1.4 Enforcement (not optional)
+
+The prohibitions above are enforced mechanically, not by convention:
+
+```jsonc
+// .eslintrc — inside src/branches/
+"no-restricted-imports": ["error", {
+  "patterns": [
+    { "group": ["**/users/schemas/*", "**/users/*.schema", "**/auth/schemas/*"],
+      "message": "Branch Management must not import User/Role/Auth schemas. Use UsersPublicService." }
+  ]
+}]
+```
+
+Add a `dependency-cruiser` (or Nx module-boundary) rule asserting `src/branches/**` has no dependency edge into `src/users/**` other than `src/users/interfaces/users-public.service.ts`. CI fails the build on violation.
+
+---
+
+## 2. Manager Reference Rule
+
+`branches.managerId` is a **non-authoritative foreign key**. Branch Management writes the field; it never dereferences the field into a user mutation.
+
+On assign (`PATCH /branches/:id/manager`), Branch Management performs exactly these steps:
+
+1. Call `usersService.verifyUserExistsAndActive(userId, tenantId)`.
+2. Call `usersService.verifyEligibleForManagerRole(userId, tenantId)`.
+3. On success, set `branches.managerId = userId` and emit `branch.managerAssigned`.
+4. Write an audit entry via the shared `AuditService`.
+
+On remove (`DELETE /branches/:id/manager`), set `managerId = null`, emit `branch.managerUnassigned`, write audit entry.
+
+**Explicitly out of scope of both operations:** granting the user the `BranchManager` role, adding the branch to `User.branchIds`, or altering user status. If the business flow requires those changes, the caller performs them separately against User Management endpoints. Branch Management does not orchestrate them and does not silently perform them as a side effect.
+
+Eligibility validation is **mandatory, not optional**. A branch may only reference a user whose resolved role is `Owner` or `BranchManager` within the same tenant.
+
+---
+
+## 3. Cross-Module Contract
+
+### 3.1 The only permitted interface
+
+Define in User Management, consume in Branch Management. No other surface is permitted.
+
+```ts
+// src/users/interfaces/users-public.service.ts
+export interface UserDisplayInfo {
+  id: string;
+  name: string;
+  mobile: string;
+  email?: string;
+  roleName: string;
+  isActive: boolean;
+}
+
+export interface UsersPublicService {
+  /** Throws UserNotFoundError | UserInactiveError | TenantMismatchError */
+  verifyUserExistsAndActive(userId: string, tenantId: string): Promise<void>;
+
+  /** Throws UserNotEligibleError if the user's role is not Owner or BranchManager */
+  verifyEligibleForManagerRole(userId: string, tenantId: string): Promise<void>;
+
+  /** Read-only projection. Returns null if not found. Never throws on absence. */
+  getDisplayInfo(userId: string, tenantId: string): Promise<UserDisplayInfo | null>;
+
+  /** Batch variant for list endpoints — avoids N+1 calls */
+  getDisplayInfoBatch(userIds: string[], tenantId: string): Promise<Map<string, UserDisplayInfo>>;
+}
+
+export const USERS_PUBLIC_SERVICE = Symbol('USERS_PUBLIC_SERVICE');
+```
+
+Injected by token, not by concrete class:
+
+```ts
+constructor(
+  @Inject(USERS_PUBLIC_SERVICE) private readonly usersService: UsersPublicService,
+) {}
+```
+
+Wire with `forwardRef()` in both module definitions to resolve the circular reference (Branches needs Users for manager validation; Users needs Branches for `branchIds` validation).
+
+### 3.2 Error contract
+
+| Thrown by UsersPublicService | Branch Management returns |
+|---|---|
+| `UserNotFoundError` | `400` — `'The selected user does not exist'` |
+| `TenantMismatchError` | `400` — same message as above (never confirm cross-tenant existence) |
+| `UserInactiveError` | `409` — `'The selected user is not active'` |
+| `UserNotEligibleError` | `409` — `'The selected user is not eligible to be a branch manager'` |
+
+Cross-tenant lookups return the *not found* message, never a distinguishing error — consistent with the platform rule that 404s and error messages are tenant-scoped and never leak foreign-tenant data.
+
+### 3.3 Event contract — stale-reference cleanup
+
+Neither module may write the other's collection, so lifecycle drift is resolved by events on the shared internal event bus (`@nestjs/event-emitter`, or BullMQ for durability).
+
+| Emitter | Event | Consumer | Action |
+|---|---|---|---|
+| User Management | `user.deactivated` | **Branches** | Set `managerId = null` on every branch where `managerId` matches; audit as system action |
+| User Management | `user.deleted` | **Branches** | Same as above |
+| User Management | `user.roleChanged` | **Branches** | If the new role is not manager-eligible, null out `managerId` on referencing branches |
+| **Branches** | `branch.deactivated` | User Management | Prune the branch from affected users' `branchIds` |
+| **Branches** | `branch.created` | User Management | Informational only — no mutation required |
+| **Branches** | `branch.managerAssigned` | Notifications | Dispatch in-app notification to the assigned user |
+
+Each handler is idempotent and scoped by `tenantId`.
+
+### 3.4 Bootstrap ordering (tenant registration)
+
+Tenant Onboarding (Module 2) creates tenant + first branch + Owner user in a single transaction. Resolve the ordering as:
+
+1. Create `tenant`.
+2. Create `branch` with `managerId: null` — no user exists yet, so no validation call fires.
+3. Create Owner `user` (User Management), which sets `branchIds: []` for tenant-wide access.
+4. Optionally, Tenant Onboarding calls `branchesService.assignManager(branchId, ownerId)` as the final step.
+
+Branch creation must therefore **accept a null `managerId`** and must not require a manager to exist at creation time.
+
+### 3.5 Other cross-module reads
+
+The same discipline applies beyond users. Branch Management must not import `TenantSchema` or `OrderSchema` either.
+
+- `branchLimit` enforcement → `tenantsService.getPlanLimits(tenantId): Promise<{ branchLimit: number; staffLimit: number }>`
+- Open-order check on deactivation → `ordersService.countNonTerminalByBranch(tenantId, branchId): Promise<number>`
+
+---
+
+## 4. Database Design
+
+Branch Management owns **one collection**.
+
+```jsonc
+// Collection: branches
+{
+  "_id": "ObjectId",
+  "tenantId": "ObjectId (Ref: tenants, Required)",
+  "name": "String (Required)",
+  "code": "String (Required, Unique per tenant, e.g. 'MAIN')",
+  "address": "String (Required)",
+  "city": "String (Required)",
+  "phone": "String (Required)",
+  "email": "String (Optional)",
+  "openingTime": "String (e.g. '09:00')",
+  "closingTime": "String (e.g. '21:00')",
+  "managerId": "ObjectId (Ref: users, Nullable — reference only, never dereferenced into a user mutation)",
+  "status": "String (Enum: 'Active', 'Inactive', Default: 'Active')",
+  "createdAt": "Date (Default: Date.now)"
+}
+```
+
+**Indexes**
+
+- `{ tenantId: 1, code: 1 }` — unique compound
+- `{ tenantId: 1, status: 1 }`
+- `{ tenantId: 1, managerId: 1 }` — sparse; supports the `user.deactivated` cleanup handler
+
+The `Ref: users` annotation documents intent for readers. It does **not** authorize `populate()`. See §1.3.
+
+---
+
+## 5. REST API
+
+All routes require a valid JWT access token. All queries are auto-scoped by `tenantId` via the shared `TenantScopeInterceptor` — no service method accepts an unscoped `find()`.
+
+| Method | Route | Purpose | Role Gate |
+|---|---|---|---|
+| `GET` | `/branches` | List branches for the tenant (paginated, filter by `status`) | Owner, Branch Manager *(own branches only)* |
+| `POST` | `/branches` | Create a branch; enforces subscription `branchLimit` | Owner |
+| `GET` | `/branches/:id` | Retrieve branch detail | Owner, Branch Manager *(own branch)* |
+| `PATCH` | `/branches/:id` | Update branch details, contact info, operating hours | Owner |
+| `PATCH` | `/branches/:id/status` | Activate / deactivate a branch | Owner |
+| `DELETE` | `/branches/:id` | Deactivate a branch (soft; blocked if open orders exist) | Owner |
+| `PATCH` | `/branches/:id/manager` | Set `managerId` after validation | Owner |
+| `DELETE` | `/branches/:id/manager` | Clear `managerId` | Owner |
+
+**Routes that must NOT exist in this module:** `/users`, `/users/invite`, `/users/:id`, `/roles`, or any nested variant such as `/branches/:id/users` or `/branches/:id/staff`. Staff listings by branch are served by User Management at `GET /users?branchId=`.
+
+List responses follow the platform envelope: `{ items, total, page, limit }`.
+
+### Example — `POST /branches`
+
+**Request**
+
+```json
+{
+  "name": "Kothrud Branch",
+  "code": "KTD",
+  "address": "Paud Road, Kothrud",
+  "city": "Pune",
+  "phone": "9876543212",
+  "openingTime": "09:00",
+  "closingTime": "21:00"
+}
+```
+
+**Response** — `201`
+
+```json
+{
+  "id": "665f1a0c9a1e4c0012ab3403",
+  "name": "Kothrud Branch",
+  "code": "KTD",
+  "city": "Pune",
+  "managerId": null,
+  "status": "Active"
+}
+```
+
+### Example — `PATCH /branches/:id/manager`
+
+**Request**
+
+```json
+{ "managerId": "665f2d0a9a1e4c0012ab3600" }
+```
+
+**Response** — `200` — manager block is hydrated via `getDisplayInfo()`, not `populate()`
+
+```json
+{
+  "id": "665f1a0c9a1e4c0012ab3403",
+  "managerId": "665f2d0a9a1e4c0012ab3600",
+  "manager": { "id": "665f2d0a9a1e4c0012ab3600", "name": "Sneha Kadam", "roleName": "BranchManager" }
+}
+```
+
+---
+
+## 6. Validations & Business Rules
+
+- `code` must be unique within the tenant; case-normalized to uppercase before the uniqueness check.
+- Branch creation is rejected with `402` if it would exceed the tenant's subscription `branchLimit`, sourced via `tenantsService.getPlanLimits()`.
+- `openingTime` / `closingTime` match `HH:mm` (24-hour); closing must not equal opening.
+- `phone` is a valid 10-digit mobile number; `email` is a valid address when supplied.
+- `managerId`, when supplied, must reference an existing, active, manager-eligible user **in the same tenant** — validated through `UsersPublicService` only.
+- `managerId` may be `null` at creation and at any point thereafter. A branch without a manager is a valid state.
+- A branch cannot be deactivated while it has orders in a non-terminal status (`Received`, `InProgress`, `Ready`, `OutForDelivery`) — checked via `ordersService.countNonTerminalByBranch()`.
+- A tenant must retain at least one `Active` branch; deactivating the last active branch is rejected with `409`.
+- All create/update DTOs are validated with `class-validator`; invalid payloads return `400` with a field-level error map.
+
+---
+
+## 7. RBAC — Consumed, Not Defined
+
+Branch Management **consumes** authorization. It does not define roles, permissions, JWT claims, role hierarchy, or authorization rules — those belong to Authentication and User Management.
+
+This module only:
+
+- Applies the shared `JwtAuthGuard`, `RolesGuard`, and `PermissionsGuard`.
+- Annotates routes with `@Roles('Owner')` / `@RequirePermissions('branches.create')`.
+- Reads `tenantId`, `branchIds`, `role`, and `permissions` from the verified JWT.
+
+| Role | Access |
+|---|---|
+| Owner | Full CRUD on branches within the tenant; assign/remove managers |
+| Branch Manager | Read-only on their assigned branch(es); cannot create, update, or deactivate |
+| Staff / Cashier | Read-only minimal branch info (name, code, contact) for receipts and headers |
+| Super Admin | No tenant-branch access by default; platform views live in Tenant Onboarding |
+
+Branch context is always derived from the verified JWT, never from a client-supplied header or body field. Client-side hiding of UI controls is never a substitute for a server-side check.
+
+---
+
+## 8. Background Jobs
+
+- **Weekly cron** — report branches with `managerId: null` to the Owner via Notifications. *(Reports only. Does not assign anyone.)*
+- **Nightly integrity check** — for each branch with a non-null `managerId`, call `verifyUserExistsAndActive()`; log and null out any dangling reference missed by the event handlers.
+
+The invite-expiry cron from the original combined module has moved to User Management and must not appear here.
+
+---
+
+## 9. Error Handling
+
+| Status | Condition | Response |
 |---|---|---|
-| `POST` | `/branches` | Create a branch and initialize configuration; require create permission and idempotency. |
-| `GET` | `/branches` | List visible branches with bounded pagination, filters, search, and sorting. |
-| `GET` | `/branches/accessible` | List minimal branch choices available to the current user; omit if the main list safely covers this. |
-| `GET` | `/branches/current` | Return trusted current branch context without accepting an arbitrary branch ID. |
-| `GET` | `/branches/default` | Return the visible tenant default branch. |
-| `GET` | `/branches/:branchId` | Return authorized branch details, version, and permitted actions. |
-| `PUT/PATCH` | `/branches/:branchId` | Update mutable profile fields with update permission and expected version. |
-| `GET` | `/branches/:branchId/contact` | Return authorized contact information. |
-| `PUT` | `/branches/:branchId/contact` | Update validated contact information with expected version. |
-| `GET` | `/branches/:branchId/address` | Return authorized address information. |
-| `PUT` | `/branches/:branchId/address` | Update validated address information with expected version. |
-| `GET` | `/branches/:branchId/working-hours` | Return canonical working hours and time zone. |
-| `PUT` | `/branches/:branchId/working-hours` | Update validated working hours and publish an event. |
-| `GET` | `/branches/:branchId/configuration` | Return effective, inherited, and overridden settings. |
-| `PUT/PATCH` | `/branches/:branchId/configuration` | Update allowlisted settings with expected version. |
-| `POST` | `/branches/:branchId/configuration/reset` | Reset selected overrides to tenant defaults. |
-| `GET` | `/branches/:branchId/manager` | Return the current authorized manager summary. |
-| `PUT` | `/branches/:branchId/manager` | Assign or replace an eligible same-tenant manager. |
-| `DELETE` | `/branches/:branchId/manager` | Remove the manager when policy permits it. |
-| `PATCH` | `/branches/:branchId/default` | Atomically set an eligible active branch as default. |
-| `PATCH` | `/branches/:branchId/activate` | Activate an eligible branch with version and idempotency checks. |
-| `PATCH` | `/branches/:branchId/suspend` | Suspend a branch with version, idempotency, and reason. |
-| `PATCH` | `/branches/:branchId/reactivate` | Reactivate a suspended branch; omit if activation covers this transition. |
-| `PATCH` | `/branches/:branchId/deactivate` | Deactivate a branch with version, idempotency, and reason. |
-| `POST` | `/branches/:branchId/select` | Select an accessible active branch through the Authentication-owned session contract. |
+| `409` | Duplicate branch code within tenant | `'A branch with this code already exists'` |
+| `402` | Branch limit exceeded for the active plan | `'Your current plan does not allow additional branches'` |
+| `409` | Deactivating a branch with open orders | `'Cannot deactivate a branch with unresolved orders'` |
+| `409` | Deactivating the last active branch | `'At least one active branch must remain'` |
+| `400` | `managerId` references a non-existent or cross-tenant user | `'The selected user does not exist'` |
+| `409` | `managerId` references an inactive user | `'The selected user is not active'` |
+| `409` | `managerId` references a manager-ineligible user | `'The selected user is not eligible to be a branch manager'` |
+| `404` | Branch not found within tenant scope | Standard tenant-safe 404 |
 
-## API Errors
+---
 
-- Invalid input.
-- Unauthenticated.
-- Forbidden.
-- Branch not found.
-- Tenant inactive.
-- Branch inactive.
-- Branch suspended.
-- Invalid lifecycle transition.
-- Branch limit exceeded.
-- Duplicate branch code.
-- Invalid manager.
-- Cross-tenant manager.
-- Invalid working hours.
-- Invalid configuration.
-- Default-branch conflict.
-- Concurrency conflict.
-- Idempotency conflict.
-- Dependency unavailable.
+## 10. Verification & Testing
 
-## Validation Rules
+**Boundary tests (new, and the point of this refactor)**
 
-- Require branch name.
-- Trim and bound branch name.
-- Generate branch code on the server.
-- Make branch code tenant-unique.
-- Require an existing tenant.
-- Require an operational tenant.
-- Enforce subscription branch limits.
-- Prevent concurrent limit bypass.
-- Require an approved branch type.
-- Validate email.
-- Validate telephone values.
-- Validate country code.
-- Validate address fields.
-- Validate time zone.
-- Validate working-hours intervals.
-- Reject overlapping intervals.
-- Require same-tenant manager.
-- Require active manager.
-- Require eligible manager role.
-- Allow one default branch.
-- Require active default branch.
-- Validate configuration keys.
-- Validate prefixes.
-- Validate language and currency.
-- Reject secrets.
-- Reject stale versions.
-- Reject invalid transitions.
+- Static analysis: `src/branches/**` contains zero imports from `src/users/schemas`, `src/auth/schemas`, or any user-owned Mongoose model. Assert via the lint/dependency-cruiser rule in CI.
+- Static analysis: no `populate()` call in this module targets `managerId`.
+- Integration: after `PATCH /branches/:id/manager`, the referenced user document is **byte-identical** to its pre-call state — role, `branchIds`, `isActive`, and `updatedAt` all unchanged.
+- Integration: after `DELETE /branches/:id/manager`, the previously referenced user document is likewise unchanged.
+- Runtime: mock `UsersPublicService` entirely and confirm the full branch test suite passes with **no users collection present in the test database**.
 
-## RBAC Requirements
+**Functional tests**
 
-- Define branch-view permission.
-- Define branch-create permission.
-- Define branch-update permission.
-- Define contact-update permission.
-- Define address-update permission.
-- Define working-hours-update permission.
-- Define configuration-view permission.
-- Define configuration-update permission.
-- Define manager-assign permission.
-- Define default-branch-update permission.
-- Define branch-activate permission.
-- Define branch-suspend permission.
-- Define branch-deactivate permission.
-- Define branch-select permission.
-- Use approved permission naming conventions.
-- Apply deny-by-default authorization.
-- Keep backend authorization authoritative.
+- Unit: `branchLimit` enforcement against the active subscription plan.
+- Unit: `code` uniqueness is scoped per tenant — the same code in two tenants is allowed.
+- Integration: branch creation with `managerId: null` succeeds (bootstrap path).
+- Integration: `user.deactivated` event nulls `managerId` on all referencing branches within the tenant.
+- Integration: `branch.deactivated` event causes User Management to prune the branch from affected `branchIds`.
+- Integration: deactivating a branch with a non-terminal order returns `409`.
+- Security: a Branch Manager cannot `POST /branches` or `PATCH` a branch outside their `branchIds` (403).
+- Security: Tenant A's Owner cannot read or modify Tenant B's branch (tenant-safe 404).
 
-## Security Requirements
+---
 
-- Enforce tenant ownership on every operation.
-- Enforce branch access on every operation.
-- Prevent cross-tenant access.
-- Prevent unauthorized cross-branch access.
-- Prevent tenant identifier tampering.
-- Prevent branch identifier tampering.
-- Prevent manager identifier tampering.
-- Prevent mass assignment.
-- Prevent NoSQL injection.
-- Prevent unsafe filtering and sorting.
-- Prevent stored cross-site scripting.
-- Rate-limit sensitive mutations.
-- Redact sensitive values from logs.
-- Minimize returned contact data.
-- Use opaque identifiers.
-- Protect default-branch concurrency.
-- Protect branch-limit concurrency.
-- Require idempotency for high-impact actions.
-- Audit every material change.
-- Store no credentials or secrets.
+## 11. Acceptance Criteria
 
-## Integration Requirements
+**Original criteria — preserved**
 
-- Authentication: consume trusted user and tenant context, validate branch context, and delegate session ownership.
-- Multi-Tenancy: validate tenant identity, status, branch limits, defaults, and initial branch creation.
-- User Management: validate manager identity, membership, status, and eligibility without direct collection access.
-- Customer Management: provide stable branch identity and validation without implementing customers.
-- Service Management: provide branch identity and configuration events without implementing services.
-- Order Management: provide branch identity and lifecycle events without implementing orders.
-- Payment Management: preserve historical branch references without implementing payments.
-- Expense Management: preserve historical branch references without implementing expenses.
-- Reports and Dashboard: publish branch events without implementing projections or dashboards.
-- Notification Service: submit approved manager and lifecycle events without implementing delivery.
-- Audit Service: audit creation, profile, address, contact, hours, configuration, manager, default, and lifecycle changes.
+- Every order, payment, and expense record can resolve to exactly one valid, active branch.
+- Branch-scoped users never see data for branches outside their `branchIds`.
+- Branch `code` uniqueness holds within each tenant.
+- Subscription `branchLimit` is enforced consistently at creation.
 
-## Domain Events
+**Separation criteria — new**
 
-- Publish created, profile-updated, contact-updated, address-updated, and working-hours-updated events.
-- Publish configuration-updated, manager-assigned, manager-replaced, and manager-removed events.
-- Publish default-changed, activated, suspended, reactivated, and deactivated events.
-- Use the established envelope with tenant, branch, event, version, time, correlation, and causation data.
-- Exclude sensitive payload data, publish through outbox, and require idempotent consumers.
+- No User Management functionality exists inside the Branch Management module.
+- All user operations are delegated to User Management.
+- `managerId` is treated purely as a foreign-key reference.
+- Branch Management never imports User or Role schemas — verified by an automated CI rule, not by review.
+- Branch Management never writes to the `users` collection.
+- Branch Management communicates with User Management only through the public service interface.
+- Assigning or removing a Branch Manager updates the branch document and nothing else.
+- User lifecycle management remains completely isolated inside the User Management module.
+- Deleting `src/users/` breaks compilation only at the `UsersPublicService` import — no other coupling exists.
 
-## Background Jobs
+---
 
-- Configuration reconciliation: refresh effective settings in bounded, idempotent, resumable batches.
-- Lifecycle processing: retry approved asynchronous effects without changing committed branch state.
-- Working-hours refresh: refresh approved derived caches without creating employee schedules.
-- Manager notification: submit deduplicated requests without implementing notification delivery.
-- Every job must define ownership, version, idempotency, retry, backoff, concurrency, dead-letter, monitoring, and recovery.
+## 12. Preservation Constraint
 
-## Backend Requirements
-
-- Use strict TypeScript.
-- Use approved NestJS patterns.
-- Use validated DTO boundaries.
-- Use tenant-aware repositories.
-- Use stable error codes.
-- Use UTC timestamps.
-- Use structured redacted logs.
-- Use correlation identifiers.
-- Use optimistic concurrency.
-- Use idempotency.
-- Use outbox and inbox patterns.
-- Support graceful shutdown.
-- Support health and readiness checks.
-- Avoid direct cross-service database access.
-
-## Flutter Requirements
-
-- Build a branch list.
-- Build branch search and filters.
-- Build branch registration.
-- Build branch details.
-- Build profile editing.
-- Build contact editing.
-- Build address editing.
-- Build working-hours editing.
-- Build configuration editing.
-- Build manager assignment.
-- Build default-branch selection.
-- Build lifecycle actions.
-- Build current-branch selection when approved.
-- Show loading states.
-- Show empty states.
-- Show validation errors.
-- Show forbidden states.
-- Show conflict states.
-- Show retryable errors.
-- Show terminal errors.
-- Clear caches after branch switching.
-- Follow Material 3.
-- Follow accessibility standards.
-- Keep server authorization authoritative.
-
-## Performance Requirements
-
-- Paginate every branch list.
-- Bound every page size.
-- Use tenant-scoped indexes.
-- Use projections for list responses.
-- Avoid unbounded regular expressions.
-- Avoid collection scans.
-- Bound filters and sorting.
-- Measure branch creation.
-- Measure branch lookup.
-- Measure branch listing.
-- Measure default lookup.
-- Measure accessible-branch lookup.
-- Measure configuration retrieval.
-- Test concurrent branch creation.
-- Test concurrent default changes.
-- Record dataset and environment.
-- Record actual results.
-
-## Reliability Requirements
-
-- Prevent duplicate branches under retries.
-- Prevent duplicate configurations.
-- Preserve default-branch invariants.
-- Recover failed event publication.
-- Make jobs idempotent.
-- Report dependency failures honestly.
-- Avoid inconsistent success responses.
-- Support graceful recovery.
-
-## Observability Requirements
-
-- Log branch operations safely.
-- Emit creation metrics.
-- Emit lifecycle metrics.
-- Emit authorization-denial metrics.
-- Emit dependency-failure metrics.
-- Emit job-retry metrics.
-- Emit event-lag metrics.
-- Trace cross-service calls.
-- Alert on default invariant violations.
-- Alert on repeated reconciliation failures.
-- Document recovery actions.
-
-## Unit Tests
-
-- Test creation, code generation, collisions, profile, address, contact, and working-hours validation.
-- Test configuration, manager eligibility, lifecycle, defaults, branch limits, permissions, and errors.
-- Test idempotency and optimistic concurrency.
-
-## Persistence Tests
-
-- Test tenant queries, unique codes, one default, configuration consistency, indexes, and retained branches.
-- Test concurrent creation, concurrent default changes, and version conflicts.
-
-## API Tests
-
-- Test every endpoint for success, validation, authentication, authorization, tenant, branch, and not-found cases.
-- Test transitions, conflicts, idempotency, dependency failures, pagination, filtering, sorting, and stable errors.
-
-## Integration Tests
-
-- Test Authentication context, tenant validation, tenant status, branch limits, and configuration initialization.
-- Test manager validation, branch selection, outbox, audit, notification submission, and reconciliation.
-
-## Security Tests
-
-- Test tenant and branch isolation, identifier tampering, RBAC, escalation, and mass assignment.
-- Test NoSQL injection, unsafe queries, stored XSS, rate limits, leakage, and concurrency races.
-
-## End-to-End Tests
-
-- Test first and additional branch creation, configuration initialization, default designation, and branch limits.
-- Test profile, contact, address, hours, configuration, manager, and accessible branch selection.
-- Test activation, suspension, reactivation, deactivation, invalid transitions, isolation, and history.
-
-## Quality Gates
-
-- Run formatting, linting, type checking, builds, root checks, and every required test category.
-- Do not weaken rules, skip required checks, or misreport failed or unavailable validation.
-
-## Documentation Requirements
-
-- Document Branch architecture.
-- Document service ownership.
-- Document lifecycle transitions.
-- Document branch context.
-- Document tenant isolation.
-- Document branch isolation.
-- Document default-branch rules.
-- Document branch-code generation.
-- Document manager assignment.
-- Document configuration inheritance.
-- Document collections.
-- Document indexes.
-- Document APIs.
-- Document errors.
-- Document events.
-- Document jobs.
-- Document RBAC.
-- Document security.
-- Document performance results.
-- Document frontend workflows.
-- Document operator recovery.
-- Record ADRs.
-- Update the completion report.
-- Describe implemented behavior only.
-- Use repository-relative paths.
-- Include no secrets.
-
-## Implementation Sequence
-
-1. Confirm Phase 11 scope.
-2. Inspect Git status.
-3. Inspect existing Branch work.
-4. Read mandatory sources.
-5. Verify dependencies.
-6. Confirm service ownership.
-7. Define lifecycle.
-8. Define permissions.
-9. Define branch context.
-10. Define collections and indexes.
-11. Define APIs.
-12. Define events and jobs.
-13. Implement domain rules.
-14. Implement persistence.
-15. Implement branch creation.
-16. Implement configuration initialization.
-17. Implement profile management.
-18. Implement contact and address.
-19. Implement working hours.
-20. Implement manager assignment.
-21. Implement default-branch management.
-22. Implement lifecycle commands.
-23. Implement security and RBAC.
-24. Implement audit and events.
-25. Implement approved jobs.
-26. Implement approved Flutter workflows.
-27. Implement all tests.
-28. Run quality gates.
-29. Review scope and security.
-30. Update documentation.
-31. Update the completion report.
-32. Stop without starting another phase.
-
-## Deliverables
-
-### Backend
-
-- Branch owning module or service.
-- Branch lifecycle.
-- Branch validation.
-- Branch-code generation.
-- Profile management.
-- Address management.
-- Contact management.
-- Working-hours management.
-- Manager assignment.
-- Default-branch management.
-- Configuration management.
-- Tenant and RBAC enforcement.
-- Complete REST APIs.
-- Domain events.
-- Required background jobs.
-- Observability and recovery.
-
-### MongoDB
-
-- `branches`.
-- `branchConfigurations`.
-- Required tenant-safe indexes.
-- Required uniqueness rules.
-- Default-branch invariant.
-- Concurrency metadata.
-- Persistence tests.
-
-### Frontend
-
-- Branch list.
-- Branch registration.
-- Branch details.
-- Branch editing workflows.
-- Manager workflow.
-- Default-branch workflow.
-- Lifecycle workflows.
-- Branch selection when approved.
-- Accessible error and loading states.
-
-### Documentation
-
-- Architecture guide.
-- Collection guide.
-- API guide.
-- Security guide.
-- RBAC guide.
-- Event and job guide.
-- Operator guide.
-- ADRs.
-- Phase completion report.
-
-## Acceptance Criteria
-
-### Functional
-
-- [ ] Authorized users can create branches.
-- [ ] Branch limits are enforced.
-- [ ] Branch codes are tenant-unique.
-- [ ] Branch profiles can be updated.
-- [ ] Addresses can be updated.
-- [ ] Contacts can be updated.
-- [ ] Working hours can be updated.
-- [ ] Configurations initialize automatically.
-- [ ] Configuration overrides follow tenant policy.
-- [ ] Eligible managers can be assigned.
-- [ ] Lifecycle transitions follow documented rules.
-- [ ] Default-branch invariants are preserved.
-- [ ] Historical branches are retained.
-
-### API
-
-- [ ] Every approved endpoint is implemented.
-- [ ] Every endpoint is versioned.
-- [ ] Every endpoint is validated.
-- [ ] Every endpoint is authorized.
-- [ ] Every endpoint is documented.
-- [ ] Lists use bounded pagination.
-- [ ] Updates enforce concurrency.
-- [ ] High-impact commands enforce idempotency.
-- [ ] Stable errors are returned.
-
-### Security
-
-- [ ] Tenant ownership is enforced.
-- [ ] Branch access is enforced.
-- [ ] Cross-tenant access is prevented.
-- [ ] Unauthorized cross-branch access is prevented.
-- [ ] Manager assignment cannot cross tenants.
-- [ ] Branch selection validates access.
-- [ ] Security tests pass.
-- [ ] Sensitive data is redacted.
-
-### Data
-
-- [ ] `branches` is authoritative for branch identity.
-- [ ] `branchConfigurations` is authoritative for overrides.
-- [ ] Every configuration matches its branch tenant.
-- [ ] Required indexes support queries.
-- [ ] Concurrent creation preserves branch limits.
-- [ ] Concurrent default changes preserve one default.
-
-### Integration
-
-- [ ] Authentication supplies trusted context.
-- [ ] Multi-Tenancy supplies ownership and limits.
-- [ ] User Management validates managers.
-- [ ] Audit evidence exists.
-- [ ] Events use the approved reliable pattern.
-- [ ] Downstream contracts are documented.
-- [ ] Downstream modules are not implemented.
-
-### Frontend
-
-- [ ] Approved Branch workflows are complete.
-- [ ] Only accessible branches are selectable.
-- [ ] Branch switching clears stale state.
-- [ ] Accessibility requirements pass.
-- [ ] Error and loading states are handled.
-- [ ] Backend authorization remains authoritative.
-
-### Quality
-
-- [ ] Formatting passes.
-- [ ] Linting passes.
-- [ ] Type checking passes.
-- [ ] Required tests pass.
-- [ ] Security checks pass.
-- [ ] Builds pass.
-- [ ] Documentation matches behavior.
-- [ ] ADRs record material decisions.
-- [ ] No placeholders remain.
-- [ ] No secrets remain.
-- [ ] No out-of-scope work remains.
-
-## Completion Instructions
-
-1. Review the final diff.
-2. Confirm Branch-only scope.
-3. Map acceptance criteria to evidence.
-4. Run all required checks.
-5. Record exact commands and outcomes.
-6. Report failed or unavailable checks honestly.
-7. List every created file.
-8. List every modified file.
-9. Record decisions and assumptions.
-10. Record migrations and index changes.
-11. Record security and performance evidence.
-12. Record limitations and pending work.
-13. Update `ERP-PLANNING/phase-completions/PHASE_11_BRANCH_MANAGEMENT_COMPLETION.md`.
-14. Confirm no downstream module was implemented.
-15. Stop execution.
-
-Do not start another phase.
+Do not modify existing APIs, schemas, routes, validation rules, integrations, testing strategy, or business logic beyond the architectural separation described above. Platform-wide standards continue to apply unchanged: decimal-safe money handling, `TenantScopeInterceptor` on every query, `class-validator` on every DTO, pagination envelope on every list endpoint, `AuditService` entries on every high-risk action, and atomic counters for all sequential numbering.
