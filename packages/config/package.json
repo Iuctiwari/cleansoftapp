@@ -2,7 +2,20 @@
   "name": "@nexoraa/config",
   "version": "0.0.0",
   "private": true,
-  "description": "Config shared package foundation.",
+  "description": "Reusable environment loading and validation configuration.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
   "scripts": {
     "build": "node ../../scripts/run-typescript-project.mjs build",
     "clean": "rimraf dist",
@@ -10,5 +23,8 @@
     "format:check": "prettier --check .",
     "lint": "eslint \"src/**/*.ts\" --no-error-on-unmatched-pattern",
     "typecheck": "node ../../scripts/run-typescript-project.mjs typecheck"
+  },
+  "dependencies": {
+    "@nestjs/config": "^4.0.4"
   }
 }

@@ -1,33 +1,12 @@
 # Constants Package
 
-## Purpose
+Framework-neutral constants and enums that are safe to share across services.
 
-TODO: Purpose.
+## Public API
 
-## Scope
+- Runtime environment names
+- Correlation and request header names
+- Pagination defaults and maximum
+- `SortDirection`
 
-TODO: Scope.
-
-## Inputs
-
-TODO: Inputs.
-
-## Outputs
-
-TODO: Outputs.
-
-## Dependencies
-
-TODO: Dependencies.
-
-## Deliverables
-
-TODO: Deliverables.
-
-## Acceptance Criteria
-
-TODO: Acceptance Criteria.
-
-## Notes
-
-TODO: Notes.
+Feature-specific values belong to their owning feature package, not here.

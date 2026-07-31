@@ -1,998 +1,665 @@
-# PHASE 6 — USER MANAGEMENT IMPLEMENTATION PROMPT
-
-## Phase Information
-
-- Phase Number: 12.
-- Phase Name: User Management.
-- Module: Users, employee profiles, access assignments, and invitations.
-- Status: Implementation prompt.
-- Completion Report: `ERP-PLANNING/phase-completions/PHASE_12_USER_MANAGEMENT_COMPLETION.md`.
-
-## Role
-
-- Act as a Senior Enterprise Software Architect and Lead Full Stack Engineer.
-- Implement a secure, scalable, production-ready User Management module.
-- Treat the repository as the authoritative source of current project state.
-- Preserve unrelated and previously completed work.
-- Implement only the work authorized by Phase 12.
-- Stop immediately after completing this phase.
-
-## Module Context
-
-- Authentication determines who the user is.
-- Multi-Tenancy determines which organization the user belongs to.
-- Branch Management determines where the user operates.
-- User Management determines what the user can access and perform.
-- Every user belongs to exactly one tenant.
-- Every user can belong to one or more branches.
-- Every primary branch must be one of the assigned branches.
-- Every role and permission assignment must remain tenant-safe.
-- Downstream modules consume user identity and authorization context.
-
-## Objective
-
-- Implement user registration, employee profiles, self-profile management, and lifecycle.
-- Implement roles, permissions, branches, departments, designations, and authorization context.
-- Implement secure invitations, password-initialization integration, search, filtering, and auditing.
-- Enforce tenant isolation, branch isolation, least privilege, and escalation prevention.
-- Deliver APIs, events, jobs, frontend workflows, tests, documentation, and completion evidence.
-
-## Business Purpose
-
-- Allow tenant administrators to create and manage employees and system users.
-- Assign each user an approved role and effective permissions.
-- Assign each user to one or more authorized branches.
-- Restrict every user to required data and operations.
-- Support controlled invitation and account activation.
-- Support auditable user and access changes.
-- Provide reliable authorization context to every ERP module.
-
-## Mandatory Reading
-
-- Read all authoritative product, business, target-user, feature, architecture, technology, service, module, database, domain, API, event, tenancy, RBAC, security, coding, naming, and directory documents under `ERP-PLANNING/`.
-- Read the root, docs, apps, packages, and every touched-directory README.
-- Read every README in directories touched by this phase.
-- Read Authentication, Multi-Tenancy, and Branch Management prompts.
-- Read their corresponding completion reports.
-- Read applicable Architecture Decision Records.
-- Read existing authentication, authorization, tenant, branch, event, and test contracts.
-- Inspect the repository tree.
-- Inspect Git status.
-- Inspect existing User and RBAC work.
-
-## Dependencies
-
-### Authentication
-
-- Verify authenticated identity.
-- Verify credential and session ownership.
-- Verify account activation support.
-- Verify password-initialization or reset contracts.
-- Verify session revocation support.
-- Verify trusted tenant and user claims.
-
-### Multi-Tenancy
-
-- Verify tenant identity.
-- Verify tenant lifecycle status.
-- Verify user-count entitlements.
-- Verify tenant ownership validation.
-- Verify tenant settings and defaults.
-- Verify tenant isolation.
-
-### Branch Management
-
-- Verify branch identity.
-- Verify branch lifecycle status.
-- Verify branch ownership.
-- Verify branch-context validation.
-- Verify default-branch behavior.
-- Verify branch events.
-
-### Platform
-
-- Verify MongoDB connectivity.
-- Verify API versioning.
-- Verify common validation and errors.
-- Verify structured logging.
-- Verify health and readiness behavior.
-- Verify event and job infrastructure.
-- Verify testing and build commands.
-
-### Dependency Rules
-
-- Verify completion reports against repository evidence.
-- Run critical dependency tests before implementation.
-- Repair only minimal safe dependency defects.
-- Document every dependency repair.
-- Do not duplicate Authentication or Branch functionality.
-- Escalate missing security or ownership decisions.
-
-## Scope
-
-- User registration, employee profiles, self-profile updates, and server-generated employee codes.
-- Role, permission, approved override, branch, primary-branch, department, and designation assignments.
-- User activation, suspension, reactivation, deactivation, and retained history.
-- Invitation creation, resend, cancellation, acceptance, and password-initialization integration.
-- Search, filtering, sorting, authorization context, auditing, events, and required jobs.
-- Approved Flutter workflows, testing, documentation, and completion evidence.
-
-## Out of Scope
-
-- Authentication credentials, password hashing, sessions, and token ownership.
-- Tenant, Branch, Customer, Service, Order, Payment, Expense, Report, and Dashboard implementation.
-- Payroll, attendance, scheduling, recruitment, performance reviews, and full HR management.
-- Notification delivery infrastructure and file-storage implementation.
-- Physical deletion, cross-tenant transfer, and unapproved custom role systems.
-
-## Architecture Requirements
-
-- Use the approved User owning service or module.
-- Use `apps/backend/user-service/` when supported by current architecture.
-- Do not create a competing user service.
-- Keep Authentication credential ownership separate.
-- Keep controllers thin.
-- Keep user invariants in domain or application services.
-- Keep persistence behind repositories.
-- Keep shared packages domain-neutral.
-- Do not access another service's private collections.
-- Use versioned API contracts.
-- Use versioned event contracts.
-- Use versioned job contracts.
-- Use optimistic concurrency.
-- Use idempotency for retryable commands.
-- Use outbox and inbox patterns.
-- Record material decisions in ADRs.
-
-## Data Ownership
-
-- User Management owns employee identity and profile.
-- User Management owns employee code.
-- User Management owns department and designation references or approved values.
-- User Management owns role assignments.
-- User Management owns permission assignments.
-- User Management owns branch assignments.
-- User Management owns invitation records.
-- Authentication owns credentials.
-- Authentication owns passwords.
-- Authentication owns sessions.
-- Tenant Management owns tenant identity and entitlements.
-- Branch Management owns branch identity and lifecycle.
-- RBAC policy owns canonical permission definitions.
-- Notification Service owns delivery.
-- Audit Service owns audit records.
-- File Storage owns profile-photo files when available.
-
-## User Lifecycle
-
-- Support `INVITED` or approved equivalent.
-- Support `PENDING_ACTIVATION`.
-- Support `ACTIVE`.
-- Support `SUSPENDED`.
-- Support `INACTIVE` or `DEACTIVATED`.
-- Define every allowed transition.
-- Reject undocumented transitions.
-- Require permission for transitions.
-- Require a reason for suspension.
-- Require a reason for deactivation.
-- Record actor and timestamp.
-- Record correlation context.
-- Publish one event per committed transition.
-- Revoke or restrict sessions after suspension or deactivation.
-- Preserve historical user references.
-- Prevent general updates from changing status.
-
-## User Registration
-
-- Authenticate the administrator.
-- Resolve trusted tenant context.
-- Authorize user creation.
-- Verify tenant status.
-- Verify user-count entitlement.
-- Validate employee details.
-- Normalize email and mobile number.
-- Generate employee code on the server.
-- Prevent duplicate creation under retries.
-- Validate role assignment.
-- Validate branch assignments.
-- Validate primary branch.
-- Create the user profile.
-- Create initial permission assignment.
-- Create an invitation when required.
-- Submit password initialization to Authentication.
-- Record audit context.
-- Publish user-created event.
-
-## Employee Profile
-
-- Require first name.
-- Require last name.
-- Derive full name consistently.
-- Support optional preferred name when approved.
-- Support email.
-- Support mobile number.
-- Support profile-photo reference.
-- Support optional date of birth.
-- Support optional gender using approved values.
-- Support department.
-- Support designation.
-- Support employee start date when approved.
-- Support non-sensitive notes only when approved.
-- Keep tenant ownership immutable.
-- Keep employee code immutable after creation.
-- Minimize personal information.
-
-## Self-Profile
-
-- Allow users to view their own profile.
-- Allow approved self-service field updates.
-- Prevent self-service role changes.
-- Prevent self-service permission changes.
-- Prevent self-service branch changes.
-- Prevent self-service status changes.
-- Prevent self-service employee-code changes.
-- Require re-verification for sensitive identity changes when established.
-
-## Role Assignment
-
-- Reference an approved role.
-- Verify role belongs to the same tenant or approved system scope.
-- Prevent assignment above the administrator's authority.
-- Prevent self-escalation.
-- Prevent protected-role assignment without protected authority.
-- Record old and new role.
-- Record assigning actor.
-- Publish role-assigned event.
-- Refresh effective authorization.
-
-## Permission Assignment
-
-- Use canonical permission identifiers.
-- Validate every permission.
-- Apply least privilege.
-- Support role-derived permissions.
-- Support explicit user overrides only when approved.
-- Distinguish grants from denials when supported.
-- Support effective date.
-- Support optional expiry date.
-- Prevent permission escalation.
-- Prevent users from granting permissions they do not control.
-- Record changes and actor.
-- Refresh permission cache.
-- Publish permissions-updated event.
-
-## Branch Assignment
-
-- Assign one or more branches.
-- Verify every branch belongs to the tenant.
-- Verify every branch is eligible.
-- Require primary branch to be assigned.
-- Support primary branch changes.
-- Prevent unauthorized cross-branch assignment.
-- Remove inaccessible current branch context after assignment changes.
-- Preserve historical actor references.
-- Publish branches-assigned event.
-- Refresh authorization context.
-
-## Department and Designation
-
-- Support approved department values or references.
-- Support approved designation values or references.
-- Validate tenant ownership for referenced records.
-- Prevent arbitrary unbounded values when catalogs exist.
-- Do not implement a full HR taxonomy without approval.
-- Audit department and designation changes.
-
-## User Invitations
-
-- Create cryptographically secure invitation tokens.
-- Store only a token hash.
-- Never store a plaintext invitation token.
-- Use single-use invitations.
-- Set a bounded expiry.
-- Bind the invitation to tenant, user, and intended email.
-- Prevent acceptance after expiry.
-- Prevent acceptance after cancellation.
-- Prevent invitation reuse.
-- Support safe resend with token rotation.
-- Rate-limit invitation creation and resend.
-- Submit delivery through Notification Service.
-- Do not claim delivery when only submission succeeded.
-- Record acceptance through Authentication integration.
-
-## Password Initialization
-
-- Delegate credential creation to Authentication.
-- Never store password values in User Management.
-- Never log password values.
-- Use one-time initialization or invitation contracts.
-- Require secure expiry.
-- Revoke initialization tokens after use.
-- Prevent administrators from learning user passwords.
-
-## User Search and Filtering
-
-- Use bounded pagination.
-- Search only allowlisted normalized fields.
-- Support employee-code search.
-- Support safe name search.
-- Support safe email search when authorized.
-- Filter by status.
-- Filter by role.
-- Filter by branch.
-- Filter by department.
-- Filter by designation.
-- Sort only by allowlisted fields.
-- Apply tenant and branch visibility before counts.
-- Avoid unsafe regular expressions.
-- Return summary projections only.
-
-## MongoDB Collections
-
-### `users`
-
-- Store one authoritative profile per tenant user.
-- Store opaque user identifier.
-- Store tenant identifier.
-- Store employee code.
-- Store first name.
-- Store last name.
-- Store derived full name.
-- Store normalized email.
-- Store normalized mobile number.
-- Store profile-photo reference.
-- Store optional date of birth.
-- Store optional gender.
-- Store department.
-- Store designation.
-- Store role identifier or assignment reference.
-- Store assigned branch identifiers.
-- Store primary branch identifier.
-- Store lifecycle status.
-- Store status reason and timestamp.
-- Store last-login projection only when supplied by Authentication.
-- Store created-by and updated-by identifiers.
-- Store created and updated timestamps.
-- Store optimistic-concurrency version.
-
-### `users` Invariants
-
-- Require immutable tenant identifier.
-- Require tenant-unique employee code.
-- Require tenant-unique normalized email when policy requires it.
-- Require first and last name.
-- Require valid status.
-- Require every assigned branch to belong to tenant.
-- Require primary branch to appear in assigned branches.
-- Require role to be valid for tenant.
-- Keep credential fields out of this collection.
-- Prevent physical deletion after historical use.
-
-### `users` Indexes
-
-- Unique index on tenant and employee code.
-- Unique or policy-approved index on tenant and normalized email.
-- Lookup index on tenant and user identifier.
-- List index on tenant and status.
-- Role index on tenant and role identifier.
-- Branch index on tenant and assigned branches.
-- Department index on tenant and department.
-- Search index on tenant and normalized name.
-- Pagination index on tenant and created timestamp.
-- Pagination index on tenant and updated timestamp.
-
-### `userPermissions`
-
-- Store one current assignment document per user unless approved otherwise.
-- Store opaque assignment identifier.
-- Store tenant identifier.
-- Store user identifier.
-- Store role identifier.
-- Store canonical permission list.
-- Store allowed modules when part of approved policy.
-- Store allowed actions when part of approved policy.
-- Store explicit grants when approved.
-- Store explicit denials when approved.
-- Store effective date.
-- Store optional expiry date.
-- Store assignment version.
-- Store created-by and updated-by identifiers.
-- Store created and updated timestamps.
-- Store optimistic-concurrency version.
-
-### `userPermissions` Invariants
-
-- Match assignment tenant to user tenant.
-- Validate role and permission identifiers.
-- Prevent unknown modules and actions.
-- Prevent invalid effective periods.
-- Prevent expired permissions from remaining effective.
-- Prevent unauthorized privilege escalation.
-- Keep one authoritative effective assignment model.
-
-### `userPermissions` Indexes
-
-- Unique index on tenant and user identifier.
-- Lookup index on tenant, user, and effective date.
-- Expiry index on tenant and expiry date.
-- Role index on tenant and role identifier.
-
-### `userInvitations`
-
-- Store opaque invitation identifier.
-- Store tenant identifier.
-- Store user identifier.
-- Store intended normalized email.
-- Store invitation-token hash.
-- Store invitation status.
-- Store expiry date.
-- Store sent timestamp.
-- Store resend count.
-- Store accepted timestamp.
-- Store cancelled timestamp.
-- Store created-by identifier.
-- Store created timestamp.
-- Store optimistic-concurrency version.
-
-### `userInvitations` Invariants
-
-- Match invitation tenant to user tenant.
-- Store token hash only.
-- Make active token hash unique.
-- Allow one effective pending invitation per user.
-- Reject expired invitations.
-- Reject cancelled invitations.
-- Reject consumed invitations.
-- Rotate tokens on resend.
-- Apply automatic expiry cleanup only to safe invitation records.
-
-### `userInvitations` Indexes
-
-- Unique index on active token hash.
-- Lookup index on tenant and user identifier.
-- Status index on tenant and invitation status.
-- Expiry TTL or cleanup index where safe.
-- Email lookup index on tenant and normalized email.
-
-## Collection Boundaries
-
-- Use only `users`, `userPermissions`, and `userInvitations` as User domain collections.
-- Reuse established role and permission catalogs.
-- Do not duplicate Authentication credentials.
-- Do not duplicate Branch records.
-- Use shared outbox, inbox, audit, and idempotency collections only through platform patterns.
-
-## API Standards
-
-- Follow the approved API version prefix.
-- Require authentication except invitation acceptance where approved.
-- Resolve tenant from trusted context.
-- Apply RBAC to every administrative endpoint.
-- Apply branch visibility before returning data.
-- Validate path, query, and body values.
-- Use stable machine-readable errors.
-- Use bounded pagination.
-- Use allowlisted search, filters, and sorting.
-- Use expected versions for updates.
-- Use idempotency for high-impact commands.
-- Audit access-control mutations.
-- Hide cross-tenant resource existence.
-- Register static routes before `:userId` routes.
-
-## User APIs
-
-| Method | Path | Purpose |
+# Implementation Prompt 06- User Management & RBAC
+
+**Project:** Nexoraa CleanSoft — Multi-Tenant Shop Management System
+**Stack:** NestJS (TypeScript) · MongoDB · Mongoose ODM · Redis / BullMQ · Flutter client
+**NestJS Path:** `src/users/`
+**Companion module:** Module 3A — Branch Management (`src/branches/`)
+**Supersedes:** the user half of the combined `branches-users.md` specification.
+
+---
+
+## 0. Objective
+
+Implement a production-ready **User Management and Role-Based Access Control** module for the multi-tenant platform. This module is the single authority for everything about *who a person is and what they may do* — profile, employee code, role, permissions, branch membership, department, designation, invitation, and lifecycle state.
+
+It is **not** the authority for *how a person proves who they are*. Credentials, password hashing, sessions, JWT issue/refresh, and lockout belong to Authentication (`src/auth/`).
+
+---
+
+## 1. Ownership Boundary
+
+### 1.1 This module owns
+
+| Concern | Detail |
+|---|---|
+| User records | Creation, update, soft deactivation, search |
+| Employee profile | Names, contact, employee code, department, designation |
+| Lifecycle | `INVITED → PENDING_ACTIVATION → ACTIVE ⇄ SUSPENDED → DEACTIVATED` |
+| Roles | Assignment to users; custom role definitions per tenant |
+| Permissions | Effective permission resolution, per-user overrides, expiry |
+| Branch membership | **`User.branchIds`** and `primaryBranchId` |
+| Invitations | Issue, resend, revoke, accept; token hashing and expiry |
+| Self-service profile | `GET/PATCH /users/me` |
+
+### 1.2 Owned by other modules
+
+| Module | Owns |
+|---|---|
+| Authentication (`src/auth/`) | Passwords, `passwordHash`, credential verification, sessions, refresh tokens, JWT issue/refresh, `failedLoginCount`, lockout |
+| Tenant Management (`src/tenants/`) | Tenants, subscription plans, `staffLimit` / `branchLimit` |
+| Branch Management (`src/branches/`) | Branch records and **`Branch.managerId`** |
+| Audit (`src/audit/`) | The append-only `auditLogs` collection and `AuditService` |
+| Notifications (`src/notifications/`) | Delivery infrastructure for invitation and lifecycle messages |
+
+### 1.3 Hard prohibitions
+
+User Management **must never**:
+
+- Store, hash, compare, reset, or transmit a password. `passwordHash` lives on the user document but is **written exclusively by Authentication**; this module never reads or writes that field and must exclude it from every projection.
+- Issue, verify, refresh, or revoke a JWT or session. Session revocation on suspend/deactivate is requested via `authService.revokeAllSessions()`.
+- Write to the `branches` collection or set `Branch.managerId`.
+- Write to the `tenants` or `subscriptionPlans` collections.
+- Write to `auditLogs` directly — always through the shared `AuditService`.
+- Dispatch a WhatsApp/SMS/email message directly — always through the Notifications queue.
+
+### 1.4 Enforcement
+
+```jsonc
+// .eslintrc — inside src/users/
+"no-restricted-imports": ["error", {
+  "patterns": [
+    { "group": ["**/branches/schemas/*", "**/tenants/schemas/*", "**/audit/schemas/*"],
+      "message": "Use the public service interface for cross-module reads." },
+    { "group": ["bcrypt", "bcryptjs", "argon2", "jsonwebtoken", "@nestjs/jwt"],
+      "message": "Credentials and tokens are owned by Authentication." }
+  ]
+}]
+```
+
+A `dependency-cruiser` rule asserts `src/users/**` reaches other modules only through their `interfaces/*-public.service.ts` files. CI fails the build on violation.
+
+---
+
+## 2. Data Model
+
+### 2.1 Collection: `users`
+
+```jsonc
+{
+  "_id": "ObjectId",
+  "tenantId": "ObjectId (Ref: tenants, Required, immutable)",
+  "employeeCode": "String (Required, server-generated, immutable, unique per tenant, e.g. 'EMP-0007')",
+
+  "profile": {
+    "firstName": "String (Required, 1–50)",
+    "lastName":  "String (Required, 1–50)",
+    "email":     "String (Optional, normalized lowercase+trim, unique per tenant when present)",
+    "mobile":    "String (Required, 10 digits, unique per tenant)",
+    "altMobile": "String (Optional)",
+    "avatarUrl": "String (Optional, storage URL)",
+    "dateOfJoining": "Date (Optional)"
+  },
+
+  "roleId":          "ObjectId (Ref: roles, Required)",
+  "branchIds":       "ObjectId[] (Ref: branches, empty array = tenant-wide access, Owner only)",
+  "primaryBranchId": "ObjectId (Ref: branches, Nullable, must be a member of branchIds)",
+  "department":      "String (Optional, from tenant-configured list)",
+  "designation":     "String (Optional, from tenant-configured list)",
+
+  "status": "String (Enum: 'INVITED','PENDING_ACTIVATION','ACTIVE','SUSPENDED','DEACTIVATED', Default: 'INVITED')",
+  "statusReason": "String (Nullable, required for SUSPENDED and DEACTIVATED)",
+  "statusChangedAt": "Date (Nullable)",
+  "statusChangedBy": "ObjectId (Ref: users, Nullable)",
+
+  "passwordHash": "String (Nullable — WRITTEN AND READ BY AUTHENTICATION ONLY; excluded from every projection in this module)",
+
+  "createdBy": "ObjectId (Ref: users, Nullable — null for the bootstrap Owner)",
+  "updatedBy": "ObjectId (Ref: users, Nullable)",
+  "createdAt": "Date (Default: Date.now, UTC)",
+  "updatedAt": "Date (Default: Date.now, UTC)",
+  "version":   "Number (Default: 0, optimistic concurrency token)"
+}
+```
+
+**Indexes**
+
+- `{ tenantId: 1, employeeCode: 1 }` — unique compound
+- `{ tenantId: 1, 'profile.mobile': 1 }` — unique compound
+- `{ tenantId: 1, 'profile.email': 1 }` — unique compound sparse
+- `{ tenantId: 1, status: 1 }`
+- `{ tenantId: 1, roleId: 1 }`
+- `{ tenantId: 1, branchIds: 1 }` — multikey
+- `{ tenantId: 1, 'profile.firstName': 'text', 'profile.lastName': 'text' }`
+
+A **global Mongoose projection hook** on this schema strips `passwordHash` from every `find`, `findOne`, and aggregation result originating in this module.
+
+### 2.2 Collection: `roles`
+
+```jsonc
+{
+  "_id": "ObjectId",
+  "tenantId": "ObjectId (Ref: tenants, Nullable — null for system default roles)",
+  "roleName": "String (Required, e.g. 'Owner','BranchManager','Staff','Cashier', or custom)",
+  "description": "String (Optional)",
+  "rank": "Number (Required — 100 Owner, 80 BranchManager, 60 Cashier, 40 Staff; lower = fewer privileges)",
+  "permissionCodes": "String[] (Required, e.g. ['orders.create','orders.read'])",
+  "isDefault": "Boolean (Default: false — true for system roles, which are immutable)",
+  "status": "String (Enum: 'Active','Retired', Default: 'Active')",
+  "version": "Number (Default: 0)"
+}
+```
+
+**Indexes:** `{ tenantId: 1, roleName: 1 }` unique compound · `{ tenantId: 1, status: 1 }`
+
+`rank` is the mechanism that prevents privilege escalation (§6.3). It is not decorative.
+
+### 2.3 Collection: `permissions`
+
+```jsonc
+{
+  "_id": "ObjectId",
+  "module": "String (Required, e.g. 'orders')",
+  "action": "String (Required, e.g. 'create')",
+  "code":   "String (Required, Unique platform-wide, e.g. 'orders.create')",
+  "description": "String (Optional)"
+}
+```
+
+**Indexes:** `{ code: 1 }` unique
+
+Seeded once at deploy time. Never tenant-scoped, never client-writable.
+
+### 2.4 Collection: `userPermissions`
+
+One document per user. Holds the **resolved effective set** plus the overrides that produced it.
+
+```jsonc
+{
+  "_id": "ObjectId",
+  "tenantId": "ObjectId (Ref: tenants, Required)",
+  "userId":   "ObjectId (Ref: users, Required, Unique)",
+  "roleId":   "ObjectId (Ref: roles, Required — snapshot of the role used in resolution)",
+  "rolePermissions": "String[] (copied from role at resolution time)",
+  "grants": [ { "code": "String", "grantedBy": "ObjectId", "grantedAt": "Date", "expiresAt": "Date (Nullable)" } ],
+  "revokes": [ { "code": "String", "revokedBy": "ObjectId", "revokedAt": "Date" } ],
+  "effectivePermissions": "String[] (computed, cached)",
+  "resolvedAt": "Date",
+  "version": "Number (Default: 0)"
+}
+```
+
+**Indexes:** `{ userId: 1 }` unique · `{ tenantId: 1 }` · `{ 'grants.expiresAt': 1 }` sparse
+
+**Resolution formula** — deterministic, recomputed on any role/grant/revoke change:
+
+```
+effective = (rolePermissions ∪ activeGrants) \ revokes
+activeGrants = grants where expiresAt is null OR expiresAt > now
+```
+
+Revoke always wins over grant. Cached in Redis under `perm:{tenantId}:{userId}` with a 15-minute TTL, invalidated eagerly on change.
+
+### 2.5 Collection: `userInvitations`
+
+```jsonc
+{
+  "_id": "ObjectId",
+  "tenantId": "ObjectId (Ref: tenants, Required)",
+  "userId":   "ObjectId (Ref: users, Required)",
+  "tokenHash": "String (Required, SHA-256 of the invitation token — plaintext NEVER stored)",
+  "channel": "String (Enum: 'Email','WhatsApp','SMS', Required)",
+  "sentTo":  "String (Required, the email/mobile the invite went to)",
+  "status":  "String (Enum: 'Pending','Accepted','Expired','Revoked', Default: 'Pending')",
+  "expiresAt": "Date (Required, +7 days)",
+  "resendCount": "Number (Default: 0, max 5)",
+  "lastSentAt": "Date",
+  "acceptedAt": "Date (Nullable)",
+  "invitedBy": "ObjectId (Ref: users, Required)",
+  "createdAt": "Date (Default: Date.now)"
+}
+```
+
+**Indexes:** `{ tokenHash: 1 }` unique · `{ tenantId: 1, userId: 1, status: 1 }` · `{ expiresAt: 1 }` TTL (retain 30 days past expiry for audit, then purge)
+
+### 2.6 Collection: `outbox`
+
+```jsonc
+{
+  "_id": "ObjectId",
+  "tenantId": "ObjectId (Required)",
+  "eventName": "String (Required)",
+  "payload": "Mixed (Required)",
+  "status": "String (Enum: 'Pending','Published','Failed', Default: 'Pending')",
+  "attempts": "Number (Default: 0)",
+  "createdAt": "Date", "publishedAt": "Date (Nullable)"
+}
+```
+
+**Indexes:** `{ status: 1, createdAt: 1 }`
+
+Events are written to this collection **inside the same transaction as the state change**, then drained by a BullMQ worker. This guarantees no event is lost and no event fires for a rolled-back write.
+
+---
+
+## 3. Lifecycle State Machine
+
+```
+                    ┌──────────────────────────────────────────┐
+                    │                                          │
+  [create+invite]   ▼                  [accept]                │
+  ──────────► INVITED ──────────► PENDING_ACTIVATION ──────► ACTIVE
+                    │                       │                  │  ▲
+        [revoke /   │                       │ [expire]         │  │
+         expire]    │                       ▼                  │  │ [reactivate]
+                    └──────────────────► DEACTIVATED ◄─────────┤  │
+                                              ▲                │  │
+                                              │ [deactivate]   ▼  │
+                                              └──────────── SUSPENDED
+```
+
+| From | To | Trigger | Required |
+|---|---|---|---|
+| — | `INVITED` | `POST /users/invite` | Role, at least one branch (unless Owner) |
+| `INVITED` | `PENDING_ACTIVATION` | `POST /user-invitations/accept` | Valid, unexpired token |
+| `PENDING_ACTIVATION` | `ACTIVE` | Password set via Authentication | `auth.passwordSet` event |
+| `INVITED` | `DEACTIVATED` | Invite revoked or expired | — |
+| `ACTIVE` | `SUSPENDED` | `PATCH /users/:id/suspend` | Non-empty reason |
+| `SUSPENDED` | `ACTIVE` | `PATCH /users/:id/reactivate` | — |
+| `ACTIVE` / `SUSPENDED` | `DEACTIVATED` | `PATCH /users/:id/deactivate` | Non-empty reason |
+| `DEACTIVATED` | `ACTIVE` | `PATCH /users/:id/activate` | Re-validate plan `staffLimit` |
+
+**Every other transition is rejected with `409`.** Every transition writes an audit entry, sets `statusChangedAt` / `statusChangedBy`, and publishes an event via the outbox.
+
+**On `SUSPENDED` or `DEACTIVATED`:** call `authService.revokeAllSessions(userId)` synchronously *before* returning `200`. A suspended user must not survive on a valid access token until it expires.
+
+**Terminal-state rule:** users are never hard-deleted. `DEACTIVATED` is the terminal state, preserving every historical reference from orders, payments, expenses, assignments, and audit logs.
+
+---
+
+## 4. REST API
+
+All routes require a valid JWT access token except `POST /user-invitations/accept`. All queries are auto-scoped by `tenantId` via the shared `TenantScopeInterceptor`. All list endpoints return `{ items, total, page, limit }`.
+
+### 4.1 Core CRUD & search
+
+| Method | Route | Purpose | Role Gate |
+|---|---|---|---|
+| `POST` | `/users` | Create a user directly (no invite; server sets a `PENDING_ACTIVATION` shell for Authentication to complete) | Owner |
+| `GET` | `/users` | Search/list — filters: `q`, `status`, `roleId`, `branchId`, `department`, `designation`; paginated, sortable | Owner, Branch Manager *(own branches)* |
+| `GET` | `/users/:id` | Retrieve a user profile | Owner, Branch Manager *(own branches)* |
+| `PATCH` | `/users/:id` | Update profile fields (names, contact, avatar, joining date) | Owner, Branch Manager *(own branches, non-Owner targets)* |
+
+### 4.2 Self-service
+
+| Method | Route | Purpose | Role Gate |
+|---|---|---|---|
+| `GET` | `/users/me` | Own profile + effective permissions | Any authenticated user |
+| `PATCH` | `/users/me` | Update own names, `altMobile`, avatar **only** | Any authenticated user |
+
+`PATCH /users/me` rejects `roleId`, `branchIds`, `primaryBranchId`, `status`, `employeeCode`, `department`, and `designation` with `403`. Self-elevation is closed at the DTO layer, not by a guard that might be forgotten.
+
+### 4.3 Lifecycle
+
+| Method | Route | Purpose | Role Gate |
+|---|---|---|---|
+| `PATCH` | `/users/:id/activate` | `DEACTIVATED → ACTIVE` | Owner |
+| `PATCH` | `/users/:id/suspend` | `ACTIVE → SUSPENDED` (reason required) | Owner, Branch Manager *(own branches)* |
+| `PATCH` | `/users/:id/reactivate` | `SUSPENDED → ACTIVE` | Owner, Branch Manager *(own branches)* |
+| `PATCH` | `/users/:id/deactivate` | `→ DEACTIVATED` (reason required) | Owner |
+
+### 4.4 Role, permissions, assignment
+
+| Method | Route | Purpose | Role Gate |
+|---|---|---|---|
+| `GET` | `/users/:id/role` | Current role + rank | Owner, Branch Manager |
+| `PATCH` | `/users/:id/role` | Assign a role (rank-gated) | Owner |
+| `GET` | `/users/:id/permissions` | Effective set + grants + revokes | Owner |
+| `PATCH` | `/users/:id/permissions` | Apply grants / revokes | Owner |
+| `POST` | `/users/:id/permissions/reset` | Drop all overrides, revert to pure role set | Owner |
+| `GET` | `/users/:id/branches` | Assigned branches | Owner, Branch Manager |
+| `PATCH` | `/users/:id/branches` | Replace `branchIds` | Owner |
+| `PATCH` | `/users/:id/primary-branch` | Set `primaryBranchId` | Owner, Branch Manager |
+| `PATCH` | `/users/:id/department` | Set department | Owner |
+| `PATCH` | `/users/:id/designation` | Set designation | Owner |
+
+### 4.5 Invitations
+
+| Method | Route | Purpose | Role Gate |
+|---|---|---|---|
+| `POST` | `/users/invite` | Create user in `INVITED` + issue token + queue notification | Owner, Branch Manager *(Staff/Cashier only)* |
+| `GET` | `/users/:id/invitation` | Invitation status (never the token) | Owner, Branch Manager |
+| `POST` | `/users/:id/invitation/resend` | Re-issue token, increment `resendCount` | Owner, Branch Manager |
+| `DELETE` | `/users/:id/invitation` | Revoke invitation → user `DEACTIVATED` | Owner, Branch Manager |
+| `POST` | `/user-invitations/accept` | **Public.** Validate token, move to `PENDING_ACTIVATION`, hand off to Authentication for password set | Public *(rate-limited)* |
+
+### 4.6 Roles catalogue
+
+| Method | Route | Purpose | Role Gate |
+|---|---|---|---|
+| `GET` | `/roles` | List roles for the tenant | Owner, Branch Manager |
+| `POST` | `/roles` | Create a custom role *(Enterprise plan feature flag)* | Owner |
+| `PATCH` | `/roles/:id` | Update a custom role's permission set | Owner |
+| `GET` | `/permissions` | List all permission codes | Owner |
+
+System roles (`isDefault: true`) are immutable — `PATCH` returns `409`.
+
+### 4.7 Examples
+
+**`POST /users/invite` — Request**
+
+```json
+{
+  "profile": { "firstName": "Sneha", "lastName": "Kadam", "mobile": "9822011223", "email": "sneha@example.com" },
+  "roleId": "665f2c1e9a1e4c0012ab35aa",
+  "branchIds": ["665f1a0c9a1e4c0012ab3402"],
+  "primaryBranchId": "665f1a0c9a1e4c0012ab3402",
+  "department": "Operations",
+  "designation": "Counter Executive",
+  "channel": "WhatsApp"
+}
+```
+
+**Response — `201`**
+
+```json
+{
+  "id": "665f2d0a9a1e4c0012ab3600",
+  "employeeCode": "EMP-0007",
+  "profile": { "firstName": "Sneha", "lastName": "Kadam", "mobile": "9822011223" },
+  "status": "INVITED",
+  "invitation": { "status": "Pending", "expiresAt": "2026-08-06T00:00:00.000Z", "resendCount": 0 },
+  "version": 0
+}
+```
+
+**`PATCH /users/:id/permissions` — Request**
+
+```json
+{
+  "grants":  [{ "code": "reports.export", "expiresAt": "2026-09-30T00:00:00.000Z" }],
+  "revokes": ["payments.refund"],
+  "version": 3
+}
+```
+
+**Response — `200`**
+
+```json
+{
+  "userId": "665f2d0a9a1e4c0012ab3600",
+  "effectivePermissions": ["orders.create","orders.read","customers.read","reports.export"],
+  "grants":  [{ "code": "reports.export", "expiresAt": "2026-09-30T00:00:00.000Z" }],
+  "revokes": ["payments.refund"],
+  "version": 4
+}
+```
+
+**`POST /user-invitations/accept` — Request**
+
+```json
+{ "token": "6f2a...c91b", "mobile": "9822011223" }
+```
+
+**Response — `200`**
+
+```json
+{
+  "userId": "665f2d0a9a1e4c0012ab3600",
+  "status": "PENDING_ACTIVATION",
+  "nextStep": "SET_PASSWORD",
+  "passwordSetupToken": "issued-by-authentication-module"
+}
+```
+
+---
+
+## 5. Validation Rules
+
+**Profile**
+
+- `firstName`, `lastName` required, 1–50 chars, letters/spaces/hyphens/apostrophes only.
+- `email` normalized (trim + lowercase) before uniqueness check; unique per tenant when present.
+- `mobile` exactly 10 digits; unique per tenant. Not unique platform-wide — the same person may work for two tenants.
+- `avatarUrl` must be an allowed storage host.
+
+**Employee code**
+
+- Server-generated only. Any client-supplied `employeeCode` is rejected with `400`.
+- Format `{prefix}-{sequence}`, produced via the atomic `counters` collection with `findOneAndUpdate` + `$inc`, scoped by `tenantId` + `type='employee'`. Never `count()`.
+- Immutable after creation — present in a `PATCH` payload → `400`.
+
+**Role & permissions**
+
+- `roleId` must exist, belong to this tenant (or be a system role), and be `Active`.
+- Every `grants[].code` and `revokes[]` entry must exist in the `permissions` collection.
+- `grants[].expiresAt`, when present, must be in the future.
+- A code cannot appear in both `grants` and `revokes` in the same request → `400`.
+
+**Branches**
+
+- Every `branchIds` entry must exist, belong to this tenant, and be `Active` — validated via `branchesService.verifyBranchesExistAndActive()`.
+- `primaryBranchId` must be a member of `branchIds` → otherwise `400`.
+- Empty `branchIds` is permitted **only** when the assigned role is `Owner` (tenant-wide access). Any other role with an empty array → `400`.
+
+**Tenant & plan**
+
+- `tenantId` is always taken from the verified JWT, never from the body.
+- User creation and reactivation are rejected with `402` when the active count would exceed the plan's `staffLimit`, sourced via `tenantsService.getPlanLimits()`.
+- All operations rejected with `403` when the parent tenant status is not `Active`.
+
+**Concurrency & idempotency**
+
+- Every mutating endpoint accepts a `version` field; a mismatch returns `409` `'This record was modified by someone else, please reload'`.
+- Every mutating endpoint accepts an `Idempotency-Key` header; a repeated key within 24h replays the stored response rather than re-executing.
+
+**Payload hygiene**
+
+- `ValidationPipe({ whitelist: true, forbidNonWhitelisted: true })` globally — unknown fields return `400`, never silent drops. This closes mass assignment.
+- All ObjectId params validated by a `ParseObjectIdPipe`; no raw user string ever reaches a query object. Query operators in string inputs (`$`, `.`) are stripped — closes NoSQL injection.
+- Timestamps stored and returned in UTC (ISO-8601).
+
+---
+
+## 6. RBAC & Security
+
+### 6.1 Deny by default
+
+`RolesGuard` + `PermissionsGuard` are registered **globally** via `APP_GUARD`. A route with no `@RequirePermissions()` decorator is inaccessible, not public. Public routes are opted in explicitly with `@Public()`.
+
+### 6.2 Least privilege
+
+| Role | Access in this module |
+|---|---|
+| **Owner** | Full user CRUD, all lifecycle actions, role and permission assignment, branch assignment, custom roles |
+| **Branch Manager** | Read users in own `branchIds`; invite, update, suspend, reactivate **Staff and Cashier only** within own branches. Cannot create branches' users outside scope, cannot assign `BranchManager` or `Owner` roles, cannot grant permissions, cannot deactivate |
+| **Staff / Cashier** | `GET /users/me` and `PATCH /users/me` only |
+| **Super Admin** | No access to tenant user records. Platform-level views live in Tenant Onboarding |
+
+### 6.3 Privilege escalation prevention — mandatory checks
+
+Enforced in a shared `AuthorizationPolicyService`, called by every mutating handler:
+
+1. **No self role change.** `actor.id === target.id` on `/role` or `/permissions` → `403`.
+2. **No self lifecycle change.** Actor cannot suspend, deactivate, or activate themselves → `403`.
+3. **Rank ceiling.** `targetRole.rank >= actorRole.rank` → `403`. A Branch Manager (80) cannot assign or modify anyone at rank 80 or above.
+4. **Grant ceiling.** An actor may only grant permission codes they themselves hold effectively → `403`.
+5. **Branch containment.** A non-Owner actor may only assign branches that are a subset of their own `branchIds` → `403`.
+6. **Last Owner protection.** The final `ACTIVE` Owner in a tenant cannot be suspended, deactivated, or have their role changed → `403` `'At least one Owner account must remain active'`.
+7. **Cross-tenant.** Any target outside the actor's `tenantId` returns a tenant-safe `404` — never `403`, which would confirm existence.
+
+### 6.4 Invitation security
+
+- Token is 32 bytes of CSPRNG output, base64url-encoded. Only the SHA-256 hash is persisted.
+- The plaintext token appears exactly once — in the outbound notification. It is never returned by any API, never logged, never included in an audit `newValue`.
+- Acceptance requires token **and** a matching identifier (mobile or email) — possession of the link alone is insufficient.
+- `POST /user-invitations/accept` is rate-limited to 5 attempts per IP per 15 minutes.
+- `resendCount` caps at 5; each resend invalidates the previous hash.
+- Failed acceptance returns a single generic message regardless of cause (unknown / expired / revoked / already accepted) — never reveals which.
+
+### 6.5 Audit
+
+Every privileged action writes to `auditLogs` via `AuditService` with `oldValue` and `newValue`: user creation, profile update, role assignment, permission grant/revoke, branch assignment, primary branch change, every lifecycle transition, invitation issue/resend/revoke/accept. `passwordHash` and invitation tokens are never included in audit payloads.
+
+---
+
+## 7. Cross-Module Contracts
+
+### 7.1 Interface this module **exposes**
+
+```ts
+// src/users/interfaces/users-public.service.ts
+export interface UserDisplayInfo {
+  id: string; employeeCode: string; name: string;
+  mobile: string; email?: string; roleName: string; isActive: boolean;
+}
+
+export interface UsersPublicService {
+  /** Throws UserNotFoundError | UserInactiveError | TenantMismatchError */
+  verifyUserExistsAndActive(userId: string, tenantId: string): Promise<void>;
+
+  /** Throws UserNotEligibleError when the resolved role is not Owner or BranchManager */
+  verifyEligibleForManagerRole(userId: string, tenantId: string): Promise<void>;
+
+  getDisplayInfo(userId: string, tenantId: string): Promise<UserDisplayInfo | null>;
+  getDisplayInfoBatch(userIds: string[], tenantId: string): Promise<Map<string, UserDisplayInfo>>;
+
+  /** For Authentication at login — resolved permission codes for the JWT claim */
+  getEffectivePermissions(userId: string, tenantId: string): Promise<string[]>;
+
+  /** For Tenant Management plan enforcement */
+  countActiveUsers(tenantId: string): Promise<number>;
+}
+
+export const USERS_PUBLIC_SERVICE = Symbol('USERS_PUBLIC_SERVICE');
+```
+
+### 7.2 Interfaces this module **consumes**
+
+```ts
+authService.revokeAllSessions(userId: string): Promise<void>;
+authService.issuePasswordSetupToken(userId: string): Promise<string>;
+
+tenantsService.getPlanLimits(tenantId: string): Promise<{ branchLimit: number; staffLimit: number }>;
+tenantsService.isFeatureEnabled(tenantId: string, flag: string): Promise<boolean>;
+
+branchesService.verifyBranchesExistAndActive(branchIds: string[], tenantId: string): Promise<void>;
+branchesService.getBranchDisplayInfoBatch(ids: string[], tenantId: string): Promise<Map<string, BranchDisplayInfo>>;
+
+notificationsService.queue(payload: NotificationJob): Promise<void>;
+auditService.record(entry: AuditEntry): Promise<void>;
+```
+
+Both directions are wired with `forwardRef()` — Users ↔ Branches and Users ↔ Auth are legitimately mutual.
+
+### 7.3 Events
+
+**Published** (via outbox, all carrying `tenantId`, `userId`, `actorId`, `occurredAt`):
+
+`user.created` · `user.updated` · `user.roleAssigned` · `user.permissionsUpdated` · `user.branchesUpdated` · `user.invitationCreated` · `user.invitationAccepted` · `user.activated` · `user.suspended` · `user.reactivated` · `user.deactivated`
+
+**Consumed:**
+
+| Event | Source | Action |
 |---|---|---|
-| `POST` | `/users` | Create a tenant user with profile, assignments, and optional invitation. |
-| `GET` | `/users` | List visible users with pagination, search, filters, and sorting. |
-| `GET` | `/users/me` | Return the authenticated user's profile and effective access summary. |
-| `PATCH` | `/users/me` | Update only approved self-service profile fields. |
-| `GET` | `/users/:userId` | Return authorized user details, version, assignments, and allowed actions. |
-| `PUT/PATCH` | `/users/:userId` | Update mutable employee profile fields with expected version. |
-| `PATCH` | `/users/:userId/activate` | Activate an eligible user with version and idempotency checks. |
-| `PATCH` | `/users/:userId/suspend` | Suspend a user with expected version, idempotency, and reason. |
-| `PATCH` | `/users/:userId/reactivate` | Reactivate a suspended user when policy permits. |
-| `PATCH` | `/users/:userId/deactivate` | Deactivate a user while preserving historical references. |
-| `GET` | `/users/:userId/role` | Return the current authorized role summary. |
-| `PATCH` | `/users/:userId/role` | Assign or replace an authorized role and refresh access. |
-| `GET` | `/users/:userId/permissions` | Return role-derived, direct, and effective permissions when authorized. |
-| `PATCH` | `/users/:userId/permissions` | Replace approved user permission overrides with expected version. |
-| `POST` | `/users/:userId/permissions/reset` | Remove direct overrides and restore role-derived permissions. |
-| `GET` | `/users/:userId/branches` | Return authorized branch assignments and primary branch. |
-| `PATCH` | `/users/:userId/branches` | Replace validated branch assignments and primary branch. |
-| `PATCH` | `/users/:userId/primary-branch` | Change primary branch to an assigned eligible branch. |
-| `PATCH` | `/users/:userId/department` | Update approved department assignment. |
-| `PATCH` | `/users/:userId/designation` | Update approved designation assignment. |
-| `POST` | `/users/invite` | Create a user and single-use invitation through an idempotent command. |
-| `GET` | `/users/:userId/invitation` | Return safe invitation status without exposing the token. |
-| `POST` | `/users/:userId/invitation/resend` | Rotate and resend a pending invitation with rate limiting. |
-| `DELETE` | `/users/:userId/invitation` | Cancel a pending invitation. |
-| `POST` | `/user-invitations/accept` | Validate a one-time invitation and delegate credential activation. |
+| `auth.passwordSet` | Authentication | `PENDING_ACTIVATION → ACTIVE`; mark invitation `Accepted` |
+| `branch.deactivated` | Branch Management | Prune the branch from all `branchIds`; clear `primaryBranchId` where it matched and promote another assigned branch, or null it |
+| `tenant.suspended` | Tenant Management | Invalidate permission caches for all users of the tenant |
 
-## API Rules
+**Branch Management consumes** `user.deactivated`, `user.roleAssigned`, and `user.updated` to null out stale `Branch.managerId` references. This module does not perform that cleanup itself.
 
-- Choose `PUT` or `PATCH` semantics consistently.
-- Require expected versions on assignment and status mutations.
-- Require idempotency for create, invite, and lifecycle commands.
-- Return effective permissions without exposing internal policy data.
-- Never return invitation tokens or token hashes.
-- Never return password or credential fields.
-- Keep invitation acceptance responses resistant to account enumeration.
-- Delegate session issuance to Authentication.
+---
 
-## API Errors
+## 8. Background Jobs
 
-- Cover validation, authentication, authorization, not-found, tenant, user-status, and lifecycle failures.
-- Cover user limits, duplicate identifiers, invalid roles, permissions, branches, and primary branches.
-- Cover privilege escalation, invalid or expired invitations, concurrency, idempotency, and dependencies.
+| Job | Schedule | Behaviour |
+|---|---|---|
+| Outbox drain | Every 10s (BullMQ) | Publish `Pending` outbox rows; exponential backoff, 5 attempts, then `Failed` + Owner alert |
+| Invitation reminder | Daily 09:00 tenant TZ | Notify invitees at day 3 and day 6 of a `Pending` invitation |
+| Invitation expiry | Hourly | `Pending` past `expiresAt` → `Expired`; user `INVITED → DEACTIVATED` |
+| Permission expiry sweep | Hourly | Drop `grants` past `expiresAt`, recompute `effectivePermissions`, bust cache |
+| Permission cache refresh | Every 15 min | Warm Redis for users active in the last 24h |
+| Role synchronization | On role `PATCH` + nightly safety pass | Recompute `userPermissions` for every user holding the changed role; batched, tenant-scoped |
+| Invitation purge | Weekly | Delete invitation records 30+ days past terminal status |
 
-## Validation Rules
+---
 
-- Require first name.
-- Require last name.
-- Trim and bound names.
-- Derive full name consistently.
-- Generate employee code on the server.
-- Make employee code tenant-unique.
-- Normalize email.
-- Enforce tenant email uniqueness when required.
-- Validate mobile number.
-- Require an existing tenant.
-- Enforce tenant user limits.
-- Validate every assigned branch.
-- Require all assigned branches in the same tenant.
-- Require primary branch among assigned branches.
-- Validate role.
-- Validate every permission.
-- Validate department.
-- Validate designation.
-- Validate lifecycle status.
-- Validate invitation expiry.
-- Reject stale versions.
-- Reject unsupported fields.
+## 9. Error Handling
 
-## RBAC Requirements
+| Status | Condition | Response |
+|---|---|---|
+| `400` | Validation failure | Field-level error map |
+| `400` | `primaryBranchId` not in `branchIds` | `'Primary branch must be one of the assigned branches'` |
+| `400` | Client-supplied `employeeCode` | `'Employee code is generated by the system'` |
+| `402` | Active user count would exceed `staffLimit` | `'Your current plan does not allow additional staff'` |
+| `403` | Self role/permission/lifecycle change | `'You cannot modify your own role or access'` |
+| `403` | Rank ceiling breach | `'You cannot assign a role equal to or above your own'` |
+| `403` | Granting a permission the actor lacks | `'You cannot grant a permission you do not hold'` |
+| `403` | Branch outside actor's scope | `'You can only assign branches you have access to'` |
+| `403` | Modifying the last active Owner | `'At least one Owner account must remain active'` |
+| `409` | Duplicate mobile / email / employee code in tenant | `'A user with this mobile number already exists'` |
+| `409` | Invalid lifecycle transition | `'A user cannot move from {current} to {target}'` |
+| `409` | `version` mismatch | `'This record was modified by someone else, please reload'` |
+| `409` | Editing a system role | `'System roles cannot be modified'` |
+| `410` | Invitation expired or revoked | Generic `'This invitation is no longer valid'` |
+| `429` | Invitation acceptance rate limit | Retry-After header |
+| `404` | User not found **or** cross-tenant | Standard tenant-safe 404 |
 
-- Define permissions for user view, create, update, activate, suspend, and deactivate operations.
-- Define permissions for role view or assignment and permission view or assignment.
-- Define permissions for branch, department, designation, and self-profile updates.
-- Define permissions for invitation creation, resend, cancellation, and status viewing.
-- Use approved permission naming.
-- Apply deny-by-default authorization.
-- Prevent actors from granting authority they do not possess.
-- Keep backend authorization authoritative.
+---
 
-## Privilege-Escalation Rules
+## 10. Backend Standards
 
-- Prevent users from changing their own role.
-- Prevent users from changing their own permissions.
-- Prevent users from adding themselves to unauthorized branches.
-- Prevent assignment of a protected role without protected authority.
-- Prevent assignment above the actor's role ceiling.
-- Prevent direct permission grants above the actor's delegation scope.
-- Prevent stale authorization caches after changes.
-- Revoke affected sessions after critical access reductions.
-- Audit every privileged assignment.
+- NestJS + TypeScript, strict mode, no `any` in service signatures.
+- **Repository pattern** — controllers never touch Mongoose models. Every repository method takes `tenantId` as a required first argument; there is no unscoped `find()` anywhere in the module.
+- DTOs validated with `class-validator` + `class-transformer`; response shaping via `class-transformer` `@Exclude()` on `passwordHash`.
+- Optimistic concurrency on every mutation via `version`.
+- Idempotency keys on every mutation, stored in Redis with 24h TTL.
+- All timestamps UTC, ISO-8601 on the wire.
+- Structured JSON logging with `tenantId`, `actorId`, `requestId`; **never** log `passwordHash`, invitation tokens, or full permission payloads.
+- Transactions for multi-document writes (user + userPermissions + invitation + outbox must commit or roll back together).
 
-## Security Requirements
+---
 
-- Enforce tenant ownership, branch visibility, RBAC, and deny-by-default access.
-- Prevent cross-tenant access, cross-branch access, identifier tampering, and privilege escalation.
-- Prevent mass assignment, NoSQL injection, unsafe queries, stored XSS, and account enumeration.
-- Minimize personal data, redact logs, and rate-limit invitations and sensitive mutations.
-- Hash invitation tokens, compare them safely, and never store credentials or plaintext tokens.
-- Audit every privileged profile, assignment, invitation, and lifecycle change.
+## 11. Flutter Client Scope
 
-## Integration Requirements
+Implement: user list with search, filters (status / role / branch / department) and pagination · user detail · create and edit user · self profile view and edit · role assignment · permission assignment with grant/revoke and expiry picker · branch multi-select with primary-branch radio · invitation management (send, status, resend, revoke) · lifecycle actions (activate / suspend / reactivate / deactivate) with mandatory reason dialogs · invitation acceptance deep link.
 
-- Authentication: own credentials, activation, password initialization, sessions, revocation, and last-login facts.
-- Multi-Tenancy: validate tenant identity, status, settings, and user-count entitlements.
-- Branch Management: validate branches, branch status, and primary or assigned branch context.
-- Customer Management: consume user identity and permissions without implementing customers.
-- Service Management: consume user identity and permissions without implementing services.
-- Order Management: consume actor and authorization context without implementing orders.
-- Payment Management: consume privileged actor context without implementing payments.
-- Expense Management: consume actor and branch context without implementing expenses.
-- Reports and Dashboard: consume filtered user context without implementing reporting.
-- Notification Service: deliver invitations and reminders without owning invitation state.
-- Audit Service: record profile, role, permission, branch, status, and invitation changes.
-- Settings: provide approved tenant policy without allowing weaker user overrides.
+UI hides controls the user's permissions do not allow, but **client-side hiding is never treated as a substitute for the server-side check**. Every screen handles `409` version conflicts with a reload prompt.
 
-## Domain Events
+---
 
-- Publish user-created event.
-- Publish user-profile-updated event.
-- Publish user-role-assigned event.
-- Publish user-permissions-updated event.
-- Publish user-branches-assigned event.
-- Publish user-primary-branch-changed event.
-- Publish user-department-changed event.
-- Publish user-designation-changed event.
-- Publish user-invited event.
-- Publish invitation-accepted event.
-- Publish invitation-cancelled event.
-- Publish user-activated event.
-- Publish user-suspended event.
-- Publish user-reactivated event.
-- Publish user-deactivated event.
-- Use the established event envelope.
-- Include tenant, user, event, version, time, correlation, and causation data.
-- Exclude credentials, plaintext tokens, and unnecessary personal data.
-- Publish through the outbox pattern.
-- Require idempotent consumers.
+## 12. Testing
 
-## Background Jobs
+**Unit** — permission resolution formula across grant/revoke/expiry combinations · rank-ceiling policy · lifecycle transition matrix (every valid and invalid pair) · employee code generation under concurrency (no duplicates) · email normalization · `primaryBranchId` membership rule.
 
-- Invitation delivery: submit pending invitations through Notification Service.
-- Invitation reminders: notify eligible pending users without creating duplicate sends.
-- Invitation expiry: mark expired invitations and prevent later acceptance.
-- Permission expiry: remove expired direct permissions and refresh effective access.
-- Permission cache refresh: invalidate authorization state after assignment changes.
-- Role synchronization: reconcile approved role changes without inventing permissions.
-- Inactive user review: report candidates without deleting historical users.
-- Every job must define ownership, version, idempotency, retry, backoff, concurrency, dead-letter, monitoring, and recovery.
+**API** — every endpoint's happy path, validation failures, and role gates.
 
-## Backend Requirements
+**Integration** — invite → accept → password set → `ACTIVE` end to end · suspend revokes sessions before the response returns · `branch.deactivated` prunes `branchIds` and fixes `primaryBranchId` · role `PATCH` recomputes `userPermissions` for all holders · outbox rows publish exactly once · rollback of a failed user creation leaves no orphaned invitation or outbox row.
 
-- Use strict TypeScript.
-- Use approved NestJS patterns.
-- Use validated DTO boundaries.
-- Use tenant-aware repositories.
-- Use stable error codes.
-- Use UTC timestamps.
-- Use structured redacted logs.
-- Use correlation identifiers.
-- Use optimistic concurrency.
-- Use idempotency.
-- Use outbox and inbox.
-- Support graceful shutdown.
-- Support health and readiness checks.
-- Avoid direct cross-service database access.
+**Security** — self-elevation blocked on every route · Branch Manager cannot assign `BranchManager`/`Owner` · Branch Manager cannot touch users outside their branches · cross-tenant access returns 404 not 403 · `passwordHash` absent from every response body and log line · invitation token never returned by any endpoint · unknown payload fields rejected · `$`-prefixed input neutralized · acceptance endpoint rate-limited.
 
-## Flutter Requirements
+**Performance** — user search P95 under target with 10k users per tenant · permission resolution served from cache under 5ms · role sync over 500 users completes within the batch window.
 
-- Build a user list.
-- Build user search and filters.
-- Build user registration.
-- Build employee profile details.
-- Build employee profile editing.
-- Build self-profile editing.
-- Build role assignment.
-- Build permission assignment.
-- Build branch assignment.
-- Build primary-branch selection.
-- Build department and designation updates.
-- Build invitation creation and status.
-- Build invitation resend and cancellation.
-- Build lifecycle actions.
-- Show effective access summaries.
-- Show loading and empty states.
-- Show validation and forbidden states.
-- Show conflicts and stale data.
-- Show retryable and terminal errors.
-- Clear authorization caches after access changes.
-- Follow Material 3.
-- Follow accessibility standards.
-- Keep backend authorization authoritative.
+**E2E** — full onboarding of all four roles from invitation to first authenticated action.
 
-## Performance Requirements
+---
 
-- Paginate every user list.
-- Bound page size.
-- Use tenant-scoped indexes.
-- Use projections for list responses.
-- Avoid unbounded regular expressions.
-- Bound filters and sorting.
-- Cache permissions only with safe invalidation.
-- Measure user creation.
-- Measure user lookup.
-- Measure user search.
-- Measure branch-filtered listing.
-- Measure permission resolution.
-- Measure invitation lookup.
-- Test concurrent user creation.
-- Test high-volume permission resolution.
-- Record dataset, environment, and actual results.
+## 13. Acceptance Criteria
 
-## Reliability Requirements
+- User CRUD is complete and tenant-isolated across every endpoint.
+- The lifecycle state machine is enforced; no undocumented transition is reachable.
+- Roles and permissions are secure: no self-elevation, no rank breach, no granting of unheld permissions.
+- Branch assignments are validated against Branch Management; `primaryBranchId` is always a member of `branchIds`.
+- The invitation flow is secure: tokens hashed at rest, single-use, expiring, rate-limited, never returned or logged.
+- **Passwords, sessions, and tokens are owned by Authentication** — this module contains no hashing library import and never reads or writes `passwordHash`.
+- **`User.branchIds` is owned here; `Branch.managerId` is owned by Branch Management.** Neither module writes the other's field.
+- Tenant isolation holds under adversarial testing; cross-tenant probes return tenant-safe 404s.
+- RBAC is deny-by-default at the global guard level.
+- Audit logging is complete for every privileged action, with old and new values and no secrets.
+- All listed events publish exactly once via the outbox pattern.
+- Optimistic concurrency and idempotency are honoured on every mutation.
+- All test suites pass, including the boundary tests in §12.
+- API documentation (OpenAPI) is generated and current.
 
-- Prevent duplicate users under retries.
-- Prevent duplicate active invitations.
-- Preserve role and permission consistency.
-- Recover failed event publication.
-- Revoke stale authorization after access reductions.
-- Make jobs idempotent.
-- Report dependency failures honestly.
-- Avoid inconsistent success responses.
-- Support graceful recovery.
+---
 
-## Observability Requirements
+## Appendix — Reconciliation Notes
 
-- Log user operations safely.
-- Emit creation metrics.
-- Emit invitation metrics.
-- Emit lifecycle metrics.
-- Emit permission-resolution metrics.
-- Emit authorization-denial metrics.
-- Emit dependency-failure metrics.
-- Emit job-retry metrics.
-- Emit event-lag metrics.
-- Trace cross-service calls.
-- Alert on repeated permission-refresh failures.
-- Alert on invitation backlog.
-- Document recovery actions.
+Decisions taken where the condensed brief and the v1.0 platform specification differed. Flag any you want reversed.
 
-## Unit Tests
-
-- Test creation, employee-code generation, profile validation, and duplicate detection.
-- Test role, permission, branch, primary-branch, department, and designation assignments.
-- Test lifecycle, invitations, idempotency, concurrency, and privilege-escalation rules.
-
-## Persistence Tests
-
-- Test tenant queries, unique codes, email policy, assignments, invitations, indexes, and retained users.
-- Test concurrent creation, invitation rotation, permission expiry, and version conflicts.
-
-## API Tests
-
-- Test every endpoint for success, validation, authentication, authorization, tenant, branch, and not-found cases.
-- Test lifecycle, assignments, invitations, conflicts, idempotency, dependencies, pagination, filters, and errors.
-
-## Integration Tests
-
-- Test Authentication, Multi-Tenancy, Branch Management, Notification, Audit, outbox, and permission-cache integration.
-- Test invitation acceptance, credential initialization, session revocation, and authorization refresh.
-
-## Security Tests
-
-- Test tenant and branch isolation, identifier tampering, RBAC, escalation, self-escalation, and mass assignment.
-- Test injection, unsafe queries, XSS, token theft, token reuse, enumeration, rate limits, and concurrency races.
-
-## Performance Tests
-
-- Test user creation.
-- Test user search and filtering.
-- Test bulk user retrieval.
-- Test permission resolution.
-- Test branch assignment lookup.
-- Test invitation processing.
-- Test multi-user scalability.
-- Record measured results.
-
-## End-to-End Tests
-
-- Create a user with role and branches.
-- Generate employee code.
-- Create and deliver an invitation.
-- Accept the invitation through Authentication.
-- Activate the account.
-- Update the employee profile.
-- Change role and permissions.
-- Change branch assignments and primary branch.
-- Suspend and reactivate the user.
-- Deactivate the user.
-- Prevent unauthorized access after access reduction.
-- Reject cross-tenant and cross-branch access.
-- Preserve historical user references.
-
-## Quality Gates
-
-- Run formatting, linting, type checking, builds, root checks, and every required test category.
-- Do not weaken rules, skip required checks, or misreport failed or unavailable validation.
-
-## Documentation Requirements
-
-- Document User architecture.
-- Document service ownership.
-- Document lifecycle transitions.
-- Document tenant and branch isolation.
-- Document role and permission resolution.
-- Document privilege-escalation controls.
-- Document branch assignments.
-- Document invitation security.
-- Document collections and indexes.
-- Document APIs and errors.
-- Document events and jobs.
-- Document Authentication integration.
-- Document security tests.
-- Document performance results.
-- Document frontend workflows.
-- Document operator recovery.
-- Record ADRs.
-- Update the completion report.
-- Describe implemented behavior only.
-- Use repository-relative paths.
-- Include no secrets or plaintext tokens.
-
-## Implementation Sequence
-
-1. Confirm Phase 12 scope.
-2. Inspect Git status.
-3. Inspect existing User and RBAC work.
-4. Read mandatory sources.
-5. Verify dependencies.
-6. Confirm service ownership.
-7. Define lifecycle.
-8. Define role and permission rules.
-9. Define branch-assignment rules.
-10. Define invitation security.
-11. Define collections and indexes.
-12. Define APIs, events, and jobs.
-13. Implement domain rules.
-14. Implement persistence.
-15. Implement user creation.
-16. Implement profiles.
-17. Implement roles and permissions.
-18. Implement branch assignments.
-19. Implement department and designation.
-20. Implement invitations.
-21. Implement lifecycle commands.
-22. Implement security and RBAC.
-23. Implement audit and events.
-24. Implement approved jobs.
-25. Implement approved Flutter workflows.
-26. Implement all tests.
-27. Run quality gates.
-28. Review scope and security.
-29. Update documentation.
-30. Update the completion report.
-31. Stop without starting another phase.
-
-## Deliverables
-
-### Backend
-
-- User owning module or service.
-- Employee profile management.
-- User lifecycle.
-- Employee-code generation.
-- Role and permission assignments.
-- Branch and primary-branch assignments.
-- Department and designation assignments.
-- Invitation management.
-- Authorization-context resolution.
-- Tenant, branch, and RBAC enforcement.
-- Complete REST APIs.
-- Domain events.
-- Required background jobs.
-- Observability and recovery.
-
-### MongoDB
-
-- `users`.
-- `userPermissions`.
-- `userInvitations`.
-- Required tenant-safe indexes.
-- Required uniqueness rules.
-- Concurrency metadata.
-- Invitation security.
-- Persistence tests.
-
-### Frontend
-
-- User list and registration.
-- Profile and self-profile workflows.
-- Role and permission workflows.
-- Branch-assignment workflows.
-- Department and designation workflows.
-- Invitation workflows.
-- Lifecycle workflows.
-- Accessible loading and error states.
-
-### Documentation
-
-- Architecture guide.
-- Collection guide.
-- API guide.
-- RBAC and security guide.
-- Invitation guide.
-- Event and job guide.
-- Operator guide.
-- ADRs.
-- Phase completion report.
-
-## Acceptance Criteria
-
-### Functional
-
-- [ ] Authorized administrators can create users.
-- [ ] Employee codes are tenant-unique.
-- [ ] Employee profiles can be managed.
-- [ ] Roles can be assigned safely.
-- [ ] Permissions can be assigned safely.
-- [ ] Branch assignments work correctly.
-- [ ] Primary branches remain assigned.
-- [ ] Departments and designations can be updated.
-- [ ] Invitations are single-use and expire safely.
-- [ ] Activation, suspension, reactivation, and deactivation work.
-- [ ] Historical user references are retained.
-
-### API
-
-- [ ] Every approved endpoint is implemented.
-- [ ] Every endpoint is versioned.
-- [ ] Every endpoint is validated.
-- [ ] Every endpoint is authorized.
-- [ ] Every endpoint is documented.
-- [ ] Lists use bounded pagination.
-- [ ] Updates enforce concurrency.
-- [ ] High-impact commands enforce idempotency.
-- [ ] Stable errors are returned.
-
-### Security
-
-- [ ] Tenant ownership is enforced.
-- [ ] Branch visibility is enforced.
-- [ ] RBAC is enforced.
-- [ ] Cross-tenant access is prevented.
-- [ ] Unauthorized cross-branch access is prevented.
-- [ ] Self-escalation is prevented.
-- [ ] Unauthorized role assignment is prevented.
-- [ ] Unauthorized permission grants are prevented.
-- [ ] Invitation tokens are hashed and single-use.
-- [ ] Credentials remain outside User Management.
-- [ ] Sensitive data is redacted.
-- [ ] Security tests pass.
-
-### Data
-
-- [ ] `users` is authoritative for employee profiles.
-- [ ] `userPermissions` is authoritative for user access assignments.
-- [ ] `userInvitations` is authoritative for invitation state.
-- [ ] Every assignment matches its user tenant.
-- [ ] Every branch assignment belongs to the tenant.
-- [ ] Required indexes support queries.
-- [ ] Concurrent creation preserves user limits and uniqueness.
-
-### Integration
-
-- [ ] Authentication owns credentials and sessions.
-- [ ] Multi-Tenancy supplies tenant status and limits.
-- [ ] Branch Management validates assigned branches.
-- [ ] Notification delivery uses the approved integration.
-- [ ] Audit evidence exists for material changes.
-- [ ] Events use the approved reliable pattern.
-- [ ] Downstream modules are not implemented.
-
-### Frontend
-
-- [ ] Approved User workflows are complete.
-- [ ] Only authorized access controls are editable.
-- [ ] Access changes refresh stale authorization state.
-- [ ] Accessibility requirements pass.
-- [ ] Error and loading states are handled.
-- [ ] Backend authorization remains authoritative.
-
-### Quality
-
-- [ ] Formatting passes.
-- [ ] Linting passes.
-- [ ] Type checking passes.
-- [ ] Required tests pass.
-- [ ] Security checks pass.
-- [ ] Builds pass.
-- [ ] Documentation matches behavior.
-- [ ] ADRs record material decisions.
-- [ ] No placeholders remain.
-- [ ] No secrets or plaintext tokens remain.
-- [ ] No out-of-scope work remains.
-
-## Completion Instructions
-
-1. Review the final diff.
-2. Confirm User-only scope.
-3. Map acceptance criteria to evidence.
-4. Run all required checks.
-5. Record exact commands and outcomes.
-6. Report failed or unavailable checks honestly.
-7. List every created file.
-8. List every modified file.
-9. Record decisions and assumptions.
-10. Record migrations and index changes.
-11. Record security and performance evidence.
-12. Record limitations and pending work.
-13. Update `ERP-PLANNING/phase-completions/PHASE_12_USER_MANAGEMENT_COMPLETION.md`.
-14. Confirm no downstream module was implemented.
-15. Stop execution.
-
-Do not start another phase.
+1. **`profile` is a nested object**, not flat fields as in the v1.0 `users` schema. Follows the condensed brief. If existing code assumes flat `name`, a migration is needed.
+2. **`name` split into `firstName` / `lastName`.** `UserDisplayInfo.name` returns the concatenation so consumers are unaffected.
+3. **Status enum is `SCREAMING_SNAKE`** per the condensed brief, versus `PascalCase` elsewhere on the platform (`Active`, `Suspended`). Kept as briefed, but this is inconsistent with `tenants.status` and `branches.status` — worth a platform-wide decision.
+4. **`inviteStatus` on the user document is dropped**, replaced by the dedicated `userInvitations` collection, which supports resend counts and revocation that a single enum field cannot.
+5. **`failedLoginCount` moved to Authentication.** It is a credential concern, and the v1.0 spec places lockout logic in Module 1.
+6. **`rank` added to `roles`.** The brief requires "prevent assigning higher roles" but supplies no ordering mechanism; rank is that mechanism.
+7. **Branch Manager may invite Staff and Cashier only**, matching the v1.0 RBAC table, and is additionally barred from permission grants — an escalation vector the v1.0 table left open.

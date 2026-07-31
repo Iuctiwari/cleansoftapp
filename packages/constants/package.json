@@ -2,7 +2,20 @@
   "name": "@nexoraa/constants",
   "version": "0.0.0",
   "private": true,
-  "description": "Constants shared package foundation.",
+  "description": "Framework-neutral constants and enums.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
   "scripts": {
     "build": "node ../../scripts/run-typescript-project.mjs build",
     "clean": "rimraf dist",

@@ -1,33 +1,37 @@
 # Database Package
 
-## Purpose
+Shared NestJS and Mongoose database foundations for backend applications.
 
-TODO: Purpose.
+## Public API
 
-## Scope
+- `DatabaseModule`, connection options, lifecycle handling, and `DatabaseHealth`
+- `BaseSchema` and `BaseDocument`
+- `BASE_SCHEMA_OPTIONS`, `createBaseSchemaOptions`, and `DatabaseSchema`
+- `createBaseSchema` for creating a Mongoose schema from a schema class
+- Tenant, audit, and soft-delete field types
+- Tenant-scoped filter, audit, soft-delete, and restore helpers
 
-TODO: Scope.
+## Extending the Base Schema
 
-## Inputs
+Future persistence schemas extend `BaseSchema`, decorate their own fields with `@Prop`, and use
+`createBaseSchema` to produce the Mongoose schema:
 
-TODO: Inputs.
+```ts
+@DatabaseSchema()
+export class ExampleSchema extends BaseSchema {
+  @Prop({ required: true, type: String })
+  readonly name!: string;
+}
 
-## Outputs
+export const ExampleMongooseSchema = createBaseSchema(ExampleSchema);
+export type ExampleDocument = BaseDocument<ExampleSchema>;
+```
 
-TODO: Outputs.
+The inherited fields are `_id`, `tenantId`, `createdBy`, `updatedBy`, `isDeleted`, `deletedAt`,
+`deletedBy`, `createdAt`, `updatedAt`, and `version`. Timestamps are managed automatically by
+Mongoose. `tenantId` is required and immutable, and `isDeleted` defaults to `false`.
 
-## Dependencies
+## Dependency Boundary
 
-TODO: Dependencies.
-
-## Deliverables
-
-TODO: Deliverables.
-
-## Acceptance Criteria
-
-TODO: Acceptance Criteria.
-
-## Notes
-
-TODO: Notes.
+This package contains reusable persistence infrastructure only. Business schemas, repositories,
+services, controllers, DTOs, APIs, and domain logic belong to their owning modules.

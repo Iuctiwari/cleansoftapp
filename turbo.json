@@ -19,13 +19,14 @@
       "cache": false
     },
     "lint": {
+      "dependsOn": ["^build"],
       "outputs": []
     },
     "test": {
       "outputs": ["coverage/**"]
     },
     "typecheck": {
-      "dependsOn": ["^typecheck"],
+      "dependsOn": ["^build", "^typecheck"],
       "outputs": []
     }
   }
