@@ -1,6 +1,5 @@
 import 'package:flutter/widgets.dart';
-
-import '../colors/app_colors.dart';
+import 'package:nexoraa_mobile/design_system/colors/app_colors.dart';
 
 abstract final class AppShadows {
   static const List<BoxShadow> none = <BoxShadow>[];
@@ -65,6 +64,7 @@ abstract final class AppShadows {
       blurRadius: 32,
     ),
   ];
+  static const List<BoxShadow> large = modal;
   static const List<BoxShadow> bottomSheet = modal;
 
   static const List<BoxShadow> mobileFrame = <BoxShadow>[

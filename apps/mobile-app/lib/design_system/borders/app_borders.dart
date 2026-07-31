@@ -1,6 +1,5 @@
 import 'package:flutter/widgets.dart';
-
-import '../colors/app_colors.dart';
+import 'package:nexoraa_mobile/design_system/colors/app_colors.dart';
 
 @immutable
 final class AppDashedBorderToken {

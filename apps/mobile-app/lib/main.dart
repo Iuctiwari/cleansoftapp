@@ -1,3 +1,7 @@
+import 'package:flutter/material.dart';
+import 'package:nexoraa_mobile/app/app.dart';
+
 void main() {
-  // Placeholder entry point retained for scaffold verification.
+  WidgetsFlutterBinding.ensureInitialized();
+  runApp(const NexoraaApp());
 }

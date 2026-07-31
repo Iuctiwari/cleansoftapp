@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-
-import '../borders/app_borders.dart';
-import '../colors/app_colors.dart';
-import '../radius/app_radius.dart';
-import '../spacing/app_spacing.dart';
-import '../typography/app_text_styles.dart';
+import 'package:nexoraa_mobile/design_system/borders/app_borders.dart';
+import 'package:nexoraa_mobile/design_system/colors/app_colors.dart';
+import 'package:nexoraa_mobile/design_system/radius/app_radius.dart';
+import 'package:nexoraa_mobile/design_system/spacing/app_spacing.dart';
+import 'package:nexoraa_mobile/design_system/typography/app_text_styles.dart';
 
 abstract final class AppTheme {
   static final ThemeData light = _build(Brightness.light);

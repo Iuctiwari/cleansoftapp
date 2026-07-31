@@ -11,6 +11,7 @@ abstract final class AppIcons {
   static const IconData notificationsOff = Icons.notifications_off_outlined;
   static const IconData branch = Icons.business_outlined;
   static const IconData camera = Icons.camera_alt_outlined;
+  static const IconData brandCheck = Icons.check;
   static const IconData success = Icons.check_circle_outline;
   static const IconData chevronDown = Icons.keyboard_arrow_down;
   static const IconData chevronRight = Icons.chevron_right;

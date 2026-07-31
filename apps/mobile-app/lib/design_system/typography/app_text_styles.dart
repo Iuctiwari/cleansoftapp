@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-
-import '../colors/app_colors.dart';
+import 'package:nexoraa_mobile/design_system/colors/app_colors.dart';
 
 abstract final class AppTextStyles {
   static const String fontFamily = 'Inter';
@@ -96,6 +95,13 @@ abstract final class AppTextStyles {
     fontFamily: fontFamily,
     fontSize: 13,
     fontWeight: FontWeight.w400,
+    height: 1.5,
+  );
+  static const TextStyle inputLabel = TextStyle(
+    color: AppColors.textBody,
+    fontFamily: fontFamily,
+    fontSize: 13,
+    fontWeight: FontWeight.w500,
     height: 1.5,
   );
   static const TextStyle caption = TextStyle(
@@ -199,6 +205,13 @@ abstract final class AppTextStyles {
     fontWeight: FontWeight.w500,
     height: 1,
     letterSpacing: 2.5,
+  );
+  static const TextStyle headerSubtitle = TextStyle(
+    color: AppColors.whiteOverlay70,
+    fontFamily: fontFamily,
+    fontSize: 14,
+    fontWeight: FontWeight.w400,
+    height: 1.5,
   );
 
   static const TextTheme textTheme = TextTheme(
