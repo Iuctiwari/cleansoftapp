@@ -82,11 +82,7 @@ function validateEnvironment(configuration: Record<string, unknown>): Record<str
     ),
     AUTH_LOCKOUT_SECONDS: getNumericEnvironmentValue(configuration, 'AUTH_LOCKOUT_SECONDS', 900),
     AUTH_OTP_TTL_SECONDS: getNumericEnvironmentValue(configuration, 'AUTH_OTP_TTL_SECONDS', 600),
-    AUTH_OTP_MAX_ATTEMPTS: getNumericEnvironmentValue(
-      configuration,
-      'AUTH_OTP_MAX_ATTEMPTS',
-      5,
-    ),
+    AUTH_OTP_MAX_ATTEMPTS: getNumericEnvironmentValue(configuration, 'AUTH_OTP_MAX_ATTEMPTS', 5),
     AUTH_MAX_ACTIVE_SESSIONS: getNumericEnvironmentValue(
       configuration,
       'AUTH_MAX_ACTIVE_SESSIONS',

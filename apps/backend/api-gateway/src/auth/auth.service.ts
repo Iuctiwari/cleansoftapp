@@ -59,7 +59,6 @@ interface AuthConfiguration {
   readonly allowMultiDevice: boolean;
 }
 
-
 function normalizeIdentifier(identifier: string): string {
   return identifier.trim().toLowerCase();
 }
@@ -142,9 +141,7 @@ export class AuthService {
       lockoutSeconds: Number(this.configService.get<string>('AUTH_LOCKOUT_SECONDS') ?? '900'),
       otpTtlSeconds: Number(this.configService.get<string>('AUTH_OTP_TTL_SECONDS') ?? '600'),
       otpMaxAttempts: Number(this.configService.get<string>('AUTH_OTP_MAX_ATTEMPTS') ?? '5'),
-      maxActiveSessions: Number(
-        this.configService.get<string>('AUTH_MAX_ACTIVE_SESSIONS') ?? '3',
-      ),
+      maxActiveSessions: Number(this.configService.get<string>('AUTH_MAX_ACTIVE_SESSIONS') ?? '3'),
       allowMultiDevice: parseBoolean(
         this.configService.get<string>('AUTH_ALLOW_MULTI_DEVICE'),
         true,
@@ -164,7 +161,11 @@ export class AuthService {
       input.tenantSlug,
     );
 
-    if (!identity || !this.isLoginAllowed(identity) || !verifyPassword(input.password, identity.passwordHash)) {
+    if (
+      !identity ||
+      !this.isLoginAllowed(identity) ||
+      !verifyPassword(input.password, identity.passwordHash)
+    ) {
       await this.recordLoginFailure(trackerKey, input, identity);
       throw new PlatformError({
         code: 'auth.login_denied',
@@ -222,18 +223,13 @@ export class AuthService {
     await this.authRepository.createSession(session);
 
     const principalContext = this.createTrustedContext(identity, session, input.metadata);
-    const access = signToken(
-      'access',
-      identity.userId,
-      this.createAccessClaims(principalContext),
-      {
-        issuer: this.configuration.issuer,
-        audience: this.configuration.audience,
-        secret: this.configuration.accessTokenSecret,
-        expiresInSeconds: this.configuration.accessTokenTtlSeconds,
-        now: issuedAt,
-      },
-    );
+    const access = signToken('access', identity.userId, this.createAccessClaims(principalContext), {
+      issuer: this.configuration.issuer,
+      audience: this.configuration.audience,
+      secret: this.configuration.accessTokenSecret,
+      expiresInSeconds: this.configuration.accessTokenTtlSeconds,
+      now: issuedAt,
+    });
 
     await this.auditService.recordAudit({
       sourceObligation: `auth:login:${session.sessionId}`,
@@ -255,7 +251,12 @@ export class AuthService {
     });
 
     return {
-      ...this.createTokenResponse(access.token, access.envelope.expiresAt, refresh.token, refresh.envelope.expiresAt),
+      ...this.createTokenResponse(
+        access.token,
+        access.envelope.expiresAt,
+        refresh.token,
+        refresh.envelope.expiresAt,
+      ),
       contractVersion: { major: 1, minor: 0 },
       user: {
         userId: identity.userId,
@@ -265,7 +266,10 @@ export class AuthService {
         roleCode: identity.roleCode,
       },
       tenant:
-        identity.kind === 'tenant' && identity.tenantId && identity.tenantSlug && identity.tenantName
+        identity.kind === 'tenant' &&
+        identity.tenantId &&
+        identity.tenantSlug &&
+        identity.tenantName
           ? {
               tenantId: identity.tenantId,
               tenantSlug: identity.tenantSlug,
@@ -307,7 +311,10 @@ export class AuthService {
       });
     }
 
-    const incomingHash = hashOpaqueSecret(input.refreshToken, this.configuration.refreshTokenSecret);
+    const incomingHash = hashOpaqueSecret(
+      input.refreshToken,
+      this.configuration.refreshTokenSecret,
+    );
     if (incomingHash !== session.refreshTokenHash) {
       const revokedAtUtc = new Date().toISOString();
       await this.authRepository.revokeSessionsByFamily(
@@ -358,18 +365,13 @@ export class AuthService {
     await this.authRepository.updateSession(updatedSession);
 
     const principalContext = this.createTrustedContextFromSession(updatedSession, input.metadata);
-    const access = signToken(
-      'access',
-      session.userId,
-      this.createAccessClaims(principalContext),
-      {
-        issuer: this.configuration.issuer,
-        audience: this.configuration.audience,
-        secret: this.configuration.accessTokenSecret,
-        expiresInSeconds: this.configuration.accessTokenTtlSeconds,
-        now: issuedAt,
-      },
-    );
+    const access = signToken('access', session.userId, this.createAccessClaims(principalContext), {
+      issuer: this.configuration.issuer,
+      audience: this.configuration.audience,
+      secret: this.configuration.accessTokenSecret,
+      expiresInSeconds: this.configuration.accessTokenTtlSeconds,
+      now: issuedAt,
+    });
 
     await this.auditService.recordAudit({
       sourceObligation: `auth:refresh:${updatedSession.sessionId}:${issuedAt.toISOString()}`,
@@ -474,7 +476,11 @@ export class AuthService {
       payload: { otp, tenantSlug: identity.tenantSlug ?? 'platform' },
       createdAtUtc: now.toISOString(),
     });
-    await this.recordSecurityEvent('forgot_password_requested', this.toSyntheticSession(identity), input.metadata);
+    await this.recordSecurityEvent(
+      'forgot_password_requested',
+      this.toSyntheticSession(identity),
+      input.metadata,
+    );
 
     return {
       ...toAcknowledgement(),
@@ -541,7 +547,11 @@ export class AuthService {
       'password_reset',
       new Date().toISOString(),
     );
-    await this.recordSecurityEvent('password_reset', this.toSyntheticSession(identity), input.metadata);
+    await this.recordSecurityEvent(
+      'password_reset',
+      this.toSyntheticSession(identity),
+      input.metadata,
+    );
 
     return toAcknowledgement();
   }
@@ -578,7 +588,11 @@ export class AuthService {
         });
       }
     }
-    await this.recordSecurityEvent('password_changed', this.toSyntheticSession(identity), input.metadata);
+    await this.recordSecurityEvent(
+      'password_changed',
+      this.toSyntheticSession(identity),
+      input.metadata,
+    );
 
     return toAcknowledgement();
   }
@@ -655,7 +669,8 @@ export class AuthService {
       sourceObligation: `auth:login_failure:${trackerKey}:${failedAttempts}`,
       idempotencyKey: `auth:login_failure:${trackerKey}:${failedAttempts}`,
       module: 'auth',
-      action: failedAttempts >= this.configuration.loginMaxAttempts ? 'login_locked' : 'login_failed',
+      action:
+        failedAttempts >= this.configuration.loginMaxAttempts ? 'login_locked' : 'login_failed',
       classification: 'security',
       actor: { actorId: identity?.userId ?? 'anonymous', actorType: 'user' },
       target: { targetId: trackerKey, targetType: 'auth_login_tracker' },
@@ -732,7 +747,10 @@ export class AuthService {
       return;
     }
 
-    const sessionsToRevoke = active.slice(0, active.length - this.configuration.maxActiveSessions + 1);
+    const sessionsToRevoke = active.slice(
+      0,
+      active.length - this.configuration.maxActiveSessions + 1,
+    );
     for (const session of sessionsToRevoke) {
       await this.authRepository.updateSession({
         ...session,
@@ -847,7 +865,11 @@ export class AuthService {
     });
   }
 
-  private createTrackerKey(context: 'platform' | 'tenant', identifier: string, tenantSlug?: string): string {
+  private createTrackerKey(
+    context: 'platform' | 'tenant',
+    identifier: string,
+    tenantSlug?: string,
+  ): string {
     const repository = this.authRepository as InMemoryAuthRepositoryLike;
     if (typeof repository.createTrackerKey === 'function') {
       return repository.createTrackerKey(context, identifier, tenantSlug);

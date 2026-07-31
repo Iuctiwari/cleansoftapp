@@ -38,7 +38,10 @@ export class AuthenticationContextMiddleware implements NestMiddleware {
 
     const token = rawHeader.slice('Bearer '.length).trim();
     const requestId = this.resolveHeaderValue(request.headers['x-request-id']) ?? randomUUID();
-    const correlationId = request.correlationId ?? this.resolveHeaderValue(request.headers['x-correlation-id']) ?? requestId;
+    const correlationId =
+      request.correlationId ??
+      this.resolveHeaderValue(request.headers['x-correlation-id']) ??
+      requestId;
     return this.authService
       .authenticateAccessToken(token, {
         correlationId,

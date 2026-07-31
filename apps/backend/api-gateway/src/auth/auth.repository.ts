@@ -11,13 +11,17 @@ import type {
   AuthSeedAccount,
   AuthSessionRecord,
   PasswordResetRecord,
-} from './auth.types'; 
+} from './auth.types';
 
 function normalizeIdentifier(identifier: string): string {
   return identifier.trim().toLowerCase();
 }
 
-function buildIdentityKey(context: AuthLoginContext, identifier: string, tenantSlug?: string): string {
+function buildIdentityKey(
+  context: AuthLoginContext,
+  identifier: string,
+  tenantSlug?: string,
+): string {
   return `${context}:${tenantSlug?.trim().toLowerCase() ?? '-'}:${normalizeIdentifier(identifier)}`;
 }
 
@@ -162,7 +166,8 @@ export class InMemoryAuthRepository implements AuthRepository {
         ...session,
         revokedAtUtc,
         revokedReason: reason,
-        reuseDetectedAtUtc: reason === 'refresh_token_reuse_detected' ? revokedAtUtc : session.reuseDetectedAtUtc,
+        reuseDetectedAtUtc:
+          reason === 'refresh_token_reuse_detected' ? revokedAtUtc : session.reuseDetectedAtUtc,
       };
       this.sessionsById.set(updated.sessionId, updated);
       revoked.push(updated);
@@ -179,7 +184,11 @@ export class InMemoryAuthRepository implements AuthRepository {
   ): Promise<readonly AuthSessionRecord[]> {
     const revoked: AuthSessionRecord[] = [];
     for (const session of this.sessionsById.values()) {
-      if (session.userId !== userId || session.revokedAtUtc || session.sessionId === exceptSessionId) {
+      if (
+        session.userId !== userId ||
+        session.revokedAtUtc ||
+        session.sessionId === exceptSessionId
+      ) {
         continue;
       }
 
@@ -239,7 +248,10 @@ export class InMemoryAuthRepository implements AuthRepository {
 
   private persistIdentity(identity: AuthIdentityRecord): void {
     this.identitiesByUserId.set(identity.userId, identity);
-    this.identitiesByLocator.set(buildIdentityKey(identity.kind, identity.email, identity.tenantSlug), identity);
+    this.identitiesByLocator.set(
+      buildIdentityKey(identity.kind, identity.email, identity.tenantSlug),
+      identity,
+    );
     if (identity.mobileNumber) {
       this.identitiesByLocator.set(
         buildIdentityKey(identity.kind, identity.mobileNumber, identity.tenantSlug),

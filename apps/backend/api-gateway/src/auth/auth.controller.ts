@@ -21,7 +21,10 @@ export class AuthController {
   ) {}
 
   @Post('login')
-  async login(@Body() body: AuthLoginDto, @Req() request: RequestWithPlatformContext): Promise<unknown> {
+  async login(
+    @Body() body: AuthLoginDto,
+    @Req() request: RequestWithPlatformContext,
+  ): Promise<unknown> {
     return this.authService.login({
       ...body,
       metadata: this.getMetadata(request),
@@ -110,7 +113,10 @@ export class AuthController {
     readonly ipAddress?: string;
     readonly userAgent?: string;
   } {
-    const requestId = this.resolveHeaderValue(request.headers['x-request-id']) ?? request.correlationId ?? 'request-id';
+    const requestId =
+      this.resolveHeaderValue(request.headers['x-request-id']) ??
+      request.correlationId ??
+      'request-id';
     return {
       correlationId: request.correlationId ?? requestId,
       causationId: requestId,
