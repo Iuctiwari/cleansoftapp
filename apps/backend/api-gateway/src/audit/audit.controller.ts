@@ -1,0 +1,76 @@
+import { Body, Controller, Get, Param, Post, Query, Req } from '@nestjs/common';
+
+import { PlatformError } from '../platform/platform.errors';
+import { TrustedContextFactory } from '../platform/platform.context';
+import type { RequestWithPlatformContext } from '../platform/platform.request';
+import type { TrustedContext } from '../platform/platform.types';
+import { AuditExportRequestDto, AuditQueryDto } from './audit.dto';
+import { AuditService } from './audit.service';
+import type { AuditRecord } from './audit.types';
+
+@Controller({ path: 'audit', version: '1' })
+export class AuditController {
+  constructor(
+    private readonly auditService: AuditService,
+    private readonly trustedContextFactory: TrustedContextFactory,
+  ) {}
+
+  @Get()
+  async queryAudit(
+    @Query() query: AuditQueryDto,
+    @Req() request: RequestWithPlatformContext,
+  ): Promise<unknown> {
+    const authorization = this.getAuthorization(request);
+    return this.auditService.queryAudit(
+      authorization,
+      {
+        module: query.module,
+        action: query.action,
+        actorId: query.actorId,
+        targetId: query.targetId,
+        classification: query.classification,
+        tenantId: query.tenantId,
+      },
+      { page: query.page, pageSize: query.pageSize },
+    );
+  }
+
+  @Get(':auditId')
+  async getAuditById(
+    @Param('auditId') auditId: string,
+    @Req() request: RequestWithPlatformContext,
+  ): Promise<AuditRecord | null> {
+    return this.auditService.getAuditById(this.getAuthorization(request), auditId);
+  }
+
+  @Post('exports')
+  async requestAuditExport(
+    @Body() body: AuditExportRequestDto,
+    @Req() request: RequestWithPlatformContext,
+  ): Promise<unknown> {
+    return this.auditService.requestAuditExport(
+      this.getAuthorization(request),
+      {
+        module: body.filters.module,
+        action: body.filters.action,
+        actorId: body.filters.actorId,
+        targetId: body.filters.targetId,
+        classification: body.filters.classification,
+        tenantId: body.filters.tenantId,
+      },
+      body.idempotencyKey,
+    );
+  }
+
+  private getAuthorization(request: RequestWithPlatformContext): TrustedContext {
+    if (!request.trustedContext) {
+      throw new PlatformError({
+        code: 'platform.unauthenticated',
+        category: 'unauthenticated',
+        messageKey: 'errors.unauthenticated',
+      });
+    }
+
+    return this.trustedContextFactory.assertTrustedContext(request.trustedContext);
+  }
+}

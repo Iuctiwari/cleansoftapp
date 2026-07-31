@@ -1,873 +1,286 @@
-# PHASE 02 — SCHEDULER & JOB FOUNDATION
-# PART 1 — ARCHITECTURE, INFRASTRUCTURE & DATA MODEL
-
-## ADR Reference
-
-ADR-005
+# Phase 02 — Scheduler & Job Foundation
 
 ## Objective
 
-Build the enterprise Scheduler Foundation for the CleanSoft platform.
+Implement the reusable Scheduler & Job Foundation (ADR-005) for the CleanSoft ERP.
 
-This scheduler is NOT a business service.
+This module is shared infrastructure for asynchronous job execution.
 
-It is shared infrastructure that allows every bounded context to execute asynchronous work safely and consistently.
+It manages scheduling, retries, queues, dead-letter handling, idempotency, recovery, and execution metadata.
 
-Examples of future owners include:
+It MUST NOT contain business logic.
 
-- Billing
-- Inventory
-- HR
-- CRM
-- Payroll
-- Delivery
-- Purchasing
-- Warranty
-- Notification
-- Analytics
+---
 
-The scheduler MUST NEVER own domain business logic.
+## Tech Stack
 
-Every business service remains responsible for its own workflow.
+- NestJS
+- BullMQ
+- Redis
+- MongoDB
+- Mongoose
+- Swagger
+- JWT
 
-The scheduler only manages lifecycle, reliability, retries, execution metadata, scheduling and recovery.
+---
 
-------------------------------------------------------------
-GENERAL REQUIREMENTS
-------------------------------------------------------------
+## Module Structure
 
-Implement production-quality code.
+Create Scheduler module containing:
 
-Do not generate demo code.
+- Scheduler Module
+- Service
+- Controller
+- Repository
+- Worker
+- Processor
+- QueueFactory
+- QueueManager
+- WorkerFactory
+- Retry Strategy
+- Backoff Strategy
+- Validators
+- DTOs
+- Interfaces
+- Types
+- Config
+- Enums
+- Constants
+- Utilities
 
-Do not generate mock implementations.
+---
 
-Do not create placeholder methods.
+## Responsibilities
 
-Do not leave TODO comments.
+Implement only:
 
-Everything must compile successfully.
+- Queue registration
+- Queue lifecycle
+- Worker lifecycle
+- Job scheduling
+- Retry policy
+- Dead Letter Queue
+- Recovery
+- Job inspection
+- Recurring schedules
+- Idempotency
+- Validation
+- Correlation tracking
 
-No TypeScript errors.
+---
 
-No ESLint warnings.
+## Collections
 
-Use dependency injection everywhere.
+Create only:
 
-Follow NestJS best practices.
+- schedulerJobs
+- schedulerSchedules
 
-Follow SOLID principles.
+---
 
-Follow Clean Architecture.
-
-Follow Repository Pattern.
-
-Follow Service Pattern.
-
-Follow Adapter Pattern where applicable.
-
-Do not modify unrelated modules.
-
-Maintain backward compatibility.
-
-------------------------------------------------------------
-TECH STACK
-------------------------------------------------------------
-
-NestJS
-
-BullMQ
-
-Redis
-
-TypeScript
-
-MongoDB
-
-Mongoose
-
-Jest
-
-Swagger
-
-JWT Authentication
-
-------------------------------------------------------------
-PROJECT STRUCTURE
-------------------------------------------------------------
-
-Create
-
-src/modules/scheduler
-
-scheduler.module.ts
-
-scheduler.service.ts
-
-scheduler.controller.ts
-
-scheduler.repository.ts
-
-scheduler.worker.ts
-
-scheduler.processor.ts
-
-scheduler.queue.factory.ts
-
-scheduler.queue.manager.ts
-
-scheduler.retry.strategy.ts
-
-scheduler.backoff.ts
-
-scheduler.constants.ts
-
-scheduler.enums.ts
-
-scheduler.interfaces.ts
-
-scheduler.types.ts
-
-scheduler.utils.ts
-
-scheduler.decorators.ts
-
-scheduler.validators.ts
-
-scheduler.config.ts
-
-dto/
-
-guards/
-
-responses/
-
-workers/
-
-adapters/
-
-------------------------------------------------------------
-RESPONSIBILITIES
-------------------------------------------------------------
-
-Scheduler MUST provide
-
-Queue registration
-
-Job scheduling
-
-Retry policy
-
-Dead Letter Queue
-
-Recovery
-
-Job inspection
-
-Recurring schedules
-
-Idempotency
-
-Validation
-
-Correlation tracking
-
-Queue lifecycle
-
-Worker lifecycle
-
-Nothing more.
-
-------------------------------------------------------------
-OUT OF SCOPE
-------------------------------------------------------------
-
-Never implement
-
-Billing logic
-
-Inventory logic
-
-Payroll calculations
-
-Invoice generation
-
-Email sending
-
-SMS sending
-
-WhatsApp sending
-
-PDF generation
-
-Report generation
-
-Database reconciliation
-
-Business state machines
-
-Any domain queries
-
-Notification providers
-
-Business validations
-
-File deletion
-
-Worker autoscaling
-
-------------------------------------------------------------
-REDIS CONFIGURATION
-------------------------------------------------------------
+## Redis
 
 Create centralized Redis configuration.
 
-Environment driven.
+Support:
 
-Support
+- host
+- port
+- username
+- password
+- TLS
+- database
+- retry strategy
+- lazy connection
+- health checks
+- graceful shutdown
 
-host
+---
 
-port
+## BullMQ
 
-username
+Implement reusable:
 
-password
+- QueueFactory
+- WorkerFactory
+- QueueManager
 
-tls
+Never create duplicate queues.
 
-db
+Never initialize BullMQ inline.
 
-connection timeout
+---
 
-retry strategy
+## Queue Rules
 
-lazy connection
+Queue names must include:
 
-health check
+- Environment
+- Tenant
+- Owner
 
-Graceful shutdown.
-
-------------------------------------------------------------
-BULLMQ CONFIGURATION
-------------------------------------------------------------
-
-Create reusable BullMQ configuration.
-
-Single QueueFactory.
-
-Single WorkerFactory.
-
-Reusable QueueManager.
-
-No duplicated queue creation.
-
-No inline BullMQ initialization.
-
-------------------------------------------------------------
-QUEUE NAMING
-------------------------------------------------------------
-
-Queue names MUST contain
-
-Environment
-
-Tenant
-
-Owner
-
-Example
+Examples:
 
 dev:tenant123:billing
 
-dev:tenant123:inventory
+prod:tenant001:inventory
 
-prod:tenant001:delivery
+Queue names must always be unique.
 
-Queue names must never collide.
+---
 
-------------------------------------------------------------
-JOB OWNERSHIP
-------------------------------------------------------------
+## Job Envelope
 
-Every job has exactly one owner.
+Every job must contain:
 
-Owner examples
+- jobId
+- version
+- owner
+- tenantId
+- environment
+- scope
+- requestId
+- correlationId
+- idempotencyKey
+- status
+- attempts
+- maxAttempts
+- timestamps
+- payloadReference
+- payloadChecksum
+- priority
+- delay
+- metadata
+- failure reason
+- dead-letter reason
 
-Billing
-
-Inventory
-
-Delivery
-
-HR
-
-CRM
-
-Payroll
-
-Warranty
-
-Notification
-
-Owner remains responsible for
-
-validation
-
-execution
-
-business rules
-
-scheduler never owns them.
-
-------------------------------------------------------------
-JOB ENVELOPE
-------------------------------------------------------------
-
-Every queued job MUST follow DATA-MODEL.md.
-
-Fields
-
-jobId
-
-version
-
-owner
-
-tenantId
-
-environment
-
-scope
-
-correlationId
-
-requestId
-
-idempotencyKey
-
-status
-
-attempts
-
-maxAttempts
-
-createdAt
-
-scheduledAt
-
-startedAt
-
-finishedAt
-
-nextRetryAt
-
-payloadReference
-
-payloadChecksum
-
-priority
-
-delay
-
-metadata
-
-deadLetterReason
-
-failureReason
-
-lastError
-
-------------------------------------------------------------
-PAYLOAD RULES
-------------------------------------------------------------
+Only enqueue references and minimal immutable metadata.
 
 Never enqueue full business objects.
 
-Only enqueue
+---
 
-reference IDs
+## Status Enum
 
-minimal metadata
+Support:
 
-small immutable payloads
+- Pending
+- Waiting
+- Delayed
+- Active
+- Completed
+- Failed
+- RetryScheduled
+- DeadLettered
+- Cancelled
+- Expired
 
-Large payloads must remain inside owner database.
+---
 
-Scheduler stores references only.
+## Scheduling
 
-------------------------------------------------------------
-STATUS ENUM
-------------------------------------------------------------
+Support:
 
-Pending
+- Immediate
+- Delayed
+- One-Time
+- Recurring
+- Cron
 
-Waiting
+Infrastructure only.
 
-Delayed
+No business schedules.
 
-Active
+---
 
-Completed
+## Validation
 
-Failed
+Validate before enqueue and before execution:
 
-RetryScheduled
+- owner
+- tenant
+- queue
+- environment
+- payload
+- idempotency
+- schedule
+- delay
+- priority
+- retry count
 
-DeadLettered
+Never trust Redis payloads.
 
-Cancelled
+---
 
-Expired
+## Public Service Methods
 
-------------------------------------------------------------
-JOB VERSIONING
-------------------------------------------------------------
+Implement only:
 
-Every envelope contains
+- scheduleJob()
+- inspectJob()
+- retryOrReplay()
+- registerSchedule()
 
-version
+---
 
-Future schema evolution must remain backward compatible.
+## scheduleJob()
 
-Never break existing workers.
+- Validate request
+- Validate owner
+- Validate tenant
+- Validate payload
+- Validate idempotency
+- Detect duplicates
+- Return existing JobId when duplicate
+- Persist metadata
+- Enqueue BullMQ job
 
-------------------------------------------------------------
-CORRELATION
-------------------------------------------------------------
+---
 
-Support
+## inspectJob()
 
-requestId
+Return safe job state only.
 
-correlationId
+Expose:
 
-traceId
-
-These values must flow through retries.
-
-------------------------------------------------------------
-TENANT ISOLATION
-------------------------------------------------------------
-
-Jobs from different tenants must never share queues.
-
-Never execute another tenant's job.
-
-------------------------------------------------------------
-ENVIRONMENT ISOLATION
-------------------------------------------------------------
-
-Development
-
-Testing
-
-Production
-
-must never share queues.
-
-------------------------------------------------------------
-PRIORITY
-------------------------------------------------------------
-
-Support BullMQ priority.
-
-Validate range.
-
-Reject invalid priority.
-
-------------------------------------------------------------
-SCHEDULE TYPES
-------------------------------------------------------------
-
-Immediate
-
-Delayed
-
-Recurring
-
-Cron
-
-One Time
-
-Do not implement business schedules.
-
-Only infrastructure.
-
-------------------------------------------------------------
-VALIDATION
-------------------------------------------------------------
-
-Validate
-
-owner
-
-tenant
-
-queue
-
-environment
-
-payload
-
-idempotency
-
-schedule
-
-delay
-
-priority
-
-attempt count
-
-before enqueue.
-
-Validate again before execute.
-
-Never trust Redis data.
-
-------------------------------------------------------------
-DEPENDENCY INJECTION
-------------------------------------------------------------
-
-Inject
-
-QueueManager
-
-QueueFactory
-
-WorkerFactory
-
-Repository
-
-Audit Service Interface
-
-Redis Client
-
-Never instantiate manually.
-
-------------------------------------------------------------
-CONFIGURATION
-------------------------------------------------------------
-
-Environment variables
-
-REDIS_HOST
-
-REDIS_PORT
-
-REDIS_PASSWORD
-
-REDIS_USERNAME
-
-QUEUE_PREFIX
-
-QUEUE_ENV
-
-DEFAULT_ATTEMPTS
-
-DEFAULT_DELAY
-
-DEFAULT_PRIORITY
-
-Enable validation.
-
-Fail startup on invalid config.
-
-# PHASE 02 — SCHEDULER FOUNDATION
-# PART 2 — REPOSITORY, QUEUE MANAGEMENT & CORE SERVICES
-
-Continue from Part 1.
-
-Do not rewrite existing code.
-
-Extend the scheduler module.
-
-------------------------------------------------------------
-OBJECTIVE
-------------------------------------------------------------
-
-Implement
-
-Queue Repository
-
-Queue Manager
-
-Job Scheduling
-
-Job Inspection
-
-Recurring Schedule Registration
-
-Recovery
-
-Dead Letter Queue
-
-Idempotency
-
-Repository Layer
-
-------------------------------------------------------------
-DATABASE
-------------------------------------------------------------
-
-Create collections
-
-schedulerJobs
-
-schedulerSchedules
-
-No additional collections.
-
-------------------------------------------------------------
-SCHEDULER JOB DOCUMENT
-------------------------------------------------------------
-
-Store
-
-jobId
-
-owner
-
-tenantId
-
-queueName
-
-status
-
-attempts
-
-maxAttempts
-
-delay
-
-priority
-
-idempotencyKey
-
-requestId
-
-correlationId
-
-createdAt
-
-scheduledAt
-
-startedAt
-
-finishedAt
-
-lastError
-
-deadLetterReason
-
-payloadReference
-
-environment
-
-------------------------------------------------------------
-SCHEDULE DOCUMENT
-------------------------------------------------------------
-
-scheduleId
-
-owner
-
-tenantId
-
-cron
-
-timezone
-
-enabled
-
-createdAt
-
-updatedAt
-
-lastRun
-
-nextRun
-
-------------------------------------------------------------
-INDEXES
-------------------------------------------------------------
-
-Unique
-
-jobId
-
-idempotencyKey
-
-scheduleId
-
-Indexes
-
-owner
-
-tenantId
-
-status
-
-correlationId
-
-requestId
-
-createdAt
-
-scheduledAt
-
-------------------------------------------------------------
-QUEUE MANAGER
-------------------------------------------------------------
-
-Responsible for
-
-register queue
-
-retrieve queue
-
-remove queue
-
-pause queue
-
-resume queue
-
-drain queue
-
-clean queue
-
-health check
-
-No business logic.
-
-------------------------------------------------------------
-QUEUE FACTORY
-------------------------------------------------------------
-
-Factory creates queues.
-
-Never duplicate queue creation.
-
-Return existing queue if registered.
-
-------------------------------------------------------------
-WORKER FACTORY
-------------------------------------------------------------
-
-Responsible only for
-
-worker creation
-
-worker shutdown
-
-worker configuration
-
-No business execution.
-
-------------------------------------------------------------
-PUBLIC SERVICE METHODS
-------------------------------------------------------------
-
-scheduleJob()
-
-inspectJob()
-
-retryOrReplay()
-
-registerSchedule()
-
-------------------------------------------------------------
-scheduleJob()
-------------------------------------------------------------
-
-Validate request.
-
-Validate owner.
-
-Validate tenant.
-
-Validate payload.
-
-Validate idempotency.
-
-Validate schedule.
-
-Check duplicate.
-
-If duplicate exists
-
-Return existing JobId.
-
-Else
-
-Persist metadata.
-
-Enqueue BullMQ job.
-
-Return JobId.
-
-------------------------------------------------------------
-inspectJob()
-------------------------------------------------------------
-
-Return
-
-status
-
-attempts
-
-nextRetry
-
-queue
-
-owner
-
-createdAt
-
-startedAt
-
-finishedAt
-
-deadLetterReason
-
-SafeJobState only.
+- status
+- attempts
+- retry information
+- owner
+- queue
+- timestamps
+- dead-letter reason
 
 Never expose Redis internals.
 
-------------------------------------------------------------
-registerSchedule()
-------------------------------------------------------------
+---
 
-Register recurring schedule.
+## registerSchedule()
 
-Validate cron.
+- Validate cron
+- Validate timezone
+- Persist schedule
+- Return ScheduleId
 
-Validate timezone.
+No business cron logic.
 
-Persist schedule.
+---
 
-Return ScheduleId.
+## retryOrReplay()
 
-No business cron implementation.
+Require:
 
-------------------------------------------------------------
-retryOrReplay()
-------------------------------------------------------------
-
-Require authorization.
-
-Require reason.
-
-Call Audit Service (SVC-AUDIT-001).
+- Authorization
+- Reason
+- Audit record
 
 Replay only owner jobs.
 
 Never replay automatically.
 
-------------------------------------------------------------
-IDEMPOTENCY
-------------------------------------------------------------
+---
+
+## Idempotency
 
 One owner
 
@@ -875,171 +288,122 @@ One idempotency key
 
 One job
 
-Duplicates return original JobId.
+Duplicate requests return original JobId.
 
-------------------------------------------------------------
-BACKOFF STRATEGY
-------------------------------------------------------------
+---
 
-Implement reusable strategy.
+## Backoff
 
-Exponential backoff.
+Implement reusable exponential backoff.
 
-Add random jitter.
+Support:
 
-Maximum retry limit configurable.
+- random jitter
+- configurable retry limit
 
-Exact physical defaults remain configurable until OQ-25.
+---
 
-------------------------------------------------------------
-DEAD LETTER QUEUE
-------------------------------------------------------------
+## Dead Letter Queue
 
-Failed jobs exceeding retries
+Failed jobs exceeding retry limits must:
 
-Move to DLQ.
-
-Never loop infinitely.
+- move to DLQ
+- persist failure reason
+- persist timestamp
 
 Never auto replay.
 
-Persist failure reason.
+Never create retry loops.
 
-Persist timestamp.
+---
 
-------------------------------------------------------------
-ALERTING
-------------------------------------------------------------
+## Recovery
 
-Expose alert hook interface.
+Recovery must:
 
-No Email.
+- validate authorization
+- create audit record
+- requeue job
+- preserve correlation
+- increment replay count
 
-No SMS.
+---
 
-No Slack.
+## Audit Integration
 
-Infrastructure only.
-
-------------------------------------------------------------
-RECOVERY
-------------------------------------------------------------
-
-Recovery must
-
-validate authorization
-
-record audit
-
-requeue job
-
-increment replay count
-
-preserve correlation
-
-------------------------------------------------------------
-AUTHORIZATION
-------------------------------------------------------------
-
-Only owner
-
-or platform administrator
-
-may replay jobs.
-
-------------------------------------------------------------
-AUDIT INTEGRATION
-------------------------------------------------------------
-
-Every recovery action
-
-must call
+Every recovery action must call:
 
 SVC-AUDIT-001
 
-Never bypass audit.
+Audit cannot be bypassed.
 
-------------------------------------------------------------
-HEALTH CHECK
-------------------------------------------------------------
+---
 
-Implement
+## Health Checks
 
-Redis connectivity
+Provide:
 
-Queue status
+- Redis connectivity
+- Queue health
+- Worker health
+- DLQ health
 
-Worker status
+---
 
-DLQ availability
+## Required Indexes
 
-------------------------------------------------------------
-UNIT TESTS
-------------------------------------------------------------
+schedulerJobs:
 
-Test
+- jobId (unique)
+- idempotencyKey
+- owner
+- tenantId
+- status
+- requestId
+- correlationId
+- createdAt
+- scheduledAt
 
-queue registration
+schedulerSchedules:
 
-duplicate detection
+- scheduleId (unique)
 
-job scheduling
+---
 
-inspection
+## Testing
 
-retry
+Create:
 
-replay
+- Unit Tests
+- Integration Tests
 
-DLQ
+Cover:
 
-backoff
+- Queue registration
+- Duplicate detection
+- Scheduling
+- Retry
+- Replay
+- DLQ
+- Authorization
+- Queue naming
+- Tenant isolation
+- Environment isolation
 
-authorization
+---
 
-------------------------------------------------------------
-INTEGRATION TESTS
-------------------------------------------------------------
+## Do Not Implement
 
-Verify
-
-BullMQ integration
-
-Redis connectivity
-
-queue naming
-
-tenant isolation
-
-environment isolation
-
-dead letter routing
-
-------------------------------------------------------------
-PERFORMANCE
-------------------------------------------------------------
-
-Avoid duplicate queue creation.
-
-Reuse Redis connections.
-
-Minimize serialization.
-
-Support thousands of queued jobs.
-
-------------------------------------------------------------
-SECURITY
-------------------------------------------------------------
-
-Reject malformed payloads.
-
-Validate owner.
-
-Validate queue.
-
-Validate tenant.
-
-Validate idempotency.
-
-Never execute unauthorized recovery.
-
+- Billing logic
+- Inventory logic
+- Payroll logic
+- Notifications
+- Email/SMS/WhatsApp
+- PDFs
+- Reports
+- Analytics
+- Database reconciliation
+- Business workflows
+- Provider integrations
+- File deletion
+- Worker autoscaling

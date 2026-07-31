@@ -5,6 +5,11 @@ import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 
 import { AppModule } from './app.module';
+import { PlatformExceptionFilter } from './platform/platform.filter';
+import {
+  CorrelationIdInterceptor,
+  ResponseEnvelopeInterceptor,
+} from './platform/platform.interceptors';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
@@ -25,6 +30,8 @@ async function bootstrap(): Promise<void> {
       whitelist: true,
     }),
   );
+  app.useGlobalFilters(new PlatformExceptionFilter());
+  app.useGlobalInterceptors(new CorrelationIdInterceptor(), new ResponseEnvelopeInterceptor());
 
   const appName = configService.getOrThrow<string>('APP_NAME');
   const environment = configService.getOrThrow<string>('NODE_ENV');
