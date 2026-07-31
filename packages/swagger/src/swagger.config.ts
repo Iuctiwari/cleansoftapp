@@ -1,3 +1,4 @@
+import type { INestApplication } from '@nestjs/common';
 import {
   DocumentBuilder,
   SwaggerModule,
@@ -11,7 +12,7 @@ import {
   DEFAULT_SWAGGER_PATH,
   JWT_AUTH_NAME,
 } from './swagger.constants';
-import type { SwaggerConfiguration } from './swagger.types';
+import type { SwaggerOptions } from './swagger.types';
 
 const DEFAULT_UI_OPTIONS: SwaggerCustomOptions = {
   customSiteTitle: 'Nexoraa API Documentation',
@@ -22,7 +23,7 @@ const DEFAULT_UI_OPTIONS: SwaggerCustomOptions = {
   },
 };
 
-export function createSwaggerDocumentBuilder(configuration: SwaggerConfiguration): DocumentBuilder {
+export function createSwaggerDocumentBuilder(configuration: SwaggerOptions): DocumentBuilder {
   const builder = new DocumentBuilder()
     .setTitle(configuration.title)
     .setDescription(configuration.description ?? `${configuration.title} OpenAPI documentation`)
@@ -47,34 +48,22 @@ export function createSwaggerDocumentBuilder(configuration: SwaggerConfiguration
 }
 
 export function createSwaggerDocument(
-  app: unknown,
-  configuration: SwaggerConfiguration,
+  app: INestApplication,
+  configuration: SwaggerOptions,
 ): OpenAPIObject {
-  const nestApplication = app as Parameters<typeof SwaggerModule.createDocument>[0];
-
-  return SwaggerModule.createDocument(
-    nestApplication,
-    createSwaggerDocumentBuilder(configuration).build(),
-    {
-      deepScanRoutes: true,
-    },
-  );
+  return SwaggerModule.createDocument(app, createSwaggerDocumentBuilder(configuration).build(), {
+    deepScanRoutes: true,
+  });
 }
 
-export function setupSwagger(app: unknown, configuration: SwaggerConfiguration): OpenAPIObject {
+export function setupSwagger(app: INestApplication, configuration: SwaggerOptions): OpenAPIObject {
   const document = createSwaggerDocument(app, configuration);
-  const nestApplication = app as Parameters<typeof SwaggerModule.setup>[1];
 
-  SwaggerModule.setup(
-    configuration.documentPath ?? DEFAULT_SWAGGER_PATH,
-    nestApplication,
-    document,
-    {
-      ...DEFAULT_UI_OPTIONS,
-      jsonDocumentUrl: configuration.jsonDocumentUrl,
-      useGlobalPrefix: configuration.useGlobalPrefix,
-    },
-  );
+  SwaggerModule.setup(configuration.documentPath ?? DEFAULT_SWAGGER_PATH, app, document, {
+    ...DEFAULT_UI_OPTIONS,
+    jsonDocumentUrl: configuration.jsonDocumentUrl,
+    useGlobalPrefix: configuration.useGlobalPrefix,
+  });
 
   return document;
 }

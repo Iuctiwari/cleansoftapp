@@ -9,4 +9,9 @@ export {
   createSwaggerDocumentBuilder,
   setupSwagger,
 } from './swagger.config';
-export type { SwaggerConfiguration, SwaggerTag, SwaggerUiOptions } from './swagger.types';
+export type {
+  SwaggerConfiguration,
+  SwaggerOptions,
+  SwaggerTag,
+  SwaggerUiOptions,
+} from './swagger.types';

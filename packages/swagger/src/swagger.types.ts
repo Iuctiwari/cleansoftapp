@@ -17,4 +17,5 @@ export interface SwaggerConfiguration {
   version?: string;
 }
 
+export type SwaggerOptions = SwaggerConfiguration;
 export type SwaggerUiOptions = SwaggerCustomOptions;
