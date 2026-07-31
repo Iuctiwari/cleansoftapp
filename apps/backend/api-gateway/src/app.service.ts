@@ -1,7 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { DatabaseHealth } from '@nexoraa/database';
-import { HealthCheckService, type HealthIndicatorResult } from '@nestjs/terminus';
 
 export interface HealthResponse {
   status: 'ok';
@@ -11,7 +9,7 @@ export interface HealthResponse {
 }
 
 @Injectable()
-export class AppService {
+export class AppHealth {
   constructor(private readonly configService: ConfigService) {}
 
   getHealth(): HealthResponse {

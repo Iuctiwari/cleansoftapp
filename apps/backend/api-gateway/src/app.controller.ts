@@ -9,7 +9,7 @@ export class AppController {
 
   @Get()
   @HealthCheck()
-  getHealth(): Promise<HealthResponse> {
+  getHealth(): HealthResponse {
     return this.appHealth.getHealth();
   }
 }
