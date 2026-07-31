@@ -1,5 +1,5 @@
 import type { RequestWithPlatformContext } from '../platform/platform.request';
-import type { ContractVersion, PlatformContext, TrustedContext } from '../platform/platform.types';
+import type { ContractVersion, TrustedContext } from '../platform/platform.types';
 
 export type AuthLoginContext = 'platform' | 'tenant';
 export type AuthTokenKind = 'access' | 'refresh';

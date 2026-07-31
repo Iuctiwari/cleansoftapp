@@ -106,49 +106,54 @@ export class InMemoryAuthRepository implements AuthRepository {
     identifier: string,
     tenantSlug?: string,
   ): Promise<AuthIdentityRecord | null> {
-    return this.identitiesByLocator.get(buildIdentityKey(context, identifier, tenantSlug)) ?? null;
+    return Promise.resolve(
+      this.identitiesByLocator.get(buildIdentityKey(context, identifier, tenantSlug)) ?? null,
+    );
   }
 
-  async findIdentityByUserId(userId: string): Promise<AuthIdentityRecord | null> {
-    return this.identitiesByUserId.get(userId) ?? null;
+  findIdentityByUserId(userId: string): Promise<AuthIdentityRecord | null> {
+    return Promise.resolve(this.identitiesByUserId.get(userId) ?? null);
   }
 
-  async resetLoginTracker(trackerKey: string): Promise<void> {
+  resetLoginTracker(trackerKey: string): Promise<void> {
     this.loginTrackers.delete(trackerKey);
+    return Promise.resolve();
   }
 
-  async getLoginTracker(trackerKey: string): Promise<AuthLoginTracker | null> {
-    return this.loginTrackers.get(trackerKey) ?? null;
+  getLoginTracker(trackerKey: string): Promise<AuthLoginTracker | null> {
+    return Promise.resolve(this.loginTrackers.get(trackerKey) ?? null);
   }
 
-  async saveLoginTracker(tracker: AuthLoginTracker): Promise<AuthLoginTracker> {
+  saveLoginTracker(tracker: AuthLoginTracker): Promise<AuthLoginTracker> {
     this.loginTrackers.set(tracker.trackerKey, tracker);
-    return tracker;
+    return Promise.resolve(tracker);
   }
 
-  async replaceIdentity(identity: AuthIdentityRecord): Promise<AuthIdentityRecord> {
+  replaceIdentity(identity: AuthIdentityRecord): Promise<AuthIdentityRecord> {
     this.persistIdentity(identity);
-    return identity;
+    return Promise.resolve(identity);
   }
 
-  async createSession(session: AuthSessionRecord): Promise<AuthSessionRecord> {
+  createSession(session: AuthSessionRecord): Promise<AuthSessionRecord> {
     this.sessionsById.set(session.sessionId, session);
-    return session;
+    return Promise.resolve(session);
   }
 
-  async updateSession(session: AuthSessionRecord): Promise<AuthSessionRecord> {
+  updateSession(session: AuthSessionRecord): Promise<AuthSessionRecord> {
     this.sessionsById.set(session.sessionId, session);
-    return session;
+    return Promise.resolve(session);
   }
 
-  async findSessionById(sessionId: string): Promise<AuthSessionRecord | null> {
-    return this.sessionsById.get(sessionId) ?? null;
+  findSessionById(sessionId: string): Promise<AuthSessionRecord | null> {
+    return Promise.resolve(this.sessionsById.get(sessionId) ?? null);
   }
 
-  async listActiveSessionsByUser(userId: string): Promise<readonly AuthSessionRecord[]> {
-    return [...this.sessionsById.values()]
-      .filter((session) => session.userId === userId && !session.revokedAtUtc)
-      .sort((left, right) => left.createdAtUtc.localeCompare(right.createdAtUtc));
+  listActiveSessionsByUser(userId: string): Promise<readonly AuthSessionRecord[]> {
+    return Promise.resolve(
+      [...this.sessionsById.values()]
+        .filter((session) => session.userId === userId && !session.revokedAtUtc)
+        .sort((left, right) => left.createdAtUtc.localeCompare(right.createdAtUtc)),
+    );
   }
 
   async revokeSessionsByFamily(
@@ -173,7 +178,7 @@ export class InMemoryAuthRepository implements AuthRepository {
       revoked.push(updated);
     }
 
-    return revoked;
+    return Promise.resolve(revoked);
   }
 
   async revokeSessionsByUser(
@@ -201,16 +206,16 @@ export class InMemoryAuthRepository implements AuthRepository {
       revoked.push(updated);
     }
 
-    return revoked;
+    return Promise.resolve(revoked);
   }
 
-  async upsertPasswordReset(record: PasswordResetRecord): Promise<PasswordResetRecord> {
+  upsertPasswordReset(record: PasswordResetRecord): Promise<PasswordResetRecord> {
     this.passwordResetsByUserId.set(record.userId, record);
-    return record;
+    return Promise.resolve(record);
   }
 
-  async findActivePasswordResetByUser(userId: string): Promise<PasswordResetRecord | null> {
-    return this.passwordResetsByUserId.get(userId) ?? null;
+  findActivePasswordResetByUser(userId: string): Promise<PasswordResetRecord | null> {
+    return Promise.resolve(this.passwordResetsByUserId.get(userId) ?? null);
   }
 
   async findActivePasswordResetByLocator(
@@ -226,20 +231,20 @@ export class InMemoryAuthRepository implements AuthRepository {
     return this.findActivePasswordResetByUser(identity.userId);
   }
 
-  async consumePasswordReset(record: PasswordResetRecord): Promise<PasswordResetRecord> {
+  consumePasswordReset(record: PasswordResetRecord): Promise<PasswordResetRecord> {
     const updated: PasswordResetRecord = { ...record, consumed: true };
     this.passwordResetsByUserId.set(updated.userId, updated);
-    return updated;
+    return Promise.resolve(updated);
   }
 
-  async updatePasswordReset(record: PasswordResetRecord): Promise<PasswordResetRecord> {
+  updatePasswordReset(record: PasswordResetRecord): Promise<PasswordResetRecord> {
     this.passwordResetsByUserId.set(record.userId, record);
-    return record;
+    return Promise.resolve(record);
   }
 
-  async recordNotification(intent: AuthNotificationIntent): Promise<AuthNotificationIntent> {
+  recordNotification(intent: AuthNotificationIntent): Promise<AuthNotificationIntent> {
     this.notifications.set(intent.notificationId, intent);
-    return intent;
+    return Promise.resolve(intent);
   }
 
   createTrackerKey(context: AuthLoginContext, identifier: string, tenantSlug?: string): string {

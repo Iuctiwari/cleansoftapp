@@ -20,11 +20,9 @@ import {
 } from './auth.crypto';
 import {
   AUTH_REPOSITORY,
-  type AuthRefreshTokenClaims,
   type AccessTokenResolution,
   type AuthAccessTokenClaims,
   type AuthAcknowledgement,
-  type AuthenticatedPrincipal,
   type AuthChangePasswordInput,
   type AuthForgotPasswordInput,
   type AuthIdentityRecord,
@@ -39,8 +37,8 @@ import {
   type AuthResetPasswordInput,
   type AuthResetRequestAcknowledgement,
   type AuthSessionRecord,
-  type AuthTokenKind,
   type AuthTokens,
+  type AuthRefreshTokenClaims,
   type PasswordResetRecord,
 } from './auth.types';
 
@@ -330,11 +328,6 @@ export class AuthService {
       });
     }
 
-    const identity = await this.authRepository.findIdentity(
-      session.kind,
-      session.kind === 'platform' ? session.userId : session.userId,
-      session.tenantSlug,
-    );
     const issuedAt = new Date();
     const rotated = signToken(
       'refresh',
