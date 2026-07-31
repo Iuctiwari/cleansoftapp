@@ -1,14 +1,12 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { createGatewayEnvironmentConfig } from '@nexoraa/config';
-import { DatabaseModule } from '@nexoraa/database';
 
-import { AppController } from './app.controller';
-import { AppHealth } from './app.service';
+import { AuditModule } from './audit/audit.module';
+import { AuthModule } from './auth/auth.module';
+import { PlatformModule } from './platform/platform.module';
+import { SchedulerModule } from './scheduler/scheduler.module';
 
 @Module({
-  imports: [ConfigModule.forRoot(createGatewayEnvironmentConfig()), DatabaseModule],
-  controllers: [AppController],
-  providers: [AppHealth],
+  imports: [ConfigModule.forRoot(), PlatformModule, AuditModule, SchedulerModule, AuthModule],
 })
 export class AppModule {}
