@@ -13,20 +13,7 @@ Define the mobile UI design for payment collection, payment history, receipts, a
 - Outstanding balance view
 - Receipt generation
 
-## Color Palette
 
-Use the modern light theme app palette exactly:
-
-- Background: `#F3F4F6` or `#FFFFFF`
-- Card: `#FFFFFF`
-- Primary Accent: `#2563EB`
-- Dark Card Surface: `#1F2937`
-- Success: `#10B981`
-- Warning: `#F59E0B`
-- Error: `#EF4444`
-- Text Primary: `#111827`
-- Text Secondary: `#6B7280`
-- Border: `#E5E7EB`
 
 ## Screen Inventory
 

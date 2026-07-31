@@ -1,28 +1,29 @@
-# UI / UX Planning
+# Flutter Mobile Planning and Implementation Guide
 
 ## Purpose
 
-This folder contains UI/UX planning artifacts and prompt guidance for Nexoraa CleanSoft mobile frontend design, with a specific focus on aligning the Figma-derived design system to the existing Flutter mobile app in `apps/mobile-app`.
+This folder contains the Flutter mobile planning artifacts for Nexoraa CleanSoft and now also includes a concrete implementation roadmap for turning the current scaffold into a working mobile experience. It is designed to align the Figma-style UI direction with the actual Flutter app under the monorepo.
 
 ## Scope
 
-- Document the frontend design vision for the mobile app.
-- Provide a detailed implementation prompt for an AI-assisted Flutter UI design phase.
-- Recommend a Flutter project structure that supports the current repo and the Figma-derived screen set.
+- document the frontend design vision for the mobile app;
+- provide implementation guidance for the current Flutter scaffold;
+- recommend a structure that fits the existing monorepo and the planned mobile feature set;
+- outline the next practical development steps for the mobile app.
 
 ## Outputs
 
-- `FRONTEND-DESIGN-PROMPT.md` — a detailed UI/UX prompt for frontend design work.
-- `FLUTTER-STRUCTURE-RECOMMENDATIONS.md` — recommended Flutter project structure and integration plan.
+- `FRONTEND-DESIGN-PROMPT.md` — design and handoff prompt for the mobile UI work.
+- `FLUTTER-STRUCTURE-RECOMMENDATIONS.md` — recommended Flutter structure and feature boundaries.
+- `IMPLEMENTATION_ROADMAP.md` — practical next-step roadmap for turning the scaffold into a usable app.
 
 ## Usage
 
-Use these documents when planning or assigning mobile UI design work for the Nexoraa CleanSoft app. They are intended as planning artifacts, not implementation code.
+Use these documents when planning, assigning, or implementing the mobile frontend work for Nexoraa CleanSoft. They now bridge planning and execution rather than serving only as design references.
 
 ## Related Documents
 
 - `ERP-PLANNING/prompt-engineering/README.md`
 - `implementation_guide/phases/phase-16-dashboard/02-prompt.md`
-- `apps/mobile-app/lib/app.dart`
-- `apps/mobile-app/lib/router/app_router.dart`
-- `apps/mobile-app/lib/features/auth/`
+- `apps/mobile-app/lib/main.dart`
+- `apps/mobile-app/pubspec.yaml`
