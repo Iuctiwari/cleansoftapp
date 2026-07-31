@@ -1,0 +1,33 @@
+{
+  "name": "@nexoraa/swagger",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Centralized Swagger and OpenAPI configuration for Nexoraa backend services.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "node ../../scripts/run-typescript-project.mjs build",
+    "clean": "rimraf dist",
+    "format": "prettier --write \"src/**/*.ts\" \"*.{json,md}\"",
+    "format:check": "prettier --check \"src/**/*.ts\" \"*.{json,md}\"",
+    "lint": "eslint \"src/**/*.ts\" --no-error-on-unmatched-pattern",
+    "typecheck": "node ../../scripts/run-typescript-project.mjs typecheck"
+  },
+  "dependencies": {
+    "@nestjs/common": "11.1.28",
+    "@nestjs/core": "11.1.28",
+    "@nestjs/swagger": "11.4.6",
+    "swagger-ui-express": "5.0.1"
+  }
+}

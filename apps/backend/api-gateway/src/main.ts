@@ -3,6 +3,7 @@ import 'reflect-metadata';
 import { Logger, ValidationPipe, VersioningType } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
+import { setupSwagger } from '@nexoraa/swagger';
 
 import { AppModule } from './app.module';
 
@@ -30,6 +31,13 @@ async function bootstrap(): Promise<void> {
   const environment = configService.getOrThrow<string>('NODE_ENV');
   const host = configService.getOrThrow<string>('HOST');
   const port = configService.getOrThrow<number>('PORT');
+
+  setupSwagger(app, {
+    documentPath: 'docs',
+    title: `${appName} API Gateway`,
+    useGlobalPrefix: true,
+    version: configService.getOrThrow<string>('API_VERSION'),
+  });
 
   logger.log(`Starting ${appName} in ${environment} mode`);
   await app.listen(port, host);
