@@ -1,9 +1,11 @@
 import { Body, Controller, Post, Req } from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { PlatformError } from '../platform/platform.errors';
 import { TrustedContextFactory } from '../platform/platform.context';
 import type { RequestWithPlatformContext } from '../platform/platform.request';
 import type { TrustedContext } from '../platform/platform.types';
+import { ApiEnvelopeResponse } from '../platform/platform.swagger';
 import {
   AuthChangePasswordDto,
   AuthForgotPasswordDto,
@@ -11,8 +13,15 @@ import {
   AuthRefreshDto,
   AuthResetPasswordDto,
 } from './auth.dto';
+import {
+  AuthAcknowledgementDto,
+  AuthLoginResponseDto,
+  AuthRefreshResponseDto,
+  AuthResetRequestAcknowledgementDto,
+} from './auth.swagger';
 import { AuthService } from './auth.service';
 
+@ApiTags('Authentication')
 @Controller({ path: 'auth', version: '1' })
 export class AuthController {
   constructor(
@@ -21,6 +30,8 @@ export class AuthController {
   ) {}
 
   @Post('login')
+  @ApiOperation({ summary: 'Authenticate a platform or tenant user.' })
+  @ApiEnvelopeResponse(AuthLoginResponseDto, { description: 'Authenticated session and tokens.' })
   async login(
     @Body() body: AuthLoginDto,
     @Req() request: RequestWithPlatformContext,
@@ -32,6 +43,8 @@ export class AuthController {
   }
 
   @Post('refresh')
+  @ApiOperation({ summary: 'Rotate refresh credentials and issue a fresh access token.' })
+  @ApiEnvelopeResponse(AuthRefreshResponseDto, { description: 'Rotated token pair.' })
   async refresh(
     @Body() body: AuthRefreshDto,
     @Req() request: RequestWithPlatformContext,
@@ -43,6 +56,9 @@ export class AuthController {
   }
 
   @Post('logout')
+  @ApiBearerAuth('access-token')
+  @ApiOperation({ summary: 'Revoke the current authenticated session.' })
+  @ApiEnvelopeResponse(AuthAcknowledgementDto, { description: 'Session revocation accepted.' })
   async logout(@Req() request: RequestWithPlatformContext): Promise<unknown> {
     return this.authService.logout({
       context: this.getAuthorization(request),
@@ -51,6 +67,11 @@ export class AuthController {
   }
 
   @Post('logout-all')
+  @ApiBearerAuth('access-token')
+  @ApiOperation({ summary: 'Revoke every active session for the authenticated user.' })
+  @ApiEnvelopeResponse(AuthAcknowledgementDto, {
+    description: 'All active sessions revoked for the authenticated user.',
+  })
   async logoutAll(@Req() request: RequestWithPlatformContext): Promise<unknown> {
     return this.authService.logoutAll({
       context: this.getAuthorization(request),
@@ -60,6 +81,10 @@ export class AuthController {
   }
 
   @Post('forgot-password')
+  @ApiOperation({ summary: 'Request a password reset proof for an eligible account.' })
+  @ApiEnvelopeResponse(AuthResetRequestAcknowledgementDto, {
+    description: 'Acknowledgement with a delivery hint or generic message.',
+  })
   async forgotPassword(
     @Body() body: AuthForgotPasswordDto,
     @Req() request: RequestWithPlatformContext,
@@ -71,6 +96,10 @@ export class AuthController {
   }
 
   @Post('reset-password')
+  @ApiOperation({ summary: 'Validate a password reset proof and replace the password.' })
+  @ApiEnvelopeResponse(AuthAcknowledgementDto, {
+    description: 'Password reset accepted.',
+  })
   async resetPassword(
     @Body() body: AuthResetPasswordDto,
     @Req() request: RequestWithPlatformContext,
@@ -82,6 +111,11 @@ export class AuthController {
   }
 
   @Post('change-password')
+  @ApiBearerAuth('access-token')
+  @ApiOperation({ summary: 'Change the password for the authenticated user.' })
+  @ApiEnvelopeResponse(AuthAcknowledgementDto, {
+    description: 'Password change accepted.',
+  })
   async changePassword(
     @Body() body: AuthChangePasswordDto,
     @Req() request: RequestWithPlatformContext,
