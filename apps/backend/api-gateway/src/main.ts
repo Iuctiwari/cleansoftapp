@@ -49,6 +49,7 @@ async function bootstrap(): Promise<void> {
   logger.log(`Starting ${appName} in ${environment} mode`);
   await app.listen(port, host);
   logger.log(`API gateway listening on http://${host}:${port}`);
+  logger.log(`Swagger UI → http://${host}:${port}/api/docs`);
 }
 
 void bootstrap();

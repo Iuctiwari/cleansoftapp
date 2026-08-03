@@ -1,4 +1,5 @@
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 
 import { AuditModule } from '../audit/audit.module';
 import { PlatformModule } from '../platform/platform.module';
@@ -9,7 +10,7 @@ import { AuthService } from './auth.service';
 import { AUTH_REPOSITORY } from './auth.types';
 
 @Module({
-  imports: [AuditModule, PlatformModule],
+  imports: [ConfigModule, AuditModule, PlatformModule],
   controllers: [AuthController],
   providers: [
     AuthService,
