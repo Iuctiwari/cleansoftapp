@@ -3,6 +3,7 @@ import 'reflect-metadata';
 import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
+import { setupSwagger } from '@nexoraa/swagger';
 
 import { AppModule } from './app.module';
 
@@ -27,6 +28,7 @@ async function bootstrap(): Promise<void> {
 
   app.enableCors();
   app.enableShutdownHooks();
+  setupSwagger(app, { title: 'Nexoraa Report Service API' });
 
   await app.listen(port, HOST);
   logger.log(`${serviceName} listening on http://${HOST}:${port}`);

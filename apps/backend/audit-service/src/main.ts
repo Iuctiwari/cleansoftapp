@@ -27,6 +27,7 @@ async function bootstrap(): Promise<void> {
 
   app.enableCors();
   app.enableShutdownHooks();
+  // setupSwagger(app, { title: 'Nexoraa Audit Service API' });
 
   await app.listen(port, HOST);
   logger.log(`${serviceName} listening on http://${HOST}:${port}`);
