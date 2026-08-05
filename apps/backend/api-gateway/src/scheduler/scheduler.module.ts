@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 
 import { AuditModule } from '../audit/audit.module';
 import { PlatformModule } from '../platform/platform.module';
@@ -9,7 +10,7 @@ import { SchedulerService } from './scheduler.service';
 import { QUEUE_DISPATCHER, SCHEDULER_REPOSITORY } from './scheduler.types';
 
 @Module({
-  imports: [AuditModule, PlatformModule],
+  imports: [ConfigModule, AuditModule, PlatformModule],
   controllers: [SchedulerController],
   providers: [
     SchedulerService,
