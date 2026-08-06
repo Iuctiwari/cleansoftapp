@@ -21,7 +21,13 @@ export class AuditController {
   ) {}
 
   @Get()
-  @ApiOperation({ summary: 'Query immutable audit evidence.' })
+  @ApiOperation({
+    summary: 'Query immutable audit evidence',
+    description:
+      'Returns a paginated list of audit records. ' +
+      'Tenant users only see records within their own tenant. ' +
+      'Platform operators can filter across all tenants.',
+  })
   @ApiEnvelopeResponse(AuditRecordDto, {
     description: 'Audit evidence matching the requested filters.',
     isArray: true,
@@ -46,8 +52,15 @@ export class AuditController {
   }
 
   @Get(':auditId')
-  @ApiOperation({ summary: 'Retrieve a single audit record by identifier.' })
-  @ApiParam({ name: 'auditId', example: 'audit-3aa08f4d' })
+  @ApiOperation({
+    summary: 'Retrieve a single immutable audit record',
+    description: 'Fetches one audit record by its unique ID.',
+  })
+  @ApiParam({
+    name: 'auditId',
+    description: 'Unique audit record identifier',
+    example: 'audit-3aa08f4d',
+  })
   @ApiEnvelopeResponse(AuditRecordDto, {
     description: 'One audit record or null when not found in scope.',
     nullable: true,
@@ -60,7 +73,12 @@ export class AuditController {
   }
 
   @Post('exports')
-  @ApiOperation({ summary: 'Request an idempotent audit export intent.' })
+  @ApiOperation({
+    summary: 'Request an audit export',
+    description:
+      'Enqueues an export job for the specified audit filter. ' +
+      'Supply an `idempotencyKey` to safely retry without duplicate exports.',
+  })
   @ApiEnvelopeResponse(AuditExportIntentDto, {
     description: 'Accepted audit export intent.',
     status: 'created',

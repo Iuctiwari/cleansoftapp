@@ -1,5 +1,6 @@
 import { Controller, Get, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 
 @Injectable()
 export class PlatformHealthService {
@@ -28,16 +29,38 @@ export class PlatformHealthService {
   }
 }
 
+@ApiTags('Health')
 @Controller({ path: 'health', version: '1' })
 export class PlatformHealthController {
   constructor(private readonly healthService: PlatformHealthService) {}
 
   @Get('live')
+  @ApiOperation({
+    summary: 'Liveness probe',
+    description: 'Returns 200 when the process is alive. Used by Kubernetes/Docker health checks.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Service is alive',
+    schema: {
+      example: {
+        status: 'ok',
+        service: 'Nexoraa CleanSoft',
+        timestampUtc: '2026-01-01T00:00:00.000Z',
+      },
+    },
+  })
   live(): { status: 'ok'; service: string; timestampUtc: string } {
     return this.healthService.getLiveness();
   }
 
   @Get('ready')
+  @ApiOperation({
+    summary: 'Readiness probe',
+    description:
+      'Returns 200 when the service is ready to accept traffic (dependencies connected).',
+  })
+  @ApiResponse({ status: 200, description: 'Service is ready' })
   ready(): { status: 'ready'; service: string; version: string; timestampUtc: string } {
     return this.healthService.getReadiness();
   }

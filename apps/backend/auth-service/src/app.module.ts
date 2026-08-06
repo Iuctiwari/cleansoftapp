@@ -1,18 +1,11 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-
-import { AppController } from './app.controller';
-import { AppHealth } from './app.service';
+import { AuthModule } from './auth/auth.module';
+import { PlatformModule } from './platform/platform.module';
 
 @Module({
-  imports: [
-    ConfigModule.forRoot({
-      cache: true,
-      expandVariables: true,
-      isGlobal: true,
-    }),
-  ],
-  controllers: [AppController],
-  providers: [AppHealth],
+  imports: [ConfigModule.forRoot(), PlatformModule, AuthModule],
+  controllers: [],
+  providers: [],
 })
 export class AppModule {}
