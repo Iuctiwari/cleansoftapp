@@ -1,4 +1,15 @@
 import { Body, Controller, Post, Req } from '@nestjs/common';
+import {
+  ApiBadRequestResponse,
+  ApiBearerAuth,
+  ApiBody,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+  ApiTooManyRequestsResponse,
+  ApiUnauthorizedResponse,
+} from '@nestjs/swagger';
+import { JWT_AUTH_NAME } from '@nexoraa/swagger';
 
 import { PlatformError } from '../platform/platform.errors';
 import { TrustedContextFactory } from '../platform/platform.context';
@@ -11,8 +22,16 @@ import {
   AuthRefreshDto,
   AuthResetPasswordDto,
 } from './auth.dto';
+import {
+  AuthAcknowledgementEnvelopeDto,
+  AuthErrorEnvelopeDto,
+  AuthLoginResponseEnvelopeDto,
+  AuthRefreshResponseEnvelopeDto,
+  AuthResetRequestAcknowledgementEnvelopeDto,
+} from './auth-response.dto';
 import { AuthService } from './auth.service';
 
+@ApiTags('Authentication')
 @Controller({ path: 'auth', version: '1' })
 export class AuthController {
   constructor(
@@ -21,6 +40,24 @@ export class AuthController {
   ) {}
 
   @Post('login')
+  @ApiOperation({
+    summary: 'Authenticate a platform or tenant user',
+    description: 'Validates account credentials and returns access and refresh tokens.',
+  })
+  @ApiBody({ type: AuthLoginDto })
+  @ApiOkResponse({
+    description: 'Authentication succeeded and a session was created.',
+    type: AuthLoginResponseEnvelopeDto,
+  })
+  @ApiBadRequestResponse({ description: 'The request is invalid.', type: AuthErrorEnvelopeDto })
+  @ApiUnauthorizedResponse({
+    description: 'The credentials are invalid or the account cannot sign in.',
+    type: AuthErrorEnvelopeDto,
+  })
+  @ApiTooManyRequestsResponse({
+    description: 'The login attempt limit has been exceeded.',
+    type: AuthErrorEnvelopeDto,
+  })
   async login(
     @Body() body: AuthLoginDto,
     @Req() request: RequestWithPlatformContext,
@@ -32,6 +69,20 @@ export class AuthController {
   }
 
   @Post('refresh')
+  @ApiOperation({
+    summary: 'Rotate refresh credentials',
+    description: 'Validates a refresh token, rotates it, and issues a new access token.',
+  })
+  @ApiBody({ type: AuthRefreshDto })
+  @ApiOkResponse({
+    description: 'The refresh token was rotated successfully.',
+    type: AuthRefreshResponseEnvelopeDto,
+  })
+  @ApiBadRequestResponse({ description: 'The request is invalid.', type: AuthErrorEnvelopeDto })
+  @ApiUnauthorizedResponse({
+    description: 'The refresh token or session is invalid, expired, revoked, or reused.',
+    type: AuthErrorEnvelopeDto,
+  })
   async refresh(
     @Body() body: AuthRefreshDto,
     @Req() request: RequestWithPlatformContext,
@@ -43,6 +94,19 @@ export class AuthController {
   }
 
   @Post('logout')
+  @ApiBearerAuth(JWT_AUTH_NAME)
+  @ApiOperation({
+    summary: 'Log out the current session',
+    description: 'Revokes the authenticated session represented by the bearer token.',
+  })
+  @ApiOkResponse({
+    description: 'The current session was revoked or was already inactive.',
+    type: AuthAcknowledgementEnvelopeDto,
+  })
+  @ApiUnauthorizedResponse({
+    description: 'A valid access token and authenticated session are required.',
+    type: AuthErrorEnvelopeDto,
+  })
   async logout(@Req() request: RequestWithPlatformContext): Promise<unknown> {
     return this.authService.logout({
       context: this.getAuthorization(request),
@@ -51,6 +115,20 @@ export class AuthController {
   }
 
   @Post('logout-all')
+  @ApiBearerAuth(JWT_AUTH_NAME)
+  @ApiOperation({
+    summary: 'Log out all other sessions',
+    description:
+      'Revokes every active session for the authenticated user except the current session.',
+  })
+  @ApiOkResponse({
+    description: 'All other active sessions were revoked.',
+    type: AuthAcknowledgementEnvelopeDto,
+  })
+  @ApiUnauthorizedResponse({
+    description: 'A valid access token and authenticated session are required.',
+    type: AuthErrorEnvelopeDto,
+  })
   async logoutAll(@Req() request: RequestWithPlatformContext): Promise<unknown> {
     return this.authService.logoutAll({
       context: this.getAuthorization(request),
@@ -60,6 +138,17 @@ export class AuthController {
   }
 
   @Post('forgot-password')
+  @ApiOperation({
+    summary: 'Request a password reset',
+    description:
+      'Accepts an account locator and returns a neutral acknowledgement to prevent account enumeration.',
+  })
+  @ApiBody({ type: AuthForgotPasswordDto })
+  @ApiOkResponse({
+    description: 'The password-reset request was accepted.',
+    type: AuthResetRequestAcknowledgementEnvelopeDto,
+  })
+  @ApiBadRequestResponse({ description: 'The request is invalid.', type: AuthErrorEnvelopeDto })
   async forgotPassword(
     @Body() body: AuthForgotPasswordDto,
     @Req() request: RequestWithPlatformContext,
@@ -71,6 +160,23 @@ export class AuthController {
   }
 
   @Post('reset-password')
+  @ApiOperation({
+    summary: 'Reset a forgotten password',
+    description: 'Validates the one-time password and replaces the account password.',
+  })
+  @ApiBody({ type: AuthResetPasswordDto })
+  @ApiOkResponse({
+    description: 'The password was reset and existing sessions were revoked.',
+    type: AuthAcknowledgementEnvelopeDto,
+  })
+  @ApiBadRequestResponse({
+    description: 'The reset proof, password, or request is invalid.',
+    type: AuthErrorEnvelopeDto,
+  })
+  @ApiTooManyRequestsResponse({
+    description: 'The reset-code attempt limit has been exceeded.',
+    type: AuthErrorEnvelopeDto,
+  })
   async resetPassword(
     @Body() body: AuthResetPasswordDto,
     @Req() request: RequestWithPlatformContext,
@@ -82,6 +188,25 @@ export class AuthController {
   }
 
   @Post('change-password')
+  @ApiBearerAuth(JWT_AUTH_NAME)
+  @ApiOperation({
+    summary: 'Change the current password',
+    description:
+      'Verifies the current password, replaces it, and revokes the user’s other sessions.',
+  })
+  @ApiBody({ type: AuthChangePasswordDto })
+  @ApiOkResponse({
+    description: 'The password was changed and other sessions were revoked.',
+    type: AuthAcknowledgementEnvelopeDto,
+  })
+  @ApiBadRequestResponse({
+    description: 'The current password, new password, or request is invalid.',
+    type: AuthErrorEnvelopeDto,
+  })
+  @ApiUnauthorizedResponse({
+    description: 'A valid access token and authenticated session are required.',
+    type: AuthErrorEnvelopeDto,
+  })
   async changePassword(
     @Body() body: AuthChangePasswordDto,
     @Req() request: RequestWithPlatformContext,
