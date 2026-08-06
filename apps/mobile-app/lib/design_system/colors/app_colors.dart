@@ -1,5 +1,13 @@
 import 'package:flutter/material.dart';
 
+@immutable
+final class AppSemanticColor {
+  const AppSemanticColor({required this.text, required this.background});
+
+  final Color background;
+  final Color text;
+}
+
 /// Canonical color palette extracted from the Nexoraa CleanSoft Figma export.
 ///
 /// Semantic aliases reference a single canonical value so duplicate colors are
@@ -14,12 +22,14 @@ abstract final class AppColors {
   static const Color primaryBorder = Color(0xFFBFDBFE);
   static const Color primaryMuted = Color(0xFFDBEAFE);
   static const Color info = Color(0xFF0EA5E9);
+  static const Color primaryCyan = info;
   static const Color infoSurface = Color(0xFFF0F9FF);
 
   // Secondary
   static const Color secondary = Color(0xFF7C3AED);
   static const Color secondaryLight = Color(0xFF8B5CF6);
   static const Color indigo = Color(0xFF6366F1);
+  static const Color secondaryIndigo = indigo;
   static const Color secondarySurface = Color(0xFFFAF5FF);
   static const Color indigoSurface = Color(0xFFEEF2FF);
   static const Color secondaryBorder = indigoSurface;
@@ -64,6 +74,7 @@ abstract final class AppColors {
   static const Color background = Color(0xFFF8FAFC);
   static const Color surface = Color(0xFFFFFFFF);
   static const Color surfaceMuted = Color(0xFFF1F5F9);
+  static const Color surfaceGray = surfaceMuted;
   static const Color surfaceDark = ink;
   static const Color surfaceDarker = Color(0xFF1E293B);
   static const Color surfaceBlack = Color(0xFF111111);
@@ -85,11 +96,20 @@ abstract final class AppColors {
   static const Color iconBackgroundCyan = infoSurface;
   static const Color iconBackgroundIndigo = indigoSurface;
   static const Color iconBackgroundGray = surfaceMuted;
+  static const Color iconBgBlue = iconBackgroundBlue;
+  static const Color iconBgGreen = iconBackgroundGreen;
+  static const Color iconBgPurple = iconBackgroundPurple;
+  static const Color iconBgYellow = iconBackgroundYellow;
+  static const Color iconBgRed = iconBackgroundRed;
+  static const Color iconBgCyan = iconBackgroundCyan;
+  static const Color iconBgIndigo = iconBackgroundIndigo;
+  static const Color iconBgGray = iconBackgroundGray;
   static const Color statusReady = success;
   static const Color statusProcessing = primary;
   static const Color statusPending = warningDeep;
   static const Color statusCompleted = textMuted;
   static const Color statusError = error;
+  static const Color statusPurple = secondary;
   static const Color availabilityAvailable = successLight;
   static const Color availabilityBusy = warning;
   static const Color availabilityBreak = warningOrange;
@@ -102,6 +122,9 @@ abstract final class AppColors {
   static const Color blackOverlay10 = Color(0x1A000000);
   static const Color blackOverlay20 = Color(0x33000000);
   static const Color blackOverlay35 = Color(0x59000000);
+  static const Color scrimLight = blackOverlay05;
+  static const Color scrimMedium = blackOverlay10;
+  static const Color scrimDark = blackOverlay35;
   static const Color overlay = blackOverlay35;
   static const Color scrim = blackOverlay35;
 
@@ -123,6 +146,9 @@ abstract final class AppColors {
   static const Color whiteOverlay65 = Color(0xA6FFFFFF);
   static const Color whiteOverlay70 = Color(0xB3FFFFFF);
   static const Color whiteOverlay80 = Color(0xCCFFFFFF);
+  static const Color overlayLight = whiteOverlay18;
+  static const Color overlayMedium = whiteOverlay25;
+  static const Color overlayWhite = whiteOverlay08;
 
   // Brand overlays
   static const Color primaryOverlay00 = Color(0x002563EB);
@@ -131,4 +157,31 @@ abstract final class AppColors {
   static const Color primaryOverlay45 = Color(0x732563EB);
   static const Color primaryLightOverlay30 = Color(0x4D3B82F6);
   static const Color successOverlay15 = Color(0x2610B981);
+}
+
+abstract final class SemanticColors {
+  static const AppSemanticColor statusReady = AppSemanticColor(
+    text: AppColors.statusReady,
+    background: AppColors.successSurface,
+  );
+  static const AppSemanticColor statusProcessing = AppSemanticColor(
+    text: AppColors.statusProcessing,
+    background: AppColors.primarySurface,
+  );
+  static const AppSemanticColor statusPending = AppSemanticColor(
+    text: AppColors.statusPending,
+    background: AppColors.warningSurface,
+  );
+  static const AppSemanticColor statusCompleted = AppSemanticColor(
+    text: AppColors.statusCompleted,
+    background: AppColors.surfaceGray,
+  );
+  static const AppSemanticColor statusError = AppSemanticColor(
+    text: AppColors.statusError,
+    background: AppColors.errorSurface,
+  );
+  static const AppSemanticColor statusPurple = AppSemanticColor(
+    text: AppColors.statusPurple,
+    background: AppColors.secondarySurface,
+  );
 }

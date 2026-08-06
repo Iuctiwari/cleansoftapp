@@ -37,6 +37,13 @@ abstract final class AppSpacing {
   static const double inputHorizontal = lgPlus;
   static const double inputVertical = lg;
   static const double inputWithIcon = display;
+  static const double listTileVertical = lgPlus;
+  static const double listTileHorizontal = xl;
+  static const double bottomNavTop = mdPlus;
+  static const double bottomNavBottom = xs;
+  static const double bottomNavExtra = md;
+  static const double headerHorizontal = xxl;
+  static const double headerBottom = xxl;
 
   static const EdgeInsets pagePadding = EdgeInsets.fromLTRB(
     pageHorizontal,
@@ -61,4 +68,43 @@ abstract final class AppSpacing {
     horizontal: lgPlus,
     vertical: md,
   );
+}
+
+abstract final class AppPadding {
+  static const double pagePaddingHorizontal = AppSpacing.pageHorizontal;
+  static const double pagePaddingTop = AppSpacing.topBar;
+  static const double pagePaddingBottom = AppSpacing.pageBottom;
+  static const double cardPadding = AppSpacing.cardPadding;
+  static const double cardPaddingTight = AppSpacing.cardPaddingTight;
+  static const double sectionGap = AppSpacing.sectionGap;
+  static const double sectionGapLarge = AppSpacing.sectionGapLarge;
+  static const double formGroupGap = AppSpacing.formGroupGap;
+  static const double formSectionGap = AppSpacing.formSectionGap;
+  static const double inputPaddingVertical = AppSpacing.inputVertical;
+  static const double inputPaddingHorizontal = AppSpacing.inputHorizontal;
+  static const double inputPaddingIcon = AppSpacing.inputWithIcon;
+  static const double listTilePaddingVertical = AppSpacing.listTileVertical;
+  static const double listTilePaddingHorizontal = AppSpacing.listTileHorizontal;
+  static const double listGap = AppSpacing.listGap;
+  static const EdgeInsets page = AppSpacing.pagePadding;
+  static const EdgeInsets card = AppSpacing.cardInsets;
+  static const EdgeInsets input = AppSpacing.inputInsets;
+  static const EdgeInsets buttonLarge = AppSpacing.buttonLargeInsets;
+  static const EdgeInsets buttonMedium = AppSpacing.buttonMediumInsets;
+  static const EdgeInsets buttonSmall = AppSpacing.buttonSmallInsets;
+}
+
+abstract final class AppGrid {
+  static const double columns2Gap = AppSpacing.mdPlus;
+  static const double columns3Gap = AppSpacing.mdPlus;
+  static const double columns4Gap = AppSpacing.mdPlus;
+  static const double mobileWidth = 390;
+  static const double mobileHeight = 844;
+  static const int zBackground = 0;
+  static const int zBase = 10;
+  static const int zCard = 20;
+  static const int zTopBar = 40;
+  static const int zBottomNavigation = 50;
+  static const int zFloatingActionButton = 60;
+  static const int zNotch = 100;
 }

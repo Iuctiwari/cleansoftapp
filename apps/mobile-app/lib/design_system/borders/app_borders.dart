@@ -17,6 +17,8 @@ abstract final class AppBorderWidths {
 }
 
 abstract final class AppBorders {
+  static const BorderSide noneSide = BorderSide.none;
+  static const Border none = Border();
   static const BorderSide cardDefaultSide = BorderSide(
     color: AppColors.borderSubtle,
     width: AppBorderWidths.hairline,
@@ -41,6 +43,18 @@ abstract final class AppBorders {
     color: AppColors.primary,
     width: AppBorderWidths.medium,
   );
+  static const BorderSide chipDefaultSide = inputDefaultSide;
+  static const BorderSide buttonOutlineSide = inputDefaultSide;
+  static const BorderSide toggleSide = BorderSide(
+    color: AppColors.surface,
+    width: AppBorderWidths.medium,
+  );
+  static const BorderSide sectionDividerSide = cardDefaultSide;
+  static const BorderSide totalDividerSide = inputDefaultSide;
+  static const BorderSide frameOuterSide = BorderSide(
+    color: AppColors.blackOverlay10,
+    width: AppBorderWidths.hairline,
+  );
   static const BorderSide successSide = BorderSide(
     color: AppColors.successBorder,
     width: AppBorderWidths.thin,
@@ -64,12 +78,19 @@ abstract final class AppBorders {
   static const Border inputFocused = Border.fromBorderSide(inputFocusedSide);
   static const Border inputError = Border.fromBorderSide(inputErrorSide);
   static const Border chipActive = Border.fromBorderSide(chipActiveSide);
+  static const Border chipDefault = Border.fromBorderSide(chipDefaultSide);
+  static const Border buttonOutline = Border.fromBorderSide(buttonOutlineSide);
+  static const Border toggle = Border.fromBorderSide(toggleSide);
   static const Border successCard = Border.fromBorderSide(successSide);
   static const Border warningCard = Border.fromBorderSide(warningSide);
   static const Border errorCard = Border.fromBorderSide(errorSide);
   static const Border primaryCard = Border.fromBorderSide(primarySide);
   static const Border bottomNavigation = Border(top: cardElevatedSide);
   static const Border topBar = Border(bottom: cardDefaultSide);
+  static const Border sectionDivider = Border(bottom: sectionDividerSide);
+  static const Border totalDivider = Border(bottom: totalDividerSide);
+  static const Border frameOuter = Border.fromBorderSide(frameOuterSide);
+  static const Border listItemBottom = sectionDivider;
 
   static const AppDashedBorderToken dashedDefault = AppDashedBorderToken(
     color: AppColors.border,
@@ -87,4 +108,16 @@ abstract final class AppBorders {
   static BorderSide accent(Color color) {
     return BorderSide(color: color, width: AppBorderWidths.thick);
   }
+
+  static BorderSide timelineAccent(Color color) => accent(color);
+
+  static BorderSide chipActiveCustom(Color color) {
+    return BorderSide(color: color, width: AppBorderWidths.medium);
+  }
+}
+
+abstract final class AppStrokeAlignment {
+  static const double inside = BorderSide.strokeAlignInside;
+  static const double center = BorderSide.strokeAlignCenter;
+  static const double outside = BorderSide.strokeAlignOutside;
 }

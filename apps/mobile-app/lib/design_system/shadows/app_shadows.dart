@@ -75,4 +75,30 @@ abstract final class AppShadows {
     ),
     BoxShadow(color: AppColors.blackOverlay10, spreadRadius: 1),
   ];
+
+  static const List<BoxShadow> xs = <BoxShadow>[
+    BoxShadow(
+      color: AppColors.blackOverlay04,
+      offset: Offset(0, 1),
+      blurRadius: 2,
+    ),
+  ];
+  static const List<BoxShadow> sm = subtle;
+  static const List<BoxShadow> card = small;
+  static const List<BoxShadow> tabActive = selected;
+  static const List<BoxShadow> tooltip = medium;
+  static const List<BoxShadow> toggleThumb = control;
+  static const List<BoxShadow> fab = floating;
+  static const List<BoxShadow> frame = mobileFrame;
+}
+
+abstract final class AppElevation {
+  static const List<BoxShadow> flat = AppShadows.none;
+  static const List<BoxShadow> card = AppShadows.card;
+  static const List<BoxShadow> raised = AppShadows.sm;
+  static const List<BoxShadow> navigation = AppShadows.sm;
+  static const List<BoxShadow> menu = AppShadows.tooltip;
+  static const List<BoxShadow> sheet = AppShadows.tooltip;
+  static const List<BoxShadow> floating = AppShadows.fab;
+  static const List<BoxShadow> modal = AppShadows.frame;
 }
