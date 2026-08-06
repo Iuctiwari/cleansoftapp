@@ -1,6 +1,6 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, FilterQuery } from 'mongoose';
 import { hashPassword } from './auth.crypto';
 
 import type {
@@ -91,18 +91,18 @@ export class MongoAuthRepository implements AuthRepository, OnModuleInit {
 
       if (!user) return null;
       return {
-        userId: user.userId as string,
+        userId: user.userId,
         kind: 'platform',
-        email: user.email as string,
-        mobileNumber: user.mobileNumber as string | undefined,
-        displayName: user.displayName as string,
-        passwordHash: user.passwordHash as string,
-        roleCode: user.roleCode as string,
-        permissions: Object.freeze(user.permissions as string[]),
+        email: user.email,
+        mobileNumber: user.mobileNumber,
+        displayName: user.displayName,
+        passwordHash: user.passwordHash,
+        roleCode: user.roleCode,
+        permissions: Object.freeze(user.permissions),
         status: user.status as AuthIdentityRecord['status'],
-        accessVersion: user.accessVersion as number,
+        accessVersion: user.accessVersion,
         branches: Object.freeze([]),
-        passwordChangedAtUtc: user.passwordChangedAtUtc as string,
+        passwordChangedAtUtc: user.passwordChangedAtUtc,
       };
     }
 
@@ -124,25 +124,25 @@ export class MongoAuthRepository implements AuthRepository, OnModuleInit {
 
       const branches = await this.branchModel.find({ tenantId: tenant.tenantId }).lean().exec();
       const mappedBranches = branches.map((b) => ({
-        branchId: b.branchId as string,
-        branchCode: b.branchName.replace(/\s+/g, '-').toLowerCase() as string, // Fallback since actual branchCode is missing in Mongoose model
-        branchName: b.branchName as string,
+        branchId: b.branchId,
+        branchCode: b.branchName.replace(/\s+/g, '-').toLowerCase(), // Fallback since actual branchCode is missing in Mongoose model
+        branchName: b.branchName,
       }));
 
       return {
-        userId: owner.userId as string,
+        userId: owner.userId,
         kind: 'tenant',
-        email: owner.email as string,
-        mobileNumber: owner.mobileNumber as string,
-        displayName: owner.displayName as string,
-        passwordHash: owner.passwordHash as string,
-        roleCode: owner.roleCode as string,
-        permissions: Object.freeze(owner.permissions as string[]),
+        email: owner.email,
+        mobileNumber: owner.mobileNumber,
+        displayName: owner.displayName,
+        passwordHash: owner.passwordHash,
+        roleCode: owner.roleCode,
+        permissions: Object.freeze(owner.permissions),
         status: owner.status as AuthIdentityRecord['status'],
-        accessVersion: owner.accessVersion as number,
-        tenantId: tenant.tenantId as string,
-        tenantSlug: tenant.slug as string,
-        tenantName: owner.tenantName as string,
+        accessVersion: owner.accessVersion,
+        tenantId: tenant.tenantId,
+        tenantSlug: tenant.slug,
+        tenantName: owner.tenantName,
         tenantStatus: tenant.status === 'Active' ? 'active' : 'disabled',
         branches: Object.freeze(mappedBranches),
         defaultBranchId: mappedBranches.find(
@@ -158,12 +158,12 @@ export class MongoAuthRepository implements AuthRepository, OnModuleInit {
   async findIdentityByUserId(userId: string): Promise<AuthIdentityRecord | null> {
     const platform = await this.platformUserModel.findOne({ userId }).lean().exec();
     if (platform) {
-      return this.findIdentity('platform', platform.email as string);
+      return this.findIdentity('platform', platform.email);
     }
 
     const tenantOwner = await this.tenantOwnerModel.findOne({ userId }).lean().exec();
     if (tenantOwner) {
-      return this.findIdentity('tenant', tenantOwner.email as string, tenantOwner.slug as string);
+      return this.findIdentity('tenant', tenantOwner.email, tenantOwner.slug);
     }
     return null;
   }
@@ -176,10 +176,10 @@ export class MongoAuthRepository implements AuthRepository, OnModuleInit {
     const doc = await this.trackerModel.findOne({ trackerKey }).lean().exec();
     if (!doc) return null;
     return {
-      trackerKey: doc.trackerKey as string,
-      failedAttempts: doc.failedAttempts as number,
-      lockedUntilUtc: doc.lockedUntilUtc as string | undefined,
-      updatedAtUtc: doc.updatedAtUtc as string,
+      trackerKey: doc.trackerKey,
+      failedAttempts: doc.failedAttempts,
+      lockedUntilUtc: doc.lockedUntilUtc,
+      updatedAtUtc: doc.updatedAtUtc,
     };
   }
 
@@ -290,7 +290,7 @@ export class MongoAuthRepository implements AuthRepository, OnModuleInit {
     revokedAtUtc: string,
     exceptSessionId?: string,
   ): Promise<readonly AuthSessionRecord[]> {
-    const filter: any = { userId, revokedAtUtc: { $exists: false } };
+    const filter: FilterQuery<AuthSessionMongoose> = { userId, revokedAtUtc: { $exists: false } };
     if (exceptSessionId) {
       filter.sessionId = { $ne: exceptSessionId };
     }

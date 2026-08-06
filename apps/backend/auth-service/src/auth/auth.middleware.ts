@@ -42,19 +42,15 @@ export class AuthenticationContextMiddleware implements NestMiddleware {
       this.resolveHeaderValue(request.headers['x-correlation-id']) ??
       requestId;
 
-    try {
-      const resolution = await this.authService.authenticateAccessToken(token, {
-        correlationId,
-        causationId: requestId,
-        requestId,
-        ipAddress: this.resolveHeaderValue(request.headers['x-forwarded-for']) ?? undefined,
-        userAgent: this.resolveHeaderValue(request.headers['user-agent']) ?? undefined,
-      });
-      request.trustedContext = resolution.principal.context;
-      next();
-    } catch (err) {
-      throw err;
-    }
+    const resolution = await this.authService.authenticateAccessToken(token, {
+      correlationId,
+      causationId: requestId,
+      requestId,
+      ipAddress: this.resolveHeaderValue(request.headers['x-forwarded-for']) ?? undefined,
+      userAgent: this.resolveHeaderValue(request.headers['user-agent']) ?? undefined,
+    });
+    request.trustedContext = resolution.principal.context;
+    next();
   }
 
   private resolveHeaderValue(value: string | string[] | undefined): string | undefined {
