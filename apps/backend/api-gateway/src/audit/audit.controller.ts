@@ -56,7 +56,11 @@ export class AuditController {
     summary: 'Retrieve a single immutable audit record',
     description: 'Fetches one audit record by its unique ID.',
   })
-  @ApiParam({ name: 'auditId', description: 'Unique audit record identifier', example: 'audit-3aa08f4d' })
+  @ApiParam({
+    name: 'auditId',
+    description: 'Unique audit record identifier',
+    example: 'audit-3aa08f4d',
+  })
   @ApiEnvelopeResponse(AuditRecordDto, {
     description: 'One audit record or null when not found in scope.',
     nullable: true,

@@ -76,7 +76,8 @@ export class AuthLoginTrackerMongoose extends Document {
   updatedAtUtc!: string;
 }
 
-export const AuthLoginTrackerMongooseSchema = SchemaFactory.createForClass(AuthLoginTrackerMongoose);
+export const AuthLoginTrackerMongooseSchema =
+  SchemaFactory.createForClass(AuthLoginTrackerMongoose);
 
 // ─── Password Reset ────────────────────────────────────────────────────────
 
@@ -145,7 +146,9 @@ export class AuthNotificationIntentMongoose extends Document {
   createdAtUtc!: string;
 }
 
-export const AuthNotificationIntentMongooseSchema = SchemaFactory.createForClass(AuthNotificationIntentMongoose);
+export const AuthNotificationIntentMongooseSchema = SchemaFactory.createForClass(
+  AuthNotificationIntentMongoose,
+);
 
 // ─── Platform User ─────────────────────────────────────────────────────────
 

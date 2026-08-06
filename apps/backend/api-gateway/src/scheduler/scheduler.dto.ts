@@ -26,12 +26,20 @@ export class ScheduleJobDto {
   @IsNotEmpty()
   readonly payloadReference!: string;
 
-  @ApiProperty({ description: 'SHA-256 checksum of the payload for integrity validation', example: 'sha256:0f6b3d7d8426' })
+  @ApiProperty({
+    description: 'SHA-256 checksum of the payload for integrity validation',
+    example: 'sha256:0f6b3d7d8426',
+  })
   @IsString()
   @IsNotEmpty()
   readonly payloadChecksum!: string;
 
-  @ApiPropertyOptional({ description: 'Job priority (0 = lowest)', default: 0, minimum: 0, example: 0 })
+  @ApiPropertyOptional({
+    description: 'Job priority (0 = lowest)',
+    default: 0,
+    minimum: 0,
+    example: 0,
+  })
   @Type(() => Number)
   @IsInt()
   @Min(0)
@@ -87,7 +95,10 @@ export class RegisterScheduleDto {
   @IsNotEmpty()
   readonly owner!: string;
 
-  @ApiPropertyOptional({ description: 'Tenant ID for tenant-scoped schedules', example: 'tenant-alpha' })
+  @ApiPropertyOptional({
+    description: 'Tenant ID for tenant-scoped schedules',
+    example: 'tenant-alpha',
+  })
   @IsOptional()
   @IsString()
   readonly tenantId?: string;
@@ -102,12 +113,18 @@ export class RegisterScheduleDto {
   @IsNotEmpty()
   readonly timezone!: string;
 
-  @ApiProperty({ description: 'Storage reference to the recurring job payload template', example: 's3://internal/jobs/orders/rebuild-index.json' })
+  @ApiProperty({
+    description: 'Storage reference to the recurring job payload template',
+    example: 's3://internal/jobs/orders/rebuild-index.json',
+  })
   @IsString()
   @IsNotEmpty()
   readonly payloadReference!: string;
 
-  @ApiProperty({ description: 'SHA-256 checksum of the payload template', example: 'sha256:0f6b3d7d8426' })
+  @ApiProperty({
+    description: 'SHA-256 checksum of the payload template',
+    example: 'sha256:0f6b3d7d8426',
+  })
   @IsString()
   @IsNotEmpty()
   readonly payloadChecksum!: string;

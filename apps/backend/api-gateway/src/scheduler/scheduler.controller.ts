@@ -1,11 +1,5 @@
 import { Body, Controller, Get, Param, Post, Req } from '@nestjs/common';
-import {
-  ApiBearerAuth,
-  ApiBody,
-  ApiOperation,
-  ApiParam,
-  ApiTags,
-} from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
 
 import { PlatformError } from '../platform/platform.errors';
 import { TrustedContextFactory } from '../platform/platform.context';
@@ -68,7 +62,11 @@ export class SchedulerController {
     summary: 'Replay or retry a failed job',
     description: 'Forces a re-queue of a failed or completed job for debugging or recovery.',
   })
-  @ApiParam({ name: 'jobId', description: 'Unique job identifier to replay', example: 'job-9f6cc5e3' })
+  @ApiParam({
+    name: 'jobId',
+    description: 'Unique job identifier to replay',
+    example: 'job-9f6cc5e3',
+  })
   @ApiBody({
     schema: {
       type: 'object',

@@ -39,12 +39,18 @@ function normalizeIdentifier(identifier: string): string {
 @Injectable()
 export class MongoAuthRepository implements AuthRepository, OnModuleInit {
   constructor(
-    @InjectModel(AuthSessionMongoose.name) private readonly sessionModel: Model<AuthSessionDocument>,
-    @InjectModel(AuthLoginTrackerMongoose.name) private readonly trackerModel: Model<AuthLoginTrackerDocument>,
-    @InjectModel(PasswordResetMongoose.name) private readonly resetModel: Model<PasswordResetDocument>,
-    @InjectModel(AuthNotificationIntentMongoose.name) private readonly notificationModel: Model<AuthNotificationIntentDocument>,
-    @InjectModel(PlatformUserMongoose.name) private readonly platformUserModel: Model<PlatformUserDocument>,
-    @InjectModel(TenantOwnerAuthMongoose.name) private readonly tenantOwnerModel: Model<TenantOwnerAuthDocument>,
+    @InjectModel(AuthSessionMongoose.name)
+    private readonly sessionModel: Model<AuthSessionDocument>,
+    @InjectModel(AuthLoginTrackerMongoose.name)
+    private readonly trackerModel: Model<AuthLoginTrackerDocument>,
+    @InjectModel(PasswordResetMongoose.name)
+    private readonly resetModel: Model<PasswordResetDocument>,
+    @InjectModel(AuthNotificationIntentMongoose.name)
+    private readonly notificationModel: Model<AuthNotificationIntentDocument>,
+    @InjectModel(PlatformUserMongoose.name)
+    private readonly platformUserModel: Model<PlatformUserDocument>,
+    @InjectModel(TenantOwnerAuthMongoose.name)
+    private readonly tenantOwnerModel: Model<TenantOwnerAuthDocument>,
     @InjectModel(TenantAuthMongoose.name) private readonly tenantModel: Model<TenantAuthDocument>,
     @InjectModel(BranchAuthMongoose.name) private readonly branchModel: Model<BranchAuthDocument>,
   ) {}
@@ -76,9 +82,12 @@ export class MongoAuthRepository implements AuthRepository, OnModuleInit {
     const normalized = normalizeIdentifier(identifier);
 
     if (context === 'platform') {
-      const user = await this.platformUserModel.findOne({
-        $or: [{ email: normalized }, { mobileNumber: normalized }]
-      }).lean().exec();
+      const user = await this.platformUserModel
+        .findOne({
+          $or: [{ email: normalized }, { mobileNumber: normalized }],
+        })
+        .lean()
+        .exec();
 
       if (!user) return null;
       return {
@@ -103,15 +112,18 @@ export class MongoAuthRepository implements AuthRepository, OnModuleInit {
       const tenant = await this.tenantModel.findOne({ slug: tenantSlug }).lean().exec();
       if (!tenant) return null;
 
-      const owner = await this.tenantOwnerModel.findOne({
-        tenantId: tenant.tenantId,
-        $or: [{ email: normalized }, { mobileNumber: normalized }]
-      }).lean().exec();
+      const owner = await this.tenantOwnerModel
+        .findOne({
+          tenantId: tenant.tenantId,
+          $or: [{ email: normalized }, { mobileNumber: normalized }],
+        })
+        .lean()
+        .exec();
 
       if (!owner) return null;
 
       const branches = await this.branchModel.find({ tenantId: tenant.tenantId }).lean().exec();
-      const mappedBranches = branches.map(b => ({
+      const mappedBranches = branches.map((b) => ({
         branchId: b.branchId as string,
         branchCode: b.branchName.replace(/\s+/g, '-').toLowerCase() as string, // Fallback since actual branchCode is missing in Mongoose model
         branchName: b.branchName as string,
@@ -133,7 +145,9 @@ export class MongoAuthRepository implements AuthRepository, OnModuleInit {
         tenantName: owner.tenantName as string,
         tenantStatus: tenant.status === 'Active' ? 'active' : 'disabled',
         branches: Object.freeze(mappedBranches),
-        defaultBranchId: mappedBranches.find(b => branches.find(ob => ob.branchId === b.branchId)?.isHeadOffice)?.branchId,
+        defaultBranchId: mappedBranches.find(
+          (b) => branches.find((ob) => ob.branchId === b.branchId)?.isHeadOffice,
+        )?.branchId,
         passwordChangedAtUtc: new Date().toISOString(), // Fallback if missing
       };
     }
@@ -170,36 +184,38 @@ export class MongoAuthRepository implements AuthRepository, OnModuleInit {
   }
 
   async saveLoginTracker(tracker: AuthLoginTracker): Promise<AuthLoginTracker> {
-    await this.trackerModel.updateOne(
-      { trackerKey: tracker.trackerKey },
-      { $set: tracker },
-      { upsert: true }
-    ).exec();
+    await this.trackerModel
+      .updateOne({ trackerKey: tracker.trackerKey }, { $set: tracker }, { upsert: true })
+      .exec();
     return tracker;
   }
 
   async replaceIdentity(identity: AuthIdentityRecord): Promise<AuthIdentityRecord> {
     if (identity.kind === 'platform') {
-      await this.platformUserModel.updateOne(
-        { userId: identity.userId },
-        { 
-          $set: { 
-            passwordHash: identity.passwordHash,
-            accessVersion: identity.accessVersion,
-            passwordChangedAtUtc: identity.passwordChangedAtUtc
-          } 
-        }
-      ).exec();
+      await this.platformUserModel
+        .updateOne(
+          { userId: identity.userId },
+          {
+            $set: {
+              passwordHash: identity.passwordHash,
+              accessVersion: identity.accessVersion,
+              passwordChangedAtUtc: identity.passwordChangedAtUtc,
+            },
+          },
+        )
+        .exec();
     } else if (identity.kind === 'tenant') {
-      await this.tenantOwnerModel.updateOne(
-        { userId: identity.userId },
-        { 
-          $set: { 
-            passwordHash: identity.passwordHash,
-            accessVersion: identity.accessVersion 
-          } 
-        }
-      ).exec();
+      await this.tenantOwnerModel
+        .updateOne(
+          { userId: identity.userId },
+          {
+            $set: {
+              passwordHash: identity.passwordHash,
+              accessVersion: identity.accessVersion,
+            },
+          },
+        )
+        .exec();
     }
     return identity;
   }
@@ -210,10 +226,7 @@ export class MongoAuthRepository implements AuthRepository, OnModuleInit {
   }
 
   async updateSession(session: AuthSessionRecord): Promise<AuthSessionRecord> {
-    await this.sessionModel.updateOne(
-      { sessionId: session.sessionId },
-      { $set: session }
-    ).exec();
+    await this.sessionModel.updateOne({ sessionId: session.sessionId }, { $set: session }).exec();
     return session;
   }
 
@@ -224,10 +237,14 @@ export class MongoAuthRepository implements AuthRepository, OnModuleInit {
   }
 
   async listActiveSessionsByUser(userId: string): Promise<readonly AuthSessionRecord[]> {
-    const docs = await this.sessionModel.find({
-      userId,
-      revokedAtUtc: { $exists: false }
-    }).sort({ createdAtUtc: 1 }).lean().exec();
+    const docs = await this.sessionModel
+      .find({
+        userId,
+        revokedAtUtc: { $exists: false },
+      })
+      .sort({ createdAtUtc: 1 })
+      .lean()
+      .exec();
     return docs as unknown as AuthSessionRecord[];
   }
 
@@ -236,21 +253,34 @@ export class MongoAuthRepository implements AuthRepository, OnModuleInit {
     reason: string,
     revokedAtUtc: string,
   ): Promise<readonly AuthSessionRecord[]> {
-    const sessionsToRevoke = await this.sessionModel.find({
-      familyId,
-      revokedAtUtc: { $exists: false }
-    }).lean().exec();
+    const sessionsToRevoke = await this.sessionModel
+      .find({
+        familyId,
+        revokedAtUtc: { $exists: false },
+      })
+      .lean()
+      .exec();
 
-    await this.sessionModel.updateMany(
-      { familyId, revokedAtUtc: { $exists: false } },
-      { $set: { revokedAtUtc, revokedReason: reason, reuseDetectedAtUtc: reason === 'refresh_token_reuse_detected' ? revokedAtUtc : undefined } }
-    ).exec();
+    await this.sessionModel
+      .updateMany(
+        { familyId, revokedAtUtc: { $exists: false } },
+        {
+          $set: {
+            revokedAtUtc,
+            revokedReason: reason,
+            reuseDetectedAtUtc:
+              reason === 'refresh_token_reuse_detected' ? revokedAtUtc : undefined,
+          },
+        },
+      )
+      .exec();
 
-    return sessionsToRevoke.map(s => ({
+    return sessionsToRevoke.map((s) => ({
       ...s,
       revokedAtUtc,
       revokedReason: reason,
-      reuseDetectedAtUtc: reason === 'refresh_token_reuse_detected' ? revokedAtUtc : s.reuseDetectedAtUtc
+      reuseDetectedAtUtc:
+        reason === 'refresh_token_reuse_detected' ? revokedAtUtc : s.reuseDetectedAtUtc,
     })) as unknown as AuthSessionRecord[];
   }
 
@@ -267,24 +297,21 @@ export class MongoAuthRepository implements AuthRepository, OnModuleInit {
 
     const sessionsToRevoke = await this.sessionModel.find(filter).lean().exec();
 
-    await this.sessionModel.updateMany(
-      filter,
-      { $set: { revokedAtUtc, revokedReason: reason } }
-    ).exec();
+    await this.sessionModel
+      .updateMany(filter, { $set: { revokedAtUtc, revokedReason: reason } })
+      .exec();
 
-    return sessionsToRevoke.map(s => ({
+    return sessionsToRevoke.map((s) => ({
       ...s,
       revokedAtUtc,
-      revokedReason: reason
+      revokedReason: reason,
     })) as unknown as AuthSessionRecord[];
   }
 
   async upsertPasswordReset(record: PasswordResetRecord): Promise<PasswordResetRecord> {
-    await this.resetModel.updateOne(
-      { userId: record.userId },
-      { $set: record },
-      { upsert: true }
-    ).exec();
+    await this.resetModel
+      .updateOne({ userId: record.userId }, { $set: record }, { upsert: true })
+      .exec();
     return record;
   }
 
@@ -306,18 +333,14 @@ export class MongoAuthRepository implements AuthRepository, OnModuleInit {
 
   async consumePasswordReset(record: PasswordResetRecord): Promise<PasswordResetRecord> {
     const updated = { ...record, consumed: true };
-    await this.resetModel.updateOne(
-      { resetId: record.resetId },
-      { $set: { consumed: true } }
-    ).exec();
+    await this.resetModel
+      .updateOne({ resetId: record.resetId }, { $set: { consumed: true } })
+      .exec();
     return updated;
   }
 
   async updatePasswordReset(record: PasswordResetRecord): Promise<PasswordResetRecord> {
-    await this.resetModel.updateOne(
-      { resetId: record.resetId },
-      { $set: record }
-    ).exec();
+    await this.resetModel.updateOne({ resetId: record.resetId }, { $set: record }).exec();
     return record;
   }
 
