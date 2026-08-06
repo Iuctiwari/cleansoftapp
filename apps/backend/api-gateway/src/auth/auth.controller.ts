@@ -9,19 +9,12 @@ import {
   ApiTooManyRequestsResponse,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
-import { JWT_AUTH_NAME } from '@nexoraa/swagger';
 
-import { PlatformError } from '../platform/platform.errors';
 import { TrustedContextFactory } from '../platform/platform.context';
+import { PlatformError } from '../platform/platform.errors';
 import type { RequestWithPlatformContext } from '../platform/platform.request';
+import { ApiEnvelopeResponse } from '../platform/platform.swagger';
 import type { TrustedContext } from '../platform/platform.types';
-import {
-  AuthChangePasswordDto,
-  AuthForgotPasswordDto,
-  AuthLoginDto,
-  AuthRefreshDto,
-  AuthResetPasswordDto,
-} from './auth.dto';
 import {
   AuthAcknowledgementEnvelopeDto,
   AuthErrorEnvelopeDto,
@@ -29,7 +22,19 @@ import {
   AuthRefreshResponseEnvelopeDto,
   AuthResetRequestAcknowledgementEnvelopeDto,
 } from './auth-response.dto';
+import {
+  AuthChangePasswordDto,
+  AuthForgotPasswordDto,
+  AuthLoginDto,
+  AuthRefreshDto,
+  AuthResetPasswordDto,
+} from './auth.dto';
 import { AuthService } from './auth.service';
+import {
+  AuthAcknowledgementDto,
+  AuthRefreshResponseDto,
+  AuthResetRequestAcknowledgementDto,
+} from './auth.swagger';
 
 @ApiTags('Authentication')
 @Controller({ path: 'auth', version: '1' })
@@ -69,6 +74,7 @@ export class AuthController {
   }
 
   @Post('refresh')
+  @ApiEnvelopeResponse(AuthRefreshResponseDto, { description: 'Rotated token pair.' })
   @ApiOperation({
     summary: 'Rotate refresh credentials',
     description: 'Validates a refresh token, rotates it, and issues a new access token.',
@@ -94,7 +100,8 @@ export class AuthController {
   }
 
   @Post('logout')
-  @ApiBearerAuth(JWT_AUTH_NAME)
+  @ApiBearerAuth('access-token')
+  @ApiEnvelopeResponse(AuthAcknowledgementDto, { description: 'Session revocation accepted.' })
   @ApiOperation({
     summary: 'Log out the current session',
     description: 'Revokes the authenticated session represented by the bearer token.',
@@ -115,7 +122,10 @@ export class AuthController {
   }
 
   @Post('logout-all')
-  @ApiBearerAuth(JWT_AUTH_NAME)
+  @ApiBearerAuth('access-token')
+  @ApiEnvelopeResponse(AuthAcknowledgementDto, {
+    description: 'All active sessions revoked for the authenticated user.',
+  })
   @ApiOperation({
     summary: 'Log out all other sessions',
     description:
@@ -138,6 +148,9 @@ export class AuthController {
   }
 
   @Post('forgot-password')
+  @ApiEnvelopeResponse(AuthResetRequestAcknowledgementDto, {
+    description: 'Acknowledgement with a delivery hint or generic message.',
+  })
   @ApiOperation({
     summary: 'Request a password reset',
     description:
@@ -177,6 +190,9 @@ export class AuthController {
     description: 'The reset-code attempt limit has been exceeded.',
     type: AuthErrorEnvelopeDto,
   })
+  @ApiEnvelopeResponse(AuthAcknowledgementDto, {
+    description: 'Password reset accepted.',
+  })
   async resetPassword(
     @Body() body: AuthResetPasswordDto,
     @Req() request: RequestWithPlatformContext,
@@ -188,7 +204,10 @@ export class AuthController {
   }
 
   @Post('change-password')
-  @ApiBearerAuth(JWT_AUTH_NAME)
+  @ApiBearerAuth('access-token')
+  @ApiEnvelopeResponse(AuthAcknowledgementDto, {
+    description: 'Password change accepted.',
+  })
   @ApiOperation({
     summary: 'Change the current password',
     description:

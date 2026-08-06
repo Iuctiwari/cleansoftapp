@@ -1,0 +1,39 @@
+# Git
+.git
+.gitignore
+
+# Node
+**/node_modules
+.pnpm-store
+
+# Build output
+**/dist
+**/.turbo
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Environment
+.env
+.env.*
+
+# IDE
+.vscode
+.idea
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Tests & Coverage
+coverage
+.nyc_output
+
+# Documentation
+README.md
+
+# Flutter
+**/.dart_tool
+**/build
