@@ -4,15 +4,20 @@ import {
   ApiBody,
   ApiOperation,
   ApiParam,
-  ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
 
 import { PlatformError } from '../platform/platform.errors';
 import { TrustedContextFactory } from '../platform/platform.context';
 import type { RequestWithPlatformContext } from '../platform/platform.request';
-import { RegisterScheduleDto, ScheduleJobDto } from './scheduler.dto';
+import { ApiEnvelopeResponse } from '../platform/platform.swagger';
+import { RegisterScheduleDto, ReplayJobDto, ScheduleJobDto } from './scheduler.dto';
 import { SchedulerService } from './scheduler.service';
+import {
+  SchedulerJobRecordDto,
+  SchedulerReplayResponseDto,
+  SchedulerScheduleRecordDto,
+} from './scheduler.swagger';
 
 @ApiTags('Scheduler')
 @ApiBearerAuth('access-token')
@@ -30,9 +35,10 @@ export class SchedulerController {
       'Schedules a new background job for asynchronous processing. ' +
       'Idempotent — supplying the same `idempotencyKey` is safe to retry.',
   })
-  @ApiResponse({ status: 201, description: 'Job enqueued successfully' })
-  @ApiResponse({ status: 401, description: 'Not authenticated' })
-  @ApiResponse({ status: 409, description: 'Idempotency conflict — payload mismatch' })
+  @ApiEnvelopeResponse(SchedulerJobRecordDto, {
+    description: 'Scheduled job record after persistence and dispatch.',
+    status: 'created',
+  })
   async scheduleJob(
     @Body() body: ScheduleJobDto,
     @Req() request: RequestWithPlatformContext,
@@ -48,9 +54,11 @@ export class SchedulerController {
     summary: 'Inspect a background job',
     description: 'Returns the current status, attempts, and metadata of the specified job.',
   })
-  @ApiParam({ name: 'jobId', description: 'Unique job identifier' })
-  @ApiResponse({ status: 200, description: 'Job details returned' })
-  @ApiResponse({ status: 404, description: 'Job not found' })
+  @ApiParam({ name: 'jobId', description: 'Unique job identifier', example: 'job-9f6cc5e3' })
+  @ApiEnvelopeResponse(SchedulerJobRecordDto, {
+    description: 'Scheduled job record or null when it does not exist.',
+    nullable: true,
+  })
   async inspectJob(@Param('jobId') jobId: string): Promise<unknown> {
     return this.schedulerService.inspectJob(jobId);
   }
@@ -60,7 +68,7 @@ export class SchedulerController {
     summary: 'Replay or retry a failed job',
     description: 'Forces a re-queue of a failed or completed job for debugging or recovery.',
   })
-  @ApiParam({ name: 'jobId', description: 'Unique job identifier to replay' })
+  @ApiParam({ name: 'jobId', description: 'Unique job identifier to replay', example: 'job-9f6cc5e3' })
   @ApiBody({
     schema: {
       type: 'object',
@@ -70,11 +78,12 @@ export class SchedulerController {
       },
     },
   })
-  @ApiResponse({ status: 201, description: 'Job re-queued' })
-  @ApiResponse({ status: 404, description: 'Job not found' })
+  @ApiEnvelopeResponse(SchedulerReplayResponseDto, {
+    description: 'Replay result recorded after dispatch.',
+  })
   async replayJob(
     @Param('jobId') jobId: string,
-    @Body() body: { readonly reason: string },
+    @Body() body: ReplayJobDto,
     @Req() request: RequestWithPlatformContext,
   ): Promise<unknown> {
     const authorization = this.getAuthorization(request);
@@ -92,8 +101,10 @@ export class SchedulerController {
       'Creates a named recurring schedule that fires background jobs on a CRON expression. ' +
       'Timezone must be a valid IANA timezone string.',
   })
-  @ApiResponse({ status: 201, description: 'Schedule registered' })
-  @ApiResponse({ status: 401, description: 'Not authenticated' })
+  @ApiEnvelopeResponse(SchedulerScheduleRecordDto, {
+    description: 'Registered schedule definition.',
+    status: 'created',
+  })
   async registerSchedule(
     @Body() body: RegisterScheduleDto,
     @Req() request: RequestWithPlatformContext,

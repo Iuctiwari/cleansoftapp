@@ -8,6 +8,7 @@
 .git/
 .gitattributes
 .github/
+.gitignore
 
 # ─── Node / pnpm ──────────────────────────────────────────────────────────────
 # node_modules are installed inside the container; never copy from host
@@ -24,6 +25,7 @@ pnpm-debug.log*
 **/coverage/
 **/*.tsbuildinfo
 .turbo/
+.nyc_output/
 
 # ─── Environment & secrets ────────────────────────────────────────────────────
 # NEVER bake secrets into images; supply at runtime via --env-file or secrets
@@ -62,6 +64,7 @@ $RECYCLE.BIN/
 docs/
 ERP-PLANNING/
 implementation_guide/
+README.md
 
 # ─── Test & CI data ───────────────────────────────────────────────────────────
 **/*.spec.ts

@@ -1,10 +1,11 @@
 import { Body, Controller, Post, Req } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { PlatformError } from '../platform/platform.errors';
 import { TrustedContextFactory } from '../platform/platform.context';
 import type { RequestWithPlatformContext } from '../platform/platform.request';
 import type { TrustedContext } from '../platform/platform.types';
+import { ApiEnvelopeResponse } from '../platform/platform.swagger';
 import {
   AuthChangePasswordDto,
   AuthForgotPasswordDto,
@@ -12,6 +13,12 @@ import {
   AuthRefreshDto,
   AuthResetPasswordDto,
 } from './auth.dto';
+import {
+  AuthAcknowledgementDto,
+  AuthLoginResponseDto,
+  AuthRefreshResponseDto,
+  AuthResetRequestAcknowledgementDto,
+} from './auth.swagger';
 import { AuthService } from './auth.service';
 
 @ApiTags('Authentication')
@@ -26,9 +33,7 @@ export class AuthController {
   @ApiOperation({
     summary: 'Authenticate a platform or tenant user',
   })
-  @ApiResponse({ status: 200, description: 'Login successful — tokens returned' })
-  @ApiResponse({ status: 401, description: 'Invalid credentials or account locked' })
-  @ApiResponse({ status: 400, description: 'Validation error' })
+  @ApiEnvelopeResponse(AuthLoginResponseDto, { description: 'Authenticated session and tokens.' })
   async login(
     @Body() body: AuthLoginDto,
     @Req() request: RequestWithPlatformContext,
@@ -43,8 +48,7 @@ export class AuthController {
   @ApiOperation({
     summary: 'Rotate refresh credentials and issue a new access token',
   })
-  @ApiResponse({ status: 200, description: 'Token pair rotated successfully' })
-  @ApiResponse({ status: 401, description: 'Refresh token invalid, expired, or replayed' })
+  @ApiEnvelopeResponse(AuthRefreshResponseDto, { description: 'Rotated token pair.' })
   async refresh(
     @Body() body: AuthRefreshDto,
     @Req() request: RequestWithPlatformContext,
@@ -60,8 +64,7 @@ export class AuthController {
   @ApiOperation({
     summary: 'Revoke the current authenticated session',
   })
-  @ApiResponse({ status: 200, description: 'Session revoked' })
-  @ApiResponse({ status: 401, description: 'Not authenticated' })
+  @ApiEnvelopeResponse(AuthAcknowledgementDto, { description: 'Session revocation accepted.' })
   async logout(@Req() request: RequestWithPlatformContext): Promise<unknown> {
     return this.authService.logout({
       context: this.getAuthorization(request),
@@ -74,8 +77,9 @@ export class AuthController {
   @ApiOperation({
     summary: 'Revoke every active session for the authenticated user',
   })
-  @ApiResponse({ status: 200, description: 'All sessions revoked' })
-  @ApiResponse({ status: 401, description: 'Not authenticated' })
+  @ApiEnvelopeResponse(AuthAcknowledgementDto, {
+    description: 'All active sessions revoked for the authenticated user.',
+  })
   async logoutAll(@Req() request: RequestWithPlatformContext): Promise<unknown> {
     return this.authService.logoutAll({
       context: this.getAuthorization(request),
@@ -88,11 +92,9 @@ export class AuthController {
   @ApiOperation({
     summary: 'Request a password reset OTP',
   })
-  @ApiResponse({
-    status: 200,
-    description: 'Reset request acknowledged (OTP sent if account exists)',
+  @ApiEnvelopeResponse(AuthResetRequestAcknowledgementDto, {
+    description: 'Acknowledgement with a delivery hint or generic message.',
   })
-  @ApiResponse({ status: 400, description: 'Validation error' })
   async forgotPassword(
     @Body() body: AuthForgotPasswordDto,
     @Req() request: RequestWithPlatformContext,
@@ -107,9 +109,9 @@ export class AuthController {
   @ApiOperation({
     summary: 'Validate the reset OTP and replace the password',
   })
-  @ApiResponse({ status: 200, description: 'Password reset successfully' })
-  @ApiResponse({ status: 400, description: 'Validation error or invalid OTP' })
-  @ApiResponse({ status: 401, description: 'OTP expired or max attempts exceeded' })
+  @ApiEnvelopeResponse(AuthAcknowledgementDto, {
+    description: 'Password reset accepted.',
+  })
   async resetPassword(
     @Body() body: AuthResetPasswordDto,
     @Req() request: RequestWithPlatformContext,
@@ -125,9 +127,9 @@ export class AuthController {
   @ApiOperation({
     summary: 'Change the password for the authenticated user',
   })
-  @ApiResponse({ status: 200, description: 'Password changed successfully' })
-  @ApiResponse({ status: 400, description: 'Validation error or weak new password' })
-  @ApiResponse({ status: 401, description: 'Not authenticated or current password incorrect' })
+  @ApiEnvelopeResponse(AuthAcknowledgementDto, {
+    description: 'Password change accepted.',
+  })
   async changePassword(
     @Body() body: AuthChangePasswordDto,
     @Req() request: RequestWithPlatformContext,
