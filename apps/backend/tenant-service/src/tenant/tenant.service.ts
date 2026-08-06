@@ -1,11 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 
-import {
-  generateTenantId,
-  generateUserId,
-  hashPassword,
-  slugify,
-} from './tenant.crypto';
+import { generateTenantId, generateUserId, hashPassword, slugify } from './tenant.crypto';
 import { TenantError } from './tenant.errors';
 import {
   TENANT_REPOSITORY,
@@ -63,10 +58,7 @@ function assertStrongPassword(password: string): void {
  * Generates a unique slug by appending a numeric suffix if the base slug
  * is already taken. Tries up to 99 variants before giving up.
  */
-async function resolveUniqueSlug(
-  base: string,
-  repository: TenantRepository,
-): Promise<string> {
+async function resolveUniqueSlug(base: string, repository: TenantRepository): Promise<string> {
   const existing = await repository.findBySlug(base);
   if (!existing) return base;
 
@@ -112,12 +104,12 @@ export class TenantService {
     const tenantServiceId = generateTenantId();
 
     const baseSlug = slugify(input.businessName);
-    const tenantSlug = await resolveUniqueSlug(baseSlug, this.tenantRepository);
+    const slug = await resolveUniqueSlug(baseSlug, this.tenantRepository);
     const now = new Date().toISOString();
 
     const tenant: TenantRecord = {
       tenantId,
-      tenantSlug,
+      slug,
       businessName: input.businessName.trim(),
       businessType: input.businessType,
       ownerName: input.ownerName.trim(),
@@ -127,15 +119,15 @@ export class TenantService {
       taxEnabled: true,
       defaultTaxPct: 0,
       subscriptionPlanId: '60d5ecb8b392d7001f3e3a45', // Placeholder — to be replaced by subscription service
-      status: 'active',
-      createdAtUtc: now,
-      updatedAtUtc: now,
+      status: 'Active',
+      createdAt: now,
+      updatedAt: now,
     };
 
     const owner: TenantOwnerRecord = {
       userId,
       tenantId,
-      tenantSlug,
+      slug,
       tenantName: input.businessName.trim(),
       displayName: input.ownerName.trim(),
       email: normalisedEmail,
@@ -145,7 +137,7 @@ export class TenantService {
       permissions: OWNER_DEFAULT_PERMISSIONS,
       status: 'active',
       accessVersion: 1,
-      createdAtUtc: now,
+      createdAt: now,
     };
 
     const headOfficeBranch: BranchRecord = {
@@ -161,8 +153,8 @@ export class TenantService {
       email: normalisedEmail,
       isHeadOffice: true,
       status: 'active',
-      createdAtUtc: now,
-      updatedAtUtc: now,
+      createdAt: now,
+      updatedAt: now,
     };
 
     const defaultService = {
@@ -170,7 +162,7 @@ export class TenantService {
       tenantId,
       serviceType: input.businessType,
       isEnabled: true,
-      createdAtUtc: now,
+      createdAt: now,
     };
 
     return this.tenantRepository.createTenant(tenant, owner, headOfficeBranch, [defaultService]);
@@ -207,14 +199,14 @@ export class TenantService {
         messageKey: 'errors.tenant.not_found',
       });
     }
-    if (tenant.status === 'disabled') {
+    if (tenant.status === 'Suspended') {
       throw new TenantError({
         code: 'tenant.already_suspended',
         category: 'conflict',
         messageKey: 'errors.tenant.already_suspended',
       });
     }
-    await this.tenantRepository.updateStatus(tenantId, 'disabled');
+    await this.tenantRepository.updateStatus(tenantId, 'Suspended');
   }
 
   async reactivateTenant(tenantId: string): Promise<void> {
@@ -226,13 +218,13 @@ export class TenantService {
         messageKey: 'errors.tenant.not_found',
       });
     }
-    if (tenant.status === 'active') {
+    if (tenant.status === 'Active') {
       throw new TenantError({
         code: 'tenant.already_active',
         category: 'conflict',
         messageKey: 'errors.tenant.already_active',
       });
     }
-    await this.tenantRepository.updateStatus(tenantId, 'active');
+    await this.tenantRepository.updateStatus(tenantId, 'Active');
   }
 }

@@ -35,38 +35,39 @@ export class InMemoryTenantRepository implements TenantRepository {
   // normalised email -> userId (for uniqueness checks)
   private readonly emailIndex = new Map<string, string>();
 
-  async findByEmail(email: string): Promise<TenantOwnerRecord | null> {
+  findByEmail(email: string): Promise<TenantOwnerRecord | null> {
     const normalised = email.trim().toLowerCase();
     const userId = this.emailIndex.get(normalised);
-    if (!userId) return null;
-    return this.owners.get(userId) ?? null;
+    if (!userId) return Promise.resolve(null);
+    return Promise.resolve(this.owners.get(userId) ?? null);
   }
 
-  async findBySlug(slug: string): Promise<TenantRecord | null> {
+  findBySlug(slug: string): Promise<TenantRecord | null> {
     const tenantId = this.slugIndex.get(slug);
-    if (!tenantId) return null;
-    return this.tenants.get(tenantId) ?? null;
+    if (!tenantId) return Promise.resolve(null);
+    return Promise.resolve(this.tenants.get(tenantId) ?? null);
   }
 
-  async findById(tenantId: string): Promise<TenantRecord | null> {
-    return this.tenants.get(tenantId) ?? null;
+  findById(tenantId: string): Promise<TenantRecord | null> {
+    return Promise.resolve(this.tenants.get(tenantId) ?? null);
   }
 
-  async listBranches(tenantId: string): Promise<BranchRecord[]> {
-    return [...this.branches.values()].filter((b) => b.tenantId === tenantId);
+  listBranches(tenantId: string): Promise<BranchRecord[]> {
+    return Promise.resolve([...this.branches.values()].filter((b) => b.tenantId === tenantId));
   }
 
-  async updateStatus(tenantId: string, status: TenantStatus): Promise<void> {
+  updateStatus(tenantId: string, status: TenantStatus): Promise<void> {
     const existing = this.tenants.get(tenantId);
-    if (!existing) return;
+    if (!existing) return Promise.resolve();
     this.tenants.set(tenantId, {
       ...existing,
       status,
-      updatedAtUtc: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     });
+    return Promise.resolve();
   }
 
-  async createTenant(
+  createTenant(
     tenant: TenantRecord,
     owner: TenantOwnerRecord,
     branch: BranchRecord,
@@ -80,15 +81,15 @@ export class InMemoryTenantRepository implements TenantRepository {
       this.services.set(service.tenantServiceId, service);
     }
 
-    this.slugIndex.set(tenant.tenantSlug, tenant.tenantId);
+    this.slugIndex.set(tenant.slug, tenant.tenantId);
     this.emailIndex.set(owner.email, owner.userId);
 
-    return {
+    return Promise.resolve({
       tenantId: tenant.tenantId,
-      tenantSlug: tenant.tenantSlug,
+      slug: tenant.slug,
       ownerUserId: owner.userId,
       businessName: tenant.businessName,
       message: 'Account created successfully',
-    };
+    });
   }
 }

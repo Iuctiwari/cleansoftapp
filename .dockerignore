@@ -1,0 +1,73 @@
+# =============================================================================
+# .dockerignore — Nexoraa CleanSoft
+# Excludes all files/dirs unnecessary for the Docker build context.
+# Reducing context size speeds up docker build significantly.
+# =============================================================================
+
+# ─── Version control ──────────────────────────────────────────────────────────
+.git/
+.gitattributes
+.github/
+
+# ─── Node / pnpm ──────────────────────────────────────────────────────────────
+# node_modules are installed inside the container; never copy from host
+**/node_modules/
+.pnpm-store/
+npm-debug.log*
+pnpm-debug.log*
+*.log
+
+# ─── Build artifacts ──────────────────────────────────────────────────────────
+# TypeScript compiled output is produced inside the builder stage
+**/dist/
+**/build/
+**/coverage/
+**/*.tsbuildinfo
+.turbo/
+
+# ─── Environment & secrets ────────────────────────────────────────────────────
+# NEVER bake secrets into images; supply at runtime via --env-file or secrets
+**/.env
+**/.env.local
+**/.env.*.local
+.env.production
+**/*.pem
+**/*.key
+**/*.p12
+**/*.pfx
+
+# ─── Flutter / Dart ───────────────────────────────────────────────────────────
+# Mobile app is not part of the backend Docker build
+apps/mobile-app/
+**/.dart_tool/
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+**/.pub-cache/
+**/android/.gradle/
+**/ios/Pods/
+
+# ─── Editors & OS ─────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.iml
+*.ipr
+*.iws
+.DS_Store
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# ─── Documentation & planning ─────────────────────────────────────────────────
+# These have no role in the build and are large
+docs/
+ERP-PLANNING/
+implementation_guide/
+
+# ─── Test & CI data ───────────────────────────────────────────────────────────
+**/*.spec.ts
+**/*.test.ts
+**/test/
+**/coverage/
+
+# ─── Docker runtime data ──────────────────────────────────────────────────────
+docker-data/

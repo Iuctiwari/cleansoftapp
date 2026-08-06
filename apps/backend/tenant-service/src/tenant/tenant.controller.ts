@@ -9,12 +9,7 @@ import {
   Post,
   UseFilters,
 } from '@nestjs/common';
-import {
-  ApiOperation,
-  ApiParam,
-  ApiResponse,
-  ApiTags,
-} from '@nestjs/swagger';
+import { ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 
 import {
   BranchDto,
@@ -46,7 +41,11 @@ export class TenantController {
       'The owner email and mobile number must be globally unique. ' +
       'Returns the tenant identifiers immediately — no email verification step.',
   })
-  @ApiResponse({ status: 201, description: 'Tenant registered successfully', type: RegisterTenantResponseDto })
+  @ApiResponse({
+    status: 201,
+    description: 'Tenant registered successfully',
+    type: RegisterTenantResponseDto,
+  })
   @ApiResponse({ status: 400, description: 'Validation error or weak password' })
   @ApiResponse({ status: 409, description: 'Email address already registered' })
   async register(@Body() body: RegisterTenantDto): Promise<RegisterTenantResponseDto> {
@@ -86,7 +85,8 @@ export class TenantController {
   @Get(':tenantId/branches')
   @ApiOperation({
     summary: 'List tenant branches',
-    description: 'Returns all branches registered under the specified tenant, including the head office.',
+    description:
+      'Returns all branches registered under the specified tenant, including the head office.',
   })
   @ApiParam({ name: 'tenantId', description: 'Unique tenant identifier' })
   @ApiResponse({ status: 200, description: 'Branch list', type: [BranchDto] })

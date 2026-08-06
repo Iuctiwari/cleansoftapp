@@ -10,12 +10,12 @@ export type TenantBusinessType =
   | 'general'
   | 'custom';
 
-export type TenantStatus = 'active' | 'pending' | 'disabled';
+export type TenantStatus = 'PendingVerification' | 'Active' | 'Suspended' | 'Cancelled';
 export type BranchStatus = 'active' | 'inactive' | 'closed';
 
 export interface TenantRecord {
   readonly tenantId: string;
-  readonly tenantSlug: string;
+  readonly slug: string;
   readonly businessName: string;
   readonly businessType: TenantBusinessType;
   readonly ownerName: string;
@@ -26,8 +26,8 @@ export interface TenantRecord {
   readonly defaultTaxPct: number;
   readonly subscriptionPlanId: string;
   readonly status: TenantStatus;
-  readonly createdAtUtc: string;
-  readonly updatedAtUtc: string;
+  readonly createdAt: string;
+  readonly updatedAt: string;
 }
 
 export interface BranchRecord {
@@ -43,8 +43,8 @@ export interface BranchRecord {
   readonly email: string;
   readonly isHeadOffice: boolean;
   readonly status: BranchStatus;
-  readonly createdAtUtc: string;
-  readonly updatedAtUtc: string;
+  readonly createdAt: string;
+  readonly updatedAt: string;
 }
 
 export interface TenantServiceRecord {
@@ -52,13 +52,13 @@ export interface TenantServiceRecord {
   readonly tenantId: string;
   readonly serviceType: TenantBusinessType;
   readonly isEnabled: boolean;
-  readonly createdAtUtc: string;
+  readonly createdAt: string;
 }
 
 export interface TenantOwnerRecord {
   readonly userId: string;
   readonly tenantId: string;
-  readonly tenantSlug: string;
+  readonly slug: string;
   readonly tenantName: string;
   readonly displayName: string;
   readonly email: string;
@@ -68,7 +68,7 @@ export interface TenantOwnerRecord {
   readonly permissions: readonly string[];
   readonly status: 'active' | 'disabled';
   readonly accessVersion: number;
-  readonly createdAtUtc: string;
+  readonly createdAt: string;
 }
 
 export interface RegisterTenantInput {
@@ -83,7 +83,7 @@ export interface RegisterTenantInput {
 
 export interface RegisterTenantOutput {
   readonly tenantId: string;
-  readonly tenantSlug: string;
+  readonly slug: string;
   readonly ownerUserId: string;
   readonly businessName: string;
   readonly message: string;

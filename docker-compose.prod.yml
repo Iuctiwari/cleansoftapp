@@ -1,0 +1,547 @@
+# =============================================================================
+# docker-compose.prod.yml — Nexoraa CleanSoft PRODUCTION STACK
+#
+# Full production deployment: all 15 NestJS microservices + Nginx + MongoDB
+# (replica set, auth enabled) + Redis (password-protected, AOF persistence).
+#
+# Prerequisites:
+#   1. Copy .env.production.example → .env.production and fill in secrets.
+#   2. Build images:
+#        docker compose -f docker-compose.prod.yml build
+#   3. Or pull pre-built images from your registry.
+#
+# Start:
+#   docker compose -f docker-compose.prod.yml --env-file .env.production up -d
+#
+# Stop:
+#   docker compose -f docker-compose.prod.yml down
+#
+# NOTE: Never expose MongoDB or Redis ports to the host in production.
+#       All inter-service traffic stays on the nexoraa-internal network.
+#       Only Nginx (port 80/443) is publicly reachable.
+# =============================================================================
+
+name: nexoraa-cleansoft-prod
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Reusable anchors
+# ─────────────────────────────────────────────────────────────────────────────
+x-logging: &prod-logging
+  driver: json-file
+  options:
+    max-size: "50m"
+    max-file: "5"
+
+x-restart: &always-restart
+  restart: always
+
+x-service-image: &service-image
+  image: nexoraa/${SERVICE_NAME:-api-gateway}:${TAG:-latest}
+
+# Shared environment variables for all backend services
+x-backend-base-env: &backend-base-env
+  NODE_ENV: production
+  MONGODB_URI: ${MONGODB_URI}
+  REDIS_URL: ${REDIS_URL}
+
+# Shared resource limits for backend NestJS services
+x-service-resources: &service-resources
+  mem_limit: 512m
+  mem_reservation: 128m
+  cpus: "0.5"
+
+# Shared health check for NestJS services
+x-service-healthcheck: &service-healthcheck
+  healthcheck:
+    test:
+      - CMD
+      - wget
+      - -qO-
+      - http://localhost:3000/api/v1/health/live
+    interval: 30s
+    timeout: 10s
+    retries: 3
+    start_period: 90s
+
+# Shared dependency condition (all services wait for infra)
+x-infra-deps: &infra-deps
+  depends_on:
+    mongodb:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+    mongo-init:
+      condition: service_completed_successfully
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Networks
+# ─────────────────────────────────────────────────────────────────────────────
+networks:
+  # Internal: all backend services and infra communicate here (no internet access)
+  nexoraa-internal:
+    driver: bridge
+    name: nexoraa-internal-prod
+    internal: true   # no outbound internet from this network
+
+  # Public: only nginx lives here (internet-facing)
+  nexoraa-public:
+    driver: bridge
+    name: nexoraa-public-prod
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Named volumes (persisted, survives container replacements)
+# ─────────────────────────────────────────────────────────────────────────────
+volumes:
+  mongodb-data:
+    name: nexoraa-mongodb-data-prod
+  mongodb-config:
+    name: nexoraa-mongodb-config-prod
+  mongodb-logs:
+    name: nexoraa-mongodb-logs-prod
+  redis-data:
+    name: nexoraa-redis-data-prod
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Services
+# ─────────────────────────────────────────────────────────────────────────────
+services:
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # INFRASTRUCTURE
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # MongoDB — single-node replica set with auth
+  # ───────────────────────────────────────────────────────────────────────────
+  mongodb:
+    <<: *always-restart
+    image: mongo:8.0
+    command: mongod --config /etc/mongod.conf
+    volumes:
+      - mongodb-data:/data/db
+      - mongodb-config:/data/configdb
+      - mongodb-logs:/var/log/mongodb
+      - ./docker/mongodb/mongod.conf:/etc/mongod.conf:ro
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGODB_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGODB_ROOT_PASSWORD}
+      MONGO_INITDB_DATABASE: ${MONGODB_DATABASE:-nexoraa_prod}
+    networks:
+      - nexoraa-internal
+    logging: *prod-logging
+    mem_limit: 1g
+    mem_reservation: 256m
+    cpus: "1.0"
+    healthcheck:
+      test:
+        - CMD
+        - mongosh
+        - --authenticationDatabase
+        - admin
+        - --username
+        - ${MONGODB_ROOT_USERNAME}
+        - --password
+        - ${MONGODB_ROOT_PASSWORD}
+        - --eval
+        - "db.adminCommand('ping').ok === 1 ? 0 : quit(1)"
+        - --quiet
+      interval: 15s
+      timeout: 10s
+      retries: 6
+      start_period: 45s
+    # !! No ports exposed — MongoDB is NOT reachable from outside Docker in prod
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # mongo-init — initialise replica set on first boot
+  # ───────────────────────────────────────────────────────────────────────────
+  mongo-init:
+    image: mongo:8.0
+    restart: "no"
+    environment:
+      MONGO_HOST: mongodb
+      MONGO_PORT: "27017"
+      REPLICA_SET: rs0
+      MONGO_INITDB_ROOT_USERNAME: ${MONGODB_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGODB_ROOT_PASSWORD}
+    volumes:
+      - ./docker/mongodb/init-replica.sh:/init-replica.sh:ro
+    command: bash /init-replica.sh
+    networks:
+      - nexoraa-internal
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    logging: *prod-logging
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Redis — session store, BullMQ queues, distributed cache
+  # ───────────────────────────────────────────────────────────────────────────
+  redis:
+    <<: *always-restart
+    image: redis:8.0-alpine
+    # Pass the password from the environment so redis.conf placeholder is overridden
+    command: >
+      sh -c "sed 's/CHANGE_ME_REDIS_PASSWORD/${REDIS_PASSWORD}/g'
+             /usr/local/etc/redis/redis.conf > /tmp/redis-runtime.conf
+             && redis-server /tmp/redis-runtime.conf"
+    volumes:
+      - redis-data:/data
+      - ./docker/redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
+    networks:
+      - nexoraa-internal
+    logging: *prod-logging
+    mem_limit: 768m
+    mem_reservation: 128m
+    cpus: "0.5"
+    healthcheck:
+      test:
+        - CMD
+        - redis-cli
+        - -a
+        - ${REDIS_PASSWORD}
+        - ping
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    # !! No ports exposed — Redis is NOT reachable from outside Docker in prod
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # NGINX — Public-facing reverse proxy
+  # The ONLY container with ports exposed to the host / internet.
+  # ═══════════════════════════════════════════════════════════════════════════
+  nginx:
+    <<: *always-restart
+    build:
+      context: .
+      dockerfile: docker/nginx/Dockerfile
+    ports:
+      - '${NGINX_HTTP_PORT:-80}:80'
+      - '${NGINX_HTTPS_PORT:-443}:443'
+    networks:
+      - nexoraa-internal   # talk to api-gateway
+      - nexoraa-public     # face the internet
+    logging: *prod-logging
+    mem_limit: 128m
+    mem_reservation: 32m
+    cpus: "0.25"
+    depends_on:
+      api-gateway:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - wget
+        - -qO-
+        - http://localhost/api/v1/health/live
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # BACKEND MICROSERVICES
+  # All services listen on port 3000 within their containers.
+  # No host port bindings — traffic enters exclusively through nginx → api-gateway.
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # API Gateway — primary HTTP entry point
+  # ───────────────────────────────────────────────────────────────────────────
+  api-gateway:
+    <<: [*always-restart, *service-resources, *service-healthcheck, *infra-deps]
+    image: nexoraa/api-gateway:${TAG:-latest}
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile
+      args:
+        SERVICE: api-gateway
+    environment:
+      <<: *backend-base-env
+      APP_NAME: Nexoraa CleanSoft
+      PORT: "3000"
+      HOST: 0.0.0.0
+      API_PREFIX: api
+      API_VERSION: v1
+      SERVICE_NAME: api-gateway
+      JWT_ISSUER: ${JWT_ISSUER}
+      JWT_AUDIENCE: ${JWT_AUDIENCE}
+      JWT_ACCESS_TOKEN_SECRET: ${JWT_ACCESS_TOKEN_SECRET}
+      JWT_REFRESH_TOKEN_SECRET: ${JWT_REFRESH_TOKEN_SECRET}
+      JWT_ACCESS_TOKEN_TTL_SECONDS: ${JWT_ACCESS_TOKEN_TTL_SECONDS:-900}
+      JWT_REFRESH_TOKEN_TTL_SECONDS: ${JWT_REFRESH_TOKEN_TTL_SECONDS:-2592000}
+      AUTH_LOGIN_MAX_ATTEMPTS: ${AUTH_LOGIN_MAX_ATTEMPTS:-5}
+      AUTH_LOCKOUT_SECONDS: ${AUTH_LOCKOUT_SECONDS:-900}
+      AUTH_OTP_TTL_SECONDS: ${AUTH_OTP_TTL_SECONDS:-300}
+      AUTH_OTP_MAX_ATTEMPTS: ${AUTH_OTP_MAX_ATTEMPTS:-3}
+      AUTH_MAX_ACTIVE_SESSIONS: ${AUTH_MAX_ACTIVE_SESSIONS:-5}
+      AUTH_ALLOW_MULTI_DEVICE: ${AUTH_ALLOW_MULTI_DEVICE:-true}
+    networks:
+      - nexoraa-internal
+    logging: *prod-logging
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Auth Service
+  # ───────────────────────────────────────────────────────────────────────────
+  auth-service:
+    <<: [*always-restart, *service-resources, *service-healthcheck, *infra-deps]
+    image: nexoraa/auth-service:${TAG:-latest}
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile
+      args:
+        SERVICE: auth-service
+    environment:
+      <<: *backend-base-env
+      PORT: "3000"
+      SERVICE_NAME: auth-service
+    networks:
+      - nexoraa-internal
+    logging: *prod-logging
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Tenant Service
+  # ───────────────────────────────────────────────────────────────────────────
+  tenant-service:
+    <<: [*always-restart, *service-resources, *service-healthcheck, *infra-deps]
+    image: nexoraa/tenant-service:${TAG:-latest}
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile
+      args:
+        SERVICE: tenant-service
+    environment:
+      <<: *backend-base-env
+      PORT: "3000"
+      SERVICE_NAME: tenant-service
+    networks:
+      - nexoraa-internal
+    logging: *prod-logging
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Branch Service
+  # ───────────────────────────────────────────────────────────────────────────
+  branch-service:
+    <<: [*always-restart, *service-resources, *service-healthcheck, *infra-deps]
+    image: nexoraa/branch-service:${TAG:-latest}
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile
+      args:
+        SERVICE: branch-service
+    environment:
+      <<: *backend-base-env
+      PORT: "3000"
+      SERVICE_NAME: branch-service
+    networks:
+      - nexoraa-internal
+    logging: *prod-logging
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # User Service
+  # ───────────────────────────────────────────────────────────────────────────
+  user-service:
+    <<: [*always-restart, *service-resources, *service-healthcheck, *infra-deps]
+    image: nexoraa/user-service:${TAG:-latest}
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile
+      args:
+        SERVICE: user-service
+    environment:
+      <<: *backend-base-env
+      PORT: "3000"
+      SERVICE_NAME: user-service
+    networks:
+      - nexoraa-internal
+    logging: *prod-logging
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Customer Service
+  # ───────────────────────────────────────────────────────────────────────────
+  customer-service:
+    <<: [*always-restart, *service-resources, *service-healthcheck, *infra-deps]
+    image: nexoraa/customer-service:${TAG:-latest}
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile
+      args:
+        SERVICE: customer-service
+    environment:
+      <<: *backend-base-env
+      PORT: "3000"
+      SERVICE_NAME: customer-service
+    networks:
+      - nexoraa-internal
+    logging: *prod-logging
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Service Service (service catalog)
+  # ───────────────────────────────────────────────────────────────────────────
+  service-service:
+    <<: [*always-restart, *service-resources, *service-healthcheck, *infra-deps]
+    image: nexoraa/service-service:${TAG:-latest}
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile
+      args:
+        SERVICE: service-service
+    environment:
+      <<: *backend-base-env
+      PORT: "3000"
+      SERVICE_NAME: service-service
+    networks:
+      - nexoraa-internal
+    logging: *prod-logging
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Order Service
+  # ───────────────────────────────────────────────────────────────────────────
+  order-service:
+    <<: [*always-restart, *service-resources, *service-healthcheck, *infra-deps]
+    image: nexoraa/order-service:${TAG:-latest}
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile
+      args:
+        SERVICE: order-service
+    environment:
+      <<: *backend-base-env
+      PORT: "3000"
+      SERVICE_NAME: order-service
+    networks:
+      - nexoraa-internal
+    logging: *prod-logging
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Payment Service
+  # ───────────────────────────────────────────────────────────────────────────
+  payment-service:
+    <<: [*always-restart, *service-resources, *service-healthcheck, *infra-deps]
+    image: nexoraa/payment-service:${TAG:-latest}
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile
+      args:
+        SERVICE: payment-service
+    environment:
+      <<: *backend-base-env
+      PORT: "3000"
+      SERVICE_NAME: payment-service
+    networks:
+      - nexoraa-internal
+    logging: *prod-logging
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Expense Service
+  # ───────────────────────────────────────────────────────────────────────────
+  expense-service:
+    <<: [*always-restart, *service-resources, *service-healthcheck, *infra-deps]
+    image: nexoraa/expense-service:${TAG:-latest}
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile
+      args:
+        SERVICE: expense-service
+    environment:
+      <<: *backend-base-env
+      PORT: "3000"
+      SERVICE_NAME: expense-service
+    networks:
+      - nexoraa-internal
+    logging: *prod-logging
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Notification Service
+  # ───────────────────────────────────────────────────────────────────────────
+  notification-service:
+    <<: [*always-restart, *service-resources, *service-healthcheck, *infra-deps]
+    image: nexoraa/notification-service:${TAG:-latest}
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile
+      args:
+        SERVICE: notification-service
+    environment:
+      <<: *backend-base-env
+      PORT: "3000"
+      SERVICE_NAME: notification-service
+    networks:
+      - nexoraa-internal
+    logging: *prod-logging
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Scheduler Service
+  # ───────────────────────────────────────────────────────────────────────────
+  scheduler-service:
+    <<: [*always-restart, *service-resources, *service-healthcheck, *infra-deps]
+    image: nexoraa/scheduler-service:${TAG:-latest}
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile
+      args:
+        SERVICE: scheduler-service
+    environment:
+      <<: *backend-base-env
+      PORT: "3000"
+      SERVICE_NAME: scheduler-service
+    networks:
+      - nexoraa-internal
+    logging: *prod-logging
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Report Service
+  # ───────────────────────────────────────────────────────────────────────────
+  report-service:
+    <<: [*always-restart, *service-resources, *service-healthcheck, *infra-deps]
+    image: nexoraa/report-service:${TAG:-latest}
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile
+      args:
+        SERVICE: report-service
+    environment:
+      <<: *backend-base-env
+      PORT: "3000"
+      SERVICE_NAME: report-service
+    networks:
+      - nexoraa-internal
+    logging: *prod-logging
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Audit Service
+  # ───────────────────────────────────────────────────────────────────────────
+  audit-service:
+    <<: [*always-restart, *service-resources, *service-healthcheck, *infra-deps]
+    image: nexoraa/audit-service:${TAG:-latest}
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile
+      args:
+        SERVICE: audit-service
+    environment:
+      <<: *backend-base-env
+      PORT: "3000"
+      SERVICE_NAME: audit-service
+    networks:
+      - nexoraa-internal
+    logging: *prod-logging
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Search Service
+  # ───────────────────────────────────────────────────────────────────────────
+  search-service:
+    <<: [*always-restart, *service-resources, *service-healthcheck, *infra-deps]
+    image: nexoraa/search-service:${TAG:-latest}
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile
+      args:
+        SERVICE: search-service
+    environment:
+      <<: *backend-base-env
+      PORT: "3000"
+      SERVICE_NAME: search-service
+    networks:
+      - nexoraa-internal
+    logging: *prod-logging

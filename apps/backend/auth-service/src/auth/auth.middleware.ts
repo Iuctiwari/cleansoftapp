@@ -1,5 +1,4 @@
 import { randomUUID } from 'node:crypto';
-
 import { Injectable, type NestMiddleware } from '@nestjs/common';
 
 import { PlatformError } from '../platform/platform.errors';
@@ -16,11 +15,11 @@ type NextFunction = () => void;
 export class AuthenticationContextMiddleware implements NestMiddleware {
   constructor(private readonly authService: AuthService) {}
 
-  use(
+  async use(
     request: RequestWithPlatformContext,
     _response: MiddlewareResponse,
     next: NextFunction,
-  ): void | Promise<void> {
+  ): Promise<void> {
     const authorization = request.headers.authorization ?? request.headers.Authorization;
     const rawHeader = Array.isArray(authorization) ? authorization[0] : authorization;
     if (!rawHeader) {
@@ -42,18 +41,20 @@ export class AuthenticationContextMiddleware implements NestMiddleware {
       request.correlationId ??
       this.resolveHeaderValue(request.headers['x-correlation-id']) ??
       requestId;
-    return this.authService
-      .authenticateAccessToken(token, {
+
+    try {
+      const resolution = await this.authService.authenticateAccessToken(token, {
         correlationId,
         causationId: requestId,
         requestId,
         ipAddress: this.resolveHeaderValue(request.headers['x-forwarded-for']) ?? undefined,
         userAgent: this.resolveHeaderValue(request.headers['user-agent']) ?? undefined,
-      })
-      .then((resolution) => {
-        request.trustedContext = resolution.principal.context;
-        next();
       });
+      request.trustedContext = resolution.principal.context;
+      next();
+    } catch (err) {
+      throw err;
+    }
   }
 
   private resolveHeaderValue(value: string | string[] | undefined): string | undefined {

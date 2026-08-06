@@ -1,6 +1,6 @@
 import { createHmac, randomBytes, randomUUID, scryptSync, timingSafeEqual } from 'node:crypto';
 
-import { PlatformError } from '../platform/platform.errors';
+import { RpcException } from '@nestjs/microservices';
 import type {
   AuthAccessTokenClaims,
   AuthRefreshTokenClaims,
@@ -117,7 +117,7 @@ export function verifyToken<TClaims>(
 ): SignedTokenEnvelope<TClaims> {
   const parts = token.split('.');
   if (parts.length !== 3) {
-    throw new PlatformError({
+    throw new RpcException({
       code: 'auth.token_invalid',
       category: 'unauthenticated',
       messageKey: 'errors.auth.token_invalid',
@@ -129,7 +129,7 @@ export function verifyToken<TClaims>(
     .update(`${encodedHeader}.${encodedPayload}`)
     .digest('base64url');
   if (!secureEqual(signature, expectedSignature)) {
-    throw new PlatformError({
+    throw new RpcException({
       code: 'auth.token_invalid',
       category: 'unauthenticated',
       messageKey: 'errors.auth.token_invalid',
@@ -142,7 +142,7 @@ export function verifyToken<TClaims>(
     header = JSON.parse(base64UrlDecode(encodedHeader)) as JwtHeader;
     payload = JSON.parse(base64UrlDecode(encodedPayload)) as SignedTokenEnvelope<TClaims>;
   } catch {
-    throw new PlatformError({
+    throw new RpcException({
       code: 'auth.token_invalid',
       category: 'unauthenticated',
       messageKey: 'errors.auth.token_invalid',
@@ -150,7 +150,7 @@ export function verifyToken<TClaims>(
   }
 
   if (header.alg !== 'HS256' || header.typ !== 'JWT' || payload.tokenKind !== expectedKind) {
-    throw new PlatformError({
+    throw new RpcException({
       code: 'auth.token_invalid',
       category: 'unauthenticated',
       messageKey: 'errors.auth.token_invalid',
@@ -159,7 +159,7 @@ export function verifyToken<TClaims>(
 
   const epochSeconds = Math.floor(now.getTime() / 1000);
   if (payload.expiresAt <= epochSeconds) {
-    throw new PlatformError({
+    throw new RpcException({
       code: 'auth.token_expired',
       category: 'unauthenticated',
       messageKey: 'errors.auth.token_expired',

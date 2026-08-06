@@ -11,7 +11,7 @@ export class TenantMongoose extends Document {
   tenantId!: string;
 
   @Prop({ required: true, unique: true, index: true })
-  tenantSlug!: string;
+  slug!: string;
 
   @Prop({ required: true })
   businessName!: string;
@@ -19,8 +19,16 @@ export class TenantMongoose extends Document {
   @Prop({
     required: true,
     enum: [
-      'laundry', 'dry_cleaning', 'tailoring', 'shoe_cleaning',
-      'appliance_repair', 'mobile_repair', 'vehicle_wash', 'salon', 'general', 'custom',
+      'laundry',
+      'dry_cleaning',
+      'tailoring',
+      'shoe_cleaning',
+      'appliance_repair',
+      'mobile_repair',
+      'vehicle_wash',
+      'salon',
+      'general',
+      'custom',
     ],
   })
   businessType!: string;
@@ -46,14 +54,18 @@ export class TenantMongoose extends Document {
   @Prop({ required: true })
   subscriptionPlanId!: string;
 
-  @Prop({ required: true, enum: ['active', 'pending', 'disabled'], index: true })
+  @Prop({
+    required: true,
+    enum: ['PendingVerification', 'Active', 'Suspended', 'Cancelled'],
+    index: true,
+  })
   status!: string;
 
   @Prop({ required: true })
-  createdAtUtc!: string;
+  createdAt!: string;
 
   @Prop({ required: true })
-  updatedAtUtc!: string;
+  updatedAt!: string;
 }
 
 export const TenantMongooseSchema = SchemaFactory.createForClass(TenantMongoose);
@@ -71,7 +83,7 @@ export class TenantOwnerMongoose extends Document {
   tenantId!: string;
 
   @Prop({ required: true })
-  tenantSlug!: string;
+  slug!: string;
 
   @Prop({ required: true })
   tenantName!: string;
@@ -101,7 +113,7 @@ export class TenantOwnerMongoose extends Document {
   accessVersion!: number;
 
   @Prop({ required: true })
-  createdAtUtc!: string;
+  createdAt!: string;
 }
 
 export const TenantOwnerMongooseSchema = SchemaFactory.createForClass(TenantOwnerMongoose);
@@ -149,10 +161,10 @@ export class BranchMongoose extends Document {
   status!: string;
 
   @Prop({ required: true })
-  createdAtUtc!: string;
+  createdAt!: string;
 
   @Prop({ required: true })
-  updatedAtUtc!: string;
+  updatedAt!: string;
 }
 
 export const BranchMongooseSchema = SchemaFactory.createForClass(BranchMongoose);
@@ -172,8 +184,16 @@ export class TenantServiceMongoose extends Document {
   @Prop({
     required: true,
     enum: [
-      'laundry', 'dry_cleaning', 'tailoring', 'shoe_cleaning',
-      'appliance_repair', 'mobile_repair', 'vehicle_wash', 'salon', 'general', 'custom',
+      'laundry',
+      'dry_cleaning',
+      'tailoring',
+      'shoe_cleaning',
+      'appliance_repair',
+      'mobile_repair',
+      'vehicle_wash',
+      'salon',
+      'general',
+      'custom',
     ],
   })
   serviceType!: string;
@@ -182,7 +202,7 @@ export class TenantServiceMongoose extends Document {
   isEnabled!: boolean;
 
   @Prop({ required: true })
-  createdAtUtc!: string;
+  createdAt!: string;
 }
 
 export const TenantServiceMongooseSchema = SchemaFactory.createForClass(TenantServiceMongoose);

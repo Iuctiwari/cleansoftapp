@@ -6,7 +6,9 @@ import { createHash, randomBytes } from 'node:crypto';
  */
 export function hashPassword(password: string): string {
   const salt = 'nexoraa-tenant-v1';
-  return createHash('sha256').update(salt + password).digest('hex');
+  return createHash('sha256')
+    .update(salt + password)
+    .digest('hex');
 }
 
 /**

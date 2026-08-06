@@ -3,8 +3,8 @@ import { randomUUID } from 'node:crypto';
 import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
-import { AuditService } from '../audit/audit.service';
-import { PlatformError } from '../platform/platform.errors';
+import { ClientProxy } from '@nestjs/microservices';
+import { RpcException } from '@nestjs/microservices';
 import { TrustedContextFactory } from '../platform/platform.context';
 import type { PlatformContext, TenantContext, TrustedContext } from '../platform/platform.types';
 import {
@@ -86,7 +86,7 @@ function assertStrongPassword(password: string): void {
     .filter((check) => !check.ok)
     .map((check) => ({ field: check.field, code: check.code }));
   if (failures.length > 0) {
-    throw new PlatformError({
+    throw new RpcException({
       code: 'auth.password_policy_failed',
       category: 'validation',
       messageKey: 'errors.auth.password_policy_failed',
@@ -118,7 +118,7 @@ export class AuthService {
 
   constructor(
     @Inject(AUTH_REPOSITORY) private readonly authRepository: AuthRepository,
-    private readonly auditService: AuditService,
+    @Inject('AUDIT_CLIENT') private readonly auditClient: ClientProxy,
     private readonly configService: ConfigService,
     private readonly trustedContextFactory: TrustedContextFactory,
   ) {
@@ -165,7 +165,7 @@ export class AuthService {
       !verifyPassword(input.password, identity.passwordHash)
     ) {
       await this.recordLoginFailure(trackerKey, input, identity);
-      throw new PlatformError({
+      throw new RpcException({
         code: 'auth.login_denied',
         category: 'unauthenticated',
         messageKey: 'errors.auth.login_denied',
@@ -229,7 +229,7 @@ export class AuthService {
       now: issuedAt,
     });
 
-    await this.auditService.recordAudit({
+    this.auditClient.emit('audit.log', {
       sourceObligation: `auth:login:${session.sessionId}`,
       idempotencyKey: `auth:login:${session.sessionId}`,
       module: 'auth',
@@ -294,7 +294,7 @@ export class AuthService {
     );
     const session = await this.authRepository.findSessionById(envelope.claims.sessionId);
     if (!session) {
-      throw new PlatformError({
+      throw new RpcException({
         code: 'auth.session_expired',
         category: 'unauthenticated',
         messageKey: 'errors.auth.session_expired',
@@ -302,7 +302,7 @@ export class AuthService {
     }
 
     if (session.revokedAtUtc) {
-      throw new PlatformError({
+      throw new RpcException({
         code: 'auth.session_revoked',
         category: 'unauthenticated',
         messageKey: 'errors.auth.session_revoked',
@@ -320,8 +320,8 @@ export class AuthService {
         'refresh_token_reuse_detected',
         revokedAtUtc,
       );
-      await this.recordSecurityEvent('refresh_token_reuse_detected', session, input.metadata);
-      throw new PlatformError({
+      this.recordSecurityEvent('refresh_token_reuse_detected', session, input.metadata);
+      throw new RpcException({
         code: 'auth.refresh_reuse_detected',
         category: 'unauthenticated',
         messageKey: 'errors.auth.refresh_reuse_detected',
@@ -366,7 +366,7 @@ export class AuthService {
       now: issuedAt,
     });
 
-    await this.auditService.recordAudit({
+    this.auditClient.emit('audit.log', {
       sourceObligation: `auth:refresh:${updatedSession.sessionId}:${issuedAt.toISOString()}`,
       idempotencyKey: `auth:refresh:${updatedSession.sessionId}:${rotated.envelope.issuedAt}`,
       module: 'auth',
@@ -394,7 +394,7 @@ export class AuthService {
   async logout(input: AuthLogoutInput): Promise<AuthAcknowledgement> {
     const sessionId = input.context.sessionId;
     if (!sessionId) {
-      throw new PlatformError({
+      throw new RpcException({
         code: 'auth.session_missing',
         category: 'validation',
         messageKey: 'errors.auth.session_missing',
@@ -408,7 +408,7 @@ export class AuthService {
         revokedAtUtc: new Date().toISOString(),
         revokedReason: 'logout',
       });
-      await this.recordSecurityEvent('logout', session, input.metadata);
+      this.recordSecurityEvent('logout', session, input.metadata);
     }
 
     return toAcknowledgement();
@@ -422,7 +422,7 @@ export class AuthService {
       input.exceptSessionId,
     );
     for (const session of revoked) {
-      await this.recordSecurityEvent('logout_all', session, input.metadata);
+      this.recordSecurityEvent('logout_all', session, input.metadata);
     }
 
     return toAcknowledgement();
@@ -469,7 +469,7 @@ export class AuthService {
       payload: { otp, tenantSlug: identity.tenantSlug ?? 'platform' },
       createdAtUtc: now.toISOString(),
     });
-    await this.recordSecurityEvent(
+    this.recordSecurityEvent(
       'forgot_password_requested',
       this.toSyntheticSession(identity),
       input.metadata,
@@ -497,7 +497,7 @@ export class AuthService {
     );
 
     if (!identity || !reset || reset.consumed || reset.expiresAtUtc <= new Date().toISOString()) {
-      throw new PlatformError({
+      throw new RpcException({
         code: 'auth.reset_invalid',
         category: 'validation',
         messageKey: 'errors.auth.reset_invalid',
@@ -505,7 +505,7 @@ export class AuthService {
     }
 
     if (reset.attempts >= this.configuration.otpMaxAttempts) {
-      throw new PlatformError({
+      throw new RpcException({
         code: 'auth.reset_attempts_exceeded',
         category: 'rate_limit',
         messageKey: 'errors.auth.reset_attempts_exceeded',
@@ -518,7 +518,7 @@ export class AuthService {
         ...reset,
         attempts: reset.attempts + 1,
       });
-      throw new PlatformError({
+      throw new RpcException({
         code: 'auth.reset_invalid',
         category: 'validation',
         messageKey: 'errors.auth.reset_invalid',
@@ -540,11 +540,7 @@ export class AuthService {
       'password_reset',
       new Date().toISOString(),
     );
-    await this.recordSecurityEvent(
-      'password_reset',
-      this.toSyntheticSession(identity),
-      input.metadata,
-    );
+    this.recordSecurityEvent('password_reset', this.toSyntheticSession(identity), input.metadata);
 
     return toAcknowledgement();
   }
@@ -553,7 +549,7 @@ export class AuthService {
     assertStrongPassword(input.newPassword);
     const identity = await this.loadIdentityForContext(input.context);
     if (!verifyPassword(input.currentPassword, identity.passwordHash)) {
-      throw new PlatformError({
+      throw new RpcException({
         code: 'auth.current_password_invalid',
         category: 'validation',
         messageKey: 'errors.auth.current_password_invalid',
@@ -581,11 +577,7 @@ export class AuthService {
         });
       }
     }
-    await this.recordSecurityEvent(
-      'password_changed',
-      this.toSyntheticSession(identity),
-      input.metadata,
-    );
+    this.recordSecurityEvent('password_changed', this.toSyntheticSession(identity), input.metadata);
 
     return toAcknowledgement();
   }
@@ -601,7 +593,7 @@ export class AuthService {
     );
     const session = await this.authRepository.findSessionById(envelope.claims.sessionId);
     if (!session || session.revokedAtUtc || session.expiresAtUtc <= new Date().toISOString()) {
-      throw new PlatformError({
+      throw new RpcException({
         code: 'auth.session_expired',
         category: 'unauthenticated',
         messageKey: 'errors.auth.session_expired',
@@ -620,7 +612,7 @@ export class AuthService {
 
   private assertTenantLoginInput(context: 'platform' | 'tenant', tenantSlug?: string): void {
     if (context === 'tenant' && (!tenantSlug || tenantSlug.trim().length === 0)) {
-      throw new PlatformError({
+      throw new RpcException({
         code: 'auth.tenant_slug_required',
         category: 'validation',
         messageKey: 'errors.auth.tenant_slug_required',
@@ -632,7 +624,7 @@ export class AuthService {
   private async assertTrackerAllowsLogin(trackerKey: string): Promise<void> {
     const tracker = await this.authRepository.getLoginTracker(trackerKey);
     if (tracker?.lockedUntilUtc && tracker.lockedUntilUtc > new Date().toISOString()) {
-      throw new PlatformError({
+      throw new RpcException({
         code: 'auth.login_temporarily_blocked',
         category: 'rate_limit',
         messageKey: 'errors.auth.login_temporarily_blocked',
@@ -658,7 +650,7 @@ export class AuthService {
       updatedAtUtc: now.toISOString(),
     });
 
-    await this.auditService.recordAudit({
+    this.auditClient.emit('audit.log', {
       sourceObligation: `auth:login_failure:${trackerKey}:${failedAttempts}`,
       idempotencyKey: `auth:login_failure:${trackerKey}:${failedAttempts}`,
       module: 'auth',
@@ -697,7 +689,7 @@ export class AuthService {
     }
 
     if (identity.branches.length === 0) {
-      throw new PlatformError({
+      throw new RpcException({
         code: 'auth.branch_unavailable',
         category: 'forbidden',
         messageKey: 'errors.auth.branch_unavailable',
@@ -715,7 +707,7 @@ export class AuthService {
       (candidate) => candidate.branchCode.toLowerCase() === branchCode.trim().toLowerCase(),
     );
     if (!branch) {
-      throw new PlatformError({
+      throw new RpcException({
         code: 'auth.branch_unavailable',
         category: 'forbidden',
         messageKey: 'errors.auth.branch_unavailable',
@@ -877,7 +869,7 @@ export class AuthService {
       return identity;
     }
 
-    throw new PlatformError({
+    throw new RpcException({
       code: 'auth.identity_not_found',
       category: 'not_found',
       messageKey: 'errors.auth.identity_not_found',
@@ -908,12 +900,12 @@ export class AuthService {
     };
   }
 
-  private async recordSecurityEvent(
+  private recordSecurityEvent(
     action: string,
     session: AuthSessionRecord,
     metadata: AuthRequestMetadata,
-  ): Promise<void> {
-    await this.auditService.recordAudit({
+  ): void {
+    this.auditClient.emit('audit.log', {
       sourceObligation: `auth:${action}:${session.sessionId}:${metadata.requestId}`,
       idempotencyKey: `auth:${action}:${session.sessionId}:${metadata.requestId}`,
       module: 'auth',

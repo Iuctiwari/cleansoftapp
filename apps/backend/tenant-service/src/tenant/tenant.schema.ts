@@ -60,10 +60,7 @@ export const BranchSchema = {
     createdAtUtc: 'utc-iso',
     updatedAtUtc: 'utc-iso',
   },
-  indexes: [
-    { branchId: 1, unique: true },
-    { tenantId: 1 },
-  ],
+  indexes: [{ branchId: 1, unique: true }, { tenantId: 1 }],
 } as const;
 
 export const TenantServiceSchema = {
@@ -86,10 +83,7 @@ export const TenantServiceSchema = {
     isEnabled: 'boolean',
     createdAtUtc: 'utc-iso',
   },
-  indexes: [
-    { tenantServiceId: 1, unique: true },
-    { tenantId: 1 },
-  ],
+  indexes: [{ tenantServiceId: 1, unique: true }, { tenantId: 1 }],
 } as const;
 
 export const TenantOwnerSchema = {
@@ -109,9 +103,5 @@ export const TenantOwnerSchema = {
     accessVersion: 'number',
     createdAtUtc: 'utc-iso',
   },
-  indexes: [
-    { userId: 1, unique: true },
-    { email: 1, unique: true },
-    { tenantId: 1 },
-  ],
+  indexes: [{ userId: 1, unique: true }, { email: 1, unique: true }, { tenantId: 1 }],
 } as const;

@@ -37,20 +37,32 @@ export class ScheduleJobDto {
   @Min(0)
   readonly priority = 0;
 
-  @ApiPropertyOptional({ description: 'Delay in milliseconds before the job is eligible for processing', default: 0, minimum: 0 })
+  @ApiPropertyOptional({
+    description: 'Delay in milliseconds before the job is eligible for processing',
+    default: 0,
+    minimum: 0,
+  })
   @Type(() => Number)
   @IsInt()
   @Min(0)
   readonly delayMs = 0;
 
-  @ApiPropertyOptional({ description: 'Maximum number of retry attempts', default: 3, minimum: 1, maximum: 10 })
+  @ApiPropertyOptional({
+    description: 'Maximum number of retry attempts',
+    default: 3,
+    minimum: 1,
+    maximum: 10,
+  })
   @Type(() => Number)
   @IsInt()
   @Min(1)
   @Max(10)
   readonly maxAttempts = 3;
 
-  @ApiProperty({ description: 'Client-supplied idempotency key — safe to retry if duplicate', example: 'job-send-receipt-order-42' })
+  @ApiProperty({
+    description: 'Client-supplied idempotency key — safe to retry if duplicate',
+    example: 'job-send-receipt-order-42',
+  })
   @IsString()
   @IsNotEmpty()
   readonly idempotencyKey!: string;

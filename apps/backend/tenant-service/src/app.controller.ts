@@ -4,7 +4,7 @@ import { AppHealth, type HealthResponse } from './app.service';
 
 @Controller()
 export class AppController {
-  constructor(private readonly appHealth: AppHealth) { }
+  constructor(private readonly appHealth: AppHealth) {}
 
   @Get()
   getRoot(): HealthResponse {

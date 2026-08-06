@@ -39,7 +39,7 @@ export class MongoTenantRepository implements TenantRepository {
   }
 
   async findBySlug(slug: string): Promise<TenantRecord | null> {
-    const doc = await this.tenantModel.findOne({ tenantSlug: slug }).lean().exec();
+    const doc = await this.tenantModel.findOne({ slug }).lean().exec();
     if (!doc) return null;
     return this.mapTenant(doc);
   }
@@ -57,9 +57,7 @@ export class MongoTenantRepository implements TenantRepository {
 
   async updateStatus(tenantId: string, status: TenantStatus): Promise<void> {
     const now = new Date().toISOString();
-    await this.tenantModel
-      .updateOne({ tenantId }, { $set: { status, updatedAtUtc: now } })
-      .exec();
+    await this.tenantModel.updateOne({ tenantId }, { $set: { status, updatedAt: now } }).exec();
   }
 
   async createTenant(
@@ -79,7 +77,7 @@ export class MongoTenantRepository implements TenantRepository {
 
     return {
       tenantId: tenant.tenantId,
-      tenantSlug: tenant.tenantSlug,
+      slug: tenant.slug,
       ownerUserId: owner.userId,
       businessName: tenant.businessName,
       message: 'Account created successfully',
@@ -91,7 +89,7 @@ export class MongoTenantRepository implements TenantRepository {
   private mapTenant(doc: Record<string, unknown>): TenantRecord {
     return {
       tenantId: doc.tenantId as string,
-      tenantSlug: doc.tenantSlug as string,
+      slug: doc.slug as string,
       businessName: doc.businessName as string,
       businessType: doc.businessType as TenantRecord['businessType'],
       ownerName: doc.ownerName as string,
@@ -102,8 +100,8 @@ export class MongoTenantRepository implements TenantRepository {
       defaultTaxPct: doc.defaultTaxPct as number,
       subscriptionPlanId: doc.subscriptionPlanId as string,
       status: doc.status as TenantRecord['status'],
-      createdAtUtc: doc.createdAtUtc as string,
-      updatedAtUtc: doc.updatedAtUtc as string,
+      createdAt: doc.createdAt as string,
+      updatedAt: doc.updatedAt as string,
     };
   }
 
@@ -111,7 +109,7 @@ export class MongoTenantRepository implements TenantRepository {
     return {
       userId: doc.userId as string,
       tenantId: doc.tenantId as string,
-      tenantSlug: doc.tenantSlug as string,
+      slug: doc.slug as string,
       tenantName: doc.tenantName as string,
       displayName: doc.displayName as string,
       email: doc.email as string,
@@ -121,7 +119,7 @@ export class MongoTenantRepository implements TenantRepository {
       permissions: (doc.permissions as string[]) ?? [],
       status: doc.status as TenantOwnerRecord['status'],
       accessVersion: doc.accessVersion as number,
-      createdAtUtc: doc.createdAtUtc as string,
+      createdAt: doc.createdAt as string,
     };
   }
 
@@ -139,8 +137,8 @@ export class MongoTenantRepository implements TenantRepository {
       email: doc.email as string,
       isHeadOffice: doc.isHeadOffice as boolean,
       status: doc.status as BranchRecord['status'],
-      createdAtUtc: doc.createdAtUtc as string,
-      updatedAtUtc: doc.updatedAtUtc as string,
+      createdAt: doc.createdAt as string,
+      updatedAt: doc.updatedAt as string,
     };
   }
 }

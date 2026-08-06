@@ -23,7 +23,11 @@
     "typecheck:backend": "pnpm --filter @nexoraa/config build && pnpm --filter @nexoraa/database build && pnpm --filter @nexoraa/swagger build && pnpm --filter \"./apps/backend/**\" --recursive typecheck",
     "verify": "pnpm format:check && pnpm verify:shared && pnpm lint:backend && pnpm typecheck:backend && pnpm build:backend",
     "verify:shared": "pnpm --filter @nexoraa/common --filter @nexoraa/shared --filter @nexoraa/utils --filter @nexoraa/constants --filter @nexoraa/config --filter @nexoraa/types --recursive build && pnpm --filter @nexoraa/common --filter @nexoraa/shared --filter @nexoraa/utils --filter @nexoraa/constants --filter @nexoraa/config --filter @nexoraa/types --recursive lint && pnpm --filter @nexoraa/common --filter @nexoraa/shared --filter @nexoraa/utils --filter @nexoraa/constants --filter @nexoraa/config --filter @nexoraa/types --recursive typecheck",
-    "tree": "node scripts/generate-tree.mjs"
+    "tree": "node scripts/generate-tree.mjs",
+    "docker:dev": "docker compose up -d",
+    "docker:dev:all": "docker compose --profile services up -d",
+    "docker:prod:build": "docker compose -f docker-compose.prod.yml build",
+    "docker:prod": "docker compose -f docker-compose.prod.yml --env-file .env.production up -d"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

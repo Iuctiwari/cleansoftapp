@@ -65,7 +65,9 @@ export class SchedulerController {
     schema: {
       type: 'object',
       required: ['reason'],
-      properties: { reason: { type: 'string', example: 'Manual retry after infrastructure incident' } },
+      properties: {
+        reason: { type: 'string', example: 'Manual retry after infrastructure incident' },
+      },
     },
   })
   @ApiResponse({ status: 201, description: 'Job re-queued' })

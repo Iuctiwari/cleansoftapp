@@ -76,7 +76,8 @@ export class RegisterTenantDto {
   mobileNumber!: string;
 
   @ApiProperty({
-    description: 'Account password (min 8 chars, requires upper/lowercase, digit, and special char)',
+    description:
+      'Account password (min 8 chars, requires upper/lowercase, digit, and special char)',
     minLength: 8,
     maxLength: 256,
     example: 'Str0ng!Pass',
@@ -101,7 +102,7 @@ export class RegisterTenantResponseDto {
   tenantId!: string;
 
   @ApiProperty({ description: 'URL-safe slug for the tenant', example: 'ahmed-laundry-cleaners' })
-  tenantSlug!: string;
+  slug!: string;
 
   @ApiProperty({ description: 'Unique ID of the created owner user account' })
   ownerUserId!: string;
@@ -109,13 +110,16 @@ export class RegisterTenantResponseDto {
   @ApiProperty({ description: 'Business name as stored', example: 'Ahmed Laundry & Cleaners' })
   businessName!: string;
 
-  @ApiProperty({ description: 'Human-readable result message', example: 'Account created successfully' })
+  @ApiProperty({
+    description: 'Human-readable result message',
+    example: 'Account created successfully',
+  })
   message!: string;
 }
 
 export class TenantProfileDto {
   @ApiProperty() tenantId!: string;
-  @ApiProperty() tenantSlug!: string;
+  @ApiProperty() slug!: string;
   @ApiProperty() businessName!: string;
   @ApiProperty({ enum: BUSINESS_TYPE_VALUES }) businessType!: TenantBusinessType;
   @ApiProperty() ownerName!: string;
@@ -123,9 +127,10 @@ export class TenantProfileDto {
   @ApiProperty() ownerPhone!: string;
   @ApiProperty() taxEnabled!: boolean;
   @ApiProperty() defaultTaxPct!: number;
-  @ApiProperty({ enum: ['active', 'pending', 'disabled'] }) status!: TenantStatus;
-  @ApiProperty() createdAtUtc!: string;
-  @ApiProperty() updatedAtUtc!: string;
+  @ApiProperty({ enum: ['PendingVerification', 'Active', 'Suspended', 'Cancelled'] })
+  status!: TenantStatus;
+  @ApiProperty() createdAt!: string;
+  @ApiProperty() updatedAt!: string;
 }
 
 export class BranchDto {
@@ -141,6 +146,6 @@ export class BranchDto {
   @ApiProperty() email!: string;
   @ApiProperty() isHeadOffice!: boolean;
   @ApiProperty({ enum: ['active', 'inactive', 'closed'] }) status!: BranchStatus;
-  @ApiProperty() createdAtUtc!: string;
-  @ApiProperty() updatedAtUtc!: string;
+  @ApiProperty() createdAt!: string;
+  @ApiProperty() updatedAt!: string;
 }
