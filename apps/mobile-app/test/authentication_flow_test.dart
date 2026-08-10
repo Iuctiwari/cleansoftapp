@@ -4,7 +4,7 @@ import 'package:nexoraa_mobile/app/app.dart';
 import 'package:nexoraa_mobile/design_system/design_system.dart';
 
 void main() {
-  testWidgets('splash waits four seconds before showing login', (
+  testWidgets('temporary UI bypass opens dashboard without credentials', (
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(const NexoraaApp());
@@ -31,5 +31,15 @@ void main() {
     await tester.pump();
 
     expect(tester.widget<EditableText>(passwordField).obscureText, isFalse);
+
+    await tester.tap(find.text('Sign In'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Dashboard'), findsWidgets);
+    expect(
+      find.text('Enter your email and password to continue.'),
+      findsNothing,
+    );
+    expect(find.text('Invalid email or password'), findsNothing);
   });
 }

@@ -1,5 +1,10 @@
+export 'authentication_dependencies.dart';
+export 'authentication_models.dart';
+export 'controllers/authentication_controller.dart';
 export 'controllers/splash_controller.dart';
 export 'screens/login_screen.dart';
+export 'screens/forgot_password_screen.dart';
 export 'screens/splash_screen.dart';
+export 'services/api_authentication_service.dart';
+export 'services/auth_token_storage.dart';
 export 'services/authentication_service.dart';
-export 'services/placeholder_authentication_service.dart';

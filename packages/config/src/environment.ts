@@ -68,7 +68,10 @@ function validateUrlProtocol(value: unknown, variable: string, protocols: readon
     throw new Error(
       `Environment variable ${variable} must use ${protocols.join(' or ').replaceAll(':', '')}`,
     );
-  }export function validateGatewayEnvironment(
+  }
+}
+
+export function validateGatewayEnvironment(
   configuration: Record<string, unknown>,
 ): Record<string, unknown> {
   requireVariables(configuration, gatewayVariables);
