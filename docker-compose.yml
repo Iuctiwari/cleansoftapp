@@ -1,22 +1,572 @@
+# =============================================================================
+# docker-compose.yml — Nexoraa CleanSoft LOCAL DEVELOPMENT
+#
+# This file starts the infrastructure services (MongoDB + Redis) that backend
+# services depend on.  Developers run the NestJS services locally via:
+#
+#   pnpm dev          # starts all services with hot-reload via Turborepo
+#   pnpm --filter @nexoraa/api-gateway dev   # starts one service
+#
+# Start infrastructure only:
+#   docker compose up -d
+#
+# Start infrastructure + api-gateway in Docker (optional):
+#   docker compose --profile gateway up -d
+#
+# Start ALL backend services in Docker (optional):
+#   docker compose --profile gateway --profile services up -d
+# =============================================================================
+
 name: nexoraa-cleansoft
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Reusable anchors
+# ─────────────────────────────────────────────────────────────────────────────
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: '20m'
+    max-file: '3'
+
+x-service-build: &service-build
+  context: .
+  dockerfile: apps/backend/Dockerfile
+
+x-backend-env: &backend-env
+  NODE_ENV: development
+  MONGODB_URI: mongodb://mongodb:27017/${MONGODB_DATABASE:-nexoraa_dev}?replicaSet=rs0&directConnection=true
+  REDIS_URL: redis://redis:6379
+  LOG_LEVEL: debug
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Networks
+# ─────────────────────────────────────────────────────────────────────────────
+networks:
+  nexoraa-internal:
+    driver: bridge
+    name: nexoraa-internal-dev
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Named volumes (persisted between container restarts)
+# ─────────────────────────────────────────────────────────────────────────────
+volumes:
+  mongodb-data:
+    name: nexoraa-mongodb-data-dev
+  mongodb-config:
+    name: nexoraa-mongodb-config-dev
+  redis-data:
+    name: nexoraa-redis-data-dev
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Services
+# ─────────────────────────────────────────────────────────────────────────────
 services:
+  # ───────────────────────────────────────────────────────────────────────────
+  # MongoDB — Single-node replica set (required for Mongoose transactions
+  # and change streams, even in local development)
+  # ───────────────────────────────────────────────────────────────────────────
   mongodb:
     image: mongo:8.0
     restart: unless-stopped
+    command: >
+      mongod
+        --replSet rs0
+        --bind_ip_all
+        --oplogSize 128
     ports:
-      - '${MONGODB_PORT}:27017'
+      - '${MONGODB_PORT:-27017}:27017'
     volumes:
       - mongodb-data:/data/db
+      - mongodb-config:/data/configdb
+    networks:
+      - nexoraa-internal
+    logging: *default-logging
+    healthcheck:
+      test:
+        - CMD
+        - mongosh
+        - --eval
+        - "db.adminCommand('ping').ok === 1 ? 0 : quit(1)"
+        - --quiet
+      interval: 10s
+      timeout: 10s
+      retries: 6
+      start_period: 30s
 
+  # ───────────────────────────────────────────────────────────────────────────
+  # mongo-init — One-shot container that initialises the replica set.
+  # Runs once, then exits. Docker marks it as "completed_successfully".
+  # ───────────────────────────────────────────────────────────────────────────
+  mongo-init:
+    image: mongo:8.0
+    restart: 'no'
+    command: >
+      bash -c "
+        echo '[mongo-init] Waiting for MongoDB...' &&
+        until mongosh --host mongodb:27017 --eval \"db.adminCommand('ping').ok\" --quiet 2>/dev/null | grep -q 1; do
+          echo '[mongo-init] Not ready yet, sleeping 2s...' && sleep 2;
+        done &&
+        echo '[mongo-init] MongoDB ready. Checking replica set...' &&
+        INITIALIZED=\$$(mongosh --host mongodb:27017 --eval \"try { rs.status().ok } catch(e) { 0 }\" --quiet 2>/dev/null | tail -1) &&
+        if [ \"\$$INITIALIZED\" = '1' ]; then
+          echo '[mongo-init] Replica set already initialised.';
+        else
+          echo '[mongo-init] Initialising replica set rs0...' &&
+          mongosh --host mongodb:27017 --eval \"rs.initiate({_id:'rs0',members:[{_id:0,host:'mongodb:27017'}]})\" --quiet &&
+          echo '[mongo-init] Done.';
+        fi
+      "
+    networks:
+      - nexoraa-internal
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    logging: *default-logging
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Redis — Session store, BullMQ queue backend, cache layer
+  # ───────────────────────────────────────────────────────────────────────────
   redis:
     image: redis:8.0-alpine
     restart: unless-stopped
+    command: redis-server /usr/local/etc/redis/redis.conf
     ports:
-      - '${REDIS_PORT}:6379'
+      - '${REDIS_PORT:-6379}:6379'
     volumes:
       - redis-data:/data
+      - ./docker/redis/redis.dev.conf:/usr/local/etc/redis/redis.conf:ro
+    networks:
+      - nexoraa-internal
+    logging: *default-logging
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
-volumes:
-  mongodb-data:
-  redis-data:
+  # ───────────────────────────────────────────────────────────────────────────
+  # API Gateway (profile: gateway)
+  # Optionally run the gateway in Docker for integration testing.
+  # By default, start this locally with: pnpm --filter @nexoraa/api-gateway dev
+  # ───────────────────────────────────────────────────────────────────────────
+  api-gateway:
+    profiles:
+      - gateway
+      - services
+    build:
+      <<: *service-build
+      args:
+        SERVICE: api-gateway
+    restart: unless-stopped
+    ports:
+      - '${API_GATEWAY_HOST_PORT:-3000}:3000'
+    environment:
+      <<: *backend-env
+      APP_NAME: Nexoraa CleanSoft
+      PORT: 3000
+      HOST: 0.0.0.0
+      API_PREFIX: api
+      API_VERSION: v1
+      SERVICE_NAME: api-gateway
+    env_file:
+      - path: ./apps/backend/api-gateway/.env
+        required: false
+    networks:
+      - nexoraa-internal
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mongo-init:
+        condition: service_completed_successfully
+    logging: *default-logging
+    healthcheck:
+      test:
+        - CMD
+        - wget
+        - -qO-
+        - http://localhost:3000/api/v1/health/live
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Auth Service (profile: services)
+  # ───────────────────────────────────────────────────────────────────────────
+  auth-service:
+    profiles: [services]
+    build:
+      <<: *service-build
+      args:
+        SERVICE: auth-service
+    restart: unless-stopped
+    ports:
+      - '3001:3000'
+    environment:
+      <<: *backend-env
+      PORT: 3000
+      SERVICE_NAME: auth-service
+    networks:
+      - nexoraa-internal
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mongo-init:
+        condition: service_completed_successfully
+    logging: *default-logging
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Tenant Service (profile: services)
+  # ───────────────────────────────────────────────────────────────────────────
+  tenant-service:
+    profiles: [services]
+    build:
+      <<: *service-build
+      args:
+        SERVICE: tenant-service
+    restart: unless-stopped
+    ports:
+      - '3002:3000'
+    environment:
+      <<: *backend-env
+      PORT: 3000
+      SERVICE_NAME: tenant-service
+    networks:
+      - nexoraa-internal
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mongo-init:
+        condition: service_completed_successfully
+    logging: *default-logging
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Branch Service (profile: services)
+  # ───────────────────────────────────────────────────────────────────────────
+  branch-service:
+    profiles: [services]
+    build:
+      <<: *service-build
+      args:
+        SERVICE: branch-service
+    restart: unless-stopped
+    ports:
+      - '3003:3000'
+    environment:
+      <<: *backend-env
+      PORT: 3000
+      SERVICE_NAME: branch-service
+    networks:
+      - nexoraa-internal
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mongo-init:
+        condition: service_completed_successfully
+    logging: *default-logging
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # User Service (profile: services)
+  # ───────────────────────────────────────────────────────────────────────────
+  user-service:
+    profiles: [services]
+    build:
+      <<: *service-build
+      args:
+        SERVICE: user-service
+    restart: unless-stopped
+    ports:
+      - '3004:3000'
+    environment:
+      <<: *backend-env
+      PORT: 3000
+      SERVICE_NAME: user-service
+    networks:
+      - nexoraa-internal
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mongo-init:
+        condition: service_completed_successfully
+    logging: *default-logging
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Customer Service (profile: services)
+  # ───────────────────────────────────────────────────────────────────────────
+  customer-service:
+    profiles: [services]
+    build:
+      <<: *service-build
+      args:
+        SERVICE: customer-service
+    restart: unless-stopped
+    ports:
+      - '3005:3000'
+    environment:
+      <<: *backend-env
+      PORT: 3000
+      SERVICE_NAME: customer-service
+    networks:
+      - nexoraa-internal
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mongo-init:
+        condition: service_completed_successfully
+    logging: *default-logging
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Service Service (profile: services)
+  # ───────────────────────────────────────────────────────────────────────────
+  service-service:
+    profiles: [services]
+    build:
+      <<: *service-build
+      args:
+        SERVICE: service-service
+    restart: unless-stopped
+    ports:
+      - '3006:3000'
+    environment:
+      <<: *backend-env
+      PORT: 3000
+      SERVICE_NAME: service-service
+    networks:
+      - nexoraa-internal
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mongo-init:
+        condition: service_completed_successfully
+    logging: *default-logging
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Order Service (profile: services)
+  # ───────────────────────────────────────────────────────────────────────────
+  order-service:
+    profiles: [services]
+    build:
+      <<: *service-build
+      args:
+        SERVICE: order-service
+    restart: unless-stopped
+    ports:
+      - '3007:3000'
+    environment:
+      <<: *backend-env
+      PORT: 3000
+      SERVICE_NAME: order-service
+    networks:
+      - nexoraa-internal
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mongo-init:
+        condition: service_completed_successfully
+    logging: *default-logging
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Payment Service (profile: services)
+  # ───────────────────────────────────────────────────────────────────────────
+  payment-service:
+    profiles: [services]
+    build:
+      <<: *service-build
+      args:
+        SERVICE: payment-service
+    restart: unless-stopped
+    ports:
+      - '3008:3000'
+    environment:
+      <<: *backend-env
+      PORT: 3000
+      SERVICE_NAME: payment-service
+    networks:
+      - nexoraa-internal
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mongo-init:
+        condition: service_completed_successfully
+    logging: *default-logging
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Expense Service (profile: services)
+  # ───────────────────────────────────────────────────────────────────────────
+  expense-service:
+    profiles: [services]
+    build:
+      <<: *service-build
+      args:
+        SERVICE: expense-service
+    restart: unless-stopped
+    ports:
+      - '3009:3000'
+    environment:
+      <<: *backend-env
+      PORT: 3000
+      SERVICE_NAME: expense-service
+    networks:
+      - nexoraa-internal
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mongo-init:
+        condition: service_completed_successfully
+    logging: *default-logging
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Notification Service (profile: services)
+  # ───────────────────────────────────────────────────────────────────────────
+  notification-service:
+    profiles: [services]
+    build:
+      <<: *service-build
+      args:
+        SERVICE: notification-service
+    restart: unless-stopped
+    ports:
+      - '3010:3000'
+    environment:
+      <<: *backend-env
+      PORT: 3000
+      SERVICE_NAME: notification-service
+    networks:
+      - nexoraa-internal
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mongo-init:
+        condition: service_completed_successfully
+    logging: *default-logging
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Scheduler Service (profile: services)
+  # ───────────────────────────────────────────────────────────────────────────
+  scheduler-service:
+    profiles: [services]
+    build:
+      <<: *service-build
+      args:
+        SERVICE: scheduler-service
+    restart: unless-stopped
+    ports:
+      - '3011:3000'
+    environment:
+      <<: *backend-env
+      PORT: 3000
+      SERVICE_NAME: scheduler-service
+    networks:
+      - nexoraa-internal
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mongo-init:
+        condition: service_completed_successfully
+    logging: *default-logging
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Report Service (profile: services)
+  # ───────────────────────────────────────────────────────────────────────────
+  report-service:
+    profiles: [services]
+    build:
+      <<: *service-build
+      args:
+        SERVICE: report-service
+    restart: unless-stopped
+    ports:
+      - '3012:3000'
+    environment:
+      <<: *backend-env
+      PORT: 3000
+      SERVICE_NAME: report-service
+    networks:
+      - nexoraa-internal
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mongo-init:
+        condition: service_completed_successfully
+    logging: *default-logging
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Audit Service (profile: services)
+  # ───────────────────────────────────────────────────────────────────────────
+  audit-service:
+    profiles: [services]
+    build:
+      <<: *service-build
+      args:
+        SERVICE: audit-service
+    restart: unless-stopped
+    ports:
+      - '3013:3000'
+    environment:
+      <<: *backend-env
+      PORT: 3000
+      SERVICE_NAME: audit-service
+    networks:
+      - nexoraa-internal
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mongo-init:
+        condition: service_completed_successfully
+    logging: *default-logging
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Search Service (profile: services)
+  # ───────────────────────────────────────────────────────────────────────────
+  search-service:
+    profiles: [services]
+    build:
+      <<: *service-build
+      args:
+        SERVICE: search-service
+    restart: unless-stopped
+    ports:
+      - '3014:3000'
+    environment:
+      <<: *backend-env
+      PORT: 3000
+      SERVICE_NAME: search-service
+    networks:
+      - nexoraa-internal
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mongo-init:
+        condition: service_completed_successfully
+    logging: *default-logging

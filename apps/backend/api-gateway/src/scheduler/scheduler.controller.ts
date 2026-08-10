@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Param, Post, Req } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
 
 import { PlatformError } from '../platform/platform.errors';
 import { TrustedContextFactory } from '../platform/platform.context';
@@ -23,7 +23,12 @@ export class SchedulerController {
   ) {}
 
   @Post()
-  @ApiOperation({ summary: 'Create and dispatch a new internal job.' })
+  @ApiOperation({
+    summary: 'Enqueue a background job',
+    description:
+      'Schedules a new background job for asynchronous processing. ' +
+      'Idempotent — supplying the same `idempotencyKey` is safe to retry.',
+  })
   @ApiEnvelopeResponse(SchedulerJobRecordDto, {
     description: 'Scheduled job record after persistence and dispatch.',
     status: 'created',
@@ -39,8 +44,11 @@ export class SchedulerController {
   }
 
   @Get(':jobId')
-  @ApiOperation({ summary: 'Inspect a scheduled job by identifier.' })
-  @ApiParam({ name: 'jobId', example: 'job-9f6cc5e3' })
+  @ApiOperation({
+    summary: 'Inspect a background job',
+    description: 'Returns the current status, attempts, and metadata of the specified job.',
+  })
+  @ApiParam({ name: 'jobId', description: 'Unique job identifier', example: 'job-9f6cc5e3' })
   @ApiEnvelopeResponse(SchedulerJobRecordDto, {
     description: 'Scheduled job record or null when it does not exist.',
     nullable: true,
@@ -50,8 +58,24 @@ export class SchedulerController {
   }
 
   @Post(':jobId/replay')
-  @ApiOperation({ summary: 'Replay or retry an existing scheduled job.' })
-  @ApiParam({ name: 'jobId', example: 'job-9f6cc5e3' })
+  @ApiOperation({
+    summary: 'Replay or retry a failed job',
+    description: 'Forces a re-queue of a failed or completed job for debugging or recovery.',
+  })
+  @ApiParam({
+    name: 'jobId',
+    description: 'Unique job identifier to replay',
+    example: 'job-9f6cc5e3',
+  })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['reason'],
+      properties: {
+        reason: { type: 'string', example: 'Manual retry after infrastructure incident' },
+      },
+    },
+  })
   @ApiEnvelopeResponse(SchedulerReplayResponseDto, {
     description: 'Replay result recorded after dispatch.',
   })
@@ -69,7 +93,12 @@ export class SchedulerController {
   }
 
   @Post('schedules')
-  @ApiOperation({ summary: 'Register a recurring schedule template.' })
+  @ApiOperation({
+    summary: 'Register a recurring CRON schedule',
+    description:
+      'Creates a named recurring schedule that fires background jobs on a CRON expression. ' +
+      'Timezone must be a valid IANA timezone string.',
+  })
   @ApiEnvelopeResponse(SchedulerScheduleRecordDto, {
     description: 'Registered schedule definition.',
     status: 'created',

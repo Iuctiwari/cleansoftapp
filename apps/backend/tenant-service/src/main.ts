@@ -1,11 +1,12 @@
 import 'reflect-metadata';
 
-import { Logger } from '@nestjs/common';
+import { Logger, ValidationPipe, VersioningType } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { setupSwagger } from '@nexoraa/swagger';
 
 import { AppModule } from './app.module';
+import { TenantExceptionFilter } from './tenant/tenant.filter';
 
 const HOST = '0.0.0.0';
 
@@ -28,10 +29,23 @@ async function bootstrap(): Promise<void> {
 
   app.enableCors();
   app.enableShutdownHooks();
+
+  app.setGlobalPrefix('api');
+  app.enableVersioning({ type: VersioningType.URI, defaultVersion: '1' });
+  app.useGlobalPipes(
+    new ValidationPipe({
+      forbidNonWhitelisted: true,
+      transform: true,
+      whitelist: true,
+    }),
+  );
+  app.useGlobalFilters(new TenantExceptionFilter());
+
   setupSwagger(app, { title: 'Nexoraa Tenant Service API' });
 
   await app.listen(port, HOST);
   logger.log(`${serviceName} listening on http://${HOST}:${port}`);
+  logger.log(`Swagger UI → http://${HOST}:${port}/docs`);
 }
 
 void bootstrap();

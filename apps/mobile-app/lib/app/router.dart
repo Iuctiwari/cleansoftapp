@@ -7,10 +7,19 @@ import 'package:nexoraa_mobile/features/authentication/screens/forgot_password_s
 import 'package:nexoraa_mobile/features/authentication/screens/splash_screen.dart';
 import 'package:nexoraa_mobile/features/dashboard/dashboard.dart';
 
+import '../features/auth/models/registration_form.dart';
+import '../features/auth/pages/account_created_page.dart';
+import '../features/auth/pages/account_details_page.dart';
+import '../features/auth/pages/business_info_page.dart';
+import '../features/auth/pages/sign_in_page.dart';
+
 abstract final class AppRoutes {
   static const String splash = '/';
   static const String login = '/login';
   static const String dashboard = '/dashboard';
+  static const String registerBusinessInfo = '/register/business-info';
+  static const String registerAccountDetails = '/register/account-details';
+  static const String registerSuccess = '/register/success';
   static const String forgotPassword = '/forgot-password';
   static const String notifications = '/dashboard/notifications';
 }
@@ -19,6 +28,9 @@ abstract final class AppRouteNames {
   static const String splash = 'splash';
   static const String login = 'login';
   static const String dashboard = 'dashboard';
+  static const String registerBusinessInfo = 'registerBusinessInfo';
+  static const String registerAccountDetails = 'registerAccountDetails';
+  static const String registerSuccess = 'registerSuccess';
   static const String forgotPassword = 'forgot-password';
   static const String notifications = 'notifications';
 }
@@ -53,12 +65,15 @@ abstract final class AppRouter {
         },
       ),
       GoRoute(
-        name: AppRouteNames.login,
-        path: AppRoutes.login,
-        pageBuilder: (BuildContext context, GoRouterState state) {
-          return _fadePage<void>(state: state, child: const LoginScreen());
-        },
-      ),
+  name: AppRouteNames.login,
+  path: AppRoutes.login,
+  pageBuilder: (BuildContext context, GoRouterState state) {
+    return _fadePage<void>(
+      state: state,
+      child: const LoginScreen(),
+    );
+  },
+),
       GoRoute(
         name: AppRouteNames.forgotPassword,
         path: AppRoutes.forgotPassword,
@@ -77,6 +92,30 @@ abstract final class AppRouter {
             state: state,
             child: const DashboardPlaceholderScreen(),
           );
+        },
+      ),
+      GoRoute(
+        name: AppRouteNames.registerBusinessInfo,
+        path: AppRoutes.registerBusinessInfo,
+        builder: (context, state) {
+          final form = state.extra as RegistrationForm? ?? RegistrationForm();
+          return BusinessInfoPage(form: form);
+        },
+      ),
+      GoRoute(
+        name: AppRouteNames.registerAccountDetails,
+        path: AppRoutes.registerAccountDetails,
+        builder: (context, state) {
+          final form = state.extra as RegistrationForm? ?? RegistrationForm();
+          return AccountDetailsPage(form: form);
+        },
+      ),
+      GoRoute(
+        name: AppRouteNames.registerSuccess,
+        path: AppRoutes.registerSuccess,
+        builder: (context, state) {
+          final businessName = state.extra as String? ?? 'Your Business';
+          return AccountCreatedPage(businessName: businessName);
         },
       ),
       GoRoute(
