@@ -30,18 +30,18 @@ final class ApiAuthenticationService implements AuthenticationService {
   final AuthTokenStorage _tokenStorage;
 
   @override
-  Future<bool> isAuthenticated() async {
+  Future<AuthenticationSession?> restoreSession() async {
     try {
       final AuthenticationSession? session = await _tokenStorage.read();
       if (session == null ||
           !DateTime.now().toUtc().isBefore(session.accessTokenExpiresAt)) {
         await _clearStoredSession();
-        return false;
+        return null;
       }
-      return true;
+      return session;
     } on Exception {
       await _clearStoredSession();
-      return false;
+      return null;
     }
   }
 
@@ -55,13 +55,6 @@ final class ApiAuthenticationService implements AuthenticationService {
         'The authentication context is not configured correctly.',
       );
     }
-    if (_loginContext == 'tenant' &&
-        (_tenantSlug == null || _tenantSlug.trim().isEmpty)) {
-      throw const AuthenticationConfigurationException(
-        'Tenant sign in is not configured for this app installation.',
-      );
-    }
-
     final Uri normalizedBaseUri = _apiBaseUri.replace(
       path: _apiBaseUri.path.endsWith('/')
           ? _apiBaseUri.path
@@ -72,7 +65,8 @@ final class ApiAuthenticationService implements AuthenticationService {
       'context': _loginContext,
       'identifier': identifier.trim(),
       'password': password,
-      if (_loginContext == 'tenant') 'tenantSlug': _tenantSlug!.trim(),
+      if (_tenantSlug != null && _tenantSlug.trim().isNotEmpty)
+        'tenantSlug': _tenantSlug.trim(),
     };
 
     try {
@@ -90,7 +84,9 @@ final class ApiAuthenticationService implements AuthenticationService {
       final Object? decoded = _decodeJson(response.body);
       if (response.statusCode < HttpStatus.ok ||
           response.statusCode >= HttpStatus.multipleChoices) {
-        throw AuthenticationException(_errorMessage(decoded));
+        throw AuthenticationException(
+          _errorMessage(decoded, response.statusCode),
+        );
       }
 
       final AuthenticationSession session = _parseSession(decoded);
@@ -145,17 +141,53 @@ final class ApiAuthenticationService implements AuthenticationService {
     final DateTime refreshExpiry = DateTime.parse(
       _requiredString(data, 'refreshTokenExpiresAtUtc'),
     ).toUtc();
+    final Map<String, dynamic> user = _asMap(data['user']);
+    final Object? tenantValue = data['tenant'];
+    final Map<String, dynamic>? tenant = tenantValue == null
+        ? null
+        : _asMap(tenantValue);
 
     return AuthenticationSession(
       accessToken: accessToken,
       refreshToken: refreshToken,
       accessTokenExpiresAt: accessExpiry,
       refreshTokenExpiresAt: refreshExpiry,
+      tenantId: _optionalString(tenant, 'tenantId'),
+      tenantSlug: _optionalString(tenant, 'tenantSlug'),
+      ownerUserId: _requiredString(user, 'userId'),
+      ownerName: _requiredString(user, 'displayName'),
+      ownerEmail: _requiredString(user, 'email'),
+      businessName: _optionalString(tenant, 'tenantName'),
     );
   }
 
-  String _errorMessage(Object? decoded) {
-    if (decoded is! Map<String, dynamic>) return _genericLoginError;
+  String _errorMessage(Object? decoded, int statusCode) {
+    if (statusCode == HttpStatus.unauthorized) return _genericLoginError;
+
+    final String? backendMessage = _backendMessage(decoded);
+    if (backendMessage != null) return backendMessage;
+
+    switch (statusCode) {
+      case HttpStatus.badRequest:
+        return 'Please check your sign-in details and try again.';
+      case HttpStatus.forbidden:
+        return 'You are not authorized to access this account.';
+      case HttpStatus.notFound:
+        return 'The requested account or tenant was not found.';
+      case HttpStatus.conflict:
+        return 'The sign-in request conflicts with the current account state.';
+      case HttpStatus.internalServerError:
+      case HttpStatus.badGateway:
+      case HttpStatus.serviceUnavailable:
+      case HttpStatus.gatewayTimeout:
+        return 'The authentication service is unavailable. Please try again.';
+      default:
+        return 'Unable to sign in. Please try again.';
+    }
+  }
+
+  String? _backendMessage(Object? decoded) {
+    if (decoded is! Map<String, dynamic>) return null;
     final Object? error = decoded['error'];
     if (error is String && error.trim().isNotEmpty) return error.trim();
     if (error is Map<String, dynamic>) {
@@ -163,12 +195,20 @@ final class ApiAuthenticationService implements AuthenticationService {
       if (message is String && message.trim().isNotEmpty) {
         return message.trim();
       }
+      if (message is List) {
+        final List<String> messages = message.whereType<String>().toList();
+        if (messages.isNotEmpty) return messages.join('\n');
+      }
     }
     final Object? message = decoded['message'];
     if (message is String && message.trim().isNotEmpty) {
       return message.trim();
     }
-    return _genericLoginError;
+    if (message is List) {
+      final List<String> messages = message.whereType<String>().toList();
+      if (messages.isNotEmpty) return messages.join('\n');
+    }
+    return null;
   }
 
   Map<String, dynamic> _asMap(Object? value) {
@@ -180,5 +220,10 @@ final class ApiAuthenticationService implements AuthenticationService {
     final Object? value = source[key];
     if (value is String && value.isNotEmpty) return value;
     throw FormatException('Missing $key.');
+  }
+
+  String? _optionalString(Map<String, dynamic>? source, String key) {
+    final Object? value = source?[key];
+    return value is String && value.isNotEmpty ? value : null;
   }
 }

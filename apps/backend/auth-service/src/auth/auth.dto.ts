@@ -41,7 +41,8 @@ export class AuthLoginDto {
   password!: string;
 
   @ApiPropertyOptional({
-    description: 'Tenant slug — required when context is "tenant"',
+    description:
+      'Optional tenant scope. Tenant owners may sign in with their globally unique email or mobile number.',
     example: 'ahmed-laundry',
     maxLength: 64,
   })

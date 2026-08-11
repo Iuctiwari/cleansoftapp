@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
@@ -108,9 +109,19 @@ class TenantApiException implements Exception {
   });
 
   String get userMessage {
+    if (_isDuplicateField('email', const <String>{
+      'tenant.email_already_registered',
+    })) {
+      return 'Email is already registered';
+    }
+    if (_isDuplicateField('mobileNumber', const <String>{
+      'tenant.mobile_already_registered',
+      'tenant.mobile_number_already_registered',
+    })) {
+      return 'Mobile number is already registered';
+    }
+
     switch (code) {
-      case 'tenant.email_already_registered':
-        return 'This email address is already registered. Please sign in or use a different email.';
       case 'tenant.password_policy_failed':
         return 'Password must be at least 8 characters with uppercase, lowercase, number, and special character.';
       case 'tenant.terms_not_agreed':
@@ -131,9 +142,25 @@ class TenantApiException implements Exception {
         return 'The tenant registration service was not found.';
       case 409:
         return 'An account with these details already exists.';
+      case 502:
+      case 503:
+      case 504:
+        return 'Tenant Service unavailable';
       default:
         return 'The tenant service could not complete registration. Please try again.';
     }
+  }
+
+  bool _isDuplicateField(String field, Set<String> matchingCodes) {
+    if (statusCode != HttpStatus.conflict) return false;
+    return matchingCodes.contains(code) ||
+        fields.any(
+          (error) =>
+              error['field'] == field &&
+              (matchingCodes.contains(error['code']) ||
+                  error['code'] == 'already_registered' ||
+                  error['code'] == 'duplicate'),
+        );
   }
 }
 
@@ -175,13 +202,11 @@ class TenantApiService {
           )
           .timeout(_requestTimeout);
     } on TimeoutException {
-      throw const TenantApiNetworkException(
-        'The tenant service timed out. Please try again.',
-      );
+      throw const TenantApiNetworkException('Tenant Service unavailable');
+    } on SocketException {
+      throw const TenantApiNetworkException('Tenant Service unavailable');
     } on http.ClientException {
-      throw const TenantApiNetworkException(
-        'Unable to reach the tenant service. Check that it is running and reachable from this device.',
-      );
+      throw const TenantApiNetworkException('Tenant Service unavailable');
     }
 
     final Map<String, dynamic> body;
@@ -229,15 +254,13 @@ class TenantApiService {
                 ?.whereType<Map<String, dynamic>>()
                 .toList() ??
             const [],
+        backendMessage: _extractMessage(
+          structuredError['message'] ?? body['message'],
+        ),
       );
     }
 
-    final rawMessage = body['message'];
-    final backendMessage = rawMessage is List
-        ? rawMessage.whereType<String>().join('\n')
-        : rawMessage is String
-        ? rawMessage
-        : null;
+    final backendMessage = _extractMessage(body['message']);
 
     throw TenantApiException(
       code: 'tenant.http_${response.statusCode}',
@@ -246,6 +269,17 @@ class TenantApiService {
       statusCode: response.statusCode,
       backendMessage: backendMessage,
     );
+  }
+
+  static String? _extractMessage(Object? rawMessage) {
+    if (rawMessage is List) {
+      final messages = rawMessage.whereType<String>().toList();
+      return messages.isEmpty ? null : messages.join('\n');
+    }
+    if (rawMessage is String && rawMessage.trim().isNotEmpty) {
+      return rawMessage.trim();
+    }
+    return null;
   }
 
   /// PATCH /api/v1/tenants/:tenantId

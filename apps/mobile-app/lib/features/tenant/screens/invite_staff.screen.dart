@@ -17,36 +17,62 @@ class InviteStaffScreen extends StatefulWidget {
 }
 
 class _InviteStaffScreenState extends State<InviteStaffScreen> {
-  late final List<TextEditingController> _controllers;
+  static final RegExp _mobilePattern = RegExp(r'^\+?[0-9]{7,15}$');
+  static final RegExp _emailPattern = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');
+
+  final _formKey = GlobalKey<FormState>();
+  late final List<_StaffInviteControllers> _controllers;
   final TenantApiService _apiService = TenantApiService();
   bool _isSubmitting = false;
 
   @override
   void initState() {
     super.initState();
-    final emails = widget.data.staffEmails;
-    _controllers = emails.isEmpty
-        ? [TextEditingController()]
-        : emails.map((email) => TextEditingController(text: email)).toList();
+    final staff = widget.data.staff;
+    _controllers = staff.isEmpty
+        ? <_StaffInviteControllers>[_StaffInviteControllers()]
+        : staff.map(_StaffInviteControllers.fromData).toList();
   }
 
   @override
   void dispose() {
-    for (final controller in _controllers) {
-      controller.dispose();
+    for (final controllers in _controllers) {
+      controllers.dispose();
     }
     super.dispose();
   }
 
   void _save() {
-    widget.data.staffEmails
+    widget.data.staff
       ..clear()
       ..addAll(
         _controllers
-            .map((controller) => controller.text.trim())
-            .where((email) => email.isNotEmpty),
+            .map(
+              (controllers) => StaffInvitationData(
+                mobileNumber: controllers.mobileNumber.text.trim(),
+                email: controllers.email.text.trim(),
+              ),
+            )
+            .where(
+              (invitation) =>
+                  invitation.mobileNumber.isNotEmpty ||
+                  invitation.email.isNotEmpty,
+            ),
       );
   }
+
+  bool get _hasInvitationInput => _controllers.any(
+    (controllers) =>
+        controllers.mobileNumber.text.trim().isNotEmpty ||
+        controllers.email.text.trim().isNotEmpty,
+  );
+
+  bool get _hasValidInvitation => _controllers.any((controllers) {
+    final mobile = controllers.mobileNumber.text.trim();
+    final email = controllers.email.text.trim();
+    return (mobile.isNotEmpty && _mobilePattern.hasMatch(mobile)) ||
+        (email.isNotEmpty && _emailPattern.hasMatch(email));
+  });
 
   void _back() {
     _save();
@@ -55,15 +81,20 @@ class _InviteStaffScreenState extends State<InviteStaffScreen> {
 
   Future<void> _skip() async {
     if (_isSubmitting) return;
+    if (_hasInvitationInput) {
+      if (!_formKey.currentState!.validate()) return;
+      _save();
+    } else {
+      widget.data.staff.clear();
+    }
     setState(() => _isSubmitting = true);
-
-    // Staff invitations are intentionally skipped until staff onboarding is
-    // supported by the backend contract.
-    widget.data.staffEmails.clear();
 
     try {
       await _apiService.completeOnboarding(widget.data);
       if (mounted) {
+        widget.data.branchCreated = true;
+        widget.data.servicesConfigured = true;
+        widget.data.staffInvitationSubmitted = widget.data.staff.isNotEmpty;
         context.pushNamed(AppRouteNames.onboardingAllSet, extra: widget.data);
       }
     } on TenantApiException catch (error) {
@@ -100,76 +131,139 @@ class _InviteStaffScreenState extends State<InviteStaffScreen> {
       actions: TenantOnboardingActions(
         onBack: _back,
         onContinue: _skip,
-        continueLabel: 'Skip for now',
+        continueLabel: _hasValidInvitation ? 'Continue' : 'Skip for now',
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Invite team members to join your workspace. They\'ll get an email invitation.',
-            style: TextStyle(color: kTextSecondary, fontSize: 16, height: 1.45),
-          ),
-          const SizedBox(height: 24),
-          ...List.generate(_controllers.length, (index) {
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  TenantFieldLabel(
-                    index == 0 ? 'Staff Email' : 'Staff Email ${index + 1}',
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _controllers[index],
-                    keyboardType: TextInputType.emailAddress,
-                    decoration: const InputDecoration(
-                      hintText: 'staff@yourshop.com',
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }),
-          SizedBox(
-            width: double.infinity,
-            child: TextButton.icon(
-              onPressed: () =>
-                  setState(() => _controllers.add(TextEditingController())),
-              style: TextButton.styleFrom(
-                backgroundColor: kPrimaryLight,
-                minimumSize: const Size.fromHeight(54),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              icon: const Icon(Icons.add),
-              label: const Text(
-                'Add Another',
-                style: TextStyle(fontWeight: FontWeight.w700),
-              ),
-            ),
-          ),
-          const SizedBox(height: 20),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFFF9E8),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFFFD45C)),
-            ),
-            child: const Text(
-              'Staff members will receive an invitation to join your workspace. They\'ll set their own password.',
+      child: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Invite team members to join your workspace. They\'ll get an email invitation.',
               style: TextStyle(
-                color: Color(0xFF9A4A00),
-                fontSize: 14,
+                color: kTextSecondary,
+                fontSize: 16,
                 height: 1.45,
               ),
             ),
-          ),
-        ],
+            const SizedBox(height: 24),
+            ...List.generate(_controllers.length, (index) {
+              final controllers = _controllers[index];
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TenantFieldLabel(
+                      index == 0
+                          ? 'Mobile Number'
+                          : 'Mobile Number ${index + 1}',
+                    ),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                      controller: controllers.mobileNumber,
+                      keyboardType: TextInputType.phone,
+                      onChanged: (_) => setState(() {}),
+                      decoration: const InputDecoration(
+                        hintText: '+919876543210',
+                      ),
+                      validator: (value) {
+                        final mobile = value?.trim() ?? '';
+                        if (mobile.isEmpty) return null;
+                        if (!_mobilePattern.hasMatch(mobile)) {
+                          return 'Enter a valid mobile number';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    TenantFieldLabel(
+                      index == 0
+                          ? 'Email (Optional)'
+                          : 'Email ${index + 1} (Optional)',
+                    ),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                      controller: controllers.email,
+                      keyboardType: TextInputType.emailAddress,
+                      onChanged: (_) => setState(() {}),
+                      decoration: const InputDecoration(
+                        hintText: 'staff@yourshop.com',
+                      ),
+                      validator: (value) {
+                        final email = value?.trim() ?? '';
+                        if (email.isEmpty) return null;
+                        if (!_emailPattern.hasMatch(email)) {
+                          return 'Enter a valid email';
+                        }
+                        return null;
+                      },
+                    ),
+                  ],
+                ),
+              );
+            }),
+            SizedBox(
+              width: double.infinity,
+              child: TextButton.icon(
+                onPressed: () =>
+                    setState(() => _controllers.add(_StaffInviteControllers())),
+                style: TextButton.styleFrom(
+                  backgroundColor: kPrimaryLight,
+                  minimumSize: const Size.fromHeight(54),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                icon: const Icon(Icons.add),
+                label: const Text(
+                  'Add Another',
+                  style: TextStyle(fontWeight: FontWeight.w700),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF9E8),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFFFD45C)),
+              ),
+              child: const Text(
+                'Staff members will receive an invitation to join your workspace. They\'ll set their own password.',
+                style: TextStyle(
+                  color: Color(0xFF9A4A00),
+                  fontSize: 14,
+                  height: 1.45,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
+  }
+}
+
+class _StaffInviteControllers {
+  _StaffInviteControllers({String mobileNumber = '', String email = ''})
+    : mobileNumber = TextEditingController(text: mobileNumber),
+      email = TextEditingController(text: email);
+
+  factory _StaffInviteControllers.fromData(StaffInvitationData data) {
+    return _StaffInviteControllers(
+      mobileNumber: data.mobileNumber,
+      email: data.email,
+    );
+  }
+
+  final TextEditingController mobileNumber;
+  final TextEditingController email;
+
+  void dispose() {
+    mobileNumber.dispose();
+    email.dispose();
   }
 }

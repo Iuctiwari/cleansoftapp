@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { Injectable, type NestMiddleware } from '@nestjs/common';
 
 import { PlatformError } from '../platform/platform.errors';
-import type { RequestWithPlatformContext } from '../platform/platform.request';
+import { resolveHeaderValue, type RequestWithPlatformContext } from '../platform/platform.request';
 import { AuthService } from './auth.service';
 
 interface MiddlewareResponse {
@@ -20,6 +20,11 @@ export class AuthenticationContextMiddleware implements NestMiddleware {
     _response: MiddlewareResponse,
     next: NextFunction,
   ): Promise<void> {
+    const requestId = resolveHeaderValue(request.headers['x-request-id']) ?? randomUUID();
+    const correlationId =
+      request.correlationId ?? resolveHeaderValue(request.headers['x-correlation-id']) ?? requestId;
+    request.correlationId = correlationId;
+
     const authorization = request.headers.authorization ?? request.headers.Authorization;
     const rawHeader = Array.isArray(authorization) ? authorization[0] : authorization;
     if (!rawHeader) {
@@ -36,24 +41,14 @@ export class AuthenticationContextMiddleware implements NestMiddleware {
     }
 
     const token = rawHeader.slice('Bearer '.length).trim();
-    const requestId = this.resolveHeaderValue(request.headers['x-request-id']) ?? randomUUID();
-    const correlationId =
-      request.correlationId ??
-      this.resolveHeaderValue(request.headers['x-correlation-id']) ??
-      requestId;
-
     const resolution = await this.authService.authenticateAccessToken(token, {
       correlationId,
       causationId: requestId,
       requestId,
-      ipAddress: this.resolveHeaderValue(request.headers['x-forwarded-for']) ?? undefined,
-      userAgent: this.resolveHeaderValue(request.headers['user-agent']) ?? undefined,
+      ipAddress: resolveHeaderValue(request.headers['x-forwarded-for']) ?? undefined,
+      userAgent: resolveHeaderValue(request.headers['user-agent']) ?? undefined,
     });
     request.trustedContext = resolution.principal.context;
     next();
-  }
-
-  private resolveHeaderValue(value: string | string[] | undefined): string | undefined {
-    return Array.isArray(value) ? value[0] : value;
   }
 }

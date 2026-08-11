@@ -282,18 +282,22 @@ class _SummaryRow extends StatelessWidget {
           Expanded(
             child: Text(
               label,
+              textAlign: TextAlign.left,
               style: const TextStyle(color: kTextSecondary, fontSize: 15),
             ),
           ),
           const SizedBox(width: 16),
-          Flexible(
-            child: Text(
-              value,
-              textAlign: TextAlign.right,
-              style: const TextStyle(
-                color: kTextPrimary,
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
+          Expanded(
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: Text(
+                value,
+                textAlign: TextAlign.right,
+                style: const TextStyle(
+                  color: kTextPrimary,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
           ),

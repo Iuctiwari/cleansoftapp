@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:nexoraa_mobile/app/router.dart';
+import 'package:nexoraa_mobile/features/authentication/authentication_dependencies.dart';
 
 import '../../../app/theme.dart';
 import '../models/registration_form.dart';
@@ -16,6 +17,35 @@ class AccountCreatedPage extends StatelessWidget {
     required this.businessName,
     this.onboardingData,
   });
+
+  Future<void> _goToDashboard(BuildContext context) async {
+    final data = onboardingData;
+    if (data != null &&
+        !AuthenticationDependencies.controller.isAuthenticated) {
+      final authenticated = await AuthenticationDependencies.controller.signIn(
+        identifier: data.registrationForm.email.trim(),
+        password: data.registrationForm.password,
+      );
+      if (!context.mounted) return;
+      if (!authenticated) {
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(
+              content: Text(
+                AuthenticationDependencies.controller.errorMessage ??
+                    'Unable to sign in. Please try again.',
+              ),
+            ),
+          );
+        return;
+      }
+    }
+
+    if (context.mounted) {
+      context.goNamed(AppRouteNames.dashboard, extra: data);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -83,10 +113,7 @@ class AccountCreatedPage extends StatelessWidget {
                       ),
                       const SizedBox(height: 16),
                       TextButton(
-                        onPressed: () => context.goNamed(
-                          AppRouteNames.dashboard,
-                          extra: onboardingData,
-                        ),
+                        onPressed: () => _goToDashboard(context),
                         child: const Text(
                           'Skip for now',
                           style: TextStyle(

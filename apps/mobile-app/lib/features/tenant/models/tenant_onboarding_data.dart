@@ -1,5 +1,17 @@
 import 'registration_form.dart';
 
+class StaffInvitationData {
+  String mobileNumber;
+  String email;
+
+  StaffInvitationData({this.mobileNumber = '', this.email = ''});
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+    if (mobileNumber.trim().isNotEmpty) 'mobileNumber': mobileNumber.trim(),
+    if (email.trim().isNotEmpty) 'email': email.trim().toLowerCase(),
+  };
+}
+
 /// In-memory data collected during tenant workspace setup.
 ///
 /// This object is passed between onboarding routes so navigating back and forth
@@ -16,7 +28,10 @@ class TenantOnboardingData {
   String phone;
   String email;
   final Set<String> selectedServices;
-  final List<String> staffEmails;
+  final List<StaffInvitationData> staff;
+  bool branchCreated;
+  bool servicesConfigured;
+  bool staffInvitationSubmitted;
 
   TenantOnboardingData({
     required this.registrationForm,
@@ -30,9 +45,12 @@ class TenantOnboardingData {
     this.phone = '',
     this.email = '',
     Set<String>? selectedServices,
-    List<String>? staffEmails,
+    List<StaffInvitationData>? staff,
+    this.branchCreated = false,
+    this.servicesConfigured = false,
+    this.staffInvitationSubmitted = false,
   }) : selectedServices = selectedServices ?? <String>{},
-       staffEmails = staffEmails ?? <String>[];
+       staff = staff ?? <StaffInvitationData>[];
 
   Map<String, dynamic> toOnboardingJson() {
     return {
@@ -50,7 +68,7 @@ class TenantOnboardingData {
         'email': email.trim().toLowerCase(),
       },
       'services': selectedServices.toList(growable: false),
-      'staff': const <String>[],
+      'staff': staff.map((invitation) => invitation.toJson()).toList(),
     };
   }
 }

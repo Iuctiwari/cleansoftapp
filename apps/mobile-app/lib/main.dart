@@ -6,10 +6,6 @@ import 'package:nexoraa_mobile/features/authentication/authentication_dependenci
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load();
-  // TEMPORARY DEVELOPMENT / UI TESTING ONLY.
-  // Skip secure-token restoration while the login bypass is enabled.
-  if (!AuthenticationDependencies.temporaryDevelopmentUiBypassEnabled) {
-    await AuthenticationDependencies.controller.restoreSession();
-  }
+  await AuthenticationDependencies.controller.restoreSession();
   runApp(const NexoraaApp());
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:nexoraa_mobile/app/router.dart';
 import 'package:nexoraa_mobile/design_system/design_system.dart';
+import 'package:nexoraa_mobile/features/authentication/authentication_dependencies.dart';
 
 @immutable
 class MoreUserProfileData {
@@ -172,6 +173,8 @@ class MoreScreen extends StatelessWidget {
     );
 
     if (confirmed != true || !context.mounted) return;
+    await AuthenticationDependencies.controller.signOut();
+    if (!context.mounted) return;
     messenger
       ..hideCurrentSnackBar()
       ..showSnackBar(const SnackBar(content: Text('Signed out successfully')));

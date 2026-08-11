@@ -43,8 +43,16 @@ export class SchedulerService {
     return scheduled;
   }
 
-  async inspectJob(jobId: string): Promise<SchedulerJobRecord | null> {
-    return this.schedulerRepository.getById(jobId);
+  async inspectJob(
+    authorization: TrustedContext,
+    jobId: string,
+  ): Promise<SchedulerJobRecord | null> {
+    const job = await this.schedulerRepository.getById(jobId);
+    if (job) {
+      this.assertJobAuthorization(authorization, job, 'inspect');
+    }
+
+    return job;
   }
 
   async retryOrReplay(input: RetryOrReplayInput): Promise<RecoveryResult> {
@@ -57,7 +65,7 @@ export class SchedulerService {
       });
     }
 
-    this.assertReplayAuthorization(input.authorization, job);
+    this.assertJobAuthorization(input.authorization, job, 'replay');
 
     const replayed: SchedulerJobRecord = {
       ...job,
@@ -160,16 +168,20 @@ export class SchedulerService {
     };
   }
 
-  private assertReplayAuthorization(authorization: TrustedContext, job: SchedulerJobRecord): void {
+  private assertJobAuthorization(
+    authorization: TrustedContext,
+    job: SchedulerJobRecord,
+    action: 'inspect' | 'replay',
+  ): void {
     if (authorization.kind === 'platform') {
       return;
     }
 
     if (!job.tenantId || authorization.tenantId !== job.tenantId) {
       throw new PlatformError({
-        code: 'scheduler.replay_forbidden',
+        code: `scheduler.${action}_forbidden`,
         category: 'forbidden',
-        messageKey: 'errors.scheduler.replay_forbidden',
+        messageKey: `errors.scheduler.${action}_forbidden`,
       });
     }
   }

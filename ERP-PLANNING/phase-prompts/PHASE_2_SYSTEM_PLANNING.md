@@ -29,7 +29,7 @@ The platform uses a multi-tenant SaaS model. Each business is a tenant, each ten
 
 The checked-in repository is a pnpm and TurboRepo monorepo containing NestJS service foundations, Flutter web and mobile applications, shared packages, MongoDB, Redis, BullMQ, Docker assets, and future infrastructure locations. The planned architecture preserves those boundaries while avoiding unnecessary distributed-system complexity. Services have explicit domain ownership, but deployment may be consolidated during early stages when operational simplicity is more valuable than independent scaling.
 
-The API gateway is the only public backend entry point. Domain services own business capabilities and authoritative data. Cross-service effects use versioned contracts, reliable events, and idempotent background work. MongoDB is the primary system of record, Redis supports bounded caching and BullMQ workloads, S3-compatible object storage holds uploaded assets, and external customer messages are sent through an approved WhatsApp provider.
+The Unified auth service is the only public backend entry point. Domain services own business capabilities and authoritative data. Cross-service effects use versioned contracts, reliable events, and idempotent background work. MongoDB is the primary system of record, Redis supports bounded caching and BullMQ workloads, S3-compatible object storage holds uploaded assets, and external customer messages are sent through an approved WhatsApp provider.
 
 Flutter is used for both web and Android/iOS clients. The two clients share product behavior, terminology, accessibility standards, localization rules, and design tokens, while retaining platform-specific navigation, storage, connectivity, and release behavior.
 
@@ -40,7 +40,7 @@ Flutter is used for both web and Android/iOS clients. The two clients share prod
 | Product model | Multi-tenant, multi-branch SaaS | Supports many independent businesses on one governed platform |
 | Repository | pnpm/TurboRepo monorepo | Matches the current foundation and centralizes contracts and quality gates |
 | Backend | NestJS/TypeScript service-oriented architecture | Provides clear domain ownership while allowing incremental deployment |
-| Public access | API gateway as the only public backend entry point | Centralizes transport security, context, throttling, and compatibility |
+| Public access | Unified auth service as the only public backend entry point | Centralizes transport security, context, throttling, and compatibility |
 | Primary data store | MongoDB with Mongoose | Matches the approved specification and flexible service-business model |
 | Initial data topology | Shared managed MongoDB deployment with service-owned logical data | Controls cost while preserving ownership boundaries |
 | Cross-service data access | No direct access to another service’s private persistence | Prevents hidden coupling and unsafe writes |
@@ -217,7 +217,7 @@ The system must be:
 ### Trust boundaries
 
 - Flutter clients and all inbound requests are untrusted.
-- The API gateway is the public trust boundary.
+- The Unified auth service is the public trust boundary.
 - Authenticated claims are trusted only after signature, session, tenant-status, and membership validation.
 - Inter-service context is trusted only through approved authenticated internal transport.
 - Provider callbacks are trusted only after signature and replay validation.
@@ -232,19 +232,19 @@ The system must be:
 The logical system has six layers:
 
 1. **Experience layer:** Flutter web and Flutter mobile.
-2. **Edge layer:** API gateway, transport security, routing, throttling, and request context.
+2. **Edge layer:** Unified auth service, transport security, routing, throttling, and request context.
 3. **Identity and governance layer:** authentication, tenancy, users, roles, permissions, settings, and audit.
 4. **Business domain layer:** customers, catalog, orders, delivery, payments, expenses, notifications, reports, and search.
 5. **Asynchronous and integration layer:** outbox publishing, BullMQ workers, scheduler, exports, notifications, storage, and provider adapters.
 6. **Data and operations layer:** MongoDB, Redis, object storage, observability, backups, CI/CD, and runtime infrastructure.
 
-Flutter clients communicate only with the API gateway. The gateway communicates with the service that owns the requested capability. Domain services communicate synchronously only when the caller needs an immediate authoritative answer; otherwise they publish events or schedule background work.
+Flutter clients communicate only with the Unified auth service. The gateway communicates with the service that owns the requested capability. Domain services communicate synchronously only when the caller needs an immediate authoritative answer; otherwise they publish events or schedule background work.
 
 ## 2.2 High-Level System Design
 
 ### Synchronous path
 
-Flutter client → API gateway → owning domain service → owning data store → API gateway → Flutter client.
+Flutter client → Unified auth service → owning domain service → owning data store → Unified auth service → Flutter client.
 
 This path is used for user-driven actions that need an immediate result, such as sign-in, viewing a record, creating an order, or recording a payment.
 
@@ -294,8 +294,7 @@ Every backend application remains an explicit deployable unit. During early deve
 
 | Application | Primary responsibility | Authoritative ownership |
 |---|---|---|
-| `apps/backend/api-gateway/` | Public ingress, transport policy, request correlation, context propagation, throttling, compatibility | No domain records |
-| `apps/backend/auth-service/` | Credentials, login, access/refresh sessions, lockout, OTP, password lifecycle | Authentication and session records |
+| `apps/backend/auth-service/` | Public ingress, transport policy, request correlation, authentication, authorization, access/refresh sessions, lockout, OTP, audit, and scheduling | Authentication, session, and platform infrastructure records |
 | `apps/backend/tenant-service/` | Tenant onboarding, lifecycle, plans, entitlements, terminology, business settings | Tenants, subscriptions, settings |
 | `apps/backend/branch-service/` | Branch identity, lifecycle, contact, operating context | Branches |
 | `apps/backend/user-service/` | Staff, roles, permissions, invitations, branch assignment | Users and authorization assignments |
@@ -1394,7 +1393,7 @@ Each decision records context, options, selection, consequences, migration, roll
 ### Flutter public configuration
 
 - Application environment.
-- Public API gateway base URL.
+- Public Unified auth service base URL.
 - Public observability identifier where approved.
 - Feature-discovery bootstrap location.
 
@@ -1476,7 +1475,7 @@ Tenant branding cannot change security indicators, semantic error colors, or acc
 Later implementation prompts are organized by:
 
 1. Platform foundation and shared standards.
-2. API gateway.
+2. Unified auth service.
 3. Authentication.
 4. Tenant and subscription.
 5. Branches.

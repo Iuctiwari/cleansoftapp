@@ -5,12 +5,12 @@
 # services depend on.  Developers run the NestJS services locally via:
 #
 #   pnpm dev          # starts all services with hot-reload via Turborepo
-#   pnpm --filter @nexoraa/api-gateway dev   # starts one service
+#   pnpm --filter @nexoraa/auth-service dev   # starts the unified HTTP/auth service
 #
 # Start infrastructure only:
 #   docker compose up -d
 #
-# Start infrastructure + api-gateway in Docker (optional):
+# Start infrastructure + unified auth service in Docker (optional):
 #   docker compose --profile gateway up -d
 #
 # Start ALL backend services in Docker (optional):
@@ -146,21 +146,22 @@ services:
       start_period: 10s
 
   # ───────────────────────────────────────────────────────────────────────────
-  # API Gateway (profile: gateway)
-  # Optionally run the gateway in Docker for integration testing.
-  # By default, start this locally with: pnpm --filter @nexoraa/api-gateway dev
+  # Unified Auth Service (profiles: gateway, services)
+  # Optionally run the public authentication service in Docker for integration testing.
+  # By default, start this locally with: pnpm --filter @nexoraa/auth-service dev
   # ───────────────────────────────────────────────────────────────────────────
-  api-gateway:
-    profiles:
-      - gateway
-      - services
+  # ───────────────────────────────────────────────────────────────────────────
+  # Auth Service
+  # ───────────────────────────────────────────────────────────────────────────
+  auth-service:
+    profiles: [gateway, services]
     build:
       <<: *service-build
       args:
-        SERVICE: api-gateway
+        SERVICE: auth-service
     restart: unless-stopped
     ports:
-      - '${API_GATEWAY_HOST_PORT:-3000}:3000'
+      - '${AUTH_SERVICE_HOST_PORT:-3000}:3000'
     environment:
       <<: *backend-env
       APP_NAME: Nexoraa CleanSoft
@@ -168,16 +169,14 @@ services:
       HOST: 0.0.0.0
       API_PREFIX: api
       API_VERSION: v1
-      SERVICE_NAME: api-gateway
+      SERVICE_NAME: auth-service
     env_file:
-      - path: ./apps/backend/api-gateway/.env
+      - path: ./apps/backend/auth-service/.env
         required: false
     networks:
       - nexoraa-internal
     depends_on:
       mongodb:
-        condition: service_healthy
-      redis:
         condition: service_healthy
       mongo-init:
         condition: service_completed_successfully
@@ -192,33 +191,6 @@ services:
       timeout: 10s
       retries: 3
       start_period: 60s
-
-  # ───────────────────────────────────────────────────────────────────────────
-  # Auth Service (profile: services)
-  # ───────────────────────────────────────────────────────────────────────────
-  auth-service:
-    profiles: [services]
-    build:
-      <<: *service-build
-      args:
-        SERVICE: auth-service
-    restart: unless-stopped
-    ports:
-      - '3001:3000'
-    environment:
-      <<: *backend-env
-      PORT: 3000
-      SERVICE_NAME: auth-service
-    networks:
-      - nexoraa-internal
-    depends_on:
-      mongodb:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      mongo-init:
-        condition: service_completed_successfully
-    logging: *default-logging
 
   # ───────────────────────────────────────────────────────────────────────────
   # Tenant Service (profile: services)

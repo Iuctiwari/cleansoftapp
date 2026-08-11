@@ -19,6 +19,18 @@ class RegistrationForm {
     this.agreedToTerms = false,
   });
 
+  factory RegistrationForm.fromJson(Map<String, dynamic> json) {
+    return RegistrationForm(
+      businessName: _stringValue(json, 'businessName'),
+      businessType: _stringValue(json, 'businessType'),
+      ownerName: _stringValue(json, 'ownerName'),
+      email: _stringValue(json, 'email'),
+      mobileNumber: _stringValue(json, 'mobileNumber'),
+      password: _stringValue(json, 'password'),
+      agreedToTerms: json['agreedToTerms'] == true,
+    );
+  }
+
   /// Returns a copy with specific fields overridden.
   RegistrationForm copyWith({
     String? businessName,
@@ -51,6 +63,11 @@ class RegistrationForm {
       'password': password,
       'agreedToTerms': agreedToTerms,
     };
+  }
+
+  static String _stringValue(Map<String, dynamic> json, String key) {
+    final Object? value = json[key];
+    return value is String ? value : '';
   }
 
   @override

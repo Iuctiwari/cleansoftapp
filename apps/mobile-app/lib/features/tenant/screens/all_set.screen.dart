@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:nexoraa_mobile/features/authentication/authentication_dependencies.dart';
 
 import '../../../app/router.dart';
 import '../../../app/theme.dart';
@@ -11,6 +12,33 @@ class AllSetScreen extends StatelessWidget {
 
   const AllSetScreen({super.key, required this.data});
 
+  Future<void> _goToDashboard(BuildContext context) async {
+    if (!AuthenticationDependencies.controller.isAuthenticated) {
+      final authenticated = await AuthenticationDependencies.controller.signIn(
+        identifier: data.registrationForm.email.trim(),
+        password: data.registrationForm.password,
+      );
+      if (!context.mounted) return;
+      if (!authenticated) {
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(
+              content: Text(
+                AuthenticationDependencies.controller.errorMessage ??
+                    'Unable to sign in. Please try again.',
+              ),
+            ),
+          );
+        return;
+      }
+    }
+
+    if (context.mounted) {
+      context.goNamed(AppRouteNames.dashboard, extra: data);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return TenantOnboardingScaffold(
@@ -20,8 +48,7 @@ class AllSetScreen extends StatelessWidget {
       actions: SizedBox(
         width: double.infinity,
         child: ElevatedButton(
-          onPressed: () =>
-              context.goNamed(AppRouteNames.dashboard, extra: data),
+          onPressed: () => _goToDashboard(context),
           child: const Text('Go to Dashboard'),
         ),
       ),
@@ -58,27 +85,33 @@ class AllSetScreen extends StatelessWidget {
           ),
           const SizedBox(height: 24),
           _StatusRow(
-            icon: Icons.check_circle_outline_rounded,
-            text: data.branchName.trim().isEmpty
-                ? 'Branch details ready'
-                : '${data.branchName.trim()} created',
-            completed: true,
+            icon: data.branchCreated
+                ? Icons.check_circle_outline_rounded
+                : Icons.close_rounded,
+            text: data.branchCreated
+                ? '${data.branchName.trim()} created'
+                : 'Branch not created',
+            completed: data.branchCreated,
           ),
           const SizedBox(height: 10),
           _StatusRow(
-            icon: Icons.check_circle_outline_rounded,
-            text: '${data.selectedServices.length} services configured',
-            completed: true,
+            icon: data.servicesConfigured
+                ? Icons.check_circle_outline_rounded
+                : Icons.close_rounded,
+            text: data.servicesConfigured
+                ? '${data.selectedServices.length} services configured'
+                : 'Services not configured',
+            completed: data.servicesConfigured,
           ),
           const SizedBox(height: 10),
           _StatusRow(
-            icon: data.staffEmails.isEmpty
+            icon: !data.staffInvitationSubmitted
                 ? Icons.close_rounded
                 : Icons.check_circle_outline_rounded,
-            text: data.staffEmails.isEmpty
+            text: !data.staffInvitationSubmitted
                 ? 'Staff invitation skipped'
-                : '${data.staffEmails.length} staff invitations ready',
-            completed: data.staffEmails.isNotEmpty,
+                : '${data.staff.length} staff invitation${data.staff.length == 1 ? '' : 's'} sent',
+            completed: data.staffInvitationSubmitted,
           ),
         ],
       ),

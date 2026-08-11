@@ -7,6 +7,7 @@ import {
   IsEmail,
   IsEnum,
   IsNotEmpty,
+  IsOptional,
   IsString,
   Matches,
   MaxLength,
@@ -14,7 +15,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 import type { TenantBusinessType, TenantStatus, BranchStatus } from './tenant.types';
 
@@ -139,6 +140,22 @@ export class OnboardingBranchDto {
   email!: string;
 }
 
+export class OnboardingStaffDto {
+  @ApiPropertyOptional({ example: '+919876543210' })
+  @IsOptional()
+  @IsString()
+  @Matches(/^\+?[0-9]{7,15}$/, {
+    message: 'mobileNumber must be a valid phone number (7–15 digits, optional leading +)',
+  })
+  mobileNumber?: string;
+
+  @ApiPropertyOptional({ example: 'staff@example.com', maxLength: 160 })
+  @IsOptional()
+  @IsEmail()
+  @MaxLength(160)
+  email?: string;
+}
+
 export class CompleteTenantOnboardingDto {
   @ApiProperty({ example: 'FreshCare Laundry', maxLength: 120 })
   @IsString()
@@ -185,13 +202,15 @@ export class CompleteTenantOnboardingDto {
   services!: TenantBusinessType[];
 
   @ApiProperty({
-    type: [String],
-    example: [],
-    description: 'Reserved for staff onboarding; must be empty for now.',
+    type: [OnboardingStaffDto],
+    example: [{ mobileNumber: '+919876543210', email: 'staff@example.com' }],
+    description: 'Staff contact details collected during onboarding.',
   })
   @IsArray()
-  @ArrayMaxSize(0)
-  staff!: string[];
+  @ArrayMaxSize(20)
+  @ValidateNested({ each: true })
+  @Type(() => OnboardingStaffDto)
+  staff!: OnboardingStaffDto[];
 }
 
 // ─── Response DTOs ────────────────────────────────────────────────────────────

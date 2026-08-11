@@ -21,8 +21,6 @@ class _SplashScreenState extends State<SplashScreen>
   late final Animation<double> _scaleAnimation;
   final SplashController _splashController = SplashController(
     authenticationController: AuthenticationDependencies.controller,
-    bypassAuthentication:
-        AuthenticationDependencies.temporaryDevelopmentUiBypassEnabled,
   );
 
   @override

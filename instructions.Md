@@ -1,6 +1,6 @@
 # Nexoraa CleanSoft — Getting Started
 
-This guide explains how to prepare and run the complete Nexoraa CleanSoft monorepo for local development. It is intended for new developers working on the NestJS API gateway, Flutter mobile application, shared packages, and local Docker services.
+This guide explains how to prepare and run the complete Nexoraa CleanSoft monorepo for local development. It is intended for new developers working on the NestJS Unified auth service, Flutter mobile application, shared packages, and local Docker services.
 
 All paths in this document are relative to the repository root unless an absolute path is explicitly required.
 
@@ -8,7 +8,7 @@ All paths in this document are relative to the repository root unless an absolut
 
 Nexoraa CleanSoft is an enterprise multi-tenant ERP monorepo. The repository currently contains:
 
-- A NestJS API gateway and backend service foundations.
+- A NestJS Unified auth service and backend service foundations.
 - A Flutter Android/iOS mobile application.
 - Shared TypeScript packages.
 - MongoDB and Redis development containers.
@@ -36,7 +36,7 @@ D:\flutter\nexoraa-cleansoft
 
 ### Expected result
 
-After completing this guide, MongoDB and Redis should be running in Docker, the API gateway should answer at `http://localhost:3000/api/v1/health`, and Flutter mobile should run on an Android emulator.
+After completing this guide, MongoDB and Redis should be running in Docker, the Unified auth service should answer at `http://localhost:3000/api/v1/health`, and Flutter mobile should run on an Android emulator.
 
 ### Common errors
 
@@ -50,8 +50,7 @@ After completing this guide, MongoDB and Redis should be running in Docker, the 
 nexoraa-cleansoft/
 ├── .github/                     GitHub Actions and repository automation
 ├── apps/                        Deployable backend and Flutter applications
-│   ├── api-gateway/             NestJS HTTP API entry point
-│   ├── auth-service/            Authentication service foundation
+│   ├── auth-service/             Unified HTTP, authentication, platform, audit, and scheduler service
 │   ├── tenant-service/          Tenant service foundation
 │   ├── branch-service/          Branch service foundation
 │   ├── user-service/            User and authorization service foundation
@@ -200,7 +199,7 @@ flutter pub get
 
 ## Environment Configuration
 
-The monorepo uses separate environment files for root Docker services, the API gateway, and Flutter mobile. Never commit credentials, tokens, private keys, or production values.
+The monorepo uses separate environment files for root Docker services, the Unified auth service, and Flutter mobile. Never commit credentials, tokens, private keys, or production values.
 
 ### Root Docker environment
 
@@ -223,12 +222,12 @@ REDIS_PORT=6379
 LOG_LEVEL=debug
 ```
 
-### API gateway environment
+### Unified auth service environment
 
-Command location: `apps/backend/api-gateway`
+Command location: `apps/backend/auth-service`
 
 ```powershell
-cd D:\flutter\nexoraa-cleansoft\apps\backend\api-gateway
+cd D:\flutter\nexoraa-cleansoft\apps\backend\auth-service
 Copy-Item .env.example .env
 ```
 
@@ -259,29 +258,29 @@ API_BASE_URL=http://10.0.2.2:3000/api/v1
 
 ### Expected output
 
-Each application folder should contain an untracked `.env` file. The API gateway should start without a missing-environment-variable error. Docker Compose should resolve the MongoDB and Redis port variables.
+Each application folder should contain an untracked `.env` file. The Unified auth service should start without a missing-environment-variable error. Docker Compose should resolve the MongoDB and Redis port variables.
 
 ### Common errors
 
 - **`Copy-Item` says the destination exists:** Inspect the existing local `.env` and update only the required development values.
-- **API gateway reports a required variable:** Compare `apps/backend/api-gateway/.env` with `apps/backend/api-gateway/.env.example`.
+- **Unified auth service reports a required variable:** Compare `apps/backend/auth-service/.env` with `apps/backend/auth-service/.env.example`.
 - **Flutter reports `.env` as a missing asset:** Confirm `.env` exists in the same folder as that application's `pubspec.yaml`, then run `flutter pub get`.
 - **Mobile app cannot reach `localhost:3000`:** Use `http://10.0.2.2:3000` for the standard Android emulator. A physical device requires a reachable host LAN address and appropriate firewall configuration.
 - **A secret was committed:** Stop using it, rotate it through the approved secret-management process, and remove it from Git history using the team's security procedure.
 
 ## Backend Setup
 
-The currently runnable NestJS backend application is the API gateway.
+The currently runnable NestJS backend application is the Unified auth service.
 
 ### Command location
 
-Folder: `apps/backend/api-gateway`
+Folder: `apps/backend/auth-service`
 
 ```powershell
-cd D:\flutter\nexoraa-cleansoft\apps\backend\api-gateway
+cd D:\flutter\nexoraa-cleansoft\apps\backend\auth-service
 ```
 
-Install the API gateway dependencies independently when required:
+Install the Unified auth service dependencies independently when required:
 
 ```powershell
 npm install
@@ -316,7 +315,7 @@ Expected health response:
 ```json
 {
   "status": "ok",
-  "service": "api-gateway",
+  "service": "auth-service",
   "environment": "development",
   "message": "NestJS Foundation Ready"
 }
@@ -325,20 +324,20 @@ Expected health response:
 ### Expected output
 
 - `npm install` finishes without changing declared dependency versions and prepares local `node_modules`.
-- `npm run start:dev` starts NestJS in watch mode and logs that the API gateway is listening on port `3000`.
-- `npm run build` creates or refreshes `apps/backend/api-gateway/dist`.
+- `npm run start:dev` starts NestJS in watch mode and logs that the Unified auth service is listening on port `3000`.
+- `npm run build` creates or refreshes `apps/backend/auth-service/dist`.
 - `npm test` exits successfully; while no tests exist, the configured command may report that no tests were found and exit with code `0`.
 - The health request returns HTTP `200` and the JSON shown above.
 
 ### Common errors
 
-- **`EADDRINUSE` on port 3000:** Stop the process using port `3000` or choose another unused `PORT` in `apps/backend/api-gateway/.env`.
-- **Missing environment variable:** Recreate `apps/backend/api-gateway/.env` from `.env.example`.
-- **`npm` cannot resolve packages:** Confirm Node.js 22 and network/registry settings, then retry from `apps/backend/api-gateway`.
+- **`EADDRINUSE` on port 3000:** Stop the process using port `3000` or choose another unused `PORT` in `apps/backend/auth-service/.env`.
+- **Missing environment variable:** Recreate `apps/backend/auth-service/.env` from `.env.example`.
+- **`npm` cannot resolve packages:** Confirm Node.js 22 and network/registry settings, then retry from `apps/backend/auth-service`.
 - **Health endpoint returns 404:** Confirm the URL includes both `/api` and `/v1`, and verify `API_PREFIX=api` and `API_VERSION=v1`.
-- **TypeScript compilation fails:** Run `npm run typecheck` from `apps/backend/api-gateway`, review the first error, and do not bypass strict compiler rules.
-- **Formatting or lint failures:** Run `npm run format` and `npm run lint` from `apps/backend/api-gateway`, then review the resulting changes.
-- **Mixed package-manager state:** The monorepo uses pnpm at root while the API gateway also has an npm lockfile. Do not alternate package managers in the same folder unless the team intends to update dependency state.
+- **TypeScript compilation fails:** Run `npm run typecheck` from `apps/backend/auth-service`, review the first error, and do not bypass strict compiler rules.
+- **Formatting or lint failures:** Run `npm run format` and `npm run lint` from `apps/backend/auth-service`, then review the resulting changes.
+- **Mixed package-manager state:** The monorepo uses pnpm at root while the Unified auth service also has an npm lockfile. Do not alternate package managers in the same folder unless the team intends to update dependency state.
 
 ## Flutter Mobile Setup
 
@@ -618,7 +617,7 @@ docker compose down
 Expected results:
 
 - `pnpm install` installs workspace dependencies.
-- `pnpm dev` asks Turbo to start workspace packages that currently expose a `dev` script. The API gateway uses `npm run start:dev` separately.
+- `pnpm dev` asks Turbo to start workspace packages that currently expose a `dev` script. The Unified auth service uses `npm run start:dev` separately.
 - `pnpm lint`, `pnpm test`, and `pnpm build` execute matching Turbo tasks in participating workspaces.
 - `docker compose up -d` starts MongoDB and Redis.
 - `docker compose down` stops them.
@@ -629,12 +628,12 @@ Common errors:
 - **Multiple applications start unexpectedly with `pnpm dev`:** Root development mode is parallel. For controlled startup, use each application's folder-specific command.
 - **`pnpm verify` fails after documentation or implementation work:** The original verifier may enforce scaffold-era expectations. Review its reported rule and current project phase before changing files.
 
-### API gateway commands
+### Unified auth service commands
 
-Command location: `apps/backend/api-gateway`
+Command location: `apps/backend/auth-service`
 
 ```powershell
-cd D:\flutter\nexoraa-cleansoft\apps\backend\api-gateway
+cd D:\flutter\nexoraa-cleansoft\apps\backend\auth-service
 npm run start:dev
 npm run typecheck
 npm run lint
@@ -692,16 +691,16 @@ Common error: if a port is occupied, resolve the conflict before starting the ba
 
 Open a second terminal.
 
-Command location: `apps/backend/api-gateway`
+Command location: `apps/backend/auth-service`
 
 ```powershell
-cd D:\flutter\nexoraa-cleansoft\apps\backend\api-gateway
+cd D:\flutter\nexoraa-cleansoft\apps\backend\auth-service
 npm run start:dev
 ```
 
 Expected output: NestJS listens on `0.0.0.0:3000`, and `/api/v1/health` returns HTTP `200`.
 
-Common error: if configuration validation fails, repair `apps/backend/api-gateway/.env`.
+Common error: if configuration validation fails, repair `apps/backend/auth-service/.env`.
 
 ### 3. Start Flutter Mobile
 
@@ -766,11 +765,11 @@ Command location: **any folder**
 Invoke-RestMethod http://localhost:3000/api/v1/health
 ```
 
-Expected output: the API gateway health object with status `ok`.
+Expected output: the Unified auth service health object with status `ok`.
 
 Solutions:
 
-- If connection is refused, start the API gateway.
+- If connection is refused, start the Unified auth service.
 - If the route is not found, verify the prefix/version environment values.
 - If port `3000` is occupied, stop the existing process or change the backend port and client URLs consistently.
 
@@ -841,7 +840,7 @@ Expected output: generated build state is recreated and checks run against a cle
 |---|---|---|
 | Root pnpm/Turbo commands | Repository Root | `.` |
 | Docker Compose | Repository Root | `.` |
-| NestJS API gateway | API gateway folder | `apps/backend/api-gateway` |
+| NestJS Unified auth service | Unified auth service folder | `apps/backend/auth-service` |
 | Flutter mobile | Mobile application folder | `apps/mobile-app` |
 | Backend service foundations | Individual service folder | `apps/backend/*-service` |
 | Shared TypeScript packages | Individual package folder | `packages/*` |
@@ -891,17 +890,17 @@ Expected output: workspace dependencies are installed and MongoDB/Redis are runn
 
 Common error: create the root `.env` when Compose cannot resolve port variables.
 
-### Terminal 2 — API gateway
+### Terminal 2 — Unified auth service
 
-Command location: `apps/backend/api-gateway`
+Command location: `apps/backend/auth-service`
 
 ```powershell
-cd D:\flutter\nexoraa-cleansoft\apps\backend\api-gateway
+cd D:\flutter\nexoraa-cleansoft\apps\backend\auth-service
 npm install
 npm run start:dev
 ```
 
-Expected output: the API gateway listens on port `3000`.
+Expected output: the Unified auth service listens on port `3000`.
 
 Common error: copy `.env.example` to `.env` and resolve port `3000` conflicts.
 
@@ -934,7 +933,7 @@ Expected output:
 
 ```text
 status      : ok
-service     : api-gateway
+service     : auth-service
 environment : development
 message     : NestJS Foundation Ready
 ```

@@ -11,7 +11,7 @@ exist in this repository and clearly separates:
 - the target production architecture; and
 - the work and approvals required before a production release.
 
-The repository is not production-deployable yet. The NestJS API gateway and
+The repository is not production-deployable yet. The NestJS Unified auth service and
 Flutter foundation are runnable, but the domain services, production
 containers, Terraform, Helm charts, database migrations, observability, and
 continuous-delivery workflow are still scaffolds.
@@ -20,7 +20,7 @@ continuous-delivery workflow are still scaffolds.
 
 | Component | Location | Current state | Deployment status |
 | --- | --- | --- | --- |
-| API gateway | `apps/backend/api-gateway` | Runnable NestJS application | Development-ready |
+| Unified auth service | `apps/backend/auth-service` | Runnable NestJS application | Development-ready |
 | Flutter mobile app | `apps/mobile-app` | Runnable Android/iOS Flutter foundation | Development-ready |
 | Domain services | `apps/backend/*-service` | Package, TypeScript, and environment scaffolds only | Not deployable |
 | MongoDB | Root `docker-compose.yml` | MongoDB 8 local container | Local development only |
@@ -86,7 +86,7 @@ development or staging.
 The following checked-in files define names and safe examples only:
 
 - root `.env` variables are used by local Docker Compose;
-- `apps/backend/api-gateway/.env.example` defines gateway variables;
+- `apps/backend/auth-service/.env.example` defines gateway variables;
 - `apps/backend/*-service/.env.example` defines future service variables; and
 - `apps/mobile-app/.env` contains build-time, non-secret Flutter configuration.
 
@@ -97,7 +97,7 @@ Helm values committed to Git, or Terraform state in plain text.
 
 ### 4.2 Required gateway configuration
 
-The API gateway currently requires:
+The Unified auth service currently requires:
 
 ```env
 APP_NAME=Nexoraa CleanSoft
@@ -149,7 +149,7 @@ with reviewed Flutter flavors such as `development`, `staging`, and
 
 ## 5. Target Runtime Topology
 
-Only the API gateway is public. MongoDB, Redis, workers, and domain services
+Only the Unified auth service is public. MongoDB, Redis, workers, and domain services
 must stay on private networks.
 
 ```text
@@ -160,7 +160,7 @@ Flutter application
 DNS -> WAF/rate limiting -> TLS load balancer/ingress
                               |
                               v
-                         API gateway
+                         Unified auth service
                               |
                    private service network
                   /           |            \
@@ -174,7 +174,7 @@ DNS -> WAF/rate limiting -> TLS load balancer/ingress
 Deployment should follow the repository's logical service ownership without
 forcing premature operational complexity:
 
-1. Deploy the API gateway as its own workload.
+1. Deploy the Unified auth service as its own workload.
 2. Deploy only implemented domain services and workers.
 3. A domain package becomes an independent workload only after it has runnable
    source, health/readiness endpoints, tests, a build script, and an image.
@@ -222,12 +222,12 @@ The normal local ports are `27017` and `6379`.
 These containers use named volumes. Do not use `docker compose down -v`
 unless local database and Redis data may be permanently deleted.
 
-### 6.3 Start the API gateway
+### 6.3 Start the Unified auth service
 
 Run in a dedicated terminal:
 
 ```powershell
-cd D:\flutter\nexoraa-cleansoft\apps\backend\api-gateway
+cd D:\flutter\nexoraa-cleansoft\apps\backend\auth-service
 pnpm start:dev
 ```
 
@@ -242,7 +242,7 @@ Expected fields include:
 ```json
 {
   "status": "ok",
-  "service": "api-gateway",
+  "service": "auth-service",
   "environment": "development",
   "message": "NestJS Foundation Ready"
 }
@@ -287,27 +287,27 @@ Every artifact must record:
 - test and scan results; and
 - CI workflow/run identifier.
 
-### 7.1 API gateway artifact
+### 7.1 Unified auth service artifact
 
 The current gateway production build is:
 
 ```powershell
 cd D:\flutter\nexoraa-cleansoft
-pnpm --filter @nexoraa/api-gateway typecheck
-pnpm --filter @nexoraa/api-gateway test
-pnpm --filter @nexoraa/api-gateway build
+pnpm --filter @nexoraa/auth-service typecheck
+pnpm --filter @nexoraa/auth-service test
+pnpm --filter @nexoraa/auth-service build
 ```
 
 The compiled entry point is:
 
 ```text
-apps/backend/api-gateway/dist/main.js
+apps/backend/auth-service/dist/main.js
 ```
 
 The production start command is:
 
 ```powershell
-pnpm --filter @nexoraa/api-gateway start:prod
+pnpm --filter @nexoraa/auth-service start:prod
 ```
 
 Before staging deployment, add a multi-stage, non-root Dockerfile for the API
@@ -326,8 +326,8 @@ gateway. The resulting runtime image must:
 Do not use a floating `latest` tag for deployment. Publish both:
 
 ```text
-api-gateway:<release-version>
-api-gateway:<full-git-sha>
+auth-service:<release-version>
+auth-service:<full-git-sha>
 ```
 
 Deployment must pin the immutable image digest.
@@ -612,7 +612,7 @@ Mobile releases therefore require:
 - halting rollout before submitting a corrected build when a regression is
   detected.
 
-The API gateway must support at least the current and previous supported mobile
+The Unified auth service must support at least the current and previous supported mobile
 API contract throughout the mobile adoption window.
 
 ## 13. Release Verification
@@ -678,7 +678,7 @@ The safest order for turning the current foundation into a deployable system
 is:
 
 1. Strengthen pull-request CI using the exact checks in section 8.1.
-2. Add the API gateway production Dockerfile and image-security checks.
+2. Add the Unified auth service production Dockerfile and image-security checks.
 3. Add gateway readiness, graceful shutdown verification, and structured
    telemetry.
 4. Select and document the approved production platform and recovery targets.

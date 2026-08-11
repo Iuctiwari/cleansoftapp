@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:nexoraa_mobile/features/authentication/authentication_dependencies.dart';
 
 import '../../../app/theme.dart';
 import '../models/registration_form.dart';
@@ -72,6 +73,10 @@ class _AccountDetailsPageState extends State<AccountDetailsPage> {
 
     try {
       final result = await _apiService.registerTenant(updatedForm);
+      await AuthenticationDependencies.controller.signIn(
+        identifier: updatedForm.email.trim(),
+        password: updatedForm.password,
+      );
       if (mounted) {
         context.pushReplacement(
           '/register/success',

@@ -202,7 +202,10 @@ export class TenantService {
         email: input.branch.email.trim().toLowerCase(),
       },
       services: [...input.services],
-      staff: [],
+      staff: input.staff.map((staff) => ({
+        ...(staff.mobileNumber?.trim() ? { mobileNumber: staff.mobileNumber.trim() } : {}),
+        ...(staff.email?.trim() ? { email: staff.email.trim().toLowerCase() } : {}),
+      })),
     });
   }
 

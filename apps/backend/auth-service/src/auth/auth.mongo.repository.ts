@@ -2,6 +2,7 @@ import { Injectable, OnModuleInit } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, FilterQuery } from 'mongoose';
 import { hashPassword } from './auth.crypto';
+import { normalizeIdentifier } from './auth.normalization';
 
 import type {
   AuthIdentityRecord,
@@ -31,10 +32,6 @@ import {
   BranchAuthDocument,
   BranchAuthMongoose,
 } from './auth.mongoose.schema';
-
-function normalizeIdentifier(identifier: string): string {
-  return identifier.trim().toLowerCase();
-}
 
 @Injectable()
 export class MongoAuthRepository implements AuthRepository, OnModuleInit {
@@ -107,22 +104,26 @@ export class MongoAuthRepository implements AuthRepository, OnModuleInit {
     }
 
     if (context === 'tenant') {
-      if (!tenantSlug) return null;
-
-      const tenant = await this.tenantModel.findOne({ slug: tenantSlug }).lean().exec();
-      if (!tenant) return null;
-
+      const tenant = tenantSlug
+        ? await this.tenantModel.findOne({ slug: tenantSlug }).lean().exec()
+        : null;
       const owner = await this.tenantOwnerModel
         .findOne({
-          tenantId: tenant.tenantId,
+          ...(tenant ? { tenantId: tenant.tenantId } : {}),
           $or: [{ email: normalized }, { mobileNumber: normalized }],
         })
         .lean()
         .exec();
 
       if (!owner) return null;
+      const resolvedTenant =
+        tenant ?? (await this.tenantModel.findOne({ tenantId: owner.tenantId }).lean().exec());
+      if (!resolvedTenant) return null;
 
-      const branches = await this.branchModel.find({ tenantId: tenant.tenantId }).lean().exec();
+      const branches = await this.branchModel
+        .find({ tenantId: resolvedTenant.tenantId })
+        .lean()
+        .exec();
       const mappedBranches = branches.map((b) => ({
         branchId: b.branchId,
         branchCode: b.branchName.replace(/\s+/g, '-').toLowerCase(), // Fallback since actual branchCode is missing in Mongoose model
@@ -140,10 +141,10 @@ export class MongoAuthRepository implements AuthRepository, OnModuleInit {
         permissions: Object.freeze(owner.permissions),
         status: owner.status as AuthIdentityRecord['status'],
         accessVersion: owner.accessVersion,
-        tenantId: tenant.tenantId,
-        tenantSlug: tenant.slug,
+        tenantId: resolvedTenant.tenantId,
+        tenantSlug: resolvedTenant.slug,
         tenantName: owner.tenantName,
-        tenantStatus: tenant.status === 'Active' ? 'active' : 'disabled',
+        tenantStatus: resolvedTenant.status === 'Active' ? 'active' : 'disabled',
         branches: Object.freeze(mappedBranches),
         defaultBranchId: mappedBranches.find(
           (b) => branches.find((ob) => ob.branchId === b.branchId)?.isHeadOffice,

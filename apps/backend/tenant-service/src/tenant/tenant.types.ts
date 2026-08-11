@@ -104,7 +104,10 @@ export interface CompleteTenantOnboardingInput {
     readonly email: string;
   };
   readonly services: readonly TenantBusinessType[];
-  readonly staff: readonly string[];
+  readonly staff: readonly {
+    readonly mobileNumber?: string;
+    readonly email?: string;
+  }[];
 }
 
 export interface CompleteTenantOnboardingOutput {

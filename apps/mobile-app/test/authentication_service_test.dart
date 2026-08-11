@@ -10,7 +10,7 @@ import 'package:nexoraa_mobile/features/authentication/authentication.dart';
 void main() {
   group('ApiAuthenticationService', () {
     test(
-      'uses the gateway login contract and stores returned tokens',
+      'uses the auth login contract without a fixed tenant slug and stores the session',
       () async {
         final _MemoryTokenStorage storage = _MemoryTokenStorage();
         final DateTime accessExpiry = DateTime.now().toUtc().add(
@@ -21,10 +21,7 @@ void main() {
         );
         final MockClient client = MockClient((http.Request request) async {
           expect(request.method, 'POST');
-          expect(
-            request.url.toString(),
-            'http://gateway.test/api/v1/auth/login',
-          );
+          expect(request.url.toString(), 'http://auth.test/api/v1/auth/login');
           expect(
             request.headers[HttpHeaders.contentTypeHeader],
             contains('application/json'),
@@ -33,7 +30,6 @@ void main() {
             'context': 'tenant',
             'identifier': 'owner@example.com',
             'password': 'secret',
-            'tenantSlug': 'alpha',
           });
           return http.Response(
             jsonEncode(<String, Object>{
@@ -42,6 +38,16 @@ void main() {
                 'refreshToken': 'refresh-token',
                 'accessTokenExpiresAtUtc': accessExpiry.toIso8601String(),
                 'refreshTokenExpiresAtUtc': refreshExpiry.toIso8601String(),
+                'user': <String, String>{
+                  'userId': 'owner-1',
+                  'displayName': 'Owner Name',
+                  'email': 'owner@example.com',
+                },
+                'tenant': <String, String>{
+                  'tenantId': 'tenant-1',
+                  'tenantSlug': 'alpha',
+                  'tenantName': 'Alpha Laundry',
+                },
               },
               'meta': <String, String>{'correlationId': 'request-1'},
             }),
@@ -52,9 +58,8 @@ void main() {
           );
         });
         final ApiAuthenticationService service = ApiAuthenticationService(
-          apiBaseUri: Uri.parse('http://gateway.test/api'),
+          apiBaseUri: Uri.parse('http://auth.test/api'),
           loginContext: 'tenant',
-          tenantSlug: 'alpha',
           tokenStorage: storage,
           client: client,
         );
@@ -65,14 +70,18 @@ void main() {
         );
 
         expect(session.accessToken, 'access-token');
+        expect(session.tenantId, 'tenant-1');
+        expect(session.ownerUserId, 'owner-1');
+        expect(session.ownerName, 'Owner Name');
+        expect(session.businessName, 'Alpha Laundry');
         expect(storage.session, same(session));
-        expect(await service.isAuthenticated(), isTrue);
+        expect(await service.restoreSession(), same(session));
       },
     );
 
-    test('uses the backend message when login fails', () async {
+    test('uses a safe invalid-credentials message for 401 responses', () async {
       final ApiAuthenticationService service = ApiAuthenticationService(
-        apiBaseUri: Uri.parse('http://gateway.test/api'),
+        apiBaseUri: Uri.parse('http://auth.test/api'),
         loginContext: 'platform',
         tokenStorage: _MemoryTokenStorage(),
         client: MockClient(
@@ -91,7 +100,7 @@ void main() {
           isA<AuthenticationException>().having(
             (AuthenticationException error) => error.message,
             'message',
-            'Account is disabled',
+            'Invalid email or password',
           ),
         ),
       );
@@ -99,17 +108,127 @@ void main() {
 
     test('converts connection failures to a user-safe network error', () async {
       final ApiAuthenticationService service = ApiAuthenticationService(
-        apiBaseUri: Uri.parse('http://gateway.test/api'),
+        apiBaseUri: Uri.parse('http://auth.test/api'),
         loginContext: 'platform',
         tokenStorage: _MemoryTokenStorage(),
         client: MockClient((_) async => throw const SocketException('offline')),
       );
 
+      try {
+        await service.signIn(
+          identifier: 'owner@example.com',
+          password: 'secret',
+        );
+        fail('Expected a network failure');
+      } on AuthenticationNetworkException catch (error) {
+        expect(error.message, 'Enable internet connection');
+      }
+    });
+
+    test('uses a backend validation message for a 400 response', () async {
+      final ApiAuthenticationService service = ApiAuthenticationService(
+        apiBaseUri: Uri.parse('http://auth.test/api'),
+        loginContext: 'tenant',
+        tokenStorage: _MemoryTokenStorage(),
+        client: MockClient(
+          (_) async => http.Response(
+            jsonEncode(<String, Object>{
+              'message': <String>['identifier must not be empty'],
+            }),
+            HttpStatus.badRequest,
+          ),
+        ),
+      );
+
       await expectLater(
         service.signIn(identifier: 'owner@example.com', password: 'secret'),
-        throwsA(isA<AuthenticationNetworkException>()),
+        throwsA(
+          isA<AuthenticationException>().having(
+            (AuthenticationException error) => error.message,
+            'message',
+            'identifier must not be empty',
+          ),
+        ),
       );
     });
+
+    test('does not map HTTP authorization errors to network errors', () async {
+      final ApiAuthenticationService service = ApiAuthenticationService(
+        apiBaseUri: Uri.parse('http://auth.test/api'),
+        loginContext: 'tenant',
+        tokenStorage: _MemoryTokenStorage(),
+        client: MockClient(
+          (_) async => http.Response(
+            jsonEncode(<String, Object>{
+              'error': <String, String>{
+                'message': 'This account is not allowed to sign in',
+              },
+            }),
+            HttpStatus.forbidden,
+          ),
+        ),
+      );
+
+      await expectLater(
+        service.signIn(identifier: 'owner@example.com', password: 'secret'),
+        throwsA(
+          isA<AuthenticationException>()
+              .having(
+                (AuthenticationException error) => error.message,
+                'message',
+                'This account is not allowed to sign in',
+              )
+              .having(
+                (AuthenticationException error) =>
+                    error is AuthenticationNetworkException,
+                'is network error',
+                isFalse,
+              ),
+        ),
+      );
+    });
+
+    for (final scenario in <(int, String)>[
+      (HttpStatus.notFound, 'The requested account or tenant was not found.'),
+      (
+        HttpStatus.conflict,
+        'The sign-in request conflicts with the current account state.',
+      ),
+      (
+        HttpStatus.internalServerError,
+        'The authentication service is unavailable. Please try again.',
+      ),
+    ]) {
+      test(
+        'maps HTTP ${scenario.$1} without reporting a network error',
+        () async {
+          final ApiAuthenticationService service = ApiAuthenticationService(
+            apiBaseUri: Uri.parse('http://auth.test/api'),
+            loginContext: 'tenant',
+            tokenStorage: _MemoryTokenStorage(),
+            client: MockClient((_) async => http.Response('{}', scenario.$1)),
+          );
+
+          await expectLater(
+            service.signIn(identifier: 'owner@example.com', password: 'secret'),
+            throwsA(
+              isA<AuthenticationException>()
+                  .having(
+                    (AuthenticationException error) => error.message,
+                    'message',
+                    scenario.$2,
+                  )
+                  .having(
+                    (AuthenticationException error) =>
+                        error is AuthenticationNetworkException,
+                    'is network error',
+                    isFalse,
+                  ),
+            ),
+          );
+        },
+      );
+    }
   });
 
   test('AuthenticationController prevents concurrent login requests', () async {
@@ -133,6 +252,7 @@ void main() {
     service.complete();
     expect(await first, isTrue);
     expect(controller.isAuthenticated, isTrue);
+    expect(controller.session?.tenantId, 'tenant-1');
   });
 }
 
@@ -164,12 +284,13 @@ final class _DeferredAuthenticationService implements AuthenticationService {
         refreshToken: 'refresh',
         accessTokenExpiresAt: expiry,
         refreshTokenExpiresAt: expiry,
+        tenantId: 'tenant-1',
       ),
     );
   }
 
   @override
-  Future<bool> isAuthenticated() async => false;
+  Future<AuthenticationSession?> restoreSession() async => null;
 
   @override
   Future<AuthenticationSession> signIn({

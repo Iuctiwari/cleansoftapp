@@ -49,14 +49,6 @@ class _LoginScreenState extends State<LoginScreen>
   }
 
   Future<void> _handleSignIn() async {
-    // TEMPORARY DEVELOPMENT / UI TESTING ONLY.
-    // This returns before validation, API calls, authentication state updates,
-    // and success/failure callbacks. Set the flag to false to restore them.
-    if (AuthenticationDependencies.temporaryDevelopmentUiBypassEnabled) {
-      if (mounted) context.goNamed(AppRouteNames.dashboard);
-      return;
-    }
-
     if (_isLoading) return;
 
     final String email = _emailController.text.trim();

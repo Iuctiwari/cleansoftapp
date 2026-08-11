@@ -53,8 +53,11 @@ export class SchedulerController {
     description: 'Scheduled job record or null when it does not exist.',
     nullable: true,
   })
-  async inspectJob(@Param('jobId') jobId: string): Promise<unknown> {
-    return this.schedulerService.inspectJob(jobId);
+  async inspectJob(
+    @Param('jobId') jobId: string,
+    @Req() request: RequestWithPlatformContext,
+  ): Promise<unknown> {
+    return this.schedulerService.inspectJob(this.getAuthorization(request), jobId);
   }
 
   @Post(':jobId/replay')

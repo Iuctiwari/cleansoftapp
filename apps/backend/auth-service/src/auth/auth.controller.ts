@@ -12,12 +12,16 @@ import {
 
 import { TrustedContextFactory } from '../platform/platform.context';
 import { PlatformError } from '../platform/platform.errors';
-import type { RequestWithPlatformContext } from '../platform/platform.request';
+import { resolveHeaderValue, type RequestWithPlatformContext } from '../platform/platform.request';
 
 import type { TrustedContext } from '../platform/platform.types';
 import {
+  AuthAcknowledgementDto,
   AuthAcknowledgementEnvelopeDto,
   AuthErrorEnvelopeDto,
+  AuthLoginResponseEnvelopeDto,
+  AuthRefreshResponseEnvelopeDto,
+  AuthResetRequestAcknowledgementDto,
   AuthResetRequestAcknowledgementEnvelopeDto,
 } from './auth-response.dto';
 import {
@@ -28,11 +32,6 @@ import {
   AuthResetPasswordDto,
 } from './auth.dto';
 import { AuthService } from './auth.service';
-import {
-  AuthAcknowledgementDto,
-  AuthRefreshResponseDto,
-  AuthResetRequestAcknowledgementDto,
-} from './auth.swagger';
 
 @ApiTags('Authentication')
 @Controller({ path: 'auth', version: '1' })
@@ -48,7 +47,7 @@ export class AuthController {
   })
   @ApiResponse({
     status: 200,
-    type: AuthLoginResponseDto,
+    type: AuthLoginResponseEnvelopeDto,
     description: 'Authenticated session and tokens.',
   })
   async login(
@@ -65,7 +64,11 @@ export class AuthController {
   @ApiOperation({
     summary: 'Rotate refresh credentials and issue a new access token',
   })
-  @ApiResponse({ status: 200, type: AuthRefreshResponseDto, description: 'Rotated token pair.' })
+  @ApiResponse({
+    status: 200,
+    type: AuthRefreshResponseEnvelopeDto,
+    description: 'Rotated token pair.',
+  })
   async refresh(
     @Body() body: AuthRefreshDto,
     @Req() request: RequestWithPlatformContext,
@@ -233,19 +236,13 @@ export class AuthController {
     readonly userAgent?: string;
   } {
     const requestId =
-      this.resolveHeaderValue(request.headers['x-request-id']) ??
-      request.correlationId ??
-      'request-id';
+      resolveHeaderValue(request.headers['x-request-id']) ?? request.correlationId ?? 'request-id';
     return {
       correlationId: request.correlationId ?? requestId,
       causationId: requestId,
       requestId,
-      ipAddress: this.resolveHeaderValue(request.headers['x-forwarded-for']) ?? undefined,
-      userAgent: this.resolveHeaderValue(request.headers['user-agent']) ?? undefined,
+      ipAddress: resolveHeaderValue(request.headers['x-forwarded-for']) ?? undefined,
+      userAgent: resolveHeaderValue(request.headers['user-agent']) ?? undefined,
     };
-  }
-
-  private resolveHeaderValue(value: string | string[] | undefined): string | undefined {
-    return Array.isArray(value) ? value[0] : value;
   }
 }

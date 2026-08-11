@@ -1,51 +1,55 @@
 import 'reflect-metadata';
 
-import { Logger } from '@nestjs/common';
+import { Logger, ValidationPipe, VersioningType } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
-import { MicroserviceOptions, Transport } from '@nestjs/microservices';
+import { setupSwagger } from '@nexoraa/swagger';
 
 import { AppModule } from './app.module';
-
-const HOST = '0.0.0.0';
-
-function resolvePort(configService: ConfigService): number {
-  const port = Number(configService.getOrThrow<string>('PORT'));
-
-  if (!Number.isInteger(port) || port < 1 || port > 65_535) {
-    throw new Error('Environment variable PORT must be a valid TCP port');
-  }
-
-  return port;
-}
+import { PlatformExceptionFilter } from './platform/platform.filter';
+import {
+  CorrelationIdInterceptor,
+  ResponseEnvelopeInterceptor,
+} from './platform/platform.interceptors';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
   const configService = app.get(ConfigService);
   const logger = new Logger('Bootstrap');
 
-  // Set up Redis microservice
-  app.connectMicroservice<MicroserviceOptions>({
-    transport: Transport.REDIS,
-    options: {
-      host: configService.get('REDIS_HOST', 'redis'),
-      port: configService.get<number>('REDIS_PORT', 6379),
-      password: configService.get<string>('REDIS_PASSWORD'),
-    },
-  });
-
-  const port = resolvePort(configService);
-  const serviceName = configService.getOrThrow<string>('SERVICE_NAME');
-
   app.enableCors();
   app.enableShutdownHooks();
+  app.setGlobalPrefix(configService.getOrThrow<string>('API_PREFIX'));
+  app.enableVersioning({
+    type: VersioningType.URI,
+    defaultVersion: configService.getOrThrow<string>('API_VERSION').replace(/^v/i, ''),
+  });
+  app.useGlobalPipes(
+    new ValidationPipe({
+      forbidNonWhitelisted: true,
+      transform: true,
+      whitelist: true,
+    }),
+  );
+  app.useGlobalFilters(new PlatformExceptionFilter());
+  app.useGlobalInterceptors(new CorrelationIdInterceptor(), new ResponseEnvelopeInterceptor());
 
-  // Start microservices and HTTP server
-  await app.startAllMicroservices();
-  await app.listen(port, HOST);
+  const appName = configService.getOrThrow<string>('APP_NAME');
+  const environment = configService.getOrThrow<string>('NODE_ENV');
+  const host = configService.getOrThrow<string>('HOST');
+  const port = configService.getOrThrow<number>('PORT');
 
-  logger.log(`${serviceName} listening on http://${HOST}:${port}`);
-  logger.log(`${serviceName} microservice connected to Redis`);
+  setupSwagger(app, {
+    documentPath: 'docs',
+    title: `${appName} Authentication API`,
+    useGlobalPrefix: true,
+    version: configService.getOrThrow<string>('API_VERSION'),
+  });
+
+  logger.log(`Starting ${appName} authentication service in ${environment} mode`);
+  await app.listen(port, host);
+  logger.log(`Authentication service listening on http://${host}:${port}`);
+  logger.log(`Swagger UI available at http://${host}:${port}/api/docs`);
 }
 
 void bootstrap();

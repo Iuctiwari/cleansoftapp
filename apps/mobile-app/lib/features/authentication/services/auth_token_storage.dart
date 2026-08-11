@@ -17,6 +17,12 @@ final class SecureAuthTokenStorage implements AuthTokenStorage {
   static const String _refreshTokenKey = 'auth.refresh_token';
   static const String _accessExpiryKey = 'auth.access_token_expires_at';
   static const String _refreshExpiryKey = 'auth.refresh_token_expires_at';
+  static const String _tenantIdKey = 'auth.tenant_id';
+  static const String _tenantSlugKey = 'auth.tenant_slug';
+  static const String _ownerUserIdKey = 'auth.owner_user_id';
+  static const String _ownerNameKey = 'auth.owner_name';
+  static const String _ownerEmailKey = 'auth.owner_email';
+  static const String _businessNameKey = 'auth.business_name';
 
   final FlutterSecureStorage _storage;
 
@@ -27,6 +33,12 @@ final class SecureAuthTokenStorage implements AuthTokenStorage {
       _storage.delete(key: _refreshTokenKey),
       _storage.delete(key: _accessExpiryKey),
       _storage.delete(key: _refreshExpiryKey),
+      _storage.delete(key: _tenantIdKey),
+      _storage.delete(key: _tenantSlugKey),
+      _storage.delete(key: _ownerUserIdKey),
+      _storage.delete(key: _ownerNameKey),
+      _storage.delete(key: _ownerEmailKey),
+      _storage.delete(key: _businessNameKey),
     ]);
   }
 
@@ -56,6 +68,12 @@ final class SecureAuthTokenStorage implements AuthTokenStorage {
       refreshToken: refreshToken,
       accessTokenExpiresAt: accessExpiry,
       refreshTokenExpiresAt: refreshExpiry,
+      tenantId: values[_tenantIdKey],
+      tenantSlug: values[_tenantSlugKey],
+      ownerUserId: values[_ownerUserIdKey],
+      ownerName: values[_ownerNameKey],
+      ownerEmail: values[_ownerEmailKey],
+      businessName: values[_businessNameKey],
     );
   }
 
@@ -71,5 +89,16 @@ final class SecureAuthTokenStorage implements AuthTokenStorage {
       value: session.refreshTokenExpiresAt.toUtc().toIso8601String(),
     );
     await _storage.write(key: _accessTokenKey, value: session.accessToken);
+    await _writeOptional(_tenantIdKey, session.tenantId);
+    await _writeOptional(_tenantSlugKey, session.tenantSlug);
+    await _writeOptional(_ownerUserIdKey, session.ownerUserId);
+    await _writeOptional(_ownerNameKey, session.ownerName);
+    await _writeOptional(_ownerEmailKey, session.ownerEmail);
+    await _writeOptional(_businessNameKey, session.businessName);
+  }
+
+  Future<void> _writeOptional(String key, String? value) {
+    if (value == null || value.isEmpty) return _storage.delete(key: key);
+    return _storage.write(key: key, value: value);
   }
 }

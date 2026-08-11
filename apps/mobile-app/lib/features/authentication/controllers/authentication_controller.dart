@@ -15,24 +15,18 @@ final class AuthenticationController extends ChangeNotifier {
 
   final AuthenticationService _service;
   String? _errorMessage;
+  AuthenticationSession? _session;
   AuthenticationStatus _status = AuthenticationStatus.unknown;
 
   String? get errorMessage => _errorMessage;
+  AuthenticationSession? get session => _session;
   bool get isAuthenticated => _status == AuthenticationStatus.authenticated;
   bool get isLoading => _status == AuthenticationStatus.authenticating;
   AuthenticationStatus get status => _status;
 
-  /// Marks this local app session authenticated without calling the API.
-  /// Only invoke after checking the development-only environment flag.
-  void authenticateForDevelopmentBypass() {
-    _errorMessage = null;
-    _status = AuthenticationStatus.authenticated;
-    notifyListeners();
-  }
-
   Future<void> restoreSession() async {
-    final bool authenticated = await _service.isAuthenticated();
-    _status = authenticated
+    _session = await _service.restoreSession();
+    _status = _session != null
         ? AuthenticationStatus.authenticated
         : AuthenticationStatus.unauthenticated;
     notifyListeners();
@@ -49,7 +43,10 @@ final class AuthenticationController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      await _service.signIn(identifier: identifier, password: password);
+      _session = await _service.signIn(
+        identifier: identifier,
+        password: password,
+      );
       _status = AuthenticationStatus.authenticated;
       notifyListeners();
       return true;
@@ -60,6 +57,7 @@ final class AuthenticationController extends ChangeNotifier {
     }
 
     _status = AuthenticationStatus.unauthenticated;
+    _session = null;
     notifyListeners();
     return false;
   }
@@ -67,6 +65,7 @@ final class AuthenticationController extends ChangeNotifier {
   Future<void> signOut() async {
     await _service.signOut();
     _errorMessage = null;
+    _session = null;
     _status = AuthenticationStatus.unauthenticated;
     notifyListeners();
   }

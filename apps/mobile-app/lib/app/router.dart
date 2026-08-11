@@ -52,12 +52,6 @@ abstract final class AppRouter {
     initialLocation: AppRoutes.splash,
     refreshListenable: AuthenticationDependencies.controller,
     redirect: (BuildContext context, GoRouterState state) {
-      // TEMPORARY DEVELOPMENT / UI TESTING ONLY.
-      // Do not execute authentication route guards while the bypass is enabled.
-      if (AuthenticationDependencies.temporaryDevelopmentUiBypassEnabled) {
-        return null;
-      }
-
       final bool authenticated =
           AuthenticationDependencies.controller.isAuthenticated;
       final bool openingDashboard =
@@ -103,7 +97,9 @@ abstract final class AppRouter {
           return _fadePage<void>(
             state: state,
             child: DashboardPlaceholderScreen(
-              tenantId: onboardingData?.tenantId,
+              tenantId:
+                  onboardingData?.tenantId ??
+                  AuthenticationDependencies.controller.session?.tenantId,
             ),
           );
         },
@@ -119,7 +115,7 @@ abstract final class AppRouter {
               onboardingData: extra,
             );
           }
-          final form = extra as RegistrationForm? ?? RegistrationForm();
+          final form = _registrationFormFromExtra(extra);
           return BusinessInfoPage(form: form);
         },
       ),
@@ -127,7 +123,7 @@ abstract final class AppRouter {
         name: AppRouteNames.registerAccountDetails,
         path: AppRoutes.registerAccountDetails,
         builder: (context, state) {
-          final form = state.extra as RegistrationForm? ?? RegistrationForm();
+          final form = _registrationFormFromExtra(state.extra);
           return AccountDetailsPage(form: form);
         },
       ),
@@ -190,6 +186,14 @@ abstract final class AppRouter {
       ),
     ],
   );
+
+  static RegistrationForm _registrationFormFromExtra(Object? extra) {
+    if (extra is RegistrationForm) return extra;
+    if (extra is Map<String, dynamic>) {
+      return RegistrationForm.fromJson(extra);
+    }
+    return RegistrationForm();
+  }
 
   static CustomTransitionPage<T> _fadePage<T>({
     required GoRouterState state,
