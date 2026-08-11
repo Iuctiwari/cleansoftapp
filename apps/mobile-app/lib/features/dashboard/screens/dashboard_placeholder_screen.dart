@@ -2,17 +2,24 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:nexoraa_mobile/app/router.dart';
 import 'package:nexoraa_mobile/design_system/design_system.dart';
-import 'package:nexoraa_mobile/features/dashboard/dashboard_dummy_data.dart';
 import 'package:nexoraa_mobile/features/dashboard/dashboard_models.dart';
 import 'package:nexoraa_mobile/features/dashboard/dashboard_widgets.dart';
 import 'package:nexoraa_mobile/features/dashboard/screens/more_screen.dart';
+import 'package:nexoraa_mobile/features/tenant/services/tenant_api_service.dart';
 
 /// Owner dashboard UI served by the existing dashboard route.
 ///
 /// The historical class name is retained so the existing authentication and
 /// routing flow does not need to change.
 class DashboardPlaceholderScreen extends StatefulWidget {
-  const DashboardPlaceholderScreen({super.key});
+  const DashboardPlaceholderScreen({
+    this.tenantId,
+    this.tenantApiService,
+    super.key,
+  });
+
+  final String? tenantId;
+  final TenantApiService? tenantApiService;
 
   @override
   State<DashboardPlaceholderScreen> createState() =>
@@ -22,9 +29,66 @@ class DashboardPlaceholderScreen extends StatefulWidget {
 class _DashboardPlaceholderScreenState
     extends State<DashboardPlaceholderScreen> {
   int _currentNavigationIndex = 0;
-  String _selectedBranchId = DashboardDummyData.defaultBranchId;
+  String _selectedBranchId = 'unavailable';
+  List<DashboardData> _branches = <DashboardData>[
+    DashboardData.empty(
+      branchId: 'unavailable',
+      branchName: 'Unavailable',
+      ownerName: 'Unavailable',
+      ownerEmail: 'Unavailable',
+      businessName: 'Unavailable',
+    ),
+  ];
 
-  DashboardData get _data => DashboardDummyData.branch(_selectedBranchId);
+  DashboardData get _data => _branches.firstWhere(
+    (data) => data.branchId == _selectedBranchId,
+    orElse: () => _branches.first,
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    final tenantId = widget.tenantId?.trim() ?? '';
+    if (tenantId.isNotEmpty) _loadTenantDashboard(tenantId);
+  }
+
+  Future<void> _loadTenantDashboard(String tenantId) async {
+    final service = widget.tenantApiService ?? TenantApiService();
+    try {
+      final profile = await service.getTenantProfile(tenantId);
+      final tenantBranches = await service.listBranches(tenantId);
+      if (!mounted) return;
+
+      final branches = tenantBranches.isEmpty
+          ? <DashboardData>[
+              DashboardData.empty(
+                branchId: 'unavailable',
+                branchName: 'Unavailable',
+                ownerName: profile.ownerName,
+                ownerEmail: profile.ownerEmail,
+                businessName: profile.businessName,
+              ),
+            ]
+          : tenantBranches
+                .map(
+                  (branch) => DashboardData.empty(
+                    branchId: branch.branchId,
+                    branchName: branch.branchName,
+                    ownerName: profile.ownerName,
+                    ownerEmail: profile.ownerEmail,
+                    businessName: profile.businessName,
+                  ),
+                )
+                .toList(growable: false);
+
+      setState(() {
+        _branches = branches;
+        _selectedBranchId = branches.first.branchId;
+      });
+    } on Object {
+      // The zero/unavailable dashboard remains visible when data cannot load.
+    }
+  }
 
   void _selectBranch(String branchId) {
     setState(() => _selectedBranchId = branchId);
@@ -59,7 +123,7 @@ class _DashboardPlaceholderScreenState
                   SliverToBoxAdapter(
                     child: DashboardHeader(
                       data: data,
-                      branches: DashboardDummyData.allBranches,
+                      branches: _branches,
                       onBranchChanged: _selectBranch,
                     ),
                   ),
@@ -82,7 +146,10 @@ class _DashboardPlaceholderScreenState
                 key: const ValueKey<String>('more'),
                 businessName: data.businessName,
                 role: 'Owner',
-                userProfile: MoreUserProfileData.placeholder,
+                userProfile: MoreUserProfileData(
+                  name: data.ownerName,
+                  email: data.ownerEmail,
+                ),
               ),
       ),
       floatingActionButton: showingDashboard
@@ -214,7 +281,7 @@ class _DashboardContent extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: AppSpacing.md),
-              const DashboardSectionHeader(title: 'Recent Activities'),
+              const DashboardSectionHeader(title: 'Recent Activity'),
               const SizedBox(height: AppSpacing.lg),
               ...data.activities.map(
                 (DashboardActivity activity) => Padding(

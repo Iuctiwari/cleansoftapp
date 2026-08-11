@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:nexoraa_mobile/app/router.dart';
 import 'package:nexoraa_mobile/design_system/design_system.dart';
 import 'package:nexoraa_mobile/features/authentication/authentication_dependencies.dart';
+import 'package:nexoraa_mobile/features/tenant/models/registration_form.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -90,7 +91,10 @@ class _LoginScreenState extends State<LoginScreen>
   }
 
   void _handleCreateBusinessAccount() {
-    // TODO(frontend): Navigate when the registration screen is available.
+    context.pushNamed(
+      AppRouteNames.registerBusinessInfo,
+      extra: RegistrationForm(),
+    );
   }
 
   @override

@@ -143,6 +143,7 @@ class DashboardData {
     required this.branchId,
     required this.branchName,
     required this.ownerName,
+    this.ownerEmail = 'Unavailable',
     required this.businessName,
     required this.revenue,
     required this.revenueChange,
@@ -170,12 +171,133 @@ class DashboardData {
   final List<DashboardMetric> kpis;
   final List<DashboardOrder> orders;
   final String ownerName;
+  final String ownerEmail;
   final List<DashboardQuickAction> quickActions;
   final String revenue;
   final String revenueChange;
   final String revenueComparison;
   final List<DashboardRevenuePoint> revenuePoints;
   final List<DashboardMetric> summaryMetrics;
+
+  factory DashboardData.empty({
+    required String branchId,
+    required String branchName,
+    required String ownerName,
+    required String ownerEmail,
+    required String businessName,
+  }) {
+    const zeroKpis = <DashboardMetric>[
+      DashboardMetric(
+        type: DashboardMetricType.orders,
+        label: "Today's Orders",
+        value: '0',
+        supportingText: 'Unavailable',
+      ),
+      DashboardMetric(
+        type: DashboardMetricType.payments,
+        label: 'Payments',
+        value: '0',
+        supportingText: 'Unavailable',
+      ),
+      DashboardMetric(
+        type: DashboardMetricType.expenses,
+        label: 'Expenses',
+        value: '0',
+        supportingText: 'Unavailable',
+      ),
+      DashboardMetric(
+        type: DashboardMetricType.outstanding,
+        label: 'Outstanding',
+        value: '0',
+        supportingText: 'Unavailable',
+      ),
+      DashboardMetric(
+        type: DashboardMetricType.ready,
+        label: 'Ready Orders',
+        value: '0',
+        supportingText: 'Unavailable',
+      ),
+      DashboardMetric(
+        type: DashboardMetricType.delayed,
+        label: 'Delayed Orders',
+        value: '0',
+        supportingText: 'Unavailable',
+      ),
+    ];
+    const summary = <DashboardMetric>[
+      DashboardMetric(
+        type: DashboardMetricType.bills,
+        label: 'Bills',
+        value: '0',
+        supportingText: '0',
+      ),
+      DashboardMetric(
+        type: DashboardMetricType.customers,
+        label: 'Customers',
+        value: '0',
+        supportingText: '0',
+      ),
+      DashboardMetric(
+        type: DashboardMetricType.deliveries,
+        label: 'Deliveries',
+        value: '0',
+        supportingText: '0',
+      ),
+    ];
+    const actions = <DashboardQuickAction>[
+      DashboardQuickAction(
+        type: DashboardQuickActionType.newOrder,
+        label: 'New Order',
+      ),
+      DashboardQuickAction(
+        type: DashboardQuickActionType.payment,
+        label: 'Payments',
+      ),
+      DashboardQuickAction(
+        type: DashboardQuickActionType.report,
+        label: 'Reports',
+      ),
+      DashboardQuickAction(
+        type: DashboardQuickActionType.assign,
+        label: 'Assign',
+      ),
+    ];
+    const revenue = <DashboardRevenuePoint>[
+      DashboardRevenuePoint(label: 'Mon', value: 0),
+      DashboardRevenuePoint(label: 'Tue', value: 0),
+      DashboardRevenuePoint(label: 'Wed', value: 0),
+      DashboardRevenuePoint(label: 'Thu', value: 0),
+      DashboardRevenuePoint(label: 'Fri', value: 0),
+      DashboardRevenuePoint(label: 'Sat', value: 0),
+      DashboardRevenuePoint(label: 'Sun', value: 0),
+    ];
+
+    return DashboardData(
+      branchId: branchId,
+      branchName: branchName,
+      ownerName: ownerName,
+      ownerEmail: ownerEmail,
+      businessName: businessName,
+      revenue: '0',
+      revenueChange: '0%',
+      revenueComparison: 'Unavailable',
+      kpis: zeroKpis,
+      summaryMetrics: summary,
+      orders: const <DashboardOrder>[],
+      bills: const <DashboardBill>[],
+      customers: const <DashboardCustomer>[],
+      activities: const <DashboardActivity>[],
+      quickActions: actions,
+      revenuePoints: revenue,
+      branchPerformance: const <DashboardBranchPerformance>[],
+      branchSummary: const DashboardBranchSummary(
+        manager: 'Unavailable',
+        teamSize: '0',
+        openOrders: '0',
+        completedToday: '0',
+      ),
+    );
+  }
 }
 
 String _initials(String value) {

@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../app/theme.dart';
 import '../models/registration_form.dart';
+import '../models/tenant_onboarding_data.dart';
 import '../services/tenant_api_service.dart';
 
 /// Screen 3 (Step 2/2) — "Create your account".
@@ -53,8 +54,7 @@ class _AccountDetailsPageState extends State<AccountDetailsPage> {
   Future<void> _createAccount() async {
     if (!_formKey.currentState!.validate()) return;
     if (!_agreedToTerms) {
-      setState(
-          () => _errorMessage = 'You must agree to the Terms of Service.');
+      setState(() => _errorMessage = 'You must agree to the Terms of Service.');
       return;
     }
 
@@ -73,14 +73,26 @@ class _AccountDetailsPageState extends State<AccountDetailsPage> {
     try {
       final result = await _apiService.registerTenant(updatedForm);
       if (mounted) {
-        context.pushReplacement('/register/success', extra: result.businessName);
+        context.pushReplacement(
+          '/register/success',
+          extra: TenantOnboardingData(
+            registrationForm: updatedForm,
+            tenantId: result.tenantId,
+            ownerUserId: result.ownerUserId,
+            slug: result.slug,
+          ),
+        );
       }
     } on TenantApiException catch (e) {
       if (mounted) setState(() => _errorMessage = e.userMessage);
-    } catch (e) {
+    } on TenantApiNetworkException catch (e) {
+      if (mounted) setState(() => _errorMessage = e.message);
+    } catch (_) {
       if (mounted) {
-        setState(() => _errorMessage =
-            'Connection error. Please check your internet and try again.');
+        setState(
+          () => _errorMessage =
+              'Unable to complete registration. Please try again.',
+        );
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -135,9 +147,6 @@ class _AccountDetailsPageState extends State<AccountDetailsPage> {
                         if (v == null || v.trim().isEmpty) {
                           return 'Email is required';
                         }
-                        if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(v)) {
-                          return 'Enter a valid email address';
-                        }
                         return null;
                       },
                     ),
@@ -182,11 +191,13 @@ class _AccountDetailsPageState extends State<AccountDetailsPage> {
                             color: kTextSecondary,
                           ),
                           onPressed: () => setState(
-                              () => _obscurePassword = !_obscurePassword),
+                            () => _obscurePassword = !_obscurePassword,
+                          ),
                         ),
                       ),
                       validator: (v) {
-                        if (v == null || v.isEmpty) return 'Password is required';
+                        if (v == null || v.isEmpty)
+                          return 'Password is required';
                         if (v.length < 8) return 'Minimum 8 characters';
                         if (!RegExp(r'[A-Z]').hasMatch(v)) {
                           return 'Must contain an uppercase letter';
@@ -214,25 +225,30 @@ class _AccountDetailsPageState extends State<AccountDetailsPage> {
                         Expanded(
                           child: GestureDetector(
                             onTap: () => setState(
-                                () => _agreedToTerms = !_agreedToTerms),
+                              () => _agreedToTerms = !_agreedToTerms,
+                            ),
                             child: RichText(
                               text: TextSpan(
                                 style: const TextStyle(
-                                    color: kTextSecondary, fontSize: 13.5),
+                                  color: kTextSecondary,
+                                  fontSize: 13.5,
+                                ),
                                 children: [
                                   const TextSpan(text: 'I agree to the '),
                                   const TextSpan(
                                     text: 'Terms of Service',
                                     style: TextStyle(
-                                        color: kPrimary,
-                                        fontWeight: FontWeight.w600),
+                                      color: kPrimary,
+                                      fontWeight: FontWeight.w600,
+                                    ),
                                   ),
                                   const TextSpan(text: ' and '),
                                   const TextSpan(
                                     text: 'Privacy Policy',
                                     style: TextStyle(
-                                        color: kPrimary,
-                                        fontWeight: FontWeight.w600),
+                                      color: kPrimary,
+                                      fontWeight: FontWeight.w600,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -257,30 +273,36 @@ class _AccountDetailsPageState extends State<AccountDetailsPage> {
                         child: Text(
                           _errorMessage!,
                           style: TextStyle(
-                              color: Colors.red.shade700, fontSize: 13.5),
+                            color: Colors.red.shade700,
+                            fontSize: 13.5,
+                          ),
                         ),
                       ),
 
                     const SizedBox(height: 16),
 
                     // Create Account button
-                    ElevatedButton(
-                      onPressed: _canSubmit ? _createAccount : null,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor:
-                            _canSubmit ? kPrimary : kPrimaryLight,
-                        disabledBackgroundColor: kPrimaryLight,
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: _canSubmit ? _createAccount : null,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _canSubmit
+                              ? kPrimary
+                              : kPrimaryLight,
+                          disabledBackgroundColor: kPrimaryLight,
+                        ),
+                        child: _isLoading
+                            ? const SizedBox(
+                                height: 22,
+                                width: 22,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2.5,
+                                ),
+                              )
+                            : const Text('Create Account'),
                       ),
-                      child: _isLoading
-                          ? const SizedBox(
-                              height: 22,
-                              width: 22,
-                              child: CircularProgressIndicator(
-                                color: Colors.white,
-                                strokeWidth: 2.5,
-                              ),
-                            )
-                          : const Text('Create Account'),
                     ),
                     const SizedBox(height: 16),
 

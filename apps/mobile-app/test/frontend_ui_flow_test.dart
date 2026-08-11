@@ -1,6 +1,10 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:nexoraa_mobile/app/router.dart';
 import 'package:nexoraa_mobile/design_system/design_system.dart';
 import 'package:nexoraa_mobile/features/authentication/screens/forgot_password_screen.dart';
@@ -8,6 +12,7 @@ import 'package:nexoraa_mobile/features/dashboard/dashboard_widgets.dart';
 import 'package:nexoraa_mobile/features/dashboard/screens/dashboard_placeholder_screen.dart';
 import 'package:nexoraa_mobile/features/dashboard/screens/more_screen.dart';
 import 'package:nexoraa_mobile/features/dashboard/screens/notification_screen.dart';
+import 'package:nexoraa_mobile/features/tenant/services/tenant_api_service.dart';
 
 void main() {
   testWidgets('forgot password swaps to the local success state', (
@@ -68,12 +73,46 @@ void main() {
   testWidgets('existing More tab opens More screen and remains selected', (
     WidgetTester tester,
   ) async {
+    final client = MockClient((request) async {
+      if (request.url.path.endsWith('/branches')) {
+        return http.Response(
+          jsonEncode([
+            {'branchId': 'branch-db', 'branchName': 'Database Branch'},
+          ]),
+          200,
+        );
+      }
+      return http.Response(
+        jsonEncode({
+          'tenantId': 'tenant-db',
+          'businessName': 'Database Laundry',
+          'ownerName': 'Database Owner',
+          'ownerEmail': 'owner@database.test',
+        }),
+        200,
+      );
+    });
+
     await tester.pumpWidget(
       MaterialApp(
         theme: AppTheme.light,
-        home: const DashboardPlaceholderScreen(),
+        home: DashboardPlaceholderScreen(
+          tenantId: 'tenant-db',
+          tenantApiService: TenantApiService(
+            client: client,
+            baseUrl: 'http://test',
+          ),
+        ),
       ),
     );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Database Owner'), findsOneWidget);
+    expect(find.textContaining('Database Laundry'), findsOneWidget);
+    expect(find.text('Database Branch'), findsOneWidget);
+    expect(find.text('Recent Orders'), findsOneWidget);
+    expect(find.text('Recent Activity'), findsOneWidget);
+    expect(find.text('Hassan Ali'), findsNothing);
 
     final double searchWidth = tester
         .getSize(find.byType(DashboardSearchBar))
@@ -85,27 +124,27 @@ void main() {
 
     await tester.tap(find.byType(BranchDropdown));
     await tester.pumpAndSettle();
-    expect(find.byType(MenuItemButton), findsWidgets);
+    expect(find.byType(MenuItemButton), findsOneWidget);
     final double menuItemWidth = tester
         .getSize(find.byType(MenuItemButton).first)
         .width;
     expect(menuItemWidth, selectorWidth);
 
-    await tester.tap(find.byType(MenuItemButton).last);
+    await tester.tap(find.byType(MenuItemButton));
     await tester.pumpAndSettle();
     expect(
       tester
           .widget<BranchDropdown>(find.byType(BranchDropdown))
           .selectedBranchId,
-      isNot('main'),
+      'branch-db',
     );
 
     await tester.tap(find.text('More'));
     await tester.pumpAndSettle();
 
     expect(find.text('Finance'.toUpperCase()), findsOneWidget);
-    expect(find.text(MoreUserProfileData.placeholder.name), findsOneWidget);
-    expect(find.text(MoreUserProfileData.placeholder.email), findsOneWidget);
+    expect(find.text('Database Owner'), findsOneWidget);
+    expect(find.text('owner@database.test'), findsOneWidget);
     final BottomNavigationBar navigation = tester.widget<BottomNavigationBar>(
       find.byType(BottomNavigationBar),
     );

@@ -3,7 +3,9 @@ import 'package:go_router/go_router.dart';
 
 import '../../../app/theme.dart';
 import '../models/registration_form.dart';
+import '../models/tenant_onboarding_data.dart';
 import '../widgets/business_type_chip.dart';
+import '../widgets/tenant_onboarding_scaffold.dart';
 
 /// Business types shown as chips — values match the backend enum.
 const _kBusinessTypes = [
@@ -23,8 +25,9 @@ const _kBusinessTypes = [
 /// [AccountDetailsPage] passing the updated [RegistrationForm] via GoRouter extra.
 class BusinessInfoPage extends StatefulWidget {
   final RegistrationForm form;
+  final TenantOnboardingData? onboardingData;
 
-  const BusinessInfoPage({super.key, required this.form});
+  const BusinessInfoPage({super.key, required this.form, this.onboardingData});
 
   @override
   State<BusinessInfoPage> createState() => _BusinessInfoPageState();
@@ -39,10 +42,10 @@ class _BusinessInfoPageState extends State<BusinessInfoPage> {
   @override
   void initState() {
     super.initState();
-    _businessNameController =
-        TextEditingController(text: widget.form.businessName);
-    _ownerNameController =
-        TextEditingController(text: widget.form.ownerName);
+    _businessNameController = TextEditingController(
+      text: widget.form.businessName,
+    );
+    _ownerNameController = TextEditingController(text: widget.form.ownerName);
     _selectedType = widget.form.businessType;
   }
 
@@ -72,11 +75,22 @@ class _BusinessInfoPageState extends State<BusinessInfoPage> {
       ownerName: _ownerNameController.text,
     );
 
+    final onboardingData = widget.onboardingData;
+    if (onboardingData != null) {
+      onboardingData.registrationForm = updated;
+      context.push('/onboarding/first-branch', extra: onboardingData);
+      return;
+    }
+
     context.push('/register/account-details', extra: updated);
   }
 
   @override
   Widget build(BuildContext context) {
+    if (widget.onboardingData != null) {
+      return _buildOnboardingSummary(context);
+    }
+
     return Scaffold(
       backgroundColor: kSurface,
       appBar: _StepAppBar(title: 'Business Info', step: 'Step 1/2'),
@@ -164,13 +178,120 @@ class _BusinessInfoPageState extends State<BusinessInfoPage> {
                     const SizedBox(height: 36),
 
                     // Continue button
-                    ElevatedButton.icon(
-                      onPressed: _onContinue,
-                      icon: const Icon(Icons.arrow_forward_rounded, size: 20),
-                      label: const Text('Continue'),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: _onContinue,
+                        icon: const Icon(Icons.arrow_forward_rounded, size: 20),
+                        label: const Text('Continue'),
+                      ),
                     ),
                   ],
                 ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOnboardingSummary(BuildContext context) {
+    final form = widget.form;
+    var businessType = form.businessType;
+    for (final entry in _kBusinessTypes) {
+      if (entry.$2 == form.businessType) {
+        businessType = entry.$1;
+        break;
+      }
+    }
+
+    return TenantOnboardingScaffold(
+      step: 1,
+      title: 'Business Info',
+      icon: Icons.business_outlined,
+      actions: SizedBox(
+        width: double.infinity,
+        child: ElevatedButton.icon(
+          onPressed: () => context.push(
+            '/onboarding/first-branch',
+            extra: widget.onboardingData,
+          ),
+          icon: const Icon(Icons.arrow_forward_rounded, size: 20),
+          label: const Text('Continue'),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            "Here's a summary of your business. You can update these later in Settings.",
+            style: TextStyle(color: kTextSecondary, fontSize: 16, height: 1.5),
+          ),
+          const SizedBox(height: 24),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+            decoration: BoxDecoration(
+              color: kSurface,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: kBorder),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x0D000000),
+                  blurRadius: 8,
+                  offset: Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Column(
+              children: [
+                _SummaryRow(label: 'Business Name', value: form.businessName),
+                _SummaryRow(label: 'Business Type', value: businessType),
+                _SummaryRow(label: 'Owner', value: form.ownerName),
+                _SummaryRow(label: 'Email', value: form.email, isLast: true),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SummaryRow extends StatelessWidget {
+  final String label;
+  final String value;
+  final bool isLast;
+
+  const _SummaryRow({
+    required this.label,
+    required this.value,
+    this.isLast = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: isLast ? 0 : 18),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: const TextStyle(color: kTextSecondary, fontSize: 15),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Flexible(
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
+              style: const TextStyle(
+                color: kTextPrimary,
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
               ),
             ),
           ),
