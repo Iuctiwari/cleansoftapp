@@ -1,30 +1,39 @@
 NEXORAA CLEANSOFT SCAFFOLD VERIFICATION
 Status: FAIL
-Backend services checked: 15
+Backend services checked: 14
 Shared packages checked: 9
 Planning documents checked: 28
 Phase prompts checked: 27
-Failures: 1373
+Failures: 1717
 - Missing file: README.md
 - Missing file: LICENSE
 - Missing file: .editorconfig
 - Missing file: .eslintrc
-- Missing file: .env.example
-- Unexpected service contents: api-gateway => .env, .env.example, .prettierrc, .turbo, README.md, backend-runtime.err, backend-runtime.log, dist, nest-cli.json, node_modules, package.json, src, test, tsconfig.build.json, tsconfig.json
-- Unexpected service contents: auth-service => .env.example, .turbo, README.md, dist, node_modules, package.json, src, test, tsconfig.build.json, tsconfig.json
-- Unexpected service contents: tenant-service => .env.example, .turbo, README.md, dist, node_modules, package.json, src, test, tsconfig.build.json, tsconfig.json
-- Unexpected service contents: branch-service => .env.example, .turbo, README.md, dist, node_modules, package.json, src, test, tsconfig.build.json, tsconfig.json
-- Unexpected service contents: user-service => .env.example, .turbo, README.md, dist, node_modules, package.json, src, test, tsconfig.build.json, tsconfig.json
-- Unexpected service contents: customer-service => .env.example, .turbo, README.md, dist, node_modules, package.json, src, test, tsconfig.build.json, tsconfig.json
-- Unexpected service contents: service-service => .env.example, .turbo, README.md, dist, node_modules, package.json, src, test, tsconfig.build.json, tsconfig.json
-- Unexpected service contents: order-service => .env.example, .turbo, README.md, dist, node_modules, package.json, src, test, tsconfig.build.json, tsconfig.json
-- Unexpected service contents: payment-service => .env.example, .turbo, README.md, dist, node_modules, package.json, src, test, tsconfig.build.json, tsconfig.json
-- Unexpected service contents: expense-service => .env.example, .turbo, README.md, dist, node_modules, package.json, src, test, tsconfig.build.json, tsconfig.json
-- Unexpected service contents: notification-service => .env.example, .turbo, README.md, dist, node_modules, package.json, src, test, tsconfig.build.json, tsconfig.json
-- Unexpected service contents: scheduler-service => .env.example, .turbo, README.md, dist, node_modules, package.json, src, test, tsconfig.build.json, tsconfig.json
-- Unexpected service contents: report-service => .env.example, .turbo, README.md, dist, node_modules, package.json, src, test, tsconfig.build.json, tsconfig.json
-- Unexpected service contents: audit-service => .env.example, .turbo, README.md, dist, node_modules, package.json, src, test, tsconfig.build.json, tsconfig.json
-- Unexpected service contents: search-service => .env.example, .turbo, README.md, dist, node_modules, package.json, src, test, tsconfig.build.json, tsconfig.json
+- Unexpected service contents: auth-service => .env, .env.example, .prettierrc, .turbo, README.md, dist, jest.config.ts, nest-cli.json, node_modules, package.json, src, test, tsconfig.build.json, tsconfig.json
+- Unexpected service contents: tenant-service => .env, .turbo, README.md, dist, node_modules, package.json, src, test, tsconfig.build.json, tsconfig.json
+- Unexpected service contents: branch-service => .env, .turbo, README.md, package.json, src, test, tsconfig.build.json, tsconfig.json
+- Unexpected service contents: user-service => .env, .turbo, README.md, package.json, src, test, tsconfig.build.json, tsconfig.json
+- Unexpected service contents: customer-service => .env, .turbo, README.md, package.json, src, test, tsconfig.build.json, tsconfig.json
+- Unexpected service contents: service-service => .env, .turbo, README.md, package.json, src, test, tsconfig.build.json, tsconfig.json
+- Unexpected service contents: order-service => .env, .turbo, README.md, package.json, src, test, tsconfig.build.json, tsconfig.json
+- Unexpected service contents: payment-service => .env, .turbo, README.md, package.json, src, test, tsconfig.build.json, tsconfig.json
+- Unexpected service contents: expense-service => .env, .turbo, README.md, package.json, src, test, tsconfig.build.json, tsconfig.json
+- Unexpected service contents: notification-service => .env, .turbo, README.md, package.json, src, test, tsconfig.build.json, tsconfig.json
+- Unexpected service contents: scheduler-service => .env, .turbo, README.md, package.json, src, test, tsconfig.build.json, tsconfig.json
+- Unexpected service contents: report-service => .env, .turbo, README.md, package.json, src, test, tsconfig.build.json, tsconfig.json
+- Unexpected service contents: audit-service => .env, .turbo, README.md, package.json, src, test, tsconfig.build.json, tsconfig.json
+- Unexpected service contents: search-service => .env, .turbo, README.md, package.json, src, test, tsconfig.build.json, tsconfig.json
+- Invalid Markdown section Acceptance Criteria: .github\README.md
+- Non-placeholder Markdown content: .github\README.md
+- Invalid Markdown section Purpose: apps\backend\auth-service\README.md
+- Invalid Markdown section Scope: apps\backend\auth-service\README.md
+- Invalid Markdown section Inputs: apps\backend\auth-service\README.md
+- Invalid Markdown section Outputs: apps\backend\auth-service\README.md
+- Invalid Markdown section Dependencies: apps\backend\auth-service\README.md
+- Invalid Markdown section Deliverables: apps\backend\auth-service\README.md
+- Invalid Markdown section Acceptance Criteria: apps\backend\auth-service\README.md
+- Invalid Markdown section Notes: apps\backend\auth-service\README.md
+- Non-placeholder Markdown content: apps\backend\auth-service\README.md
 - Invalid Markdown section Purpose: apps\backend\README.md
 - Invalid Markdown section Scope: apps\backend\README.md
 - Invalid Markdown section Inputs: apps\backend\README.md
@@ -34,6 +43,15 @@ Failures: 1373
 - Invalid Markdown section Acceptance Criteria: apps\backend\README.md
 - Invalid Markdown section Notes: apps\backend\README.md
 - Non-placeholder Markdown content: apps\backend\README.md
+- Invalid Markdown section Purpose: apps\mobile-app\lib\design_system\widgets\README.md
+- Invalid Markdown section Scope: apps\mobile-app\lib\design_system\widgets\README.md
+- Invalid Markdown section Inputs: apps\mobile-app\lib\design_system\widgets\README.md
+- Invalid Markdown section Outputs: apps\mobile-app\lib\design_system\widgets\README.md
+- Invalid Markdown section Dependencies: apps\mobile-app\lib\design_system\widgets\README.md
+- Invalid Markdown section Deliverables: apps\mobile-app\lib\design_system\widgets\README.md
+- Invalid Markdown section Acceptance Criteria: apps\mobile-app\lib\design_system\widgets\README.md
+- Invalid Markdown section Notes: apps\mobile-app\lib\design_system\widgets\README.md
+- Non-placeholder Markdown content: apps\mobile-app\lib\design_system\widgets\README.md
 - Invalid Markdown section Purpose: apps\README.md
 - Invalid Markdown section Scope: apps\README.md
 - Invalid Markdown section Inputs: apps\README.md
@@ -782,6 +800,177 @@ Failures: 1373
 - Invalid Markdown section Acceptance Criteria: implementation_guide\architecture\TESTING-STRATEGY.md
 - Invalid Markdown section Notes: implementation_guide\architecture\TESTING-STRATEGY.md
 - Non-placeholder Markdown content: implementation_guide\architecture\TESTING-STRATEGY.md
+- Invalid Markdown section Purpose: implementation_guide\flutter_mobile\AUTH_UI_DESIGN.md
+- Invalid Markdown section Scope: implementation_guide\flutter_mobile\AUTH_UI_DESIGN.md
+- Invalid Markdown section Inputs: implementation_guide\flutter_mobile\AUTH_UI_DESIGN.md
+- Invalid Markdown section Outputs: implementation_guide\flutter_mobile\AUTH_UI_DESIGN.md
+- Invalid Markdown section Dependencies: implementation_guide\flutter_mobile\AUTH_UI_DESIGN.md
+- Invalid Markdown section Deliverables: implementation_guide\flutter_mobile\AUTH_UI_DESIGN.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\flutter_mobile\AUTH_UI_DESIGN.md
+- Invalid Markdown section Notes: implementation_guide\flutter_mobile\AUTH_UI_DESIGN.md
+- Non-placeholder Markdown content: implementation_guide\flutter_mobile\AUTH_UI_DESIGN.md
+- Invalid Markdown section Purpose: implementation_guide\flutter_mobile\BRANCH_UI_DESIGN.md
+- Invalid Markdown section Scope: implementation_guide\flutter_mobile\BRANCH_UI_DESIGN.md
+- Invalid Markdown section Inputs: implementation_guide\flutter_mobile\BRANCH_UI_DESIGN.md
+- Invalid Markdown section Outputs: implementation_guide\flutter_mobile\BRANCH_UI_DESIGN.md
+- Invalid Markdown section Dependencies: implementation_guide\flutter_mobile\BRANCH_UI_DESIGN.md
+- Invalid Markdown section Deliverables: implementation_guide\flutter_mobile\BRANCH_UI_DESIGN.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\flutter_mobile\BRANCH_UI_DESIGN.md
+- Invalid Markdown section Notes: implementation_guide\flutter_mobile\BRANCH_UI_DESIGN.md
+- Non-placeholder Markdown content: implementation_guide\flutter_mobile\BRANCH_UI_DESIGN.md
+- Invalid Markdown section Purpose: implementation_guide\flutter_mobile\CUSTOMER_UI_DESIGN.md
+- Invalid Markdown section Scope: implementation_guide\flutter_mobile\CUSTOMER_UI_DESIGN.md
+- Invalid Markdown section Inputs: implementation_guide\flutter_mobile\CUSTOMER_UI_DESIGN.md
+- Invalid Markdown section Outputs: implementation_guide\flutter_mobile\CUSTOMER_UI_DESIGN.md
+- Invalid Markdown section Dependencies: implementation_guide\flutter_mobile\CUSTOMER_UI_DESIGN.md
+- Invalid Markdown section Deliverables: implementation_guide\flutter_mobile\CUSTOMER_UI_DESIGN.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\flutter_mobile\CUSTOMER_UI_DESIGN.md
+- Invalid Markdown section Notes: implementation_guide\flutter_mobile\CUSTOMER_UI_DESIGN.md
+- Non-placeholder Markdown content: implementation_guide\flutter_mobile\CUSTOMER_UI_DESIGN.md
+- Invalid Markdown section Purpose: implementation_guide\flutter_mobile\DASHBOARD_UI_DESIGN.md
+- Invalid Markdown section Scope: implementation_guide\flutter_mobile\DASHBOARD_UI_DESIGN.md
+- Invalid Markdown section Inputs: implementation_guide\flutter_mobile\DASHBOARD_UI_DESIGN.md
+- Invalid Markdown section Outputs: implementation_guide\flutter_mobile\DASHBOARD_UI_DESIGN.md
+- Invalid Markdown section Dependencies: implementation_guide\flutter_mobile\DASHBOARD_UI_DESIGN.md
+- Invalid Markdown section Deliverables: implementation_guide\flutter_mobile\DASHBOARD_UI_DESIGN.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\flutter_mobile\DASHBOARD_UI_DESIGN.md
+- Invalid Markdown section Notes: implementation_guide\flutter_mobile\DASHBOARD_UI_DESIGN.md
+- Non-placeholder Markdown content: implementation_guide\flutter_mobile\DASHBOARD_UI_DESIGN.md
+- Invalid Markdown section Purpose: implementation_guide\flutter_mobile\EXPENSE_UI_DESIGN.md
+- Invalid Markdown section Scope: implementation_guide\flutter_mobile\EXPENSE_UI_DESIGN.md
+- Invalid Markdown section Inputs: implementation_guide\flutter_mobile\EXPENSE_UI_DESIGN.md
+- Invalid Markdown section Outputs: implementation_guide\flutter_mobile\EXPENSE_UI_DESIGN.md
+- Invalid Markdown section Dependencies: implementation_guide\flutter_mobile\EXPENSE_UI_DESIGN.md
+- Invalid Markdown section Deliverables: implementation_guide\flutter_mobile\EXPENSE_UI_DESIGN.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\flutter_mobile\EXPENSE_UI_DESIGN.md
+- Invalid Markdown section Notes: implementation_guide\flutter_mobile\EXPENSE_UI_DESIGN.md
+- Non-placeholder Markdown content: implementation_guide\flutter_mobile\EXPENSE_UI_DESIGN.md
+- Invalid Markdown section Purpose: implementation_guide\flutter_mobile\FLUTTER-STRUCTURE-RECOMMENDATIONS.md
+- Invalid Markdown section Scope: implementation_guide\flutter_mobile\FLUTTER-STRUCTURE-RECOMMENDATIONS.md
+- Invalid Markdown section Inputs: implementation_guide\flutter_mobile\FLUTTER-STRUCTURE-RECOMMENDATIONS.md
+- Invalid Markdown section Outputs: implementation_guide\flutter_mobile\FLUTTER-STRUCTURE-RECOMMENDATIONS.md
+- Invalid Markdown section Dependencies: implementation_guide\flutter_mobile\FLUTTER-STRUCTURE-RECOMMENDATIONS.md
+- Invalid Markdown section Deliverables: implementation_guide\flutter_mobile\FLUTTER-STRUCTURE-RECOMMENDATIONS.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\flutter_mobile\FLUTTER-STRUCTURE-RECOMMENDATIONS.md
+- Invalid Markdown section Notes: implementation_guide\flutter_mobile\FLUTTER-STRUCTURE-RECOMMENDATIONS.md
+- Non-placeholder Markdown content: implementation_guide\flutter_mobile\FLUTTER-STRUCTURE-RECOMMENDATIONS.md
+- Invalid Markdown section Purpose: implementation_guide\flutter_mobile\FRONTEND-DESIGN-PROMPT.md
+- Invalid Markdown section Scope: implementation_guide\flutter_mobile\FRONTEND-DESIGN-PROMPT.md
+- Invalid Markdown section Inputs: implementation_guide\flutter_mobile\FRONTEND-DESIGN-PROMPT.md
+- Invalid Markdown section Outputs: implementation_guide\flutter_mobile\FRONTEND-DESIGN-PROMPT.md
+- Invalid Markdown section Dependencies: implementation_guide\flutter_mobile\FRONTEND-DESIGN-PROMPT.md
+- Invalid Markdown section Deliverables: implementation_guide\flutter_mobile\FRONTEND-DESIGN-PROMPT.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\flutter_mobile\FRONTEND-DESIGN-PROMPT.md
+- Invalid Markdown section Notes: implementation_guide\flutter_mobile\FRONTEND-DESIGN-PROMPT.md
+- Non-placeholder Markdown content: implementation_guide\flutter_mobile\FRONTEND-DESIGN-PROMPT.md
+- Invalid Markdown section Purpose: implementation_guide\flutter_mobile\IMPLEMENTATION_ROADMAP.md
+- Invalid Markdown section Scope: implementation_guide\flutter_mobile\IMPLEMENTATION_ROADMAP.md
+- Invalid Markdown section Inputs: implementation_guide\flutter_mobile\IMPLEMENTATION_ROADMAP.md
+- Invalid Markdown section Outputs: implementation_guide\flutter_mobile\IMPLEMENTATION_ROADMAP.md
+- Invalid Markdown section Dependencies: implementation_guide\flutter_mobile\IMPLEMENTATION_ROADMAP.md
+- Invalid Markdown section Deliverables: implementation_guide\flutter_mobile\IMPLEMENTATION_ROADMAP.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\flutter_mobile\IMPLEMENTATION_ROADMAP.md
+- Invalid Markdown section Notes: implementation_guide\flutter_mobile\IMPLEMENTATION_ROADMAP.md
+- Non-placeholder Markdown content: implementation_guide\flutter_mobile\IMPLEMENTATION_ROADMAP.md
+- Invalid Markdown section Purpose: implementation_guide\flutter_mobile\NOTIFICATION_UI_DESIGN.md
+- Invalid Markdown section Scope: implementation_guide\flutter_mobile\NOTIFICATION_UI_DESIGN.md
+- Invalid Markdown section Inputs: implementation_guide\flutter_mobile\NOTIFICATION_UI_DESIGN.md
+- Invalid Markdown section Outputs: implementation_guide\flutter_mobile\NOTIFICATION_UI_DESIGN.md
+- Invalid Markdown section Dependencies: implementation_guide\flutter_mobile\NOTIFICATION_UI_DESIGN.md
+- Invalid Markdown section Deliverables: implementation_guide\flutter_mobile\NOTIFICATION_UI_DESIGN.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\flutter_mobile\NOTIFICATION_UI_DESIGN.md
+- Invalid Markdown section Notes: implementation_guide\flutter_mobile\NOTIFICATION_UI_DESIGN.md
+- Non-placeholder Markdown content: implementation_guide\flutter_mobile\NOTIFICATION_UI_DESIGN.md
+- Invalid Markdown section Purpose: implementation_guide\flutter_mobile\ORDER_UI_DESIGN.md
+- Invalid Markdown section Scope: implementation_guide\flutter_mobile\ORDER_UI_DESIGN.md
+- Invalid Markdown section Inputs: implementation_guide\flutter_mobile\ORDER_UI_DESIGN.md
+- Invalid Markdown section Outputs: implementation_guide\flutter_mobile\ORDER_UI_DESIGN.md
+- Invalid Markdown section Dependencies: implementation_guide\flutter_mobile\ORDER_UI_DESIGN.md
+- Invalid Markdown section Deliverables: implementation_guide\flutter_mobile\ORDER_UI_DESIGN.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\flutter_mobile\ORDER_UI_DESIGN.md
+- Invalid Markdown section Notes: implementation_guide\flutter_mobile\ORDER_UI_DESIGN.md
+- Non-placeholder Markdown content: implementation_guide\flutter_mobile\ORDER_UI_DESIGN.md
+- Invalid Markdown section Purpose: implementation_guide\flutter_mobile\PAYMENT_UI_DESIGN.md
+- Invalid Markdown section Scope: implementation_guide\flutter_mobile\PAYMENT_UI_DESIGN.md
+- Invalid Markdown section Inputs: implementation_guide\flutter_mobile\PAYMENT_UI_DESIGN.md
+- Invalid Markdown section Outputs: implementation_guide\flutter_mobile\PAYMENT_UI_DESIGN.md
+- Invalid Markdown section Dependencies: implementation_guide\flutter_mobile\PAYMENT_UI_DESIGN.md
+- Invalid Markdown section Deliverables: implementation_guide\flutter_mobile\PAYMENT_UI_DESIGN.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\flutter_mobile\PAYMENT_UI_DESIGN.md
+- Invalid Markdown section Notes: implementation_guide\flutter_mobile\PAYMENT_UI_DESIGN.md
+- Non-placeholder Markdown content: implementation_guide\flutter_mobile\PAYMENT_UI_DESIGN.md
+- Invalid Markdown section Purpose: implementation_guide\flutter_mobile\README.md
+- Invalid Markdown section Scope: implementation_guide\flutter_mobile\README.md
+- Invalid Markdown section Inputs: implementation_guide\flutter_mobile\README.md
+- Invalid Markdown section Outputs: implementation_guide\flutter_mobile\README.md
+- Invalid Markdown section Dependencies: implementation_guide\flutter_mobile\README.md
+- Invalid Markdown section Deliverables: implementation_guide\flutter_mobile\README.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\flutter_mobile\README.md
+- Invalid Markdown section Notes: implementation_guide\flutter_mobile\README.md
+- Non-placeholder Markdown content: implementation_guide\flutter_mobile\README.md
+- Invalid Markdown section Purpose: implementation_guide\flutter_mobile\REPORT_UI_DESIGN.md
+- Invalid Markdown section Scope: implementation_guide\flutter_mobile\REPORT_UI_DESIGN.md
+- Invalid Markdown section Inputs: implementation_guide\flutter_mobile\REPORT_UI_DESIGN.md
+- Invalid Markdown section Outputs: implementation_guide\flutter_mobile\REPORT_UI_DESIGN.md
+- Invalid Markdown section Dependencies: implementation_guide\flutter_mobile\REPORT_UI_DESIGN.md
+- Invalid Markdown section Deliverables: implementation_guide\flutter_mobile\REPORT_UI_DESIGN.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\flutter_mobile\REPORT_UI_DESIGN.md
+- Invalid Markdown section Notes: implementation_guide\flutter_mobile\REPORT_UI_DESIGN.md
+- Non-placeholder Markdown content: implementation_guide\flutter_mobile\REPORT_UI_DESIGN.md
+- Invalid Markdown section Purpose: implementation_guide\flutter_mobile\SEARCH_UI_DESIGN.md
+- Invalid Markdown section Scope: implementation_guide\flutter_mobile\SEARCH_UI_DESIGN.md
+- Invalid Markdown section Inputs: implementation_guide\flutter_mobile\SEARCH_UI_DESIGN.md
+- Invalid Markdown section Outputs: implementation_guide\flutter_mobile\SEARCH_UI_DESIGN.md
+- Invalid Markdown section Dependencies: implementation_guide\flutter_mobile\SEARCH_UI_DESIGN.md
+- Invalid Markdown section Deliverables: implementation_guide\flutter_mobile\SEARCH_UI_DESIGN.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\flutter_mobile\SEARCH_UI_DESIGN.md
+- Invalid Markdown section Notes: implementation_guide\flutter_mobile\SEARCH_UI_DESIGN.md
+- Non-placeholder Markdown content: implementation_guide\flutter_mobile\SEARCH_UI_DESIGN.md
+- Invalid Markdown section Purpose: implementation_guide\flutter_mobile\SERVICE_CATALOG_UI_DESIGN.md
+- Invalid Markdown section Scope: implementation_guide\flutter_mobile\SERVICE_CATALOG_UI_DESIGN.md
+- Invalid Markdown section Inputs: implementation_guide\flutter_mobile\SERVICE_CATALOG_UI_DESIGN.md
+- Invalid Markdown section Outputs: implementation_guide\flutter_mobile\SERVICE_CATALOG_UI_DESIGN.md
+- Invalid Markdown section Dependencies: implementation_guide\flutter_mobile\SERVICE_CATALOG_UI_DESIGN.md
+- Invalid Markdown section Deliverables: implementation_guide\flutter_mobile\SERVICE_CATALOG_UI_DESIGN.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\flutter_mobile\SERVICE_CATALOG_UI_DESIGN.md
+- Invalid Markdown section Notes: implementation_guide\flutter_mobile\SERVICE_CATALOG_UI_DESIGN.md
+- Non-placeholder Markdown content: implementation_guide\flutter_mobile\SERVICE_CATALOG_UI_DESIGN.md
+- Invalid Markdown section Purpose: implementation_guide\flutter_mobile\TENANT_UI_DESIGN.md
+- Invalid Markdown section Scope: implementation_guide\flutter_mobile\TENANT_UI_DESIGN.md
+- Invalid Markdown section Inputs: implementation_guide\flutter_mobile\TENANT_UI_DESIGN.md
+- Invalid Markdown section Outputs: implementation_guide\flutter_mobile\TENANT_UI_DESIGN.md
+- Invalid Markdown section Dependencies: implementation_guide\flutter_mobile\TENANT_UI_DESIGN.md
+- Invalid Markdown section Deliverables: implementation_guide\flutter_mobile\TENANT_UI_DESIGN.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\flutter_mobile\TENANT_UI_DESIGN.md
+- Invalid Markdown section Notes: implementation_guide\flutter_mobile\TENANT_UI_DESIGN.md
+- Non-placeholder Markdown content: implementation_guide\flutter_mobile\TENANT_UI_DESIGN.md
+- Invalid Markdown section Purpose: implementation_guide\flutter_mobile\UI_DESIGN_INDEX.md
+- Invalid Markdown section Scope: implementation_guide\flutter_mobile\UI_DESIGN_INDEX.md
+- Invalid Markdown section Inputs: implementation_guide\flutter_mobile\UI_DESIGN_INDEX.md
+- Invalid Markdown section Outputs: implementation_guide\flutter_mobile\UI_DESIGN_INDEX.md
+- Invalid Markdown section Dependencies: implementation_guide\flutter_mobile\UI_DESIGN_INDEX.md
+- Invalid Markdown section Deliverables: implementation_guide\flutter_mobile\UI_DESIGN_INDEX.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\flutter_mobile\UI_DESIGN_INDEX.md
+- Invalid Markdown section Notes: implementation_guide\flutter_mobile\UI_DESIGN_INDEX.md
+- Non-placeholder Markdown content: implementation_guide\flutter_mobile\UI_DESIGN_INDEX.md
+- Invalid Markdown section Purpose: implementation_guide\flutter_mobile\UI_DESIGN_SPECIFICATION.md
+- Invalid Markdown section Scope: implementation_guide\flutter_mobile\UI_DESIGN_SPECIFICATION.md
+- Invalid Markdown section Inputs: implementation_guide\flutter_mobile\UI_DESIGN_SPECIFICATION.md
+- Invalid Markdown section Outputs: implementation_guide\flutter_mobile\UI_DESIGN_SPECIFICATION.md
+- Invalid Markdown section Dependencies: implementation_guide\flutter_mobile\UI_DESIGN_SPECIFICATION.md
+- Invalid Markdown section Deliverables: implementation_guide\flutter_mobile\UI_DESIGN_SPECIFICATION.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\flutter_mobile\UI_DESIGN_SPECIFICATION.md
+- Invalid Markdown section Notes: implementation_guide\flutter_mobile\UI_DESIGN_SPECIFICATION.md
+- Non-placeholder Markdown content: implementation_guide\flutter_mobile\UI_DESIGN_SPECIFICATION.md
+- Invalid Markdown section Purpose: implementation_guide\flutter_mobile\USER_UI_DESIGN.md
+- Invalid Markdown section Scope: implementation_guide\flutter_mobile\USER_UI_DESIGN.md
+- Invalid Markdown section Inputs: implementation_guide\flutter_mobile\USER_UI_DESIGN.md
+- Invalid Markdown section Outputs: implementation_guide\flutter_mobile\USER_UI_DESIGN.md
+- Invalid Markdown section Dependencies: implementation_guide\flutter_mobile\USER_UI_DESIGN.md
+- Invalid Markdown section Deliverables: implementation_guide\flutter_mobile\USER_UI_DESIGN.md
+- Invalid Markdown section Acceptance Criteria: implementation_guide\flutter_mobile\USER_UI_DESIGN.md
+- Invalid Markdown section Notes: implementation_guide\flutter_mobile\USER_UI_DESIGN.md
+- Non-placeholder Markdown content: implementation_guide\flutter_mobile\USER_UI_DESIGN.md
 - Invalid Markdown section Purpose: implementation_guide\MIGRATION-SOURCE-MAP.md
 - Invalid Markdown section Scope: implementation_guide\MIGRATION-SOURCE-MAP.md
 - Invalid Markdown section Inputs: implementation_guide\MIGRATION-SOURCE-MAP.md
@@ -908,6 +1097,7 @@ Failures: 1373
 - Invalid Markdown section Acceptance Criteria: implementation_guide\phases\phase-04-tenant-settings\01-plan.md
 - Invalid Markdown section Notes: implementation_guide\phases\phase-04-tenant-settings\01-plan.md
 - Non-placeholder Markdown content: implementation_guide\phases\phase-04-tenant-settings\01-plan.md
+- Missing Markdown title: implementation_guide\phases\phase-04-tenant-settings\02-prompt.md
 - Invalid Markdown section Purpose: implementation_guide\phases\phase-04-tenant-settings\02-prompt.md
 - Invalid Markdown section Scope: implementation_guide\phases\phase-04-tenant-settings\02-prompt.md
 - Invalid Markdown section Inputs: implementation_guide\phases\phase-04-tenant-settings\02-prompt.md
@@ -989,6 +1179,7 @@ Failures: 1373
 - Invalid Markdown section Acceptance Criteria: implementation_guide\phases\phase-07-file-storage\01-plan.md
 - Invalid Markdown section Notes: implementation_guide\phases\phase-07-file-storage\01-plan.md
 - Non-placeholder Markdown content: implementation_guide\phases\phase-07-file-storage\01-plan.md
+- Missing Markdown title: implementation_guide\phases\phase-07-file-storage\02-prompt.md
 - Invalid Markdown section Purpose: implementation_guide\phases\phase-07-file-storage\02-prompt.md
 - Invalid Markdown section Scope: implementation_guide\phases\phase-07-file-storage\02-prompt.md
 - Invalid Markdown section Inputs: implementation_guide\phases\phase-07-file-storage\02-prompt.md
@@ -1016,6 +1207,7 @@ Failures: 1373
 - Invalid Markdown section Acceptance Criteria: implementation_guide\phases\phase-08-customers\01-plan.md
 - Invalid Markdown section Notes: implementation_guide\phases\phase-08-customers\01-plan.md
 - Non-placeholder Markdown content: implementation_guide\phases\phase-08-customers\01-plan.md
+- Missing Markdown title: implementation_guide\phases\phase-08-customers\02-prompt.md
 - Invalid Markdown section Purpose: implementation_guide\phases\phase-08-customers\02-prompt.md
 - Invalid Markdown section Scope: implementation_guide\phases\phase-08-customers\02-prompt.md
 - Invalid Markdown section Inputs: implementation_guide\phases\phase-08-customers\02-prompt.md
@@ -1070,6 +1262,7 @@ Failures: 1373
 - Invalid Markdown section Acceptance Criteria: implementation_guide\phases\phase-10-orders-delivery\01-plan.md
 - Invalid Markdown section Notes: implementation_guide\phases\phase-10-orders-delivery\01-plan.md
 - Non-placeholder Markdown content: implementation_guide\phases\phase-10-orders-delivery\01-plan.md
+- Missing Markdown title: implementation_guide\phases\phase-10-orders-delivery\02-prompt.md
 - Invalid Markdown section Purpose: implementation_guide\phases\phase-10-orders-delivery\02-prompt.md
 - Invalid Markdown section Scope: implementation_guide\phases\phase-10-orders-delivery\02-prompt.md
 - Invalid Markdown section Inputs: implementation_guide\phases\phase-10-orders-delivery\02-prompt.md
@@ -1376,5 +1569,156 @@ Failures: 1373
 - Invalid Markdown section Acceptance Criteria: instructions.Md
 - Invalid Markdown section Notes: instructions.Md
 - Non-placeholder Markdown content: instructions.Md
-- Forbidden implementation in apps\backend\api-gateway\src\app.controller.ts
-- Forbidden implementation in apps\backend\api-gateway\src\app.controller.ts
+- Invalid Markdown section Purpose: packages\common\README.md
+- Invalid Markdown section Scope: packages\common\README.md
+- Invalid Markdown section Inputs: packages\common\README.md
+- Invalid Markdown section Outputs: packages\common\README.md
+- Invalid Markdown section Dependencies: packages\common\README.md
+- Invalid Markdown section Deliverables: packages\common\README.md
+- Invalid Markdown section Acceptance Criteria: packages\common\README.md
+- Invalid Markdown section Notes: packages\common\README.md
+- Non-placeholder Markdown content: packages\common\README.md
+- Invalid Markdown section Purpose: packages\config\README.md
+- Invalid Markdown section Scope: packages\config\README.md
+- Invalid Markdown section Inputs: packages\config\README.md
+- Invalid Markdown section Outputs: packages\config\README.md
+- Invalid Markdown section Dependencies: packages\config\README.md
+- Invalid Markdown section Deliverables: packages\config\README.md
+- Invalid Markdown section Acceptance Criteria: packages\config\README.md
+- Invalid Markdown section Notes: packages\config\README.md
+- Non-placeholder Markdown content: packages\config\README.md
+- Invalid Markdown section Purpose: packages\constants\README.md
+- Invalid Markdown section Scope: packages\constants\README.md
+- Invalid Markdown section Inputs: packages\constants\README.md
+- Invalid Markdown section Outputs: packages\constants\README.md
+- Invalid Markdown section Dependencies: packages\constants\README.md
+- Invalid Markdown section Deliverables: packages\constants\README.md
+- Invalid Markdown section Acceptance Criteria: packages\constants\README.md
+- Invalid Markdown section Notes: packages\constants\README.md
+- Non-placeholder Markdown content: packages\constants\README.md
+- Invalid Markdown section Purpose: packages\database\README.md
+- Invalid Markdown section Scope: packages\database\README.md
+- Invalid Markdown section Inputs: packages\database\README.md
+- Invalid Markdown section Outputs: packages\database\README.md
+- Invalid Markdown section Dependencies: packages\database\README.md
+- Invalid Markdown section Deliverables: packages\database\README.md
+- Invalid Markdown section Acceptance Criteria: packages\database\README.md
+- Invalid Markdown section Notes: packages\database\README.md
+- Non-placeholder Markdown content: packages\database\README.md
+- Invalid Markdown section Purpose: packages\shared\README.md
+- Invalid Markdown section Scope: packages\shared\README.md
+- Invalid Markdown section Inputs: packages\shared\README.md
+- Invalid Markdown section Outputs: packages\shared\README.md
+- Invalid Markdown section Dependencies: packages\shared\README.md
+- Invalid Markdown section Deliverables: packages\shared\README.md
+- Invalid Markdown section Acceptance Criteria: packages\shared\README.md
+- Invalid Markdown section Notes: packages\shared\README.md
+- Non-placeholder Markdown content: packages\shared\README.md
+- Invalid Markdown section Purpose: packages\swagger\README.md
+- Invalid Markdown section Scope: packages\swagger\README.md
+- Invalid Markdown section Inputs: packages\swagger\README.md
+- Invalid Markdown section Outputs: packages\swagger\README.md
+- Invalid Markdown section Dependencies: packages\swagger\README.md
+- Invalid Markdown section Deliverables: packages\swagger\README.md
+- Invalid Markdown section Acceptance Criteria: packages\swagger\README.md
+- Invalid Markdown section Notes: packages\swagger\README.md
+- Non-placeholder Markdown content: packages\swagger\README.md
+- Invalid Markdown section Purpose: packages\types\README.md
+- Invalid Markdown section Scope: packages\types\README.md
+- Invalid Markdown section Inputs: packages\types\README.md
+- Invalid Markdown section Outputs: packages\types\README.md
+- Invalid Markdown section Dependencies: packages\types\README.md
+- Invalid Markdown section Deliverables: packages\types\README.md
+- Invalid Markdown section Acceptance Criteria: packages\types\README.md
+- Invalid Markdown section Notes: packages\types\README.md
+- Non-placeholder Markdown content: packages\types\README.md
+- Invalid Markdown section Purpose: packages\utils\README.md
+- Invalid Markdown section Scope: packages\utils\README.md
+- Invalid Markdown section Inputs: packages\utils\README.md
+- Invalid Markdown section Outputs: packages\utils\README.md
+- Invalid Markdown section Dependencies: packages\utils\README.md
+- Invalid Markdown section Deliverables: packages\utils\README.md
+- Invalid Markdown section Acceptance Criteria: packages\utils\README.md
+- Invalid Markdown section Notes: packages\utils\README.md
+- Non-placeholder Markdown content: packages\utils\README.md
+- Forbidden implementation in apps\backend\audit-service\src\app.controller.ts
+- Forbidden implementation in apps\backend\audit-service\src\app.controller.ts
+- Forbidden implementation in apps\backend\auth-service\src\audit\audit.controller.ts
+- Forbidden implementation in apps\backend\auth-service\src\audit\audit.controller.ts
+- Forbidden implementation in apps\backend\auth-service\src\audit\audit.service.ts
+- Forbidden implementation in apps\backend\auth-service\src\auth\auth.controller.ts
+- Forbidden implementation in apps\backend\auth-service\src\auth\auth.controller.ts
+- Forbidden implementation in apps\backend\auth-service\src\auth\auth.service.ts
+- Forbidden implementation in apps\backend\auth-service\src\platform\platform.docs.ts
+- Forbidden implementation in apps\backend\auth-service\src\platform\platform.docs.ts
+- Forbidden implementation in apps\backend\auth-service\src\platform\platform.health.ts
+- Forbidden implementation in apps\backend\auth-service\src\platform\platform.health.ts
+- Forbidden implementation in apps\backend\auth-service\src\platform\platform.health.ts
+- Forbidden implementation in apps\backend\auth-service\src\scheduler\scheduler.controller.ts
+- Forbidden implementation in apps\backend\auth-service\src\scheduler\scheduler.controller.ts
+- Forbidden implementation in apps\backend\auth-service\src\scheduler\scheduler.service.ts
+- Forbidden implementation in apps\backend\branch-service\src\app.controller.ts
+- Forbidden implementation in apps\backend\branch-service\src\app.controller.ts
+- Forbidden implementation in apps\backend\customer-service\src\app.controller.ts
+- Forbidden implementation in apps\backend\customer-service\src\app.controller.ts
+- Forbidden implementation in apps\backend\expense-service\src\app.controller.ts
+- Forbidden implementation in apps\backend\expense-service\src\app.controller.ts
+- Forbidden implementation in apps\backend\notification-service\src\app.controller.ts
+- Forbidden implementation in apps\backend\notification-service\src\app.controller.ts
+- Forbidden implementation in apps\backend\order-service\src\app.controller.ts
+- Forbidden implementation in apps\backend\order-service\src\app.controller.ts
+- Forbidden implementation in apps\backend\payment-service\src\app.controller.ts
+- Forbidden implementation in apps\backend\payment-service\src\app.controller.ts
+- Forbidden implementation in apps\backend\report-service\src\app.controller.ts
+- Forbidden implementation in apps\backend\report-service\src\app.controller.ts
+- Forbidden implementation in apps\backend\scheduler-service\src\app.controller.ts
+- Forbidden implementation in apps\backend\scheduler-service\src\app.controller.ts
+- Forbidden implementation in apps\backend\search-service\src\app.controller.ts
+- Forbidden implementation in apps\backend\search-service\src\app.controller.ts
+- Forbidden implementation in apps\backend\service-service\src\app.controller.ts
+- Forbidden implementation in apps\backend\service-service\src\app.controller.ts
+- Forbidden implementation in apps\backend\tenant-service\src\app.controller.ts
+- Forbidden implementation in apps\backend\tenant-service\src\app.controller.ts
+- Forbidden implementation in apps\backend\tenant-service\src\tenant\tenant.controller.ts
+- Forbidden implementation in apps\backend\tenant-service\src\tenant\tenant.controller.ts
+- Forbidden implementation in apps\backend\tenant-service\src\tenant\tenant.service.ts
+- Forbidden implementation in apps\backend\user-service\src\app.controller.ts
+- Forbidden implementation in apps\backend\user-service\src\app.controller.ts
+- Forbidden implementation in apps\mobile-app\lib\app\app.dart
+- Forbidden implementation in apps\mobile-app\lib\design_system\widgets\app_brand_logo.dart
+- Forbidden implementation in apps\mobile-app\lib\design_system\widgets\app_buttons.dart
+- Forbidden implementation in apps\mobile-app\lib\design_system\widgets\app_divider.dart
+- Forbidden implementation in apps\mobile-app\lib\design_system\widgets\app_text_field.dart
+- Forbidden implementation in apps\mobile-app\lib\features\authentication\screens\forgot_password_screen.dart
+- Forbidden implementation in apps\mobile-app\lib\features\authentication\screens\forgot_password_screen.dart
+- Forbidden implementation in apps\mobile-app\lib\features\authentication\screens\login_screen.dart
+- Forbidden implementation in apps\mobile-app\lib\features\authentication\screens\login_screen.dart
+- Forbidden implementation in apps\mobile-app\lib\features\authentication\screens\splash_screen.dart
+- Forbidden implementation in apps\mobile-app\lib\features\authentication\screens\splash_screen.dart
+- Forbidden implementation in apps\mobile-app\lib\features\authentication\services\api_authentication_service.dart
+- Forbidden implementation in apps\mobile-app\lib\features\authentication\services\authentication_service.dart
+- Forbidden implementation in apps\mobile-app\lib\features\dashboard\dashboard_widgets.dart
+- Forbidden implementation in apps\mobile-app\lib\features\dashboard\screens\dashboard_placeholder_screen.dart
+- Forbidden implementation in apps\mobile-app\lib\features\dashboard\screens\dashboard_placeholder_screen.dart
+- Forbidden implementation in apps\mobile-app\lib\features\dashboard\screens\more_screen.dart
+- Forbidden implementation in apps\mobile-app\lib\features\dashboard\screens\notification_screen.dart
+- Forbidden implementation in apps\mobile-app\lib\features\dashboard\screens\notification_screen.dart
+- Forbidden implementation in apps\mobile-app\lib\features\tenant\screens\account_created.screen.dart
+- Forbidden implementation in apps\mobile-app\lib\features\tenant\screens\account_created.screen.dart
+- Forbidden implementation in apps\mobile-app\lib\features\tenant\screens\account_details.screen.dart
+- Forbidden implementation in apps\mobile-app\lib\features\tenant\screens\account_details.screen.dart
+- Forbidden implementation in apps\mobile-app\lib\features\tenant\screens\all_set.screen.dart
+- Forbidden implementation in apps\mobile-app\lib\features\tenant\screens\business_info.screen.dart
+- Forbidden implementation in apps\mobile-app\lib\features\tenant\screens\business_info.screen.dart
+- Forbidden implementation in apps\mobile-app\lib\features\tenant\screens\first_branch.screen.dart
+- Forbidden implementation in apps\mobile-app\lib\features\tenant\screens\invite_staff.screen.dart
+- Forbidden implementation in apps\mobile-app\lib\features\tenant\screens\services.screen.dart
+- Forbidden implementation in apps\mobile-app\lib\features\tenant\screens\sign_in.screen.dart
+- Forbidden implementation in apps\mobile-app\lib\features\tenant\screens\sign_in.screen.dart
+- Forbidden implementation in apps\mobile-app\lib\features\tenant\services\tenant_api_service.dart
+- Forbidden implementation in apps\mobile-app\lib\features\tenant\widgets\business_type_chip.dart
+- Forbidden implementation in apps\mobile-app\lib\features\tenant\widgets\tenant_onboarding_scaffold.dart
+- Forbidden implementation in apps\mobile-app\lib\features\tenant\widgets\tenant_onboarding_scaffold.dart
+- Forbidden implementation in apps\mobile-app\test\authentication_service_test.dart
+- Forbidden implementation in apps\mobile-app\test\frontend_ui_flow_test.dart
+- Forbidden implementation in apps\mobile-app\test\frontend_ui_flow_test.dart

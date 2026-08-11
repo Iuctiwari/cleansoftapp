@@ -11,6 +11,10 @@ abstract final class AppSizes {
   static const double iconExtraLarge = 22;
   static const double iconAction = 24;
   static const double iconHero = 28;
+  static const double iconHeadline = 36;
+  static const double iconHeadlineLarge = 40;
+  static const double iconHeroLarge = 44;
+  static const double iconDisplay = 48;
 
   // Brand marks.
   static const double brandLogoCompact = 48;
@@ -22,17 +26,30 @@ abstract final class AppSizes {
   static const double controlSmall = 32;
   static const double controlMedium = 36;
   static const double controlMediumLarge = 38;
+  static const double avatarExtraSmall = controlSmall;
+  static const double avatarSmall = controlMediumLarge;
   static const double avatar = 40;
   static const double avatarMedium = 42;
   static const double avatarLarge = 44;
   static const double avatarExtraLarge = 46;
   static const double touchTarget = 48;
+  static const double avatarXXLarge = touchTarget;
   static const double buttonLargeHeight = 52;
+  static const double avatarHeadline = buttonLargeHeight;
   static const double topBar = 52;
   static const double floatingActionButton = 56;
+  static const double avatarHeadlineLarge = floatingActionButton;
   static const double heroIcon = 60;
+  static const double avatarHero = heroIcon;
   static const double bottomNavigation = 64;
   static const double emptyStateIcon = 80;
+  static const double avatarDisplay = emptyStateIcon;
+  static const double avatarStatusDot = 12;
+  static const double avatarStatusDotBorder = 2;
+  static const double avatarStatusDotOffset = 1;
+  static const double toggleWidth = 44;
+  static const double toggleHeight = 24;
+  static const double toggleThumb = 20;
 
   // Authentication layout.
   static const double authenticationContentMaxWidth = 480;

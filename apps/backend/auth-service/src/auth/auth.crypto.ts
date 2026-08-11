@@ -1,6 +1,13 @@
-import { createHmac, randomBytes, randomUUID, scryptSync, timingSafeEqual } from 'node:crypto';
+import {
+  createHash,
+  createHmac,
+  randomBytes,
+  randomUUID,
+  scryptSync,
+  timingSafeEqual,
+} from 'node:crypto';
 
-import { RpcException } from '@nestjs/microservices';
+import { PlatformError } from '../platform/platform.errors';
 import type {
   AuthAccessTokenClaims,
   AuthRefreshTokenClaims,
@@ -45,6 +52,15 @@ export function verifyPassword(password: string, storedHash: string): boolean {
   const [, salt, expectedHash] = parts;
   const actualHash = scryptSync(password, salt, 64).toString('hex');
   return secureEqual(actualHash, expectedHash);
+}
+
+export function verifyLegacyTenantPassword(password: string, storedHash: string): boolean {
+  if (!/^[a-f0-9]{64}$/i.test(storedHash)) {
+    return false;
+  }
+
+  const legacyHash = createHash('sha256').update(`nexoraa-tenant-v1${password}`).digest('hex');
+  return secureEqual(legacyHash, storedHash);
 }
 
 export function hashOpaqueSecret(secret: string, signingSecret: string): string {
@@ -117,7 +133,7 @@ export function verifyToken<TClaims>(
 ): SignedTokenEnvelope<TClaims> {
   const parts = token.split('.');
   if (parts.length !== 3) {
-    throw new RpcException({
+    throw new PlatformError({
       code: 'auth.token_invalid',
       category: 'unauthenticated',
       messageKey: 'errors.auth.token_invalid',
@@ -129,7 +145,7 @@ export function verifyToken<TClaims>(
     .update(`${encodedHeader}.${encodedPayload}`)
     .digest('base64url');
   if (!secureEqual(signature, expectedSignature)) {
-    throw new RpcException({
+    throw new PlatformError({
       code: 'auth.token_invalid',
       category: 'unauthenticated',
       messageKey: 'errors.auth.token_invalid',
@@ -142,7 +158,7 @@ export function verifyToken<TClaims>(
     header = JSON.parse(base64UrlDecode(encodedHeader)) as JwtHeader;
     payload = JSON.parse(base64UrlDecode(encodedPayload)) as SignedTokenEnvelope<TClaims>;
   } catch {
-    throw new RpcException({
+    throw new PlatformError({
       code: 'auth.token_invalid',
       category: 'unauthenticated',
       messageKey: 'errors.auth.token_invalid',
@@ -150,7 +166,7 @@ export function verifyToken<TClaims>(
   }
 
   if (header.alg !== 'HS256' || header.typ !== 'JWT' || payload.tokenKind !== expectedKind) {
-    throw new RpcException({
+    throw new PlatformError({
       code: 'auth.token_invalid',
       category: 'unauthenticated',
       messageKey: 'errors.auth.token_invalid',
@@ -159,7 +175,7 @@ export function verifyToken<TClaims>(
 
   const epochSeconds = Math.floor(now.getTime() / 1000);
   if (payload.expiresAt <= epochSeconds) {
-    throw new RpcException({
+    throw new PlatformError({
       code: 'auth.token_expired',
       category: 'unauthenticated',
       messageKey: 'errors.auth.token_expired',

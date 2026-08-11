@@ -1,8 +1,8 @@
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { ClientsModule, Transport, ClientProvider } from '@nestjs/microservices';
+import { ConfigModule } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import { DatabaseModule } from '@nexoraa/database';
+import { AuditModule } from '../audit/audit.module';
 import { PlatformModule } from '../platform/platform.module';
 import { AuthController } from './auth.controller';
 import { AuthenticationContextMiddleware } from './auth.middleware';
@@ -33,6 +33,7 @@ import {
   imports: [
     ConfigModule,
     DatabaseModule,
+    AuditModule,
     PlatformModule,
     MongooseModule.forFeature([
       { name: AuthSessionMongoose.name, schema: AuthSessionMongooseSchema },
@@ -43,21 +44,6 @@ import {
       { name: TenantOwnerAuthMongoose.name, schema: TenantOwnerAuthMongooseSchema },
       { name: TenantAuthMongoose.name, schema: TenantAuthMongooseSchema },
       { name: BranchAuthMongoose.name, schema: BranchAuthMongooseSchema },
-    ]),
-    // Dummy audit client to prevent crashing until AuditService is a real microservice
-    ClientsModule.registerAsync([
-      {
-        name: 'AUDIT_CLIENT',
-        imports: [ConfigModule],
-        useFactory: (configService: ConfigService): ClientProvider => ({
-          transport: Transport.REDIS,
-          options: {
-            host: configService.get('REDIS_HOST', 'redis'),
-            port: configService.get<number>('REDIS_PORT', 6379),
-          },
-        }),
-        inject: [ConfigService],
-      },
     ]),
   ],
   controllers: [AuthController],

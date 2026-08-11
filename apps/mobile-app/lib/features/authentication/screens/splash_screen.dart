@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:nexoraa_mobile/app/router.dart';
 import 'package:nexoraa_mobile/design_system/design_system.dart';
+import 'package:nexoraa_mobile/features/authentication/authentication_dependencies.dart';
 import 'package:nexoraa_mobile/features/authentication/controllers/splash_controller.dart';
-import 'package:nexoraa_mobile/features/authentication/services/placeholder_authentication_service.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -19,8 +19,8 @@ class _SplashScreenState extends State<SplashScreen>
   late final AnimationController _animationController;
   late final Animation<double> _fadeAnimation;
   late final Animation<double> _scaleAnimation;
-  final SplashController _splashController = const SplashController(
-    authenticationService: PlaceholderAuthenticationService(),
+  final SplashController _splashController = SplashController(
+    authenticationController: AuthenticationDependencies.controller,
   );
 
   @override

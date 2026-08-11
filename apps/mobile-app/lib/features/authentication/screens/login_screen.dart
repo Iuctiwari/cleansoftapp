@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:nexoraa_mobile/app/router.dart';
 import 'package:nexoraa_mobile/design_system/design_system.dart';
+import 'package:nexoraa_mobile/features/authentication/authentication_dependencies.dart';
+import 'package:nexoraa_mobile/features/tenant/models/registration_form.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -14,12 +18,13 @@ class _LoginScreenState extends State<LoginScreen>
   late final Animation<double> _headerAnimation;
   late final TextEditingController _emailController;
   late final TextEditingController _passwordController;
+  bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    _emailController = TextEditingController(text: 'admin@nexoraa.com');
-    _passwordController = TextEditingController(text: 'password');
+    _emailController = TextEditingController();
+    _passwordController = TextEditingController();
     _headerController = AnimationController(
       duration: AppDurations.standard,
       vsync: this,
@@ -40,15 +45,48 @@ class _LoginScreenState extends State<LoginScreen>
   }
 
   void _handleForgotPassword() {
-    // TODO(frontend): Navigate when the forgot-password screen is available.
+    context.pushNamed(AppRouteNames.forgotPassword);
   }
 
-  void _handleSignIn() {
-    // TODO(frontend): Connect UI behavior after authentication integration.
+  Future<void> _handleSignIn() async {
+    if (_isLoading) return;
+
+    final String email = _emailController.text.trim();
+    final String password = _passwordController.text;
+    if (email.isEmpty || password.isEmpty) {
+      _showMessage('Enter your email and password to continue.');
+      return;
+    }
+
+    FocusManager.instance.primaryFocus?.unfocus();
+    setState(() => _isLoading = true);
+    final bool authenticated = await AuthenticationDependencies.controller
+        .signIn(identifier: email, password: password);
+
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+    if (authenticated) {
+      context.goNamed(AppRouteNames.dashboard);
+      return;
+    }
+
+    _showMessage(
+      AuthenticationDependencies.controller.errorMessage ??
+          'Invalid email or password',
+    );
+  }
+
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
   }
 
   void _handleCreateBusinessAccount() {
-    // TODO(frontend): Navigate when the registration screen is available.
+    context.pushNamed(
+      AppRouteNames.registerBusinessInfo,
+      extra: RegistrationForm(),
+    );
   }
 
   @override
@@ -69,6 +107,7 @@ class _LoginScreenState extends State<LoginScreen>
                     : AppSpacing.xxlPlus;
 
                 return SingleChildScrollView(
+                  physics: const ClampingScrollPhysics(),
                   keyboardDismissBehavior:
                       ScrollViewKeyboardDismissBehavior.onDrag,
                   padding: EdgeInsets.fromLTRB(
@@ -111,9 +150,9 @@ class _LoginScreenState extends State<LoginScreen>
                               ),
                             ),
                             const SizedBox(height: AppSpacing.xl),
-                            PrimaryButton(
-                              label: 'Sign In',
-                              onPressed: _handleSignIn,
+                            _SignInButton(
+                              isLoading: _isLoading,
+                              onPressed: _isLoading ? null : _handleSignIn,
                             ),
                             const SizedBox(height: AppSpacing.xl),
                             const AppDivider(label: 'or'),
@@ -135,6 +174,31 @@ class _LoginScreenState extends State<LoginScreen>
           ),
         ],
       ),
+    );
+  }
+}
+
+class _SignInButton extends StatelessWidget {
+  const _SignInButton({required this.isLoading, required this.onPressed});
+
+  final bool isLoading;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      alignment: Alignment.center,
+      children: <Widget>[
+        PrimaryButton(label: isLoading ? '' : 'Sign In', onPressed: onPressed),
+        if (isLoading)
+          const SizedBox.square(
+            dimension: AppIconSizes.xl,
+            child: CircularProgressIndicator(
+              color: AppColors.surface,
+              strokeWidth: AppBorderWidths.medium,
+            ),
+          ),
+      ],
     );
   }
 }

@@ -1,14 +1,12 @@
-import { createHash, randomBytes } from 'node:crypto';
+import { randomBytes, scryptSync } from 'node:crypto';
 
 /**
- * Hashes a password using SHA-256 with a fixed application salt.
- * NOTE: In production, replace with bcrypt or argon2 for proper adaptive hashing.
+ * Hashes a password using the format consumed by Auth Service.
  */
 export function hashPassword(password: string): string {
-  const salt = 'nexoraa-tenant-v1';
-  return createHash('sha256')
-    .update(salt + password)
-    .digest('hex');
+  const salt = randomBytes(16).toString('hex');
+  const hash = scryptSync(password, salt, 64).toString('hex');
+  return `scrypt$${salt}$${hash}`;
 }
 
 /**

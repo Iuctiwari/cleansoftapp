@@ -29,14 +29,14 @@ name: nexoraa-cleansoft-prod
 x-logging: &prod-logging
   driver: json-file
   options:
-    max-size: "50m"
-    max-file: "5"
+    max-size: '50m'
+    max-file: '5'
 
 x-restart: &always-restart
   restart: always
 
 x-service-image: &service-image
-  image: nexoraa/${SERVICE_NAME:-api-gateway}:${TAG:-latest}
+  image: nexoraa/${SERVICE_NAME:-auth-service}:${TAG:-latest}
 
 # Shared environment variables for all backend services
 x-backend-base-env: &backend-base-env
@@ -48,7 +48,7 @@ x-backend-base-env: &backend-base-env
 x-service-resources: &service-resources
   mem_limit: 512m
   mem_reservation: 128m
-  cpus: "0.5"
+  cpus: '0.5'
 
 # Shared health check for NestJS services
 x-service-healthcheck: &service-healthcheck
@@ -81,7 +81,7 @@ networks:
   nexoraa-internal:
     driver: bridge
     name: nexoraa-internal-prod
-    internal: true   # no outbound internet from this network
+    internal: true # no outbound internet from this network
 
   # Public: only nginx lives here (internet-facing)
   nexoraa-public:
@@ -105,7 +105,6 @@ volumes:
 # Services
 # ─────────────────────────────────────────────────────────────────────────────
 services:
-
   # ═══════════════════════════════════════════════════════════════════════════
   # INFRASTRUCTURE
   # ═══════════════════════════════════════════════════════════════════════════
@@ -131,7 +130,7 @@ services:
     logging: *prod-logging
     mem_limit: 1g
     mem_reservation: 256m
-    cpus: "1.0"
+    cpus: '1.0'
     healthcheck:
       test:
         - CMD
@@ -156,10 +155,10 @@ services:
   # ───────────────────────────────────────────────────────────────────────────
   mongo-init:
     image: mongo:8.0
-    restart: "no"
+    restart: 'no'
     environment:
       MONGO_HOST: mongodb
-      MONGO_PORT: "27017"
+      MONGO_PORT: '27017'
       REPLICA_SET: rs0
       MONGO_INITDB_ROOT_USERNAME: ${MONGODB_ROOT_USERNAME}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGODB_ROOT_PASSWORD}
@@ -192,7 +191,7 @@ services:
     logging: *prod-logging
     mem_limit: 768m
     mem_reservation: 128m
-    cpus: "0.5"
+    cpus: '0.5'
     healthcheck:
       test:
         - CMD
@@ -219,14 +218,14 @@ services:
       - '${NGINX_HTTP_PORT:-80}:80'
       - '${NGINX_HTTPS_PORT:-443}:443'
     networks:
-      - nexoraa-internal   # talk to api-gateway
-      - nexoraa-public     # face the internet
+      - nexoraa-internal # talk to the unified auth service
+      - nexoraa-public # face the internet
     logging: *prod-logging
     mem_limit: 128m
     mem_reservation: 32m
-    cpus: "0.25"
+    cpus: '0.25'
     depends_on:
-      api-gateway:
+      auth-service:
         condition: service_healthy
     healthcheck:
       test:
@@ -242,34 +241,32 @@ services:
   # ═══════════════════════════════════════════════════════════════════════════
   # BACKEND MICROSERVICES
   # All services listen on port 3000 within their containers.
-  # No host port bindings — traffic enters exclusively through nginx → api-gateway.
+  # No host port bindings — traffic enters exclusively through nginx → auth-service.
   # ═══════════════════════════════════════════════════════════════════════════
 
   # ───────────────────────────────────────────────────────────────────────────
-  # API Gateway — primary HTTP entry point
+  # Unified Auth Service — primary HTTP entry point
   # ───────────────────────────────────────────────────────────────────────────
-  api-gateway:
-    <<: [*always-restart, *service-resources, *service-healthcheck, *infra-deps]
-    image: nexoraa/api-gateway:${TAG:-latest}
+  auth-service:
+    <<: [*always-restart, *service-resources, *service-healthcheck]
+    image: nexoraa/auth-service:${TAG:-latest}
     build:
       context: .
       dockerfile: apps/backend/Dockerfile
       args:
-        SERVICE: api-gateway
+        SERVICE: auth-service
     environment:
       <<: *backend-base-env
       APP_NAME: Nexoraa CleanSoft
-      PORT: "3000"
+      PORT: '3000'
       HOST: 0.0.0.0
       API_PREFIX: api
       API_VERSION: v1
-      SERVICE_NAME: api-gateway
-      JWT_ISSUER: ${JWT_ISSUER}
-      JWT_AUDIENCE: ${JWT_AUDIENCE}
-      JWT_ACCESS_TOKEN_SECRET: ${JWT_ACCESS_TOKEN_SECRET}
-      JWT_REFRESH_TOKEN_SECRET: ${JWT_REFRESH_TOKEN_SECRET}
-      JWT_ACCESS_TOKEN_TTL_SECONDS: ${JWT_ACCESS_TOKEN_TTL_SECONDS:-900}
-      JWT_REFRESH_TOKEN_TTL_SECONDS: ${JWT_REFRESH_TOKEN_TTL_SECONDS:-2592000}
+      SERVICE_NAME: auth-service
+      AUTH_ACCESS_TOKEN_SECRET: ${AUTH_ACCESS_TOKEN_SECRET}
+      AUTH_REFRESH_TOKEN_SECRET: ${AUTH_REFRESH_TOKEN_SECRET}
+      AUTH_ACCESS_TOKEN_TTL_SECONDS: ${AUTH_ACCESS_TOKEN_TTL_SECONDS:-900}
+      AUTH_REFRESH_TOKEN_TTL_SECONDS: ${AUTH_REFRESH_TOKEN_TTL_SECONDS:-2592000}
       AUTH_LOGIN_MAX_ATTEMPTS: ${AUTH_LOGIN_MAX_ATTEMPTS:-5}
       AUTH_LOCKOUT_SECONDS: ${AUTH_LOCKOUT_SECONDS:-900}
       AUTH_OTP_TTL_SECONDS: ${AUTH_OTP_TTL_SECONDS:-300}
@@ -279,26 +276,15 @@ services:
     networks:
       - nexoraa-internal
     logging: *prod-logging
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      mongo-init:
+        condition: service_completed_successfully
 
   # ───────────────────────────────────────────────────────────────────────────
   # Auth Service
   # ───────────────────────────────────────────────────────────────────────────
-  auth-service:
-    <<: [*always-restart, *service-resources, *service-healthcheck, *infra-deps]
-    image: nexoraa/auth-service:${TAG:-latest}
-    build:
-      context: .
-      dockerfile: apps/backend/Dockerfile
-      args:
-        SERVICE: auth-service
-    environment:
-      <<: *backend-base-env
-      PORT: "3000"
-      SERVICE_NAME: auth-service
-    networks:
-      - nexoraa-internal
-    logging: *prod-logging
-
   # ───────────────────────────────────────────────────────────────────────────
   # Tenant Service
   # ───────────────────────────────────────────────────────────────────────────
@@ -312,7 +298,7 @@ services:
         SERVICE: tenant-service
     environment:
       <<: *backend-base-env
-      PORT: "3000"
+      PORT: '3000'
       SERVICE_NAME: tenant-service
     networks:
       - nexoraa-internal
@@ -331,7 +317,7 @@ services:
         SERVICE: branch-service
     environment:
       <<: *backend-base-env
-      PORT: "3000"
+      PORT: '3000'
       SERVICE_NAME: branch-service
     networks:
       - nexoraa-internal
@@ -350,7 +336,7 @@ services:
         SERVICE: user-service
     environment:
       <<: *backend-base-env
-      PORT: "3000"
+      PORT: '3000'
       SERVICE_NAME: user-service
     networks:
       - nexoraa-internal
@@ -369,7 +355,7 @@ services:
         SERVICE: customer-service
     environment:
       <<: *backend-base-env
-      PORT: "3000"
+      PORT: '3000'
       SERVICE_NAME: customer-service
     networks:
       - nexoraa-internal
@@ -388,7 +374,7 @@ services:
         SERVICE: service-service
     environment:
       <<: *backend-base-env
-      PORT: "3000"
+      PORT: '3000'
       SERVICE_NAME: service-service
     networks:
       - nexoraa-internal
@@ -407,7 +393,7 @@ services:
         SERVICE: order-service
     environment:
       <<: *backend-base-env
-      PORT: "3000"
+      PORT: '3000'
       SERVICE_NAME: order-service
     networks:
       - nexoraa-internal
@@ -426,7 +412,7 @@ services:
         SERVICE: payment-service
     environment:
       <<: *backend-base-env
-      PORT: "3000"
+      PORT: '3000'
       SERVICE_NAME: payment-service
     networks:
       - nexoraa-internal
@@ -445,7 +431,7 @@ services:
         SERVICE: expense-service
     environment:
       <<: *backend-base-env
-      PORT: "3000"
+      PORT: '3000'
       SERVICE_NAME: expense-service
     networks:
       - nexoraa-internal
@@ -464,7 +450,7 @@ services:
         SERVICE: notification-service
     environment:
       <<: *backend-base-env
-      PORT: "3000"
+      PORT: '3000'
       SERVICE_NAME: notification-service
     networks:
       - nexoraa-internal
@@ -483,7 +469,7 @@ services:
         SERVICE: scheduler-service
     environment:
       <<: *backend-base-env
-      PORT: "3000"
+      PORT: '3000'
       SERVICE_NAME: scheduler-service
     networks:
       - nexoraa-internal
@@ -502,7 +488,7 @@ services:
         SERVICE: report-service
     environment:
       <<: *backend-base-env
-      PORT: "3000"
+      PORT: '3000'
       SERVICE_NAME: report-service
     networks:
       - nexoraa-internal
@@ -521,7 +507,7 @@ services:
         SERVICE: audit-service
     environment:
       <<: *backend-base-env
-      PORT: "3000"
+      PORT: '3000'
       SERVICE_NAME: audit-service
     networks:
       - nexoraa-internal
@@ -540,7 +526,7 @@ services:
         SERVICE: search-service
     environment:
       <<: *backend-base-env
-      PORT: "3000"
+      PORT: '3000'
       SERVICE_NAME: search-service
     networks:
       - nexoraa-internal

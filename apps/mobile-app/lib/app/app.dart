@@ -11,9 +11,28 @@ class NexoraaApp extends StatelessWidget {
       darkTheme: AppTheme.dark,
       debugShowCheckedModeBanner: false,
       routerConfig: AppRouter.router,
+      scrollBehavior: const _ClampedScrollBehavior(),
       theme: AppTheme.light,
       themeMode: ThemeMode.system,
       title: 'Nexoraa CleanSoft',
     );
+  }
+}
+
+class _ClampedScrollBehavior extends MaterialScrollBehavior {
+  const _ClampedScrollBehavior();
+
+  @override
+  Widget buildOverscrollIndicator(
+    BuildContext context,
+    Widget child,
+    ScrollableDetails details,
+  ) {
+    return child;
+  }
+
+  @override
+  ScrollPhysics getScrollPhysics(BuildContext context) {
+    return const ClampingScrollPhysics();
   }
 }

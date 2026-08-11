@@ -27,8 +27,12 @@ abstract final class AppRadius {
   static const double input = xl;
   static const double card = xxl;
   static const double cardTight = xlPlus;
+  static const double iconContainer = xl;
+  static const double iconContainerSmall = lgPlus;
+  static const double iconContainerLarge = xxl;
   static const double dialog = xxxl;
   static const double bottomSheet = sheet;
+  static const double barChartTop = sm;
 
   static const BorderRadius badgeRadius = BorderRadius.all(
     Radius.circular(badge),

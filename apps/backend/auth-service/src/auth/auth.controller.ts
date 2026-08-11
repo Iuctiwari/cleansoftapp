@@ -1,11 +1,29 @@
 import { Body, Controller, Post, Req } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBadRequestResponse,
+  ApiBearerAuth,
+  ApiBody,
+  ApiOkResponse,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+  ApiUnauthorizedResponse,
+} from '@nestjs/swagger';
 
-import { PlatformError } from '../platform/platform.errors';
 import { TrustedContextFactory } from '../platform/platform.context';
-import type { RequestWithPlatformContext } from '../platform/platform.request';
-import type { TrustedContext } from '../platform/platform.types';
+import { PlatformError } from '../platform/platform.errors';
+import { resolveHeaderValue, type RequestWithPlatformContext } from '../platform/platform.request';
 
+import type { TrustedContext } from '../platform/platform.types';
+import {
+  AuthAcknowledgementDto,
+  AuthAcknowledgementEnvelopeDto,
+  AuthErrorEnvelopeDto,
+  AuthLoginResponseEnvelopeDto,
+  AuthRefreshResponseEnvelopeDto,
+  AuthResetRequestAcknowledgementDto,
+  AuthResetRequestAcknowledgementEnvelopeDto,
+} from './auth-response.dto';
 import {
   AuthChangePasswordDto,
   AuthForgotPasswordDto,
@@ -13,12 +31,6 @@ import {
   AuthRefreshDto,
   AuthResetPasswordDto,
 } from './auth.dto';
-import {
-  AuthAcknowledgementDto,
-  AuthLoginResponseDto,
-  AuthRefreshResponseDto,
-  AuthResetRequestAcknowledgementDto,
-} from './auth.swagger';
 import { AuthService } from './auth.service';
 
 @ApiTags('Authentication')
@@ -35,7 +47,7 @@ export class AuthController {
   })
   @ApiResponse({
     status: 200,
-    type: AuthLoginResponseDto,
+    type: AuthLoginResponseEnvelopeDto,
     description: 'Authenticated session and tokens.',
   })
   async login(
@@ -52,7 +64,11 @@ export class AuthController {
   @ApiOperation({
     summary: 'Rotate refresh credentials and issue a new access token',
   })
-  @ApiResponse({ status: 200, type: AuthRefreshResponseDto, description: 'Rotated token pair.' })
+  @ApiResponse({
+    status: 200,
+    type: AuthRefreshResponseEnvelopeDto,
+    description: 'Rotated token pair.',
+  })
   async refresh(
     @Body() body: AuthRefreshDto,
     @Req() request: RequestWithPlatformContext,
@@ -90,6 +106,19 @@ export class AuthController {
     type: AuthAcknowledgementDto,
     description: 'All active sessions revoked for the authenticated user.',
   })
+  @ApiOperation({
+    summary: 'Log out all other sessions',
+    description:
+      'Revokes every active session for the authenticated user except the current session.',
+  })
+  @ApiOkResponse({
+    description: 'All other active sessions were revoked.',
+    type: AuthAcknowledgementEnvelopeDto,
+  })
+  @ApiUnauthorizedResponse({
+    description: 'A valid access token and authenticated session are required.',
+    type: AuthErrorEnvelopeDto,
+  })
   async logoutAll(@Req() request: RequestWithPlatformContext): Promise<unknown> {
     return this.authService.logoutAll({
       context: this.getAuthorization(request),
@@ -107,6 +136,17 @@ export class AuthController {
     type: AuthResetRequestAcknowledgementDto,
     description: 'Acknowledgement with a delivery hint or generic message.',
   })
+  @ApiOperation({
+    summary: 'Request a password reset',
+    description:
+      'Accepts an account locator and returns a neutral acknowledgement to prevent account enumeration.',
+  })
+  @ApiBody({ type: AuthForgotPasswordDto })
+  @ApiOkResponse({
+    description: 'The password-reset request was accepted.',
+    type: AuthResetRequestAcknowledgementEnvelopeDto,
+  })
+  @ApiBadRequestResponse({ description: 'The request is invalid.', type: AuthErrorEnvelopeDto })
   async forgotPassword(
     @Body() body: AuthForgotPasswordDto,
     @Req() request: RequestWithPlatformContext,
@@ -146,6 +186,24 @@ export class AuthController {
     type: AuthAcknowledgementDto,
     description: 'Password change accepted.',
   })
+  @ApiOperation({
+    summary: 'Change the current password',
+    description:
+      'Verifies the current password, replaces it, and revokes the user’s other sessions.',
+  })
+  @ApiBody({ type: AuthChangePasswordDto })
+  @ApiOkResponse({
+    description: 'The password was changed and other sessions were revoked.',
+    type: AuthAcknowledgementEnvelopeDto,
+  })
+  @ApiBadRequestResponse({
+    description: 'The current password, new password, or request is invalid.',
+    type: AuthErrorEnvelopeDto,
+  })
+  @ApiUnauthorizedResponse({
+    description: 'A valid access token and authenticated session are required.',
+    type: AuthErrorEnvelopeDto,
+  })
   async changePassword(
     @Body() body: AuthChangePasswordDto,
     @Req() request: RequestWithPlatformContext,
@@ -178,19 +236,13 @@ export class AuthController {
     readonly userAgent?: string;
   } {
     const requestId =
-      this.resolveHeaderValue(request.headers['x-request-id']) ??
-      request.correlationId ??
-      'request-id';
+      resolveHeaderValue(request.headers['x-request-id']) ?? request.correlationId ?? 'request-id';
     return {
       correlationId: request.correlationId ?? requestId,
       causationId: requestId,
       requestId,
-      ipAddress: this.resolveHeaderValue(request.headers['x-forwarded-for']) ?? undefined,
-      userAgent: this.resolveHeaderValue(request.headers['user-agent']) ?? undefined,
+      ipAddress: resolveHeaderValue(request.headers['x-forwarded-for']) ?? undefined,
+      userAgent: resolveHeaderValue(request.headers['user-agent']) ?? undefined,
     };
-  }
-
-  private resolveHeaderValue(value: string | string[] | undefined): string | undefined {
-    return Array.isArray(value) ? value[0] : value;
   }
 }

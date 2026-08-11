@@ -2,10 +2,9 @@ import { randomUUID } from 'node:crypto';
 
 import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-
-import { ClientProxy } from '@nestjs/microservices';
-import { RpcException } from '@nestjs/microservices';
+import { AuditService } from '../audit/audit.service';
 import { TrustedContextFactory } from '../platform/platform.context';
+import { PlatformError } from '../platform/platform.errors';
 import type { PlatformContext, TenantContext, TrustedContext } from '../platform/platform.types';
 import {
   createAccessTokenId,
@@ -15,9 +14,11 @@ import {
   hashPassword,
   maskDestination,
   signToken,
+  verifyLegacyTenantPassword,
   verifyPassword,
   verifyToken,
 } from './auth.crypto';
+import { normalizeIdentifier } from './auth.normalization';
 import {
   AUTH_REPOSITORY,
   type AccessTokenResolution,
@@ -40,6 +41,7 @@ import {
   type AuthTokens,
   type AuthRefreshTokenClaims,
   type PasswordResetRecord,
+  type SignedTokenEnvelope,
 } from './auth.types';
 
 interface AuthConfiguration {
@@ -57,9 +59,8 @@ interface AuthConfiguration {
   readonly allowMultiDevice: boolean;
 }
 
-function normalizeIdentifier(identifier: string): string {
-  return identifier.trim().toLowerCase();
-}
+// Keep the established audience so access and refresh tokens issued before consolidation remain valid.
+const AUTH_TOKEN_AUDIENCE = 'api-gateway';
 
 function addSeconds(date: Date, seconds: number): Date {
   return new Date(date.getTime() + seconds * 1000);
@@ -86,7 +87,7 @@ function assertStrongPassword(password: string): void {
     .filter((check) => !check.ok)
     .map((check) => ({ field: check.field, code: check.code }));
   if (failures.length > 0) {
-    throw new RpcException({
+    throw new PlatformError({
       code: 'auth.password_policy_failed',
       category: 'validation',
       messageKey: 'errors.auth.password_policy_failed',
@@ -118,38 +119,34 @@ export class AuthService {
 
   constructor(
     @Inject(AUTH_REPOSITORY) private readonly authRepository: AuthRepository,
-    @Inject('AUDIT_CLIENT') private readonly auditClient: ClientProxy,
+    private readonly auditService: AuditService,
     private readonly configService: ConfigService,
     private readonly trustedContextFactory: TrustedContextFactory,
   ) {
     this.configuration = {
-      issuer: this.configService.get<string>('APP_NAME') ?? 'Nexoraa CleanSoft',
-      audience: 'api-gateway',
-      accessTokenSecret:
-        this.configService.get<string>('AUTH_ACCESS_TOKEN_SECRET') ?? 'dev-access-token-secret',
-      refreshTokenSecret:
-        this.configService.get<string>('AUTH_REFRESH_TOKEN_SECRET') ?? 'dev-refresh-token-secret',
+      issuer: this.configService.getOrThrow<string>('APP_NAME'),
+      audience: AUTH_TOKEN_AUDIENCE,
+      accessTokenSecret: this.configService.getOrThrow<string>('AUTH_ACCESS_TOKEN_SECRET'),
+      refreshTokenSecret: this.configService.getOrThrow<string>('AUTH_REFRESH_TOKEN_SECRET'),
       accessTokenTtlSeconds: Number(
-        this.configService.get<string>('AUTH_ACCESS_TOKEN_TTL_SECONDS') ?? '900',
+        this.configService.getOrThrow<string>('AUTH_ACCESS_TOKEN_TTL_SECONDS'),
       ),
       refreshTokenTtlSeconds: Number(
-        this.configService.get<string>('AUTH_REFRESH_TOKEN_TTL_SECONDS') ?? '604800',
+        this.configService.getOrThrow<string>('AUTH_REFRESH_TOKEN_TTL_SECONDS'),
       ),
-      loginMaxAttempts: Number(this.configService.get<string>('AUTH_LOGIN_MAX_ATTEMPTS') ?? '5'),
-      lockoutSeconds: Number(this.configService.get<string>('AUTH_LOCKOUT_SECONDS') ?? '900'),
-      otpTtlSeconds: Number(this.configService.get<string>('AUTH_OTP_TTL_SECONDS') ?? '600'),
-      otpMaxAttempts: Number(this.configService.get<string>('AUTH_OTP_MAX_ATTEMPTS') ?? '5'),
-      maxActiveSessions: Number(this.configService.get<string>('AUTH_MAX_ACTIVE_SESSIONS') ?? '3'),
+      loginMaxAttempts: Number(this.configService.getOrThrow<string>('AUTH_LOGIN_MAX_ATTEMPTS')),
+      lockoutSeconds: Number(this.configService.getOrThrow<string>('AUTH_LOCKOUT_SECONDS')),
+      otpTtlSeconds: Number(this.configService.getOrThrow<string>('AUTH_OTP_TTL_SECONDS')),
+      otpMaxAttempts: Number(this.configService.getOrThrow<string>('AUTH_OTP_MAX_ATTEMPTS')),
+      maxActiveSessions: Number(this.configService.getOrThrow<string>('AUTH_MAX_ACTIVE_SESSIONS')),
       allowMultiDevice: parseBoolean(
-        this.configService.get<string>('AUTH_ALLOW_MULTI_DEVICE'),
+        this.configService.getOrThrow<string>('AUTH_ALLOW_MULTI_DEVICE'),
         true,
       ),
     };
   }
 
   async login(input: AuthLoginInput): Promise<AuthLoginResponse> {
-    this.assertTenantLoginInput(input.context, input.tenantSlug);
-
     const trackerKey = this.createTrackerKey(input.context, input.identifier, input.tenantSlug);
     await this.assertTrackerAllowsLogin(trackerKey);
 
@@ -159,16 +156,25 @@ export class AuthService {
       input.tenantSlug,
     );
 
-    if (
-      !identity ||
-      !this.isLoginAllowed(identity) ||
-      !verifyPassword(input.password, identity.passwordHash)
-    ) {
+    const passwordMatchesScrypt =
+      identity !== null && verifyPassword(input.password, identity.passwordHash);
+    const passwordMatchesLegacy =
+      identity !== null && verifyLegacyTenantPassword(input.password, identity.passwordHash);
+    const passwordMatches = passwordMatchesScrypt || passwordMatchesLegacy;
+
+    if (!identity || !this.isLoginAllowed(identity) || !passwordMatches) {
       await this.recordLoginFailure(trackerKey, input, identity);
-      throw new RpcException({
+      throw new PlatformError({
         code: 'auth.login_denied',
         category: 'unauthenticated',
         messageKey: 'errors.auth.login_denied',
+      });
+    }
+
+    if (passwordMatchesLegacy) {
+      await this.authRepository.replaceIdentity({
+        ...identity,
+        passwordHash: hashPassword(input.password),
       });
     }
 
@@ -229,7 +235,7 @@ export class AuthService {
       now: issuedAt,
     });
 
-    this.auditClient.emit('audit.log', {
+    await this.auditService.recordAudit({
       sourceObligation: `auth:login:${session.sessionId}`,
       idempotencyKey: `auth:login:${session.sessionId}`,
       module: 'auth',
@@ -292,9 +298,10 @@ export class AuthService {
       this.configuration.refreshTokenSecret,
       'refresh',
     );
+    this.assertTokenEnvelope(envelope);
     const session = await this.authRepository.findSessionById(envelope.claims.sessionId);
     if (!session) {
-      throw new RpcException({
+      throw new PlatformError({
         code: 'auth.session_expired',
         category: 'unauthenticated',
         messageKey: 'errors.auth.session_expired',
@@ -302,7 +309,7 @@ export class AuthService {
     }
 
     if (session.revokedAtUtc) {
-      throw new RpcException({
+      throw new PlatformError({
         code: 'auth.session_revoked',
         category: 'unauthenticated',
         messageKey: 'errors.auth.session_revoked',
@@ -320,8 +327,8 @@ export class AuthService {
         'refresh_token_reuse_detected',
         revokedAtUtc,
       );
-      this.recordSecurityEvent('refresh_token_reuse_detected', session, input.metadata);
-      throw new RpcException({
+      await this.recordSecurityEvent('refresh_token_reuse_detected', session, input.metadata);
+      throw new PlatformError({
         code: 'auth.refresh_reuse_detected',
         category: 'unauthenticated',
         messageKey: 'errors.auth.refresh_reuse_detected',
@@ -366,7 +373,7 @@ export class AuthService {
       now: issuedAt,
     });
 
-    this.auditClient.emit('audit.log', {
+    await this.auditService.recordAudit({
       sourceObligation: `auth:refresh:${updatedSession.sessionId}:${issuedAt.toISOString()}`,
       idempotencyKey: `auth:refresh:${updatedSession.sessionId}:${rotated.envelope.issuedAt}`,
       module: 'auth',
@@ -394,7 +401,7 @@ export class AuthService {
   async logout(input: AuthLogoutInput): Promise<AuthAcknowledgement> {
     const sessionId = input.context.sessionId;
     if (!sessionId) {
-      throw new RpcException({
+      throw new PlatformError({
         code: 'auth.session_missing',
         category: 'validation',
         messageKey: 'errors.auth.session_missing',
@@ -408,7 +415,7 @@ export class AuthService {
         revokedAtUtc: new Date().toISOString(),
         revokedReason: 'logout',
       });
-      this.recordSecurityEvent('logout', session, input.metadata);
+      await this.recordSecurityEvent('logout', session, input.metadata);
     }
 
     return toAcknowledgement();
@@ -422,7 +429,7 @@ export class AuthService {
       input.exceptSessionId,
     );
     for (const session of revoked) {
-      this.recordSecurityEvent('logout_all', session, input.metadata);
+      await this.recordSecurityEvent('logout_all', session, input.metadata);
     }
 
     return toAcknowledgement();
@@ -469,7 +476,7 @@ export class AuthService {
       payload: { otp, tenantSlug: identity.tenantSlug ?? 'platform' },
       createdAtUtc: now.toISOString(),
     });
-    this.recordSecurityEvent(
+    await this.recordSecurityEvent(
       'forgot_password_requested',
       this.toSyntheticSession(identity),
       input.metadata,
@@ -497,7 +504,7 @@ export class AuthService {
     );
 
     if (!identity || !reset || reset.consumed || reset.expiresAtUtc <= new Date().toISOString()) {
-      throw new RpcException({
+      throw new PlatformError({
         code: 'auth.reset_invalid',
         category: 'validation',
         messageKey: 'errors.auth.reset_invalid',
@@ -505,7 +512,7 @@ export class AuthService {
     }
 
     if (reset.attempts >= this.configuration.otpMaxAttempts) {
-      throw new RpcException({
+      throw new PlatformError({
         code: 'auth.reset_attempts_exceeded',
         category: 'rate_limit',
         messageKey: 'errors.auth.reset_attempts_exceeded',
@@ -518,7 +525,7 @@ export class AuthService {
         ...reset,
         attempts: reset.attempts + 1,
       });
-      throw new RpcException({
+      throw new PlatformError({
         code: 'auth.reset_invalid',
         category: 'validation',
         messageKey: 'errors.auth.reset_invalid',
@@ -540,7 +547,11 @@ export class AuthService {
       'password_reset',
       new Date().toISOString(),
     );
-    this.recordSecurityEvent('password_reset', this.toSyntheticSession(identity), input.metadata);
+    await this.recordSecurityEvent(
+      'password_reset',
+      this.toSyntheticSession(identity),
+      input.metadata,
+    );
 
     return toAcknowledgement();
   }
@@ -549,7 +560,7 @@ export class AuthService {
     assertStrongPassword(input.newPassword);
     const identity = await this.loadIdentityForContext(input.context);
     if (!verifyPassword(input.currentPassword, identity.passwordHash)) {
-      throw new RpcException({
+      throw new PlatformError({
         code: 'auth.current_password_invalid',
         category: 'validation',
         messageKey: 'errors.auth.current_password_invalid',
@@ -577,7 +588,11 @@ export class AuthService {
         });
       }
     }
-    this.recordSecurityEvent('password_changed', this.toSyntheticSession(identity), input.metadata);
+    await this.recordSecurityEvent(
+      'password_changed',
+      this.toSyntheticSession(identity),
+      input.metadata,
+    );
 
     return toAcknowledgement();
   }
@@ -591,9 +606,10 @@ export class AuthService {
       this.configuration.accessTokenSecret,
       'access',
     );
+    this.assertTokenEnvelope(envelope);
     const session = await this.authRepository.findSessionById(envelope.claims.sessionId);
     if (!session || session.revokedAtUtc || session.expiresAtUtc <= new Date().toISOString()) {
-      throw new RpcException({
+      throw new PlatformError({
         code: 'auth.session_expired',
         category: 'unauthenticated',
         messageKey: 'errors.auth.session_expired',
@@ -612,7 +628,7 @@ export class AuthService {
 
   private assertTenantLoginInput(context: 'platform' | 'tenant', tenantSlug?: string): void {
     if (context === 'tenant' && (!tenantSlug || tenantSlug.trim().length === 0)) {
-      throw new RpcException({
+      throw new PlatformError({
         code: 'auth.tenant_slug_required',
         category: 'validation',
         messageKey: 'errors.auth.tenant_slug_required',
@@ -624,7 +640,7 @@ export class AuthService {
   private async assertTrackerAllowsLogin(trackerKey: string): Promise<void> {
     const tracker = await this.authRepository.getLoginTracker(trackerKey);
     if (tracker?.lockedUntilUtc && tracker.lockedUntilUtc > new Date().toISOString()) {
-      throw new RpcException({
+      throw new PlatformError({
         code: 'auth.login_temporarily_blocked',
         category: 'rate_limit',
         messageKey: 'errors.auth.login_temporarily_blocked',
@@ -650,7 +666,7 @@ export class AuthService {
       updatedAtUtc: now.toISOString(),
     });
 
-    this.auditClient.emit('audit.log', {
+    await this.auditService.recordAudit({
       sourceObligation: `auth:login_failure:${trackerKey}:${failedAttempts}`,
       idempotencyKey: `auth:login_failure:${trackerKey}:${failedAttempts}`,
       module: 'auth',
@@ -689,7 +705,7 @@ export class AuthService {
     }
 
     if (identity.branches.length === 0) {
-      throw new RpcException({
+      throw new PlatformError({
         code: 'auth.branch_unavailable',
         category: 'forbidden',
         messageKey: 'errors.auth.branch_unavailable',
@@ -707,7 +723,7 @@ export class AuthService {
       (candidate) => candidate.branchCode.toLowerCase() === branchCode.trim().toLowerCase(),
     );
     if (!branch) {
-      throw new RpcException({
+      throw new PlatformError({
         code: 'auth.branch_unavailable',
         category: 'forbidden',
         messageKey: 'errors.auth.branch_unavailable',
@@ -855,12 +871,20 @@ export class AuthService {
     identifier: string,
     tenantSlug?: string,
   ): string {
-    const repository = this.authRepository as InMemoryAuthRepositoryLike;
-    if (typeof repository.createTrackerKey === 'function') {
-      return repository.createTrackerKey(context, identifier, tenantSlug);
-    }
-
     return `${context}:${tenantSlug?.trim().toLowerCase() ?? '-'}:${normalizeIdentifier(identifier)}`;
+  }
+
+  private assertTokenEnvelope(envelope: SignedTokenEnvelope<unknown>): void {
+    if (
+      envelope.issuer !== this.configuration.issuer ||
+      envelope.audience !== this.configuration.audience
+    ) {
+      throw new PlatformError({
+        code: 'auth.token_invalid',
+        category: 'unauthenticated',
+        messageKey: 'errors.auth.token_invalid',
+      });
+    }
   }
 
   private async loadIdentityForContext(context: TrustedContext): Promise<AuthIdentityRecord> {
@@ -869,7 +893,7 @@ export class AuthService {
       return identity;
     }
 
-    throw new RpcException({
+    throw new PlatformError({
       code: 'auth.identity_not_found',
       category: 'not_found',
       messageKey: 'errors.auth.identity_not_found',
@@ -900,12 +924,12 @@ export class AuthService {
     };
   }
 
-  private recordSecurityEvent(
+  private async recordSecurityEvent(
     action: string,
     session: AuthSessionRecord,
     metadata: AuthRequestMetadata,
-  ): void {
-    this.auditClient.emit('audit.log', {
+  ): Promise<void> {
+    await this.auditService.recordAudit({
       sourceObligation: `auth:${action}:${session.sessionId}:${metadata.requestId}`,
       idempotencyKey: `auth:${action}:${session.sessionId}:${metadata.requestId}`,
       module: 'auth',
@@ -918,12 +942,4 @@ export class AuthService {
       contractVersion: { major: 1, minor: 0 },
     });
   }
-}
-
-interface InMemoryAuthRepositoryLike {
-  createTrackerKey?(
-    context: 'platform' | 'tenant',
-    identifier: string,
-    tenantSlug?: string,
-  ): string;
 }

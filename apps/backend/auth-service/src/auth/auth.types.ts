@@ -244,26 +244,6 @@ export interface AuthChangePasswordInput {
   readonly metadata: AuthRequestMetadata;
 }
 
-export interface AuthSeedAccount {
-  readonly userId: string;
-  readonly kind: AuthLoginContext;
-  readonly email: string;
-  readonly mobileNumber?: string;
-  readonly displayName: string;
-  readonly password: string;
-  readonly roleCode: string;
-  readonly permissions: readonly string[];
-  readonly status?: AuthIdentityStatus;
-  readonly accessVersion?: number;
-  readonly tenantId?: string;
-  readonly tenantSlug?: string;
-  readonly tenantName?: string;
-  readonly tenantStatus?: 'active' | 'disabled';
-  readonly branches?: readonly AuthBranchAssignment[];
-  readonly defaultBranchId?: string;
-  readonly passwordChangedAtUtc?: string;
-}
-
 export interface AuthRepository {
   findIdentity(
     context: AuthLoginContext,

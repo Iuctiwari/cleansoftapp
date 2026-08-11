@@ -3,13 +3,13 @@
 # Nexoraa CleanSoft — NestJS Microservice Builder
 #
 # Build context : repository root  (one level above apps/)
-# Build arg     : SERVICE=<service-name>  (default: api-gateway)
+# Build arg     : SERVICE=<service-name>  (default: auth-service)
 #
 # Usage:
 #   docker build \
-#     --build-arg SERVICE=api-gateway \
+#     --build-arg SERVICE=auth-service \
 #     -f apps/backend/Dockerfile \
-#     -t nexoraa/api-gateway:latest \
+#     -t nexoraa/auth-service:latest \
 #     .
 #
 # Stages:
@@ -58,7 +58,6 @@ COPY packages/ui/package.json            ./packages/ui/
 COPY packages/utils/package.json         ./packages/utils/
 
 # ── Backend service manifests ────────────────────────────────────────────────
-COPY apps/backend/api-gateway/package.json          ./apps/backend/api-gateway/
 COPY apps/backend/auth-service/package.json         ./apps/backend/auth-service/
 COPY apps/backend/tenant-service/package.json       ./apps/backend/tenant-service/
 COPY apps/backend/branch-service/package.json       ./apps/backend/branch-service/
@@ -88,7 +87,7 @@ RUN --mount=type=cache,id=nexoraa-pnpm-store,target=/pnpm/store \
 # (emits a marker file and exits 0).
 # ─────────────────────────────────────────────────────────────────────────────
 FROM deps AS builder
-ARG SERVICE=api-gateway
+ARG SERVICE=auth-service
 
 # Workspace-level TypeScript config (extended by every tsconfig.json)
 COPY tsconfig.base.json ./
@@ -147,7 +146,7 @@ RUN if [ -d "apps/backend/${SERVICE}/dist" ]; then \
 # present — no TypeScript toolchain, no dev dependencies, no source.
 # ─────────────────────────────────────────────────────────────────────────────
 FROM node:${NODE_VERSION} AS runner
-ARG SERVICE=api-gateway
+ARG SERVICE=auth-service
 
 # Runtime environment
 ENV NODE_ENV=production

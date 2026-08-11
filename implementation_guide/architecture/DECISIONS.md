@@ -20,13 +20,13 @@
 - **Trade-off accepted:** Logical boundaries must be enforced in code/contracts even when process boundaries do not enforce them automatically.
 - **Alternatives considered:** Immediate independent microservices were rejected as premature operational complexity; one undifferentiated NestJS application was rejected because it obscures ownership and future scaling.
 
-## ADR-003 — API gateway is the only public backend entry point
+## ADR-003 — Unified auth service is the only public backend entry point
 
 - **Date:** 2026-07-27 (migrated 2026-07-28)
 - **Status:** Accepted
-- **Decision:** All public client/API traffic enters through `apps/api-gateway`; domain services remain private.
+- **Decision:** All public client/API traffic enters through `apps/backend/auth-service`; domain services remain private.
 - **Reasoning:** Centralizes versioning, context, throttling, transport security, compatibility, and tenant-safe errors for `FR-PLATFORM-01` and `FR-PLATFORM-02`.
-- **Trade-off accepted:** Gateway availability and latency are critical, and gateway/domain contract compatibility must be tested.
+- **Trade-off accepted:** Auth-service availability and latency are critical, and service/domain contract compatibility must be tested.
 - **Alternatives considered:** Public domain services were rejected because they duplicate security policy and expand attack surface.
 
 ## ADR-004 — MongoDB logical ownership on a managed replica set

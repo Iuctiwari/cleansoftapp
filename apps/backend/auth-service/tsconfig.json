@@ -3,8 +3,9 @@
   "compilerOptions": {
     "baseUrl": ".",
     "noEmit": true,
-    "outDir": "./dist"
+    "outDir": "./dist",
+    "strictBindCallApply": true
   },
-  "include": ["src/**/*.ts", "test/**/*.ts"],
+  "include": ["src/**/*.ts", "test/**/*.ts", "jest.config.ts"],
   "exclude": ["node_modules", "dist"]
 }
