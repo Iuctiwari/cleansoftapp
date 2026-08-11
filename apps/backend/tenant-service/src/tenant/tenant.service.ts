@@ -5,6 +5,8 @@ import { TenantError } from './tenant.errors';
 import {
   TENANT_REPOSITORY,
   type BranchRecord,
+  type CompleteTenantOnboardingInput,
+  type CompleteTenantOnboardingOutput,
   type RegisterTenantInput,
   type RegisterTenantOutput,
   type TenantOwnerRecord,
@@ -166,6 +168,42 @@ export class TenantService {
     };
 
     return this.tenantRepository.createTenant(tenant, owner, headOfficeBranch, [defaultService]);
+  }
+
+  async completeOnboarding(
+    tenantId: string,
+    input: CompleteTenantOnboardingInput,
+  ): Promise<CompleteTenantOnboardingOutput> {
+    await this.getTenantById(tenantId);
+
+    const normalisedEmail = input.email.trim().toLowerCase();
+    const existingOwner = await this.tenantRepository.findByEmail(normalisedEmail);
+    if (existingOwner && existingOwner.tenantId !== tenantId) {
+      throw new TenantError({
+        code: 'tenant.email_already_registered',
+        category: 'conflict',
+        messageKey: 'errors.tenant.email_already_registered',
+        fields: [{ field: 'email', code: 'tenant.email_already_registered' }],
+      });
+    }
+
+    return this.tenantRepository.completeOnboarding(tenantId, {
+      businessName: input.businessName.trim(),
+      businessType: input.businessType,
+      ownerName: input.ownerName.trim(),
+      email: normalisedEmail,
+      mobileNumber: input.mobileNumber.trim(),
+      branch: {
+        branchName: input.branch.branchName.trim(),
+        streetAddress: input.branch.streetAddress.trim(),
+        city: input.branch.city.trim(),
+        postalCode: input.branch.postalCode.trim(),
+        phone: input.branch.phone.trim(),
+        email: input.branch.email.trim().toLowerCase(),
+      },
+      services: [...input.services],
+      staff: [],
+    });
   }
 
   // ─── Queries ───────────────────────────────────────────────────────────────

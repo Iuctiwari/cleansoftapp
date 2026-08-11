@@ -89,6 +89,29 @@ export interface RegisterTenantOutput {
   readonly message: string;
 }
 
+export interface CompleteTenantOnboardingInput {
+  readonly businessName: string;
+  readonly businessType: TenantBusinessType;
+  readonly ownerName: string;
+  readonly email: string;
+  readonly mobileNumber: string;
+  readonly branch: {
+    readonly branchName: string;
+    readonly streetAddress: string;
+    readonly city: string;
+    readonly postalCode: string;
+    readonly phone: string;
+    readonly email: string;
+  };
+  readonly services: readonly TenantBusinessType[];
+  readonly staff: readonly string[];
+}
+
+export interface CompleteTenantOnboardingOutput {
+  readonly tenantId: string;
+  readonly message: string;
+}
+
 export interface TenantRepository {
   /** Find a tenant owner by normalised email (for uniqueness checks and login). */
   findByEmail(email: string): Promise<TenantOwnerRecord | null>;
@@ -112,6 +135,12 @@ export interface TenantRepository {
     branch: BranchRecord,
     services: TenantServiceRecord[],
   ): Promise<RegisterTenantOutput>;
+
+  /** Atomically update all records created during tenant onboarding. */
+  completeOnboarding(
+    tenantId: string,
+    input: CompleteTenantOnboardingInput,
+  ): Promise<CompleteTenantOnboardingOutput>;
 }
 
 export const TENANT_REPOSITORY = Symbol('TENANT_REPOSITORY');

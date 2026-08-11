@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { InjectConnection, InjectModel } from '@nestjs/mongoose';
+import { Connection, Model } from 'mongoose';
 
+import { generateTenantId } from './tenant.crypto';
 import {
   BranchMongoose,
   TenantMongoose,
@@ -10,6 +11,8 @@ import {
 } from './tenant.mongoose.schema';
 import type {
   BranchRecord,
+  CompleteTenantOnboardingInput,
+  CompleteTenantOnboardingOutput,
   RegisterTenantOutput,
   TenantOwnerRecord,
   TenantRecord,
@@ -21,6 +24,8 @@ import type {
 @Injectable()
 export class MongoTenantRepository implements TenantRepository {
   constructor(
+    @InjectConnection()
+    private readonly connection: Connection,
     @InjectModel(TenantMongoose.name)
     private readonly tenantModel: Model<TenantMongoose>,
     @InjectModel(TenantOwnerMongoose.name)
@@ -82,6 +87,112 @@ export class MongoTenantRepository implements TenantRepository {
       businessName: tenant.businessName,
       message: 'Account created successfully',
     };
+  }
+
+  async completeOnboarding(
+    tenantId: string,
+    input: CompleteTenantOnboardingInput,
+  ): Promise<CompleteTenantOnboardingOutput> {
+    const session = await this.connection.startSession();
+    const now = new Date().toISOString();
+
+    try {
+      await session.withTransaction(async () => {
+        const tenantResult = await this.tenantModel
+          .updateOne(
+            { tenantId },
+            {
+              $set: {
+                businessName: input.businessName,
+                businessType: input.businessType,
+                ownerName: input.ownerName,
+                ownerEmail: input.email,
+                ownerPhone: input.mobileNumber,
+                updatedAt: now,
+              },
+            },
+            { session },
+          )
+          .exec();
+        if (tenantResult.matchedCount !== 1) {
+          throw new Error('Tenant record is missing during onboarding');
+        }
+
+        const ownerResult = await this.ownerModel
+          .updateOne(
+            { tenantId },
+            {
+              $set: {
+                tenantName: input.businessName,
+                displayName: input.ownerName,
+                email: input.email,
+                mobileNumber: input.mobileNumber,
+              },
+            },
+            { session },
+          )
+          .exec();
+        if (ownerResult.matchedCount !== 1) {
+          throw new Error('Tenant owner record is missing during onboarding');
+        }
+
+        const branchResult = await this.branchModel
+          .updateOne(
+            { tenantId, isHeadOffice: true },
+            {
+              $set: {
+                branchName: input.branch.branchName,
+                streetAddress: input.branch.streetAddress,
+                city: input.branch.city,
+                postalCode: input.branch.postalCode,
+                phone: input.branch.phone,
+                email: input.branch.email,
+                updatedAt: now,
+              },
+              $unset: { state: '', country: '' },
+            },
+            { session },
+          )
+          .exec();
+        if (branchResult.matchedCount !== 1) {
+          throw new Error('Head-office branch is missing during onboarding');
+        }
+
+        await this.tenantServiceModel
+          .deleteMany({
+            tenantId,
+            serviceType: { $nin: input.services },
+          })
+          .session(session)
+          .exec();
+
+        await this.tenantServiceModel.bulkWrite(
+          input.services.map((serviceType) => ({
+            updateOne: {
+              filter: { tenantId, serviceType },
+              update: {
+                $set: { isEnabled: true },
+                $setOnInsert: {
+                  tenantServiceId: generateTenantId(),
+                  tenantId,
+                  serviceType,
+                  createdAt: now,
+                },
+              },
+              upsert: true,
+            },
+          })),
+          { session },
+        );
+      });
+
+      return {
+        tenantId,
+        message: 'Onboarding completed successfully',
+      };
+    } finally {
+      await session.endSession();
+    }
   }
 
   // ─── Mapping helpers ──────────────────────────────────────────────────────

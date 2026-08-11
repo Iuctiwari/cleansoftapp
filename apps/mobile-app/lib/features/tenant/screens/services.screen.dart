@@ -6,15 +6,17 @@ import '../../../app/theme.dart';
 import '../models/tenant_onboarding_data.dart';
 import '../widgets/tenant_onboarding_scaffold.dart';
 
-const _services = <String>[
-  'Wash & Fold',
-  'Dry Cleaning',
-  'Ironing',
-  'Tailoring',
-  'Shoe Cleaning',
-  'Carpet Cleaning',
-  'Express Service',
-  'Pickup & Delivery',
+const _services = <(String, String)>[
+  ('Wash & Fold', 'laundry'),
+  ('Dry Cleaning', 'dry_cleaning'),
+  ('Tailoring', 'tailoring'),
+  ('Shoe Cleaning', 'shoe_cleaning'),
+  ('Appliance Repair', 'appliance_repair'),
+  ('Mobile Repair', 'mobile_repair'),
+  ('Vehicle Wash', 'vehicle_wash'),
+  ('Salon', 'salon'),
+  ('General', 'general'),
+  ('Custom', 'custom'),
 ];
 
 class ServicesScreen extends StatefulWidget {
@@ -35,6 +37,16 @@ class _ServicesScreenState extends State<ServicesScreen> {
     });
   }
 
+  void _continue() {
+    if (widget.data.selectedServices.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Select at least one service')),
+      );
+      return;
+    }
+    context.pushNamed(AppRouteNames.onboardingInviteStaff, extra: widget.data);
+  }
+
   @override
   Widget build(BuildContext context) {
     return TenantOnboardingScaffold(
@@ -43,10 +55,7 @@ class _ServicesScreenState extends State<ServicesScreen> {
       icon: Icons.build_outlined,
       actions: TenantOnboardingActions(
         onBack: context.pop,
-        onContinue: () => context.pushNamed(
-          AppRouteNames.onboardingInviteStaff,
-          extra: widget.data,
-        ),
+        onContinue: _continue,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -60,13 +69,15 @@ class _ServicesScreenState extends State<ServicesScreen> {
             spacing: 10,
             runSpacing: 10,
             children: _services.map((service) {
-              final selected = widget.data.selectedServices.contains(service);
+              final selected = widget.data.selectedServices.contains(
+                service.$2,
+              );
               return FilterChip(
                 selected: selected,
                 showCheckmark: true,
                 checkmarkColor: kPrimary,
-                label: Text(service),
-                onSelected: (_) => _toggle(service),
+                label: Text(service.$1),
+                onSelected: (_) => _toggle(service.$2),
                 backgroundColor: kSurface,
                 selectedColor: kPrimaryLight,
                 side: BorderSide(

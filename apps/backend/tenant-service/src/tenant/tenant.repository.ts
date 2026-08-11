@@ -1,7 +1,10 @@
 import { Injectable } from '@nestjs/common';
 
+import { generateTenantId } from './tenant.crypto';
 import type {
   BranchRecord,
+  CompleteTenantOnboardingInput,
+  CompleteTenantOnboardingOutput,
   RegisterTenantOutput,
   TenantOwnerRecord,
   TenantRecord,
@@ -90,6 +93,76 @@ export class InMemoryTenantRepository implements TenantRepository {
       ownerUserId: owner.userId,
       businessName: tenant.businessName,
       message: 'Account created successfully',
+    });
+  }
+
+  completeOnboarding(
+    tenantId: string,
+    input: CompleteTenantOnboardingInput,
+  ): Promise<CompleteTenantOnboardingOutput> {
+    const tenant = this.tenants.get(tenantId);
+    const owner = [...this.owners.values()].find((item) => item.tenantId === tenantId);
+    const branch = [...this.branches.values()].find(
+      (item) => item.tenantId === tenantId && item.isHeadOffice,
+    );
+    if (!tenant || !owner || !branch) {
+      return Promise.reject(new Error('Required onboarding record is missing'));
+    }
+
+    const now = new Date().toISOString();
+    this.tenants.set(tenantId, {
+      ...tenant,
+      businessName: input.businessName,
+      businessType: input.businessType,
+      ownerName: input.ownerName,
+      ownerEmail: input.email,
+      ownerPhone: input.mobileNumber,
+      updatedAt: now,
+    });
+    this.owners.set(owner.userId, {
+      ...owner,
+      tenantName: input.businessName,
+      displayName: input.ownerName,
+      email: input.email,
+      mobileNumber: input.mobileNumber,
+    });
+    this.branches.set(branch.branchId, {
+      ...branch,
+      branchName: input.branch.branchName,
+      streetAddress: input.branch.streetAddress,
+      city: input.branch.city,
+      state: '',
+      country: '',
+      postalCode: input.branch.postalCode,
+      phone: input.branch.phone,
+      email: input.branch.email,
+      updatedAt: now,
+    });
+
+    for (const [serviceId, service] of this.services) {
+      if (service.tenantId === tenantId && !input.services.includes(service.serviceType)) {
+        this.services.delete(serviceId);
+      }
+    }
+    for (const serviceType of input.services) {
+      const existing = [...this.services.values()].find(
+        (service) => service.tenantId === tenantId && service.serviceType === serviceType,
+      );
+      if (!existing) {
+        const tenantServiceId = generateTenantId();
+        this.services.set(tenantServiceId, {
+          tenantServiceId,
+          tenantId,
+          serviceType,
+          isEnabled: true,
+          createdAt: now,
+        });
+      }
+    }
+
+    return Promise.resolve({
+      tenantId,
+      message: 'Onboarding completed successfully',
     });
   }
 }

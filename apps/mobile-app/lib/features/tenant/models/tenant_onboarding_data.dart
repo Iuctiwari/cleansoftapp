@@ -12,8 +12,6 @@ class TenantOnboardingData {
   String branchName;
   String streetAddress;
   String city;
-  String state;
-  String country;
   String postalCode;
   String phone;
   String email;
@@ -28,8 +26,6 @@ class TenantOnboardingData {
     this.branchName = '',
     this.streetAddress = '',
     this.city = '',
-    this.state = '',
-    this.country = '',
     this.postalCode = '',
     this.phone = '',
     this.email = '',
@@ -37,4 +33,24 @@ class TenantOnboardingData {
     List<String>? staffEmails,
   }) : selectedServices = selectedServices ?? <String>{},
        staffEmails = staffEmails ?? <String>[];
+
+  Map<String, dynamic> toOnboardingJson() {
+    return {
+      'businessName': registrationForm.businessName.trim(),
+      'businessType': registrationForm.businessType,
+      'ownerName': registrationForm.ownerName.trim(),
+      'email': registrationForm.email.trim().toLowerCase(),
+      'mobileNumber': registrationForm.mobileNumber.trim(),
+      'branch': {
+        'branchName': branchName.trim(),
+        'streetAddress': streetAddress.trim(),
+        'city': city.trim(),
+        'postalCode': postalCode.trim(),
+        'phone': phone.trim(),
+        'email': email.trim().toLowerCase(),
+      },
+      'services': selectedServices.toList(growable: false),
+      'staff': const <String>[],
+    };
+  }
 }

@@ -13,10 +13,12 @@ const _kBusinessTypes = [
   ('Dry Cleaning', 'dry_cleaning'),
   ('Tailoring', 'tailoring'),
   ('Shoe Cleaning', 'shoe_cleaning'),
-  ('Carpet Cleaning', 'carpet_cleaning'),
-  ('Ironing Services', 'ironing_services'),
-  ('Repair Shop', 'repair_shop'),
-  ('Other', 'other'),
+  ('Appliance Repair', 'appliance_repair'),
+  ('Mobile Repair', 'mobile_repair'),
+  ('Vehicle Wash', 'vehicle_wash'),
+  ('Salon', 'salon'),
+  ('General', 'general'),
+  ('Custom', 'custom'),
 ];
 
 /// Screen 2 (Step 1/2) — "Tell us about your business".

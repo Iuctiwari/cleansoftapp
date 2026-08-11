@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../app/router.dart';
 import '../../../app/theme.dart';
 import '../models/tenant_onboarding_data.dart';
+import '../services/tenant_api_service.dart';
 import '../widgets/tenant_onboarding_scaffold.dart';
 
 class InviteStaffScreen extends StatefulWidget {
@@ -17,6 +18,8 @@ class InviteStaffScreen extends StatefulWidget {
 
 class _InviteStaffScreenState extends State<InviteStaffScreen> {
   late final List<TextEditingController> _controllers;
+  final TenantApiService _apiService = TenantApiService();
+  bool _isSubmitting = false;
 
   @override
   void initState() {
@@ -50,9 +53,42 @@ class _InviteStaffScreenState extends State<InviteStaffScreen> {
     context.pop();
   }
 
-  void _skip() {
-    _save();
-    context.pushNamed(AppRouteNames.onboardingAllSet, extra: widget.data);
+  Future<void> _skip() async {
+    if (_isSubmitting) return;
+    setState(() => _isSubmitting = true);
+
+    // Staff invitations are intentionally skipped until staff onboarding is
+    // supported by the backend contract.
+    widget.data.staffEmails.clear();
+
+    try {
+      await _apiService.completeOnboarding(widget.data);
+      if (mounted) {
+        context.pushNamed(AppRouteNames.onboardingAllSet, extra: widget.data);
+      }
+    } on TenantApiException catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(error.userMessage)));
+      }
+    } on TenantApiNetworkException catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(error.message)));
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Unable to save onboarding. Please try again.'),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
   }
 
   @override

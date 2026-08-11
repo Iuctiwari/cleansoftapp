@@ -13,6 +13,8 @@ import { ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 
 import {
   BranchDto,
+  CompleteTenantOnboardingDto,
+  CompleteTenantOnboardingResponseDto,
   RegisterTenantDto,
   RegisterTenantResponseDto,
   TenantProfileDto,
@@ -93,6 +95,32 @@ export class TenantController {
   @ApiResponse({ status: 404, description: 'Tenant not found' })
   async listBranches(@Param('tenantId') tenantId: string): Promise<BranchDto[]> {
     return this.tenantService.listBranches(tenantId);
+  }
+
+  /** Saves all tenant onboarding data in one atomic operation. */
+  @Patch(':tenantId')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Complete tenant onboarding',
+    description:
+      'Atomically updates the tenant, owner, existing head-office branch, and selected services. ' +
+      'The operation is idempotent and does not create duplicate branches or services.',
+  })
+  @ApiParam({ name: 'tenantId', description: 'Tenant identifier returned by registration' })
+  @ApiResponse({
+    status: 200,
+    description: 'Onboarding data saved successfully',
+    type: CompleteTenantOnboardingResponseDto,
+  })
+  @ApiResponse({ status: 400, description: 'Request validation failed' })
+  @ApiResponse({ status: 404, description: 'Tenant not found' })
+  @ApiResponse({ status: 409, description: 'Owner email belongs to another tenant' })
+  @ApiResponse({ status: 500, description: 'Transactional database update failed' })
+  async completeOnboarding(
+    @Param('tenantId') tenantId: string,
+    @Body() body: CompleteTenantOnboardingDto,
+  ): Promise<CompleteTenantOnboardingResponseDto> {
+    return this.tenantService.completeOnboarding(tenantId, body);
   }
 
   /**

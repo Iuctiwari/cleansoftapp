@@ -5,6 +5,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 
 import '../models/registration_form.dart';
+import '../models/tenant_onboarding_data.dart';
 
 /// Result returned after a successful tenant registration.
 class TenantRegistrationResult {
@@ -244,6 +245,85 @@ class TenantApiService {
       category: 'http',
       statusCode: response.statusCode,
       backendMessage: backendMessage,
+    );
+  }
+
+  /// PATCH /api/v1/tenants/:tenantId
+  ///
+  /// Sends the complete onboarding payload in one request.
+  Future<void> completeOnboarding(TenantOnboardingData data) async {
+    final tenantId = data.tenantId.trim();
+    if (tenantId.isEmpty) {
+      throw const TenantApiException(
+        code: 'tenant.missing_tenant_id',
+        messageKey: 'errors.tenant.missing_tenant_id',
+        category: 'validation',
+        statusCode: 400,
+        backendMessage:
+            'Tenant information is missing. Please create the account again.',
+      );
+    }
+
+    late http.Response response;
+    try {
+      response = await _client
+          .patch(
+            Uri.parse('$_baseUrl/api/v1/tenants/$tenantId'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode(data.toOnboardingJson()),
+          )
+          .timeout(_requestTimeout);
+    } on TimeoutException {
+      throw const TenantApiNetworkException(
+        'The tenant service timed out. Please try again.',
+      );
+    } on http.ClientException {
+      throw const TenantApiNetworkException(
+        'Unable to reach the tenant service. Check that it is running and reachable from this device.',
+      );
+    }
+
+    final Map<String, dynamic> body;
+    try {
+      final decoded = jsonDecode(response.body);
+      if (decoded is! Map<String, dynamic>) throw const FormatException();
+      body = decoded;
+    } on FormatException {
+      throw _invalidResponse(statusCode: response.statusCode);
+    }
+
+    if (response.statusCode == 200) {
+      if (body['tenantId'] != tenantId) throw _invalidResponse();
+      return;
+    }
+
+    final structuredError = body['error'];
+    if (structuredError is Map<String, dynamic>) {
+      throw TenantApiException(
+        code: structuredError['code'] as String? ?? 'unknown',
+        messageKey:
+            structuredError['messageKey'] as String? ?? 'errors.internal',
+        category: structuredError['category'] as String? ?? 'internal',
+        statusCode: response.statusCode,
+        fields:
+            (structuredError['fields'] as List<dynamic>?)
+                ?.whereType<Map<String, dynamic>>()
+                .toList() ??
+            const [],
+      );
+    }
+
+    final rawMessage = body['message'];
+    throw TenantApiException(
+      code: 'tenant.http_${response.statusCode}',
+      messageKey: 'errors.http_${response.statusCode}',
+      category: 'http',
+      statusCode: response.statusCode,
+      backendMessage: rawMessage is List
+          ? rawMessage.whereType<String>().join('\n')
+          : rawMessage is String
+          ? rawMessage
+          : null,
     );
   }
 

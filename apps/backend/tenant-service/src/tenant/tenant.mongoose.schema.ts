@@ -206,3 +206,4 @@ export class TenantServiceMongoose extends Document {
 }
 
 export const TenantServiceMongooseSchema = SchemaFactory.createForClass(TenantServiceMongoose);
+TenantServiceMongooseSchema.index({ tenantId: 1, serviceType: 1 }, { unique: true });

@@ -1,4 +1,8 @@
 import {
+  ArrayMaxSize,
+  ArrayNotEmpty,
+  ArrayUnique,
+  IsArray,
   IsBoolean,
   IsEmail,
   IsEnum,
@@ -7,7 +11,9 @@ import {
   Matches,
   MaxLength,
   MinLength,
+  ValidateNested,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 
 import type { TenantBusinessType, TenantStatus, BranchStatus } from './tenant.types';
@@ -95,6 +101,99 @@ export class RegisterTenantDto {
   agreedToTerms!: boolean;
 }
 
+export class OnboardingBranchDto {
+  @ApiProperty({ example: 'Pune Main', maxLength: 120 })
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(120)
+  branchName!: string;
+
+  @ApiProperty({ example: 'MG Road', maxLength: 240 })
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(240)
+  streetAddress!: string;
+
+  @ApiProperty({ example: 'Pune', maxLength: 120 })
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(120)
+  city!: string;
+
+  @ApiProperty({ example: '411038', maxLength: 20 })
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(20)
+  postalCode!: string;
+
+  @ApiProperty({ example: '9850237396' })
+  @IsString()
+  @Matches(/^\+?[0-9]{7,15}$/, {
+    message: 'branch.phone must be a valid phone number (7–15 digits, optional leading +)',
+  })
+  phone!: string;
+
+  @ApiProperty({ example: 'nexoraa@admin.com', maxLength: 160 })
+  @IsEmail()
+  @MaxLength(160)
+  email!: string;
+}
+
+export class CompleteTenantOnboardingDto {
+  @ApiProperty({ example: 'FreshCare Laundry', maxLength: 120 })
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(120)
+  businessName!: string;
+
+  @ApiProperty({ enum: BUSINESS_TYPE_VALUES, example: 'laundry' })
+  @IsEnum(BUSINESS_TYPE_VALUES)
+  businessType!: TenantBusinessType;
+
+  @ApiProperty({ example: 'Priya Sharma', maxLength: 120 })
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(120)
+  ownerName!: string;
+
+  @ApiProperty({ example: 'priya.sharma@example.com', maxLength: 160 })
+  @IsEmail()
+  @MaxLength(160)
+  email!: string;
+
+  @ApiProperty({ example: '+919876543210' })
+  @IsString()
+  @Matches(/^\+?[0-9]{7,15}$/, {
+    message: 'mobileNumber must be a valid phone number (7–15 digits, optional leading +)',
+  })
+  mobileNumber!: string;
+
+  @ApiProperty({ type: OnboardingBranchDto })
+  @ValidateNested()
+  @Type(() => OnboardingBranchDto)
+  branch!: OnboardingBranchDto;
+
+  @ApiProperty({
+    type: [String],
+    enum: BUSINESS_TYPE_VALUES,
+    example: ['laundry', 'dry_cleaning'],
+  })
+  @IsArray()
+  @ArrayNotEmpty()
+  @ArrayUnique()
+  @IsEnum(BUSINESS_TYPE_VALUES, { each: true })
+  services!: TenantBusinessType[];
+
+  @ApiProperty({
+    type: [String],
+    example: [],
+    description: 'Reserved for staff onboarding; must be empty for now.',
+  })
+  @IsArray()
+  @ArrayMaxSize(0)
+  staff!: string[];
+}
+
 // ─── Response DTOs ────────────────────────────────────────────────────────────
 
 export class RegisterTenantResponseDto {
@@ -114,6 +213,14 @@ export class RegisterTenantResponseDto {
     description: 'Human-readable result message',
     example: 'Account created successfully',
   })
+  message!: string;
+}
+
+export class CompleteTenantOnboardingResponseDto {
+  @ApiProperty({ description: 'Updated tenant identifier' })
+  tenantId!: string;
+
+  @ApiProperty({ example: 'Onboarding completed successfully' })
   message!: string;
 }
 

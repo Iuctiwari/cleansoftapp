@@ -20,6 +20,7 @@ class _FirstBranchScreenState extends State<FirstBranchScreen> {
   late final TextEditingController _branchName;
   late final TextEditingController _streetAddress;
   late final TextEditingController _city;
+  late final TextEditingController _postalCode;
   late final TextEditingController _phone;
   late final TextEditingController _email;
 
@@ -30,6 +31,7 @@ class _FirstBranchScreenState extends State<FirstBranchScreen> {
     _branchName = TextEditingController(text: data.branchName);
     _streetAddress = TextEditingController(text: data.streetAddress);
     _city = TextEditingController(text: data.city);
+    _postalCode = TextEditingController(text: data.postalCode);
     _phone = TextEditingController(text: data.phone);
     _email = TextEditingController(text: data.email);
   }
@@ -39,6 +41,7 @@ class _FirstBranchScreenState extends State<FirstBranchScreen> {
     _branchName.dispose();
     _streetAddress.dispose();
     _city.dispose();
+    _postalCode.dispose();
     _phone.dispose();
     _email.dispose();
     super.dispose();
@@ -49,6 +52,7 @@ class _FirstBranchScreenState extends State<FirstBranchScreen> {
       ..branchName = _branchName.text
       ..streetAddress = _streetAddress.text
       ..city = _city.text
+      ..postalCode = _postalCode.text
       ..phone = _phone.text
       ..email = _email.text;
   }
@@ -95,18 +99,26 @@ class _FirstBranchScreenState extends State<FirstBranchScreen> {
             ),
             const SizedBox(height: 26),
             _field('Branch Name', _branchName, 'Main Branch', required: true),
-            _field('Street Address', _streetAddress, 'Street address'),
-            _field('City', _city, 'City'),
+            _field(
+              'Street Address',
+              _streetAddress,
+              'Street address',
+              required: true,
+            ),
+            _field('City', _city, 'City', required: true),
+            _field('Postal Code', _postalCode, 'Postal code', required: true),
             _field(
               'Phone',
               _phone,
               '+1 234 567 8900',
+              required: true,
               keyboardType: TextInputType.phone,
             ),
             _field(
               'Email',
               _email,
               'branch@yourshop.com',
+              required: true,
               keyboardType: TextInputType.emailAddress,
               validateEmail: true,
             ),
