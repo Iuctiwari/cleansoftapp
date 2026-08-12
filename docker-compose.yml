@@ -289,9 +289,12 @@ services:
       <<: *backend-env
       PORT: 3000
       SERVICE_NAME: customer-service
+      AUTH_SERVICE_BASE_URL: http://auth-service:3000/api
     networks:
       - nexoraa-internal
     depends_on:
+      auth-service:
+        condition: service_healthy
       mongodb:
         condition: service_healthy
       redis:

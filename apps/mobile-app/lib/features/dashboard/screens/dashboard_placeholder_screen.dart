@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:nexoraa_mobile/app/router.dart';
 import 'package:nexoraa_mobile/design_system/design_system.dart';
+import 'package:nexoraa_mobile/features/authentication/authentication_dependencies.dart';
+import 'package:nexoraa_mobile/features/customers/controllers/customer_controller.dart';
+import 'package:nexoraa_mobile/features/customers/screens/customer_list_screen.dart';
+import 'package:nexoraa_mobile/features/customers/services/customer_api_service.dart';
 import 'package:nexoraa_mobile/features/dashboard/dashboard_models.dart';
 import 'package:nexoraa_mobile/features/dashboard/dashboard_widgets.dart';
 import 'package:nexoraa_mobile/features/dashboard/screens/more_screen.dart';
@@ -28,6 +32,7 @@ class DashboardPlaceholderScreen extends StatefulWidget {
 
 class _DashboardPlaceholderScreenState
     extends State<DashboardPlaceholderScreen> {
+  late final CustomerController _customerController;
   int _currentNavigationIndex = 0;
   String _selectedBranchId = 'unavailable';
   List<DashboardData> _branches = <DashboardData>[
@@ -48,8 +53,19 @@ class _DashboardPlaceholderScreenState
   @override
   void initState() {
     super.initState();
+    _customerController = CustomerController(
+      service: CustomerApiService(
+        tokenStorage: AuthenticationDependencies.tokenStorage,
+      ),
+    );
     final tenantId = widget.tenantId?.trim() ?? '';
     if (tenantId.isNotEmpty) _loadTenantDashboard(tenantId);
+  }
+
+  @override
+  void dispose() {
+    _customerController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadTenantDashboard(String tenantId) async {
@@ -85,6 +101,7 @@ class _DashboardPlaceholderScreenState
         _branches = branches;
         _selectedBranchId = branches.first.branchId;
       });
+      await _customerController.selectBranch(branches.first.branchId);
     } on Object {
       // The zero/unavailable dashboard remains visible when data cannot load.
     }
@@ -92,6 +109,7 @@ class _DashboardPlaceholderScreenState
 
   void _selectBranch(String branchId) {
     setState(() => _selectedBranchId = branchId);
+    _customerController.selectBranch(branchId);
   }
 
   void _showUiOnlyMessage(String message) {
@@ -108,49 +126,53 @@ class _DashboardPlaceholderScreenState
       backgroundColor: AppColors.background,
       body: AnimatedSwitcher(
         duration: AppDurations.fast,
-        child: showingDashboard
-            ? CustomScrollView(
-                key: const ValueKey<String>('dashboard'),
-                physics: const ClampingScrollPhysics(),
-                slivers: <Widget>[
-                  DashboardTopAppBar(
-                    ownerName: data.ownerName,
-                    onNotificationsPressed: () =>
-                        context.pushNamed(AppRouteNames.notifications),
-                    onProfilePressed: () =>
-                        _showUiOnlyMessage('Profile selected'),
-                  ),
-                  SliverToBoxAdapter(
-                    child: DashboardHeader(
-                      data: data,
-                      branches: _branches,
-                      onBranchChanged: _selectBranch,
-                    ),
-                  ),
-                  SliverToBoxAdapter(
-                    child: AnimatedSwitcher(
-                      duration: AppDurations.medium,
-                      switchInCurve: AppCurves.easeOut,
-                      child: KeyedSubtree(
-                        key: ValueKey<String>(data.branchId),
-                        child: _DashboardContent(
-                          data: data,
-                          onUiAction: _showUiOnlyMessage,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              )
-            : MoreScreen(
-                key: const ValueKey<String>('more'),
-                businessName: data.businessName,
-                role: 'Owner',
-                userProfile: MoreUserProfileData(
-                  name: data.ownerName,
-                  email: data.ownerEmail,
+        child: switch (_currentNavigationIndex) {
+          0 => CustomScrollView(
+            key: const ValueKey<String>('dashboard'),
+            physics: const ClampingScrollPhysics(),
+            slivers: <Widget>[
+              DashboardTopAppBar(
+                ownerName: data.ownerName,
+                onNotificationsPressed: () =>
+                    context.pushNamed(AppRouteNames.notifications),
+                onProfilePressed: () => _showUiOnlyMessage('Profile selected'),
+              ),
+              SliverToBoxAdapter(
+                child: DashboardHeader(
+                  data: data,
+                  branches: _branches,
+                  onBranchChanged: _selectBranch,
                 ),
               ),
+              SliverToBoxAdapter(
+                child: AnimatedSwitcher(
+                  duration: AppDurations.medium,
+                  switchInCurve: AppCurves.easeOut,
+                  child: KeyedSubtree(
+                    key: ValueKey<String>(data.branchId),
+                    child: _DashboardContent(
+                      data: data,
+                      onUiAction: _showUiOnlyMessage,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          2 => CustomerListScreen(
+            key: const ValueKey<String>('customers'),
+            controller: _customerController,
+          ),
+          _ => MoreScreen(
+            key: const ValueKey<String>('more'),
+            businessName: data.businessName,
+            role: 'Owner',
+            userProfile: MoreUserProfileData(
+              name: data.ownerName,
+              email: data.ownerEmail,
+            ),
+          ),
+        },
       ),
       floatingActionButton: showingDashboard
           ? FloatingActionButton(
@@ -165,7 +187,7 @@ class _DashboardPlaceholderScreenState
       bottomNavigationBar: DashboardBottomNavigation(
         currentIndex: _currentNavigationIndex,
         onTap: (int index) {
-          if (index == 0 || index == 3) {
+          if (index == 0 || index == 2 || index == 3) {
             setState(() => _currentNavigationIndex = index);
             return;
           }
@@ -213,14 +235,6 @@ class _DashboardContent extends StatelessWidget {
               const SizedBox(height: AppSpacing.lg),
               BusinessSummaryCard(metrics: data.summaryMetrics),
               const SizedBox(height: AppSpacing.sectionGapLarge),
-              const DashboardSectionHeader(title: 'Revenue Overview'),
-              const SizedBox(height: AppSpacing.lg),
-              RevenueOverviewCard(points: data.revenuePoints),
-              const SizedBox(height: AppSpacing.sectionGapLarge),
-              DashboardSectionHeader(title: '${data.branchName} Summary'),
-              const SizedBox(height: AppSpacing.lg),
-              BranchSummaryCard(summary: data.branchSummary),
-              const SizedBox(height: AppSpacing.sectionGapLarge),
               DashboardSectionHeader(
                 title: 'Branch Performance',
                 actionLabel: 'Reports',
@@ -265,28 +279,6 @@ class _DashboardContent extends StatelessWidget {
                 (DashboardBill bill) => Padding(
                   padding: const EdgeInsets.only(bottom: AppSpacing.lg),
                   child: RecentBillCard(bill: bill),
-                ),
-              ),
-              const SizedBox(height: AppSpacing.md),
-              DashboardSectionHeader(
-                title: 'Recent Customers',
-                actionLabel: 'See all',
-                onAction: () => onUiAction('Recent customers selected'),
-              ),
-              const SizedBox(height: AppSpacing.md),
-              ...data.customers.map(
-                (DashboardCustomer customer) => Padding(
-                  padding: const EdgeInsets.only(bottom: AppSpacing.lg),
-                  child: RecentCustomerCard(customer: customer),
-                ),
-              ),
-              const SizedBox(height: AppSpacing.md),
-              const DashboardSectionHeader(title: 'Recent Activity'),
-              const SizedBox(height: AppSpacing.lg),
-              ...data.activities.map(
-                (DashboardActivity activity) => Padding(
-                  padding: const EdgeInsets.only(bottom: AppSpacing.lg),
-                  child: ActivityCard(activity: activity),
                 ),
               ),
             ],
@@ -338,25 +330,41 @@ class _QuickActionsGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints constraints) {
-        final int columns = constraints.maxWidth >= AppSizes.tabletBreakpoint
-            ? 4
-            : 2;
-        final double width =
-            (constraints.maxWidth - AppSpacing.lg * (columns - 1)) / columns;
-        return Wrap(
-          spacing: AppSpacing.lg,
-          runSpacing: AppSpacing.lg,
-          children: actions
-              .map(
-                (DashboardQuickAction action) => SizedBox(
-                  width: width,
-                  child: QuickActionCard(
-                    action: action,
-                    onTap: () => onTap(action),
+        if (actions.isEmpty) return const SizedBox.shrink();
+        const double minimumCardWidth = 78;
+        final double totalSpacing = AppSpacing.lg * (actions.length - 1);
+        final bool fitsWithoutScrolling =
+            constraints.maxWidth >=
+            minimumCardWidth * actions.length + totalSpacing;
+        final double cardWidth = fitsWithoutScrolling
+            ? (constraints.maxWidth - totalSpacing) / actions.length
+            : (constraints.maxWidth - AppSpacing.lg) / 2;
+
+        return SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: List<Widget>.generate(
+              actions.length,
+              (int index) {
+                final DashboardQuickAction action = actions[index];
+                return Padding(
+                  padding: EdgeInsets.only(
+                    right: index == actions.length - 1
+                        ? AppSpacing.none
+                        : AppSpacing.lg,
                   ),
-                ),
-              )
-              .toList(growable: false),
+                  child: SizedBox(
+                    width: cardWidth,
+                    child: QuickActionCard(
+                      action: action,
+                      onTap: () => onTap(action),
+                    ),
+                  ),
+                );
+              },
+              growable: false,
+            ),
+          ),
         );
       },
     );

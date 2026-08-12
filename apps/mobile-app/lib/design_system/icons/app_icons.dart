@@ -79,6 +79,7 @@ abstract final class AppIcons {
   static const IconData tag = Icons.sell_outlined;
   static const IconData trendingUp = Icons.trending_up;
   static const IconData delivery = Icons.local_shipping_outlined;
+  static const IconData delete = Icons.delete_outline;
   static const IconData unlock = Icons.lock_open_outlined;
   static const IconData user = Icons.person_outline;
   static const IconData userVerified = Icons.how_to_reg_outlined;
