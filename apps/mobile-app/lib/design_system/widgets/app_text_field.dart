@@ -16,6 +16,7 @@ class AppTextField extends StatelessWidget {
     this.obscureText = false,
     this.suffix,
     this.textInputAction,
+    this.validator,
     super.key,
   });
 
@@ -28,6 +29,7 @@ class AppTextField extends StatelessWidget {
   final bool obscureText;
   final Widget? suffix;
   final TextInputAction? textInputAction;
+  final FormFieldValidator<String>? validator;
 
   @override
   Widget build(BuildContext context) {
@@ -51,6 +53,7 @@ class AppTextField extends StatelessWidget {
             color: Theme.of(context).colorScheme.onSurface,
           ),
           textInputAction: textInputAction,
+          validator: validator,
           decoration: InputDecoration(
             hintText: hintText,
             prefixIcon: icon == null

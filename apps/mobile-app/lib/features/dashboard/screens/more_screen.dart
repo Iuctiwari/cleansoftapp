@@ -146,6 +146,14 @@ class MoreScreen extends StatelessWidget {
       ..showSnackBar(SnackBar(content: Text('$title is not available yet.')));
   }
 
+  void _handleItemTap(BuildContext context, MoreMenuItemData item) {
+    if (item.title == 'Branch Management') {
+      context.pushNamed(AppRouteNames.branchList);
+      return;
+    }
+    _showPlaceholder(context, item.title);
+  }
+
   Future<void> _confirmSignOut(BuildContext context) async {
     final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
     final bool? confirmed = await showDialog<bool>(
@@ -219,7 +227,7 @@ class MoreScreen extends StatelessWidget {
                         child: MoreMenuSection(
                           section: section,
                           onItemTap: (MoreMenuItemData item) =>
-                              _showPlaceholder(context, item.title),
+                              _handleItemTap(context, item),
                         ),
                       ),
                     ),

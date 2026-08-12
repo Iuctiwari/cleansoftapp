@@ -235,6 +235,7 @@ services:
       <<: *backend-env
       PORT: 3000
       SERVICE_NAME: branch-service
+      DEFAULT_BRANCH_LIMIT: 3
     networks:
       - nexoraa-internal
     depends_on:

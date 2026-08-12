@@ -1,11 +1,16 @@
 import 'reflect-metadata';
 
-import { Logger } from '@nestjs/common';
+import { Logger, ValidationPipe, VersioningType } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { setupSwagger } from '@nexoraa/swagger';
 
 import { AppModule } from './app.module';
+import { PlatformExceptionFilter } from './platform/platform.filter';
+import {
+  CorrelationIdInterceptor,
+  ResponseEnvelopeInterceptor,
+} from './platform/platform.interceptors';
 
 const HOST = '0.0.0.0';
 
@@ -28,6 +33,16 @@ async function bootstrap(): Promise<void> {
 
   app.enableCors();
   app.enableShutdownHooks();
+  app.enableVersioning({ type: VersioningType.URI, defaultVersion: '1' });
+  app.useGlobalPipes(
+    new ValidationPipe({
+      forbidNonWhitelisted: true,
+      transform: true,
+      whitelist: true,
+    }),
+  );
+  app.useGlobalFilters(new PlatformExceptionFilter());
+  app.useGlobalInterceptors(new CorrelationIdInterceptor(), new ResponseEnvelopeInterceptor());
   setupSwagger(app, { title: 'Nexoraa Branch Service API' });
 
   await app.listen(port, HOST);
