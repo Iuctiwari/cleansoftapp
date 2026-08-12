@@ -31,10 +31,6 @@ class DashboardTopAppBar extends StatelessWidget {
               icon: const Icon(AppIcons.arrowBack),
               tooltip: 'Back',
             ),
-      title: Text(
-        'Dashboard',
-        style: AppTextStyles.title.copyWith(color: AppColors.surface),
-      ),
       actions: <Widget>[
         DashboardHeaderAction(
           onPressed: onNotificationsPressed,
