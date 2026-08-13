@@ -5,6 +5,7 @@ import 'package:nexoraa_mobile/features/authentication/authentication_dependenci
 import 'package:nexoraa_mobile/features/authentication/screens/login_screen.dart';
 import 'package:nexoraa_mobile/features/authentication/screens/forgot_password_screen.dart';
 import 'package:nexoraa_mobile/features/authentication/screens/splash_screen.dart';
+import 'package:nexoraa_mobile/features/branch/branch.dart';
 import 'package:nexoraa_mobile/features/dashboard/dashboard.dart';
 
 import '../features/tenant/models/registration_form.dart';
@@ -30,6 +31,10 @@ abstract final class AppRoutes {
   static const String onboardingAllSet = '/onboarding/all-set';
   static const String forgotPassword = '/forgot-password';
   static const String notifications = '/dashboard/notifications';
+  static const String branchList = '/dashboard/branches';
+  static const String branchAdd = '/dashboard/branches/add';
+  static const String branchEdit = '/dashboard/branches/:branchId/edit';
+  static const String branchDetails = '/dashboard/branches/:branchId';
 }
 
 abstract final class AppRouteNames {
@@ -45,6 +50,10 @@ abstract final class AppRouteNames {
   static const String onboardingAllSet = 'onboardingAllSet';
   static const String forgotPassword = 'forgot-password';
   static const String notifications = 'notifications';
+  static const String branchList = 'branchList';
+  static const String branchAdd = 'branchAdd';
+  static const String branchEdit = 'branchEdit';
+  static const String branchDetails = 'branchDetails';
 }
 
 abstract final class AppRouter {
@@ -182,6 +191,36 @@ abstract final class AppRouter {
             state: state,
             child: const NotificationScreen(),
           );
+        },
+      ),
+      GoRoute(
+        name: AppRouteNames.branchList,
+        path: AppRoutes.branchList,
+        builder: (BuildContext context, GoRouterState state) {
+          return const BranchListScreen();
+        },
+      ),
+      GoRoute(
+        name: AppRouteNames.branchAdd,
+        path: AppRoutes.branchAdd,
+        builder: (BuildContext context, GoRouterState state) {
+          return const BranchFormScreen(mode: BranchFormMode.add);
+        },
+      ),
+      GoRoute(
+        name: AppRouteNames.branchEdit,
+        path: AppRoutes.branchEdit,
+        builder: (BuildContext context, GoRouterState state) {
+          final Branch branch = state.extra as Branch;
+          return BranchFormScreen(mode: BranchFormMode.edit, branch: branch);
+        },
+      ),
+      GoRoute(
+        name: AppRouteNames.branchDetails,
+        path: AppRoutes.branchDetails,
+        builder: (BuildContext context, GoRouterState state) {
+          final Branch branch = state.extra as Branch;
+          return BranchDetailsScreen(branch: branch);
         },
       ),
     ],

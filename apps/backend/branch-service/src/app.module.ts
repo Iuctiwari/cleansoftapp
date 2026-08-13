@@ -1,8 +1,10 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { DatabaseModule } from '@nexoraa/database';
 
 import { AppController } from './app.controller';
 import { AppHealth } from './app.service';
+import { BranchModule } from './branches/branch.module';
 
 @Module({
   imports: [
@@ -11,6 +13,8 @@ import { AppHealth } from './app.service';
       expandVariables: true,
       isGlobal: true,
     }),
+    DatabaseModule,
+    BranchModule,
   ],
   controllers: [AppController],
   providers: [AppHealth],
