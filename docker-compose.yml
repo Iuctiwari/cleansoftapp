@@ -203,7 +203,7 @@ services:
         SERVICE: tenant-service
     restart: unless-stopped
     ports:
-      - '3002:3000'
+      - '3003:3000'
     environment:
       <<: *backend-env
       PORT: 3000
@@ -230,7 +230,7 @@ services:
         SERVICE: branch-service
     restart: unless-stopped
     ports:
-      - '3003:3000'
+      - '3004:3000'
     environment:
       <<: *backend-env
       PORT: 3000
@@ -258,7 +258,7 @@ services:
         SERVICE: user-service
     restart: unless-stopped
     ports:
-      - '3004:3000'
+      - '3002:3000'
     environment:
       <<: *backend-env
       PORT: 3000
