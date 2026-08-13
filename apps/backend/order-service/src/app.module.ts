@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 
 import { AppController } from './app.controller';
 import { AppHealth } from './app.service';
+import { OrderModule } from './order/order.module';
 
 @Module({
   imports: [
@@ -11,6 +12,7 @@ import { AppHealth } from './app.service';
       expandVariables: true,
       isGlobal: true,
     }),
+    OrderModule,
   ],
   controllers: [AppController],
   providers: [AppHealth],
