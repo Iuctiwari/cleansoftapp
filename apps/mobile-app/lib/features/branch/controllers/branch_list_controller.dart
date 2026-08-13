@@ -5,7 +5,8 @@ import 'package:nexoraa_mobile/features/branch/services/branch_api_service.dart'
 enum BranchListStatus { initial, loading, loaded, error }
 
 final class BranchListController extends ChangeNotifier {
-  BranchListController({required BranchApiService service}) : _service = service;
+  BranchListController({required BranchApiService service})
+    : _service = service;
 
   static const int _pageSize = 20;
 
@@ -82,7 +83,10 @@ final class BranchListController extends ChangeNotifier {
 
   void replaceBranch(Branch updated) {
     _branches = _branches
-        .map((Branch branch) => branch.branchId == updated.branchId ? updated : branch)
+        .map(
+          (Branch branch) =>
+              branch.branchId == updated.branchId ? updated : branch,
+        )
         .toList(growable: false);
     notifyListeners();
   }

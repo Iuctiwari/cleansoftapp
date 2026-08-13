@@ -4,6 +4,7 @@ import 'package:nexoraa_mobile/features/branch/branch_dependencies.dart';
 import 'package:nexoraa_mobile/features/branch/branch_models.dart';
 import 'package:nexoraa_mobile/features/branch/screens/branch_form_screen.dart';
 import 'package:nexoraa_mobile/features/branch/services/branch_api_service.dart';
+import 'package:nexoraa_mobile/features/branch/widgets/branch_stat_tile.dart';
 
 class BranchDetailsScreen extends StatefulWidget {
   const BranchDetailsScreen({required this.branch, super.key});
@@ -93,10 +94,7 @@ class _BranchDetailsScreenState extends State<BranchDetailsScreen> {
         appBar: AppBar(
           title: const Text('Branch Details'),
           actions: <Widget>[
-            IconButton(
-              onPressed: _openEdit,
-              icon: const Icon(AppIcons.edit),
-            ),
+            IconButton(onPressed: _openEdit, icon: const Icon(AppIcons.edit)),
           ],
         ),
         body: SafeArea(
@@ -166,14 +164,42 @@ class _BranchDetailsScreenState extends State<BranchDetailsScreen> {
                         label: 'Email',
                         value: _branch.email,
                       ),
-                    if (_branch.openingTime != null && _branch.closingTime != null)
+                    if (_branch.openingTime != null &&
+                        _branch.closingTime != null)
                       _InfoRow(
                         icon: AppIcons.clock,
                         label: 'Hours',
-                        value: '${_branch.openingTime} - ${_branch.closingTime}',
+                        value:
+                            '${_branch.openingTime} - ${_branch.closingTime}',
                       ),
                   ],
                 ),
+              ),
+              const SizedBox(height: AppSpacing.xl),
+              // Total Staff / Orders Today / Total Orders have no backing
+              // API yet (Staff and Order Management are not implemented);
+              // kept at 0 until those services ship.
+              const BranchStatRow(
+                tiles: <BranchStatTile>[
+                  BranchStatTile(
+                    value: '0',
+                    label: 'Total Staff',
+                    color: AppColors.success,
+                    background: AppColors.successSurface,
+                  ),
+                  BranchStatTile(
+                    value: '0',
+                    label: 'Orders Today',
+                    color: AppColors.primary,
+                    background: AppColors.primarySurface,
+                  ),
+                  BranchStatTile(
+                    value: '0',
+                    label: 'Total Orders',
+                    color: AppColors.secondary,
+                    background: AppColors.secondarySurface,
+                  ),
+                ],
               ),
               const SizedBox(height: AppSpacing.xl),
               AppCard(
@@ -265,7 +291,11 @@ class _BranchDetailsScreenState extends State<BranchDetailsScreen> {
 }
 
 class _InfoRow extends StatelessWidget {
-  const _InfoRow({required this.icon, required this.label, required this.value});
+  const _InfoRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
 
   final IconData icon;
   final String label;
@@ -313,12 +343,18 @@ class _ErrorBanner extends StatelessWidget {
         padding: const EdgeInsets.all(AppSpacing.lg),
         child: Row(
           children: <Widget>[
-            const Icon(AppIcons.alert, color: AppColors.error, size: AppSizes.iconMedium),
+            const Icon(
+              AppIcons.alert,
+              color: AppColors.error,
+              size: AppSizes.iconMedium,
+            ),
             const SizedBox(width: AppSpacing.md),
             Expanded(
               child: Text(
                 message,
-                style: AppTextStyles.bodySmall.copyWith(color: AppColors.errorText),
+                style: AppTextStyles.bodySmall.copyWith(
+                  color: AppColors.errorText,
+                ),
               ),
             ),
           ],

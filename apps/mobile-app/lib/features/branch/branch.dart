@@ -6,3 +6,4 @@ export 'screens/branch_details_screen.dart';
 export 'screens/branch_form_screen.dart';
 export 'screens/branch_list_screen.dart';
 export 'services/branch_api_service.dart';
+export 'widgets/branch_stat_tile.dart';

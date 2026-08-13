@@ -3,7 +3,8 @@ import 'package:nexoraa_mobile/features/branch/branch_models.dart';
 import 'package:nexoraa_mobile/features/branch/services/branch_api_service.dart';
 
 final class BranchFormController extends ChangeNotifier {
-  BranchFormController({required BranchApiService service}) : _service = service;
+  BranchFormController({required BranchApiService service})
+    : _service = service;
 
   final BranchApiService _service;
 

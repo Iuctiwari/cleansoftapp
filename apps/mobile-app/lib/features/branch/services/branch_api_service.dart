@@ -184,9 +184,7 @@ class BranchApiService {
     }
   }
 
-  Future<http.Response> _send(
-    Future<http.Response> Function() request,
-  ) async {
+  Future<http.Response> _send(Future<http.Response> Function() request) async {
     try {
       return await request().timeout(_requestTimeout);
     } on TimeoutException {
@@ -207,7 +205,10 @@ class BranchApiService {
     }
   }
 
-  Map<String, dynamic> _requireEnvelope(Object? decoded, http.Response response) {
+  Map<String, dynamic> _requireEnvelope(
+    Object? decoded,
+    http.Response response,
+  ) {
     if (decoded is! Map<String, dynamic>) {
       throw _invalidResponse(response.statusCode);
     }
