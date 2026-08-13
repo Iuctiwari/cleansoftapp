@@ -1,4 +1,4 @@
-import { Body, Controller, Post, Req } from '@nestjs/common';
+import { Body, Controller, Get, Post, Req } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
@@ -94,6 +94,21 @@ export class AuthController {
       context: this.getAuthorization(request),
       metadata: this.getMetadata(request),
     });
+  }
+
+  @Get('context')
+  @ApiBearerAuth('access-token')
+  @ApiOperation({
+    summary: 'Resolve authenticated tenant and branch context for internal services',
+  })
+  @ApiOkResponse({ description: 'Validated authenticated request context.' })
+  @ApiUnauthorizedResponse({ description: 'A valid access token is required.' })
+  async context(@Req() request: RequestWithPlatformContext): Promise<unknown> {
+    const requestedBranchId = resolveHeaderValue(request.headers['x-branch-id']);
+    return this.authService.authorizeBranchContext(
+      this.getAuthorization(request),
+      requestedBranchId,
+    );
   }
 
   @Post('logout-all')

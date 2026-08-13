@@ -55,6 +55,7 @@ function createSubject(passwordHash = legacyPasswordHash()): {
   const identity = tenantIdentity(passwordHash);
   const repository = {
     findIdentity: jest.fn().mockResolvedValue(identity),
+    findIdentityByUserId: jest.fn().mockResolvedValue(identity),
     getLoginTracker: jest.fn().mockResolvedValue(null),
     saveLoginTracker: jest.fn((tracker: AuthLoginTracker) => Promise.resolve(tracker)),
     resetLoginTracker: jest.fn().mockResolvedValue(undefined),
@@ -128,5 +129,30 @@ describe('tenant owner login', () => {
     });
     expect(repository.createSession.mock.calls).toHaveLength(0);
     expect(repository.replaceIdentity.mock.calls).toHaveLength(0);
+  });
+
+  it('authorizes only a branch assigned to the authenticated tenant user', async () => {
+    const { service } = createSubject();
+    const factory = new TrustedContextFactory();
+    const context = factory.createTenantContext({
+      actorId: 'owner-1',
+      actorType: 'user',
+      tenantId: 'tenant-1',
+      branchId: 'branch-1',
+      permissions: [],
+      accessVersion: 1,
+      ...metadata,
+    });
+
+    await expect(service.authorizeBranchContext(context, 'branch-1')).resolves.toEqual({
+      actorId: 'owner-1',
+      kind: 'tenant',
+      tenantId: 'tenant-1',
+      branchId: 'branch-1',
+    });
+    await expect(service.authorizeBranchContext(context, 'branch-2')).rejects.toMatchObject({
+      code: 'auth.branch_unavailable',
+      statusCode: 403,
+    });
   });
 });

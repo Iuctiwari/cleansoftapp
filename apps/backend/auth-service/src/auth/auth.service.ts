@@ -22,6 +22,7 @@ import { normalizeIdentifier } from './auth.normalization';
 import {
   AUTH_REPOSITORY,
   type AccessTokenResolution,
+  type AuthenticatedBranchContext,
   type AuthAccessTokenClaims,
   type AuthAcknowledgement,
   type AuthChangePasswordInput,
@@ -623,6 +624,45 @@ export class AuthService {
         session,
       },
       envelope,
+    };
+  }
+
+  async authorizeBranchContext(
+    context: TrustedContext,
+    requestedBranchId?: string,
+  ): Promise<AuthenticatedBranchContext> {
+    if (context.kind !== 'tenant') {
+      throw new PlatformError({
+        code: 'auth.tenant_context_required',
+        category: 'forbidden',
+        messageKey: 'errors.auth.tenant_context_required',
+      });
+    }
+
+    const branchId = requestedBranchId?.trim() || context.branchId;
+    if (!branchId) {
+      throw new PlatformError({
+        code: 'auth.branch_unavailable',
+        category: 'forbidden',
+        messageKey: 'errors.auth.branch_unavailable',
+      });
+    }
+
+    const identity = await this.authRepository.findIdentityByUserId(context.actorId);
+    const assigned = identity?.branches.some((branch) => branch.branchId === branchId) ?? false;
+    if (!identity || identity.tenantId !== context.tenantId || !assigned) {
+      throw new PlatformError({
+        code: 'auth.branch_unavailable',
+        category: 'forbidden',
+        messageKey: 'errors.auth.branch_unavailable',
+      });
+    }
+
+    return {
+      actorId: context.actorId,
+      kind: 'tenant',
+      tenantId: context.tenantId,
+      branchId,
     };
   }
 

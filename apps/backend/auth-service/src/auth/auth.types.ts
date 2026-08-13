@@ -244,6 +244,13 @@ export interface AuthChangePasswordInput {
   readonly metadata: AuthRequestMetadata;
 }
 
+export interface AuthenticatedBranchContext {
+  readonly actorId: string;
+  readonly kind: 'tenant';
+  readonly tenantId: string;
+  readonly branchId: string;
+}
+
 export interface AuthRepository {
   findIdentity(
     context: AuthLoginContext,
