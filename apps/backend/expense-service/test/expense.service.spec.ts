@@ -43,21 +43,14 @@ class InMemoryExpenseRepository implements ExpenseRepository {
     return Promise.resolve(record);
   }
 
-  findCategoryById(
-    scope: ExpenseScope,
-    id: string,
-  ): Promise<ExpenseCategoryRecord | null> {
+  findCategoryById(scope: ExpenseScope, id: string): Promise<ExpenseCategoryRecord | null> {
     return Promise.resolve(
-      this.categories.find(
-        (c) => c.id === id && c.tenantId === scope.tenantId,
-      ) ?? null,
+      this.categories.find((c) => c.id === id && c.tenantId === scope.tenantId) ?? null,
     );
   }
 
   listCategories(scope: ExpenseScope): Promise<ExpenseCategoryRecord[]> {
-    return Promise.resolve(
-      this.categories.filter((c) => c.tenantId === scope.tenantId),
-    );
+    return Promise.resolve(this.categories.filter((c) => c.tenantId === scope.tenantId));
   }
 
   seedDefaultCategoriesIfEmpty(scope: ExpenseScope): Promise<ExpenseCategoryRecord[]> {
@@ -88,15 +81,10 @@ class InMemoryExpenseRepository implements ExpenseRepository {
         updatedAt: now,
       });
     }
-    return Promise.resolve(
-      this.categories.filter((c) => c.tenantId === scope.tenantId),
-    );
+    return Promise.resolve(this.categories.filter((c) => c.tenantId === scope.tenantId));
   }
 
-  createExpense(
-    scope: ExpenseScope,
-    input: CreateExpenseFields,
-  ): Promise<ExpenseRecord> {
+  createExpense(scope: ExpenseScope, input: CreateExpenseFields): Promise<ExpenseRecord> {
     const now = new Date();
     const category = this.categories.find((c) => c.id === input.expenseCategoryId);
     const record: ExpenseRecord = {
@@ -122,18 +110,12 @@ class InMemoryExpenseRepository implements ExpenseRepository {
   findById(scope: ExpenseScope, id: string): Promise<ExpenseRecord | null> {
     return Promise.resolve(
       this.expenses.find(
-        (e) =>
-          e.id === id &&
-          e.tenantId === scope.tenantId &&
-          e.branchId === scope.branchId,
+        (e) => e.id === id && e.tenantId === scope.tenantId && e.branchId === scope.branchId,
       ) ?? null,
     );
   }
 
-  listExpenses(
-    scope: ExpenseScope,
-    query: ExpenseListQuery,
-  ): Promise<ExpensePage> {
+  listExpenses(scope: ExpenseScope, query: ExpenseListQuery): Promise<ExpensePage> {
     const search = query.search?.toLowerCase();
     const matches = this.expenses.filter((e) => {
       if (e.tenantId !== scope.tenantId) return false;
@@ -167,10 +149,7 @@ class InMemoryExpenseRepository implements ExpenseRepository {
     input: UpdateExpenseFields,
   ): Promise<ExpenseRecord | null> {
     const index = this.expenses.findIndex(
-      (e) =>
-        e.id === id &&
-        e.tenantId === scope.tenantId &&
-        e.branchId === scope.branchId,
+      (e) => e.id === id && e.tenantId === scope.tenantId && e.branchId === scope.branchId,
     );
     if (index === -1) return Promise.resolve(null);
 
@@ -185,9 +164,10 @@ class InMemoryExpenseRepository implements ExpenseRepository {
       categoryName: category ? category.categoryName : current.categoryName,
       amount: input.amount ?? current.amount,
       paymentMethod: input.paymentMethod ?? current.paymentMethod,
-      vendor: input.vendor !== undefined ? input.vendor ?? undefined : current.vendor,
+      vendor: input.vendor !== undefined ? (input.vendor ?? undefined) : current.vendor,
       description: input.description ?? current.description,
-      attachment: input.attachment !== undefined ? input.attachment ?? undefined : current.attachment,
+      attachment:
+        input.attachment !== undefined ? (input.attachment ?? undefined) : current.attachment,
       expenseDate: input.expenseDate ?? current.expenseDate,
       updatedAt: new Date(),
     };
@@ -204,8 +184,7 @@ class InMemoryExpenseRepository implements ExpenseRepository {
     const byPaymentMethod: Record<string, number> = {};
 
     for (const e of branchExpenses) {
-      byPaymentMethod[e.paymentMethod] =
-        (byPaymentMethod[e.paymentMethod] ?? 0) + e.amount;
+      byPaymentMethod[e.paymentMethod] = (byPaymentMethod[e.paymentMethod] ?? 0) + e.amount;
     }
 
     return Promise.resolve({
@@ -260,9 +239,9 @@ describe('ExpenseService', () => {
     });
 
     it('throws NotFoundException for non-existent category', async () => {
-      await expect(
-        service.getCategoryById(scope, 'non_existent_id'),
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.getCategoryById(scope, 'non_existent_id')).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 

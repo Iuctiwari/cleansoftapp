@@ -1,9 +1,4 @@
-import {
-  BadRequestException,
-  Inject,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 
 import type {
   CreateExpenseCategoryDto,
@@ -55,10 +50,7 @@ export class ExpenseService {
       throw new BadRequestException('Expense amount must be greater than zero');
     }
 
-    const category = await this.expenseRepository.findCategoryById(
-      scope,
-      dto.expenseCategoryId,
-    );
+    const category = await this.expenseRepository.findCategoryById(scope, dto.expenseCategoryId);
     if (!category) {
       throw new BadRequestException('Invalid expense category for the current tenant');
     }
@@ -74,10 +66,7 @@ export class ExpenseService {
     });
   }
 
-  async listExpenses(
-    scope: ExpenseScope,
-    query: ListExpensesQueryDto,
-  ): Promise<ExpensePage> {
+  async listExpenses(scope: ExpenseScope, query: ListExpensesQueryDto): Promise<ExpensePage> {
     const listQuery: ExpenseListQuery = {
       page: query.page,
       limit: query.limit,
@@ -107,10 +96,7 @@ export class ExpenseService {
     }
 
     if (dto.expenseCategoryId) {
-      const category = await this.expenseRepository.findCategoryById(
-        scope,
-        dto.expenseCategoryId,
-      );
+      const category = await this.expenseRepository.findCategoryById(scope, dto.expenseCategoryId);
       if (!category) {
         throw new BadRequestException('Invalid expense category for the current tenant');
       }

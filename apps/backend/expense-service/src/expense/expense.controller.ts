@@ -144,10 +144,7 @@ export class ExpenseController {
   @ApiParam({ name: 'id', description: 'Expense ObjectId' })
   @ApiOkResponse({ description: 'Expense details.', type: ExpenseResponseDto })
   @ApiNotFoundResponse({ description: 'Expense not found.', type: ExpenseErrorResponseDto })
-  getExpenseById(
-    @Req() request: ExpenseRequest,
-    @Param('id') id: string,
-  ): Promise<ExpenseRecord> {
+  getExpenseById(@Req() request: ExpenseRequest, @Param('id') id: string): Promise<ExpenseRecord> {
     return this.expenseService.getExpenseById(getExpenseScope(request), id);
   }
 

@@ -16,10 +16,7 @@ import {
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { DEFAULT_PAGE_NUMBER, DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from '@nexoraa/constants';
 
-import {
-  ExpenseCategoryStatus,
-  ExpensePaymentMethod,
-} from './expense.mongoose.schema';
+import { ExpenseCategoryStatus, ExpensePaymentMethod } from './expense.mongoose.schema';
 
 export class CreateExpenseCategoryDto {
   @ApiProperty({ example: 'Utilities', maxLength: 100 })
@@ -72,7 +69,11 @@ export class CreateExpenseDto {
   @IsNotEmpty()
   expenseCategoryId!: string;
 
-  @ApiProperty({ example: 4500.5, minimum: 0.01, description: 'Expense amount, must be greater than 0.' })
+  @ApiProperty({
+    example: 4500.5,
+    minimum: 0.01,
+    description: 'Expense amount, must be greater than 0.',
+  })
   @IsNumber()
   @IsPositive()
   amount!: number;
@@ -93,7 +94,10 @@ export class CreateExpenseDto {
   @MaxLength(500)
   description!: string;
 
-  @ApiPropertyOptional({ example: 'https://storage.nexoraa.com/receipts/rec_123.pdf', maxLength: 1000 })
+  @ApiPropertyOptional({
+    example: 'https://storage.nexoraa.com/receipts/rec_123.pdf',
+    maxLength: 1000,
+  })
   @IsOptional()
   @IsString()
   @MaxLength(1000)
@@ -143,7 +147,11 @@ export class UpdateExpenseDto {
   @MaxLength(500)
   description?: string;
 
-  @ApiPropertyOptional({ example: 'https://storage.nexoraa.com/receipts/rec_123.pdf', maxLength: 1000, nullable: true })
+  @ApiPropertyOptional({
+    example: 'https://storage.nexoraa.com/receipts/rec_123.pdf',
+    maxLength: 1000,
+    nullable: true,
+  })
   @ValidateIf((_value: UpdateExpenseDto, value: unknown) => value !== null && value !== undefined)
   @IsString()
   @MaxLength(1000)
@@ -169,7 +177,10 @@ export class ListExpensesQueryDto {
   @Max(MAX_PAGE_SIZE)
   limit: number = DEFAULT_PAGE_SIZE;
 
-  @ApiPropertyOptional({ example: '64f0c18f7c4d2f0012ab34cd', description: 'Filter by Category ID.' })
+  @ApiPropertyOptional({
+    example: '64f0c18f7c4d2f0012ab34cd',
+    description: 'Filter by Category ID.',
+  })
   @IsOptional()
   @IsString()
   categoryId?: string;

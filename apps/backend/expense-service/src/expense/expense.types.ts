@@ -1,9 +1,6 @@
 import type { PaginatedResult } from '@nexoraa/types';
 
-import type {
-  ExpenseCategoryStatus,
-  ExpensePaymentMethod,
-} from './expense.mongoose.schema';
+import type { ExpenseCategoryStatus, ExpensePaymentMethod } from './expense.mongoose.schema';
 
 export const EXPENSE_REPOSITORY = Symbol('EXPENSE_REPOSITORY');
 
@@ -91,16 +88,10 @@ export interface ExpenseRepository {
     scope: ExpenseScope,
     input: CreateExpenseCategoryFields,
   ): Promise<ExpenseCategoryRecord>;
-  findCategoryById(
-    scope: ExpenseScope,
-    id: string,
-  ): Promise<ExpenseCategoryRecord | null>;
+  findCategoryById(scope: ExpenseScope, id: string): Promise<ExpenseCategoryRecord | null>;
   listCategories(scope: ExpenseScope): Promise<ExpenseCategoryRecord[]>;
   seedDefaultCategoriesIfEmpty(scope: ExpenseScope): Promise<ExpenseCategoryRecord[]>;
-  createExpense(
-    scope: ExpenseScope,
-    input: CreateExpenseFields,
-  ): Promise<ExpenseRecord>;
+  createExpense(scope: ExpenseScope, input: CreateExpenseFields): Promise<ExpenseRecord>;
   findById(scope: ExpenseScope, id: string): Promise<ExpenseRecord | null>;
   listExpenses(scope: ExpenseScope, query: ExpenseListQuery): Promise<ExpensePage>;
   updateExpense(

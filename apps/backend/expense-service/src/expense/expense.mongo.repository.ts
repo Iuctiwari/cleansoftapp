@@ -1,9 +1,6 @@
 import { Injectable, Logger, type OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import {
-  createActiveTenantFilter,
-  createAuditFields,
-} from '@nexoraa/database';
+import { createActiveTenantFilter, createAuditFields } from '@nexoraa/database';
 import mongoose, { type Model, Types } from 'mongoose';
 
 import {
@@ -68,14 +65,8 @@ export class MongoExpenseRepository implements ExpenseRepository, OnModuleInit {
         })
         .asPromise();
 
-      this.categoryModel = conn.model(
-        ExpenseCategoryMongoose.name,
-        ExpenseCategoryMongooseSchema,
-      );
-      this.expenseModel = conn.model(
-        ExpenseMongoose.name,
-        ExpenseMongooseSchema,
-      );
+      this.categoryModel = conn.model(ExpenseCategoryMongoose.name, ExpenseCategoryMongooseSchema);
+      this.expenseModel = conn.model(ExpenseMongoose.name, ExpenseMongooseSchema);
       this.logger.log(`Expense MongoDB connection established at ${uri}`);
     } catch {
       this.logger.warn(
@@ -88,7 +79,7 @@ export class MongoExpenseRepository implements ExpenseRepository, OnModuleInit {
     return Boolean(
       this.categoryModel &&
         this.expenseModel &&
-        this.categoryModel.db?.readyState === 1,
+        this.categoryModel.db?.readyState === mongoose.ConnectionStates.connected,
     );
   }
 
@@ -105,9 +96,7 @@ export class MongoExpenseRepository implements ExpenseRepository, OnModuleInit {
         description: input.description?.trim(),
         status: input.status ?? ExpenseCategoryStatus.ACTIVE,
       });
-      return this.mapCategory(
-        category.toObject() as unknown as Record<string, unknown>,
-      );
+      return this.mapCategory(category.toObject() as unknown as Record<string, unknown>);
     }
 
     const now = new Date();
@@ -124,10 +113,7 @@ export class MongoExpenseRepository implements ExpenseRepository, OnModuleInit {
     return record;
   }
 
-  async findCategoryById(
-    scope: ExpenseScope,
-    id: string,
-  ): Promise<ExpenseCategoryRecord | null> {
+  async findCategoryById(scope: ExpenseScope, id: string): Promise<ExpenseCategoryRecord | null> {
     if (this.isMongoReady && this.categoryModel) {
       if (!Types.ObjectId.isValid(id)) return null;
       const category = await this.categoryModel
@@ -141,11 +127,7 @@ export class MongoExpenseRepository implements ExpenseRepository, OnModuleInit {
       return category ? this.mapCategory(category) : null;
     }
 
-    return (
-      this.memoryCategories.find(
-        (c) => c.id === id && c.tenantId === scope.tenantId,
-      ) ?? null
-    );
+    return this.memoryCategories.find((c) => c.id === id && c.tenantId === scope.tenantId) ?? null;
   }
 
   async listCategories(scope: ExpenseScope): Promise<ExpenseCategoryRecord[]> {
@@ -161,9 +143,7 @@ export class MongoExpenseRepository implements ExpenseRepository, OnModuleInit {
     return this.memoryCategories.filter((c) => c.tenantId === scope.tenantId);
   }
 
-  async seedDefaultCategoriesIfEmpty(
-    scope: ExpenseScope,
-  ): Promise<ExpenseCategoryRecord[]> {
+  async seedDefaultCategoriesIfEmpty(scope: ExpenseScope): Promise<ExpenseCategoryRecord[]> {
     const existing = await this.listCategories(scope);
     if (existing.length > 0) return existing;
 
@@ -196,10 +176,7 @@ export class MongoExpenseRepository implements ExpenseRepository, OnModuleInit {
     return this.memoryCategories.filter((c) => c.tenantId === scope.tenantId);
   }
 
-  async createExpense(
-    scope: ExpenseScope,
-    input: CreateExpenseFields,
-  ): Promise<ExpenseRecord> {
+  async createExpense(scope: ExpenseScope, input: CreateExpenseFields): Promise<ExpenseRecord> {
     if (this.isMongoReady && this.expenseModel) {
       const tenantObjectId = new Types.ObjectId(scope.tenantId);
       const categoryObjectId = new Types.ObjectId(input.expenseCategoryId);
@@ -219,10 +196,7 @@ export class MongoExpenseRepository implements ExpenseRepository, OnModuleInit {
       });
 
       const populated = await this.findById(scope, String(expense._id));
-      return (
-        populated ??
-        this.mapExpense(expense.toObject() as unknown as Record<string, unknown>)
-      );
+      return populated ?? this.mapExpense(expense.toObject() as unknown as Record<string, unknown>);
     }
 
     const now = new Date();
@@ -258,9 +232,7 @@ export class MongoExpenseRepository implements ExpenseRepository, OnModuleInit {
             branchId: scope.branchId,
           }),
         )
-        .populate<{ expenseCategoryId: ExpenseCategoryMongoose | null }>(
-          'expenseCategoryId',
-        )
+        .populate<{ expenseCategoryId: ExpenseCategoryMongoose | null }>('expenseCategoryId')
         .lean()
         .exec();
 
@@ -269,18 +241,12 @@ export class MongoExpenseRepository implements ExpenseRepository, OnModuleInit {
 
     return (
       this.memoryExpenses.find(
-        (e) =>
-          e.id === id &&
-          e.tenantId === scope.tenantId &&
-          e.branchId === scope.branchId,
+        (e) => e.id === id && e.tenantId === scope.tenantId && e.branchId === scope.branchId,
       ) ?? null
     );
   }
 
-  async listExpenses(
-    scope: ExpenseScope,
-    query: ExpenseListQuery,
-  ): Promise<ExpensePage> {
+  async listExpenses(scope: ExpenseScope, query: ExpenseListQuery): Promise<ExpensePage> {
     if (this.isMongoReady && this.expenseModel) {
       const filter: Record<string, unknown> = createActiveTenantFilter<ExpenseMongoose>(
         scope.tenantId,
@@ -314,9 +280,7 @@ export class MongoExpenseRepository implements ExpenseRepository, OnModuleInit {
       const [expenses, total] = await Promise.all([
         this.expenseModel
           .find(filter)
-          .populate<{ expenseCategoryId: ExpenseCategoryMongoose | null }>(
-            'expenseCategoryId',
-          )
+          .populate<{ expenseCategoryId: ExpenseCategoryMongoose | null }>('expenseCategoryId')
           .sort({ expenseDate: -1, _id: -1 })
           .skip(skip)
           .limit(query.limit)
@@ -396,9 +360,7 @@ export class MongoExpenseRepository implements ExpenseRepository, OnModuleInit {
           },
           { new: true, runValidators: true },
         )
-        .populate<{ expenseCategoryId: ExpenseCategoryMongoose | null }>(
-          'expenseCategoryId',
-        )
+        .populate<{ expenseCategoryId: ExpenseCategoryMongoose | null }>('expenseCategoryId')
         .lean()
         .exec();
 
@@ -406,10 +368,7 @@ export class MongoExpenseRepository implements ExpenseRepository, OnModuleInit {
     }
 
     const index = this.memoryExpenses.findIndex(
-      (e) =>
-        e.id === id &&
-        e.tenantId === scope.tenantId &&
-        e.branchId === scope.branchId,
+      (e) => e.id === id && e.tenantId === scope.tenantId && e.branchId === scope.branchId,
     );
     if (index === -1) return null;
 
@@ -424,10 +383,10 @@ export class MongoExpenseRepository implements ExpenseRepository, OnModuleInit {
       categoryName: category ? category.categoryName : current.categoryName,
       amount: input.amount ?? current.amount,
       paymentMethod: input.paymentMethod ?? current.paymentMethod,
-      vendor: input.vendor !== undefined ? input.vendor ?? undefined : current.vendor,
+      vendor: input.vendor !== undefined ? (input.vendor ?? undefined) : current.vendor,
       description: input.description ?? current.description,
       attachment:
-        input.attachment !== undefined ? input.attachment ?? undefined : current.attachment,
+        input.attachment !== undefined ? (input.attachment ?? undefined) : current.attachment,
       expenseDate: input.expenseDate ?? current.expenseDate,
       updatedAt: new Date(),
     };
@@ -437,12 +396,9 @@ export class MongoExpenseRepository implements ExpenseRepository, OnModuleInit {
 
   async statistics(scope: ExpenseScope): Promise<ExpenseStatistics> {
     if (this.isMongoReady && this.expenseModel) {
-      const filter = createActiveTenantFilter<ExpenseMongoose>(
-        new Types.ObjectId(scope.tenantId),
-        {
-          branchId: scope.branchId,
-        },
-      );
+      const filter = createActiveTenantFilter<ExpenseMongoose>(new Types.ObjectId(scope.tenantId), {
+        branchId: scope.branchId,
+      });
 
       const [aggregateResult, distinctCategories] = await Promise.all([
         this.expenseModel
@@ -520,8 +476,7 @@ export class MongoExpenseRepository implements ExpenseRepository, OnModuleInit {
     const byPaymentMethod: Record<string, number> = {};
 
     for (const e of branchExpenses) {
-      byPaymentMethod[e.paymentMethod] =
-        (byPaymentMethod[e.paymentMethod] ?? 0) + e.amount;
+      byPaymentMethod[e.paymentMethod] = (byPaymentMethod[e.paymentMethod] ?? 0) + e.amount;
     }
 
     return {
@@ -565,19 +520,14 @@ export class MongoExpenseRepository implements ExpenseRepository, OnModuleInit {
 
   private mapPopulatedExpense(document: Record<string, unknown>): ExpenseRecord {
     const categoryDoc = document.expenseCategoryId as Record<string, unknown> | null;
-    const isPopulated =
-      categoryDoc && typeof categoryDoc === 'object' && '_id' in categoryDoc;
+    const isPopulated = categoryDoc && typeof categoryDoc === 'object' && '_id' in categoryDoc;
 
     return {
       id: String(document._id),
       tenantId: String(document.tenantId),
       branchId: document.branchId as string,
-      expenseCategoryId: isPopulated
-        ? String(categoryDoc._id)
-        : String(document.expenseCategoryId),
-      categoryName: isPopulated
-        ? (categoryDoc.categoryName as string)
-        : undefined,
+      expenseCategoryId: isPopulated ? String(categoryDoc._id) : String(document.expenseCategoryId),
+      categoryName: isPopulated ? (categoryDoc.categoryName as string) : undefined,
       amount: document.amount as number,
       paymentMethod: document.paymentMethod as ExpensePaymentMethod,
       vendor: document.vendor as string | undefined,
