@@ -4,12 +4,14 @@ import { generateTenantId, generateUserId, hashPassword, slugify } from './tenan
 import { TenantError } from './tenant.errors';
 import {
   TENANT_REPOSITORY,
+  TENANT_CATALOG_PROVISIONER,
   type BranchRecord,
   type CompleteTenantOnboardingInput,
   type CompleteTenantOnboardingOutput,
   type RegisterTenantInput,
   type RegisterTenantOutput,
   type TenantOwnerRecord,
+  type TenantCatalogProvisioner,
   type TenantRecord,
   type TenantRepository,
 } from './tenant.types';
@@ -79,6 +81,8 @@ export class TenantService {
   constructor(
     @Inject(TENANT_REPOSITORY)
     private readonly tenantRepository: TenantRepository,
+    @Inject(TENANT_CATALOG_PROVISIONER)
+    private readonly catalogProvisioner: TenantCatalogProvisioner,
   ) {}
 
   // ─── Registration ──────────────────────────────────────────────────────────
@@ -174,7 +178,7 @@ export class TenantService {
     tenantId: string,
     input: CompleteTenantOnboardingInput,
   ): Promise<CompleteTenantOnboardingOutput> {
-    await this.getTenantById(tenantId);
+    const tenant = await this.getTenantById(tenantId);
 
     const normalisedEmail = input.email.trim().toLowerCase();
     const existingOwner = await this.tenantRepository.findByEmail(normalisedEmail);
@@ -187,7 +191,8 @@ export class TenantService {
       });
     }
 
-    return this.tenantRepository.completeOnboarding(tenantId, {
+    const businessTypes = [...new Set([input.businessType, ...input.services])];
+    const result = await this.tenantRepository.completeOnboarding(tenantId, {
       businessName: input.businessName.trim(),
       businessType: input.businessType,
       ownerName: input.ownerName.trim(),
@@ -201,12 +206,29 @@ export class TenantService {
         phone: input.branch.phone.trim(),
         email: input.branch.email.trim().toLowerCase(),
       },
-      services: [...input.services],
+      services: businessTypes,
       staff: input.staff.map((staff) => ({
         ...(staff.mobileNumber?.trim() ? { mobileNumber: staff.mobileNumber.trim() } : {}),
         ...(staff.email?.trim() ? { email: staff.email.trim().toLowerCase() } : {}),
       })),
     });
+    await this.catalogProvisioner.provision({
+      tenantId,
+      ownerUserId: tenant.ownerUserId,
+      businessTypes,
+    });
+    return result;
+  }
+
+  async provisionExistingCatalogs(): Promise<number> {
+    const candidates = await this.tenantRepository.listCatalogProvisioningCandidates();
+    let provisioned = 0;
+    for (const candidate of candidates) {
+      if (candidate.businessTypes.length === 0) continue;
+      await this.catalogProvisioner.provision(candidate);
+      provisioned++;
+    }
+    return provisioned;
   }
 
   // ─── Queries ───────────────────────────────────────────────────────────────

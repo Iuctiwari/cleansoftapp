@@ -79,6 +79,7 @@ export type BranchUpdatePatch = {
 export interface BranchRepository {
   findByBranchIdAndTenant(branchId: string, tenantId: string): Promise<BranchRecord | null>;
   findByCodeAndTenant(code: string, tenantId: string): Promise<BranchRecord | null>;
+  listCodesByTenant(tenantId: string): Promise<readonly string[]>;
   list(
     tenantId: string,
     filters: BranchQueryFilters,

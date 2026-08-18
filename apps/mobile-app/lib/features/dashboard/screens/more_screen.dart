@@ -3,6 +3,10 @@ import 'package:go_router/go_router.dart';
 import 'package:nexoraa_mobile/app/router.dart';
 import 'package:nexoraa_mobile/design_system/design_system.dart';
 import 'package:nexoraa_mobile/features/authentication/authentication_dependencies.dart';
+import 'package:nexoraa_mobile/features/orders/controllers/order_controller.dart';
+import 'package:nexoraa_mobile/features/orders/services/payment_api_service.dart';
+import 'package:nexoraa_mobile/features/payments/controllers/payments_controller.dart';
+import 'package:nexoraa_mobile/features/payments/screens/payments_screen.dart';
 
 @immutable
 class MoreUserProfileData {
@@ -45,12 +49,16 @@ class MoreScreen extends StatelessWidget {
     required this.businessName,
     required this.role,
     required this.userProfile,
+    this.branchId,
+    this.orderController,
     super.key,
   });
 
   final String businessName;
   final String role;
   final MoreUserProfileData userProfile;
+  final String? branchId;
+  final OrderController? orderController;
 
   static const List<MoreMenuSectionData> _sections = <MoreMenuSectionData>[
     MoreMenuSectionData(
@@ -127,17 +135,6 @@ class MoreScreen extends StatelessWidget {
         ),
       ],
     ),
-    MoreMenuSectionData(
-      title: 'Developer',
-      items: <MoreMenuItemData>[
-        MoreMenuItemData(
-          backgroundColor: AppColors.secondarySurface,
-          icon: AppIcons.service,
-          iconColor: AppColors.secondary,
-          title: 'Design System',
-        ),
-      ],
-    ),
   ];
 
   void _showPlaceholder(BuildContext context, String title) {
@@ -151,7 +148,41 @@ class MoreScreen extends StatelessWidget {
       context.pushNamed(AppRouteNames.branchList);
       return;
     }
+    if (item.title == 'Payments') {
+      _openPayments(context);
+      return;
+    }
     _showPlaceholder(context, item.title);
+  }
+
+  Future<void> _openPayments(BuildContext context) async {
+    final String? scopedBranchId = branchId;
+    final OrderController? scopedOrderController = orderController;
+    if (scopedBranchId == null ||
+        scopedBranchId == 'unavailable' ||
+        scopedOrderController == null) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text('Select an active branch before viewing payments.'),
+          ),
+        );
+      return;
+    }
+    final PaymentApiService paymentService = PaymentApiService(
+      tokenStorage: AuthenticationDependencies.tokenStorage,
+    )..selectBranch(scopedBranchId);
+    final PaymentsController controller = PaymentsController(
+      paymentService: paymentService,
+      orderController: scopedOrderController,
+    );
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (_) => PaymentsScreen(controller: controller),
+      ),
+    );
+    controller.dispose();
   }
 
   Future<void> _confirmSignOut(BuildContext context) async {

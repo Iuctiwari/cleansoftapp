@@ -163,8 +163,8 @@ class CreateBranchInput {
 
 /// Fields the edit-branch form may submit, matching `UpdateBranchDto`.
 ///
-/// `managerId` uses a tri-state: omit the key to leave unchanged, `null` to
-/// unassign (sent as JSON `null`), or a value to reassign.
+/// [managerIdChanged] controls the manager patch: when false the key is
+/// omitted, while true sends either `null` to unassign or a value to assign.
 class UpdateBranchInput {
   const UpdateBranchInput({
     this.branchName,
@@ -179,7 +179,8 @@ class UpdateBranchInput {
     this.openingTime,
     this.closingTime,
     this.status,
-    this.managerId = const _Unset(),
+    this.managerId,
+    this.managerIdChanged = false,
   });
 
   final String? branchName;
@@ -194,7 +195,8 @@ class UpdateBranchInput {
   final String? openingTime;
   final String? closingTime;
   final BranchStatus? status;
-  final Object? managerId;
+  final String? managerId;
+  final bool managerIdChanged;
 
   Map<String, dynamic> toJson() {
     return <String, dynamic>{
@@ -210,11 +212,7 @@ class UpdateBranchInput {
       if (openingTime != null) 'openingTime': openingTime,
       if (closingTime != null) 'closingTime': closingTime,
       if (status != null) 'status': branchStatusToJson(status!),
-      if (managerId is! _Unset) 'managerId': managerId,
+      if (managerIdChanged) 'managerId': managerId,
     };
   }
-}
-
-class _Unset {
-  const _Unset();
 }

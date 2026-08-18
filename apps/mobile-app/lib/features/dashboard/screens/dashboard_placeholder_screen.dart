@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:nexoraa_mobile/app/router.dart';
@@ -9,6 +11,15 @@ import 'package:nexoraa_mobile/features/customers/services/customer_api_service.
 import 'package:nexoraa_mobile/features/dashboard/dashboard_models.dart';
 import 'package:nexoraa_mobile/features/dashboard/dashboard_widgets.dart';
 import 'package:nexoraa_mobile/features/dashboard/screens/more_screen.dart';
+import 'package:nexoraa_mobile/features/orders/controllers/order_controller.dart';
+import 'package:nexoraa_mobile/features/orders/controllers/new_order_controller.dart';
+import 'package:nexoraa_mobile/features/orders/models/order.dart';
+import 'package:nexoraa_mobile/features/orders/screens/new_order_screen.dart';
+import 'package:nexoraa_mobile/features/orders/screens/orders_screen.dart';
+import 'package:nexoraa_mobile/features/orders/services/order_api_service.dart';
+import 'package:nexoraa_mobile/features/orders/services/order_catalog_api_service.dart';
+import 'package:nexoraa_mobile/features/orders/services/payment_api_service.dart';
+import 'package:nexoraa_mobile/features/orders/widgets/order_widgets.dart';
 import 'package:nexoraa_mobile/features/tenant/services/tenant_api_service.dart';
 
 /// Owner dashboard UI served by the existing dashboard route.
@@ -33,8 +44,10 @@ class DashboardPlaceholderScreen extends StatefulWidget {
 class _DashboardPlaceholderScreenState
     extends State<DashboardPlaceholderScreen> {
   late final CustomerController _customerController;
+  late final OrderController _orderController;
   int _currentNavigationIndex = 0;
   String _selectedBranchId = 'unavailable';
+  List<Order> _recentOrders = const <Order>[];
   List<DashboardData> _branches = <DashboardData>[
     DashboardData.empty(
       branchId: 'unavailable',
@@ -58,6 +71,11 @@ class _DashboardPlaceholderScreenState
         tokenStorage: AuthenticationDependencies.tokenStorage,
       ),
     );
+    _orderController = OrderController(
+      service: OrderApiService(
+        tokenStorage: AuthenticationDependencies.tokenStorage,
+      ),
+    );
     final tenantId = widget.tenantId?.trim() ?? '';
     if (tenantId.isNotEmpty) _loadTenantDashboard(tenantId);
   }
@@ -65,6 +83,7 @@ class _DashboardPlaceholderScreenState
   @override
   void dispose() {
     _customerController.dispose();
+    _orderController.dispose();
     super.dispose();
   }
 
@@ -102,14 +121,33 @@ class _DashboardPlaceholderScreenState
         _selectedBranchId = branches.first.branchId;
       });
       await _customerController.selectBranch(branches.first.branchId);
+      await _orderController.selectBranch(branches.first.branchId);
+      await _loadRecentOrders();
     } on Object {
       // The zero/unavailable dashboard remains visible when data cannot load.
     }
   }
 
   void _selectBranch(String branchId) {
-    setState(() => _selectedBranchId = branchId);
+    setState(() {
+      _selectedBranchId = branchId;
+      _recentOrders = const <Order>[];
+    });
     _customerController.selectBranch(branchId);
+    _orderController.selectBranch(branchId);
+    unawaited(_loadRecentOrders());
+  }
+
+  Future<void> _loadRecentOrders() async {
+    if (_selectedBranchId == 'unavailable') return;
+    try {
+      final List<Order> orders = await _orderController.recent(limit: 3);
+      if (!mounted) return;
+      setState(() => _recentOrders = orders);
+    } on OrderApiException {
+      if (!mounted) return;
+      setState(() => _recentOrders = const <Order>[]);
+    }
   }
 
   void _showUiOnlyMessage(String message) {
@@ -118,9 +156,46 @@ class _DashboardPlaceholderScreenState
       ..showSnackBar(SnackBar(content: Text(message)));
   }
 
+  Future<void> _openNewOrder() async {
+    final DashboardData data = _data;
+    if (data.branchId == 'unavailable') {
+      _showUiOnlyMessage('Select an active branch before creating an order.');
+      return;
+    }
+    final NewOrderController controller = NewOrderController(
+      catalogService: OrderCatalogApiService(
+        tokenStorage: AuthenticationDependencies.tokenStorage,
+      ),
+      orderController: _orderController,
+      paymentService: PaymentApiService(
+        tokenStorage: AuthenticationDependencies.tokenStorage,
+      ),
+      branchId: data.branchId,
+    );
+    final bool? created = await Navigator.of(context).push<bool>(
+      MaterialPageRoute<bool>(
+        builder: (_) => NewOrderScreen(
+          controller: controller,
+          orderController: _orderController,
+          customerController: _customerController,
+          businessName: data.businessName,
+          branchName: data.branchName,
+        ),
+      ),
+    );
+    controller.dispose();
+    if (created == true) await _orderController.load();
+  }
+
+  void _openOrdersTab() => setState(() => _currentNavigationIndex = 1);
+
   @override
   Widget build(BuildContext context) {
-    final DashboardData data = _data;
+    final DashboardData data = _data.copyWith(
+      orders: _recentOrders
+          .map((Order order) => _toDashboardOrder(context, order))
+          .toList(growable: false),
+    );
     final bool showingDashboard = _currentNavigationIndex == 0;
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -153,6 +228,8 @@ class _DashboardPlaceholderScreenState
                     child: _DashboardContent(
                       data: data,
                       onUiAction: _showUiOnlyMessage,
+                      onNewOrder: _openNewOrder,
+                      onSeeOrders: _openOrdersTab,
                     ),
                   ),
                 ),
@@ -163,6 +240,11 @@ class _DashboardPlaceholderScreenState
             key: const ValueKey<String>('customers'),
             controller: _customerController,
           ),
+          1 => OrdersScreen(
+            key: const ValueKey<String>('orders'),
+            controller: _orderController,
+            onNewOrder: _openNewOrder,
+          ),
           _ => MoreScreen(
             key: const ValueKey<String>('more'),
             businessName: data.businessName,
@@ -171,12 +253,14 @@ class _DashboardPlaceholderScreenState
               name: data.ownerName,
               email: data.ownerEmail,
             ),
+            branchId: data.branchId,
+            orderController: _orderController,
           ),
         },
       ),
       floatingActionButton: showingDashboard
           ? FloatingActionButton(
-              onPressed: () => _showUiOnlyMessage('New order action selected'),
+              onPressed: _openNewOrder,
               tooltip: 'Create new order',
               backgroundColor: AppColors.primary,
               foregroundColor: AppColors.surface,
@@ -187,17 +271,7 @@ class _DashboardPlaceholderScreenState
       bottomNavigationBar: DashboardBottomNavigation(
         currentIndex: _currentNavigationIndex,
         onTap: (int index) {
-          if (index == 0 || index == 2 || index == 3) {
-            setState(() => _currentNavigationIndex = index);
-            return;
-          }
-          const List<String> labels = <String>[
-            'Dashboard',
-            'Orders',
-            'Customers',
-            'More',
-          ];
-          _showUiOnlyMessage('${labels[index]} is outside this dashboard task');
+          setState(() => _currentNavigationIndex = index);
         },
       ),
     );
@@ -205,10 +279,17 @@ class _DashboardPlaceholderScreenState
 }
 
 class _DashboardContent extends StatelessWidget {
-  const _DashboardContent({required this.data, required this.onUiAction});
+  const _DashboardContent({
+    required this.data,
+    required this.onUiAction,
+    required this.onNewOrder,
+    required this.onSeeOrders,
+  });
 
   final DashboardData data;
   final ValueChanged<String> onUiAction;
+  final VoidCallback onNewOrder;
+  final VoidCallback onSeeOrders;
 
   @override
   Widget build(BuildContext context) {
@@ -253,21 +334,30 @@ class _DashboardContent extends StatelessWidget {
               _QuickActionsGrid(
                 actions: data.quickActions,
                 onTap: (DashboardQuickAction action) =>
-                    onUiAction('${action.label} action selected'),
+                    action.type == DashboardQuickActionType.newOrder
+                    ? onNewOrder()
+                    : onUiAction('${action.label} action selected'),
               ),
               const SizedBox(height: AppSpacing.sectionGapLarge),
               DashboardSectionHeader(
                 title: 'Recent Orders',
                 actionLabel: 'See all',
-                onAction: () => onUiAction('Recent orders selected'),
+                onAction: onSeeOrders,
               ),
               const SizedBox(height: AppSpacing.md),
-              ...data.orders.map(
-                (DashboardOrder order) => Padding(
-                  padding: const EdgeInsets.only(bottom: AppSpacing.lg),
-                  child: RecentOrderCard(order: order),
+              if (data.orders.isEmpty)
+                const AppEmptyState(
+                  icon: AppIcons.orders,
+                  title: 'No orders yet',
+                  message: 'Recent orders for this branch will appear here.',
+                )
+              else
+                ...data.orders.map(
+                  (DashboardOrder order) => Padding(
+                    padding: const EdgeInsets.only(bottom: AppSpacing.lg),
+                    child: RecentOrderCard(order: order),
+                  ),
                 ),
-              ),
               const SizedBox(height: AppSpacing.md),
               DashboardSectionHeader(
                 title: 'Recent Bills',
@@ -275,12 +365,19 @@ class _DashboardContent extends StatelessWidget {
                 onAction: () => onUiAction('Recent bills selected'),
               ),
               const SizedBox(height: AppSpacing.md),
-              ...data.bills.map(
-                (DashboardBill bill) => Padding(
-                  padding: const EdgeInsets.only(bottom: AppSpacing.lg),
-                  child: RecentBillCard(bill: bill),
+              if (data.bills.isEmpty)
+                const AppEmptyState(
+                  icon: AppIcons.receipt,
+                  title: 'No bills yet',
+                  message: 'Recent bills for this branch will appear here.',
+                )
+              else
+                ...data.bills.map(
+                  (DashboardBill bill) => Padding(
+                    padding: const EdgeInsets.only(bottom: AppSpacing.lg),
+                    child: RecentBillCard(bill: bill),
+                  ),
                 ),
-              ),
             ],
           ),
         ),
@@ -343,30 +440,46 @@ class _QuickActionsGrid extends StatelessWidget {
         return SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: Row(
-            children: List<Widget>.generate(
-              actions.length,
-              (int index) {
-                final DashboardQuickAction action = actions[index];
-                return Padding(
-                  padding: EdgeInsets.only(
-                    right: index == actions.length - 1
-                        ? AppSpacing.none
-                        : AppSpacing.lg,
+            children: List<Widget>.generate(actions.length, (int index) {
+              final DashboardQuickAction action = actions[index];
+              return Padding(
+                padding: EdgeInsets.only(
+                  right: index == actions.length - 1
+                      ? AppSpacing.none
+                      : AppSpacing.lg,
+                ),
+                child: SizedBox(
+                  width: cardWidth,
+                  child: QuickActionCard(
+                    action: action,
+                    onTap: () => onTap(action),
                   ),
-                  child: SizedBox(
-                    width: cardWidth,
-                    child: QuickActionCard(
-                      action: action,
-                      onTap: () => onTap(action),
-                    ),
-                  ),
-                );
-              },
-              growable: false,
-            ),
+                ),
+              );
+            }, growable: false),
           ),
         );
       },
     );
   }
 }
+
+/// Maps a real backend [Order] onto the existing [DashboardOrder] display
+/// shape so [RecentOrderCard] can render it without any UI changes.
+DashboardOrder _toDashboardOrder(BuildContext context, Order order) =>
+    DashboardOrder(
+      customerName: order.customer.name,
+      orderNumber: compactOrderNumber(order.orderNumber),
+      description: orderItemsSummary(order),
+      amount: formatOrderMoney(order.grandTotal),
+      timeLabel: formatOrderDate(context, order.createdAt),
+      status: _dashboardStatus(order.status),
+    );
+
+DashboardStatus _dashboardStatus(OrderStatus status) => switch (status) {
+  OrderStatus.draft || OrderStatus.received => DashboardStatus.pending,
+  OrderStatus.inProgress => DashboardStatus.processing,
+  OrderStatus.ready || OrderStatus.outForDelivery => DashboardStatus.ready,
+  OrderStatus.delivered => DashboardStatus.completed,
+  OrderStatus.cancelled => DashboardStatus.cancelled,
+};

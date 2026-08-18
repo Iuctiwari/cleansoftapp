@@ -121,7 +121,7 @@ export class MongoAuthRepository implements AuthRepository, OnModuleInit {
       if (!resolvedTenant) return null;
 
       const branches = await this.branchModel
-        .find({ tenantId: resolvedTenant.tenantId })
+        .find({ tenantId: resolvedTenant.tenantId, status: 'active' })
         .lean()
         .exec();
       const mappedBranches = branches.map((b) => ({

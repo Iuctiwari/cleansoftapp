@@ -62,6 +62,23 @@ function normalizeCode(code?: string): string | undefined {
   return trimmed && trimmed.length > 0 ? trimmed.toUpperCase() : undefined;
 }
 
+const AUTO_BRANCH_CODE_PREFIX = 'NX-';
+const AUTO_BRANCH_CODE_DIGITS = 3;
+const AUTO_BRANCH_CODE_RETRIES = 5;
+
+function nextAvailableBranchCode(existingCodes: readonly string[]): string {
+  const usedCodes = new Set(existingCodes.map((code) => code.trim().toUpperCase()));
+  let sequence = 1;
+  while (
+    usedCodes.has(
+      `${AUTO_BRANCH_CODE_PREFIX}${String(sequence).padStart(AUTO_BRANCH_CODE_DIGITS, '0')}`,
+    )
+  ) {
+    sequence += 1;
+  }
+  return `${AUTO_BRANCH_CODE_PREFIX}${String(sequence).padStart(AUTO_BRANCH_CODE_DIGITS, '0')}`;
+}
+
 @Injectable()
 export class BranchService {
   constructor(
@@ -89,12 +106,21 @@ export class BranchService {
     return this.branchRepository.list(context.tenantId, effectiveFilters, page);
   }
 
+  async getBranch(context: TrustedContext, branchId: string): Promise<BranchRecord> {
+    assertTenantContext(context);
+    const branch = await this.branchRepository.findByBranchIdAndTenant(branchId, context.tenantId);
+    if (!branch || (isBranchManager(context) && branch.managerId !== context.actorId)) {
+      throwNotFound();
+    }
+    return branch;
+  }
+
   async createBranch(context: TrustedContext, input: CreateBranchInput): Promise<BranchRecord> {
     assertTenantContext(context);
     assertOwner(context);
 
     const tenantId = context.tenantId;
-    const code = normalizeCode(input.code);
+    const requestedCode = normalizeCode(input.code);
 
     const activeCount = await this.branchRepository.countActiveByTenant(tenantId);
     const branchLimit = await this.branchLimitProvider.getBranchLimit(tenantId);
@@ -107,8 +133,8 @@ export class BranchService {
       });
     }
 
-    if (code) {
-      const existing = await this.branchRepository.findByCodeAndTenant(code, tenantId);
+    if (requestedCode) {
+      const existing = await this.branchRepository.findByCodeAndTenant(requestedCode, tenantId);
       if (existing) {
         throw new PlatformError({
           code: 'branch.code_already_exists',
@@ -123,33 +149,47 @@ export class BranchService {
       await this.managerEligibilityService.assertEligible(input.managerId, tenantId);
     }
 
-    const now = new Date().toISOString();
-    const record: BranchRecord = {
-      branchId: generateBranchId(),
-      tenantId,
-      branchName: input.branchName.trim(),
-      code,
-      streetAddress: input.streetAddress?.trim() ?? '',
-      city: input.city?.trim() ?? '',
-      state: input.state?.trim() ?? '',
-      country: input.country?.trim() ?? '',
-      postalCode: input.postalCode?.trim() ?? '',
-      phone: input.phone.trim(),
-      email: input.email.trim().toLowerCase(),
-      openingTime: input.openingTime,
-      closingTime: input.closingTime,
-      managerId: input.managerId,
-      isHeadOffice: false,
-      status: 'active',
-      createdAt: now,
-      updatedAt: now,
-    };
+    for (let attempt = 0; attempt < AUTO_BRANCH_CODE_RETRIES; attempt += 1) {
+      const code =
+        requestedCode ??
+        nextAvailableBranchCode(await this.branchRepository.listCodesByTenant(tenantId));
+      const now = new Date().toISOString();
+      const record: BranchRecord = {
+        branchId: generateBranchId(),
+        tenantId,
+        branchName: input.branchName.trim(),
+        code,
+        streetAddress: input.streetAddress?.trim() ?? '',
+        city: input.city?.trim() ?? '',
+        state: input.state?.trim() ?? '',
+        country: input.country?.trim() ?? '',
+        postalCode: input.postalCode?.trim() ?? '',
+        phone: input.phone.trim(),
+        email: input.email.trim().toLowerCase(),
+        openingTime: input.openingTime,
+        closingTime: input.closingTime,
+        managerId: input.managerId,
+        isHeadOffice: false,
+        status: 'active',
+        createdAt: now,
+        updatedAt: now,
+      };
 
-    try {
-      return await this.branchRepository.create(record);
-    } catch (error) {
-      throw this.mapDuplicateKeyError(error);
+      try {
+        return await this.branchRepository.create(record);
+      } catch (error) {
+        if (requestedCode || !this.isDuplicateKeyError(error)) {
+          throw this.mapDuplicateKeyError(error);
+        }
+      }
     }
+
+    throw new PlatformError({
+      code: 'branch.code_already_exists',
+      category: 'conflict',
+      messageKey: 'errors.branch.code_already_exists',
+      fields: [{ field: 'code', code: 'branch.code_already_exists' }],
+    });
   }
 
   async updateBranch(
@@ -182,6 +222,27 @@ export class BranchService {
     if (input.closingTime !== undefined) patch.closingTime = input.closingTime;
     if (input.status !== undefined) patch.status = input.status;
 
+    if (input.status === 'inactive' && existing.status === 'active') {
+      const [openOrders, activeCount] = await Promise.all([
+        this.ordersGateway.countNonTerminalByBranch(context.tenantId, branchId),
+        this.branchRepository.countActiveByTenant(context.tenantId),
+      ]);
+      if (openOrders > 0) {
+        throw new PlatformError({
+          code: 'branch.has_unresolved_orders',
+          category: 'conflict',
+          messageKey: 'errors.branch.has_unresolved_orders',
+        });
+      }
+      if (activeCount <= 1) {
+        throw new PlatformError({
+          code: 'branch.last_active_branch',
+          category: 'conflict',
+          messageKey: 'errors.branch.last_active_branch',
+        });
+      }
+    }
+
     if (input.code !== undefined) {
       const code = normalizeCode(input.code);
       if (code && code !== existing.code) {
@@ -198,7 +259,7 @@ export class BranchService {
       patch.code = code;
     }
 
-    if (input.managerId !== undefined) {
+    if (input.managerId !== undefined && input.managerId !== existing.managerId) {
       if (input.managerId === null) {
         patch.managerId = null;
       } else {
@@ -266,13 +327,7 @@ export class BranchService {
       return error;
     }
 
-    const isDuplicateKey =
-      typeof error === 'object' &&
-      error !== null &&
-      'code' in error &&
-      (error as { code?: unknown }).code === 11000;
-
-    if (isDuplicateKey) {
+    if (this.isDuplicateKeyError(error)) {
       return new PlatformError({
         code: 'branch.code_already_exists',
         category: 'conflict',
@@ -287,5 +342,14 @@ export class BranchService {
       messageKey: 'errors.internal',
       cause: error instanceof Error ? error : undefined,
     });
+  }
+
+  private isDuplicateKeyError(error: unknown): boolean {
+    return (
+      typeof error === 'object' &&
+      error !== null &&
+      'code' in error &&
+      (error as { code?: unknown }).code === 11000
+    );
   }
 }

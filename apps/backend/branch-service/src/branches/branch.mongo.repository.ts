@@ -61,6 +61,17 @@ export class MongoBranchRepository implements BranchRepository {
     return doc ? toRecord(doc) : null;
   }
 
+  async listCodesByTenant(tenantId: string): Promise<readonly string[]> {
+    const docs = await this.branchModel
+      .find({ tenantId, code: { $exists: true, $ne: '' } })
+      .select({ _id: 0, code: 1 })
+      .lean()
+      .exec();
+    return docs.flatMap((doc) =>
+      typeof doc.code === 'string' && doc.code.length > 0 ? [doc.code.toUpperCase()] : [],
+    );
+  }
+
   async list(
     tenantId: string,
     filters: BranchQueryFilters,

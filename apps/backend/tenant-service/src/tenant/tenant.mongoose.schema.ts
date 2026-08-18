@@ -1,6 +1,8 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, HydratedDocument } from 'mongoose';
 
+import type { TenantBusinessType } from './tenant.types';
+
 // ─── Tenant ────────────────────────────────────────────────────────────────
 
 export type TenantDocument = HydratedDocument<TenantMongoose>;
@@ -196,7 +198,7 @@ export class TenantServiceMongoose extends Document {
       'custom',
     ],
   })
-  serviceType!: string;
+  serviceType!: TenantBusinessType;
 
   @Prop({ required: true, default: true })
   isEnabled!: boolean;
