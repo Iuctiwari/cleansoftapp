@@ -15,4 +15,9 @@ export class AppController {
   getHealth(): HealthResponse {
     return this.appHealth.getHealth();
   }
+
+  @Get('health/live')
+  getLiveness(): HealthResponse {
+    return this.appHealth.getHealth();
+  }
 }

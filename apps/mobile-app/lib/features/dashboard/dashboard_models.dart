@@ -10,7 +10,7 @@ enum DashboardMetricType {
   deliveries,
 }
 
-enum DashboardStatus { ready, processing, pending, completed, overdue }
+enum DashboardStatus { ready, processing, pending, completed, overdue, cancelled }
 
 enum DashboardQuickActionType { newOrder, payment, report, assign }
 
@@ -178,6 +178,30 @@ class DashboardData {
   final String revenueComparison;
   final List<DashboardRevenuePoint> revenuePoints;
   final List<DashboardMetric> summaryMetrics;
+
+  DashboardData copyWith({
+    List<DashboardOrder>? orders,
+    List<DashboardBill>? bills,
+  }) => DashboardData(
+    branchId: branchId,
+    branchName: branchName,
+    ownerName: ownerName,
+    ownerEmail: ownerEmail,
+    businessName: businessName,
+    revenue: revenue,
+    revenueChange: revenueChange,
+    revenueComparison: revenueComparison,
+    kpis: kpis,
+    summaryMetrics: summaryMetrics,
+    orders: orders ?? this.orders,
+    bills: bills ?? this.bills,
+    customers: customers,
+    activities: activities,
+    quickActions: quickActions,
+    revenuePoints: revenuePoints,
+    branchPerformance: branchPerformance,
+    branchSummary: branchSummary,
+  );
 
   factory DashboardData.empty({
     required String branchId,

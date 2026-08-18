@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { APP_FILTER } from '@nestjs/core';
+import { GlobalExceptionFilter } from '@nexoraa/common';
 
 import { AppController } from './app.controller';
 import { AppHealth } from './app.service';
@@ -15,6 +17,6 @@ import { OrderModule } from './order/order.module';
     OrderModule,
   ],
   controllers: [AppController],
-  providers: [AppHealth],
+  providers: [AppHealth, { provide: APP_FILTER, useClass: GlobalExceptionFilter }],
 })
 export class AppModule {}

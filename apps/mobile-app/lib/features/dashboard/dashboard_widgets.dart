@@ -1308,6 +1308,7 @@ String _statusLabel(DashboardStatus status) => switch (status) {
   DashboardStatus.pending => 'Pending',
   DashboardStatus.completed => 'Done',
   DashboardStatus.overdue => 'Overdue',
+  DashboardStatus.cancelled => 'Cancelled',
 };
 
 AppSemanticColor _statusColor(DashboardStatus status) => switch (status) {
@@ -1316,4 +1317,5 @@ AppSemanticColor _statusColor(DashboardStatus status) => switch (status) {
   DashboardStatus.pending => SemanticColors.statusPending,
   DashboardStatus.completed => SemanticColors.statusCompleted,
   DashboardStatus.overdue => SemanticColors.statusError,
+  DashboardStatus.cancelled => SemanticColors.statusError,
 };

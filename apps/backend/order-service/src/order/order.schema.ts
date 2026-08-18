@@ -108,6 +108,9 @@ export class OrderMongoose {
   @Prop({ default: 0, min: 0, required: true, type: Number })
   discount!: number;
 
+  @Prop({ default: 0, max: 100, min: 0, required: true, type: Number })
+  discountPercentage!: number;
+
   @Prop({ default: 0, min: 0, required: true, type: Number })
   tax!: number;
 
@@ -119,6 +122,9 @@ export class OrderMongoose {
 
   @Prop({ min: 0, required: true, type: Number })
   outstandingAmount!: number;
+
+  @Prop({ default: [], select: false, type: [MongooseSchema.Types.ObjectId] })
+  paymentProjectionIds!: Types.ObjectId[];
 
   @Prop({ type: Date })
   expectedDeliveryDate?: Date;
@@ -262,5 +268,8 @@ export class AssignmentMongoose {
 
 export const AssignmentMongooseSchema = SchemaFactory.createForClass(AssignmentMongoose);
 
-AssignmentMongooseSchema.index({ tenantId: 1, branchId: 1, orderId: 1 });
+AssignmentMongooseSchema.index(
+  { tenantId: 1, branchId: 1, orderId: 1 },
+  { name: 'assignments_tenant_branch_order_unique', unique: true },
+);
 AssignmentMongooseSchema.index({ tenantId: 1, branchId: 1, assignedTo: 1, status: 1, dueDate: 1 });

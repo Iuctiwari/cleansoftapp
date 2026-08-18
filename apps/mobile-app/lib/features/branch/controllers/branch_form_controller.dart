@@ -23,25 +23,25 @@ final class BranchFormController extends ChangeNotifier {
   }
 
   Future<Branch?> _submit(Future<Branch> Function() action) async {
+    if (_isSubmitting) return null;
     _isSubmitting = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      final Branch branch = await action();
-      _isSubmitting = false;
-      notifyListeners();
-      return branch;
+      return await action();
     } on BranchApiException catch (error) {
       _errorMessage = error.userMessage;
     } on BranchApiNetworkException catch (error) {
       _errorMessage = error.message;
     } on StateError catch (error) {
       _errorMessage = error.message;
+    } on Object {
+      _errorMessage = 'Unable to save branch. Please try again.';
+    } finally {
+      _isSubmitting = false;
+      notifyListeners();
     }
-
-    _isSubmitting = false;
-    notifyListeners();
     return null;
   }
 }

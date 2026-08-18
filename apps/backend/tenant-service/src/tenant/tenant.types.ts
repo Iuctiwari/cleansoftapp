@@ -115,6 +115,18 @@ export interface CompleteTenantOnboardingOutput {
   readonly message: string;
 }
 
+export interface CatalogProvisioningCandidate {
+  readonly tenantId: string;
+  readonly ownerUserId: string;
+  readonly businessTypes: readonly TenantBusinessType[];
+}
+
+export interface TenantCatalogProvisioner {
+  provision(candidate: CatalogProvisioningCandidate): Promise<void>;
+}
+
+export const TENANT_CATALOG_PROVISIONER = Symbol('TENANT_CATALOG_PROVISIONER');
+
 export interface TenantRepository {
   /** Find a tenant owner by normalised email (for uniqueness checks and login). */
   findByEmail(email: string): Promise<TenantOwnerRecord | null>;
@@ -127,6 +139,9 @@ export interface TenantRepository {
 
   /** List all branches for a given tenant. */
   listBranches(tenantId: string): Promise<BranchRecord[]>;
+
+  /** List existing tenants and only their enabled business capabilities for catalog backfill. */
+  listCatalogProvisioningCandidates(): Promise<CatalogProvisioningCandidate[]>;
 
   /** Update the tenant lifecycle status. */
   updateStatus(tenantId: string, status: TenantStatus): Promise<void>;
