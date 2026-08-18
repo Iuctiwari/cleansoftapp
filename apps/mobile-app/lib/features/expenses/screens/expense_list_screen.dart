@@ -37,7 +37,9 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
         if (_showingAddScreen) {
           return _AddExpenseScreen(
             categories: _controller.categories,
-            paymentMethods: _controller.paymentMethods,
+            paymentMethods: _controller.paymentMethods.isNotEmpty
+                ? _controller.paymentMethods
+                : ExpensePaymentOption.defaultOptions,
             onBack: () => setState(() => _showingAddScreen = false),
             onSubmit: _addExpense,
           );
@@ -46,7 +48,7 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
           color: AppColors.background,
           child: Center(
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 375),
+              constraints: const BoxConstraints(maxWidth: 440),
               child: Column(
                 children: <Widget>[
                   _ExpenseHeader(
@@ -54,10 +56,12 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
                     onBack: widget.onBack,
                   ),
                   Expanded(
-                    child: _controller.isLoading
+                    child: _controller.isLoading && _controller.categories.isEmpty
                         ? const Center(child: CircularProgressIndicator())
                         : CustomScrollView(
-                            physics: const ClampingScrollPhysics(),
+                            physics: const AlwaysScrollableScrollPhysics(
+                              parent: ClampingScrollPhysics(),
+                            ),
                             slivers: <Widget>[
                               SliverPadding(
                                 padding: const EdgeInsets.fromLTRB(
@@ -73,39 +77,103 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
                                   ),
                                 ),
                               ),
-                              SliverToBoxAdapter(
-                                child: _CategoryFilters(
-                                  controller: _controller,
+                              if (_controller.categories.isNotEmpty)
+                                SliverToBoxAdapter(
+                                  child: _CategoryFilters(
+                                    controller: _controller,
+                                  ),
                                 ),
-                              ),
-                              SliverPadding(
-                                padding: const EdgeInsets.fromLTRB(
-                                  24,
-                                  0,
-                                  24,
-                                  24,
+                              if (_controller.expenses.isEmpty)
+                                SliverFillRemaining(
+                                  hasScrollBody: false,
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(32),
+                                    child: Center(
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: <Widget>[
+                                          Container(
+                                            width: 64,
+                                            height: 64,
+                                            decoration: const BoxDecoration(
+                                              color: AppColors.surfaceMuted,
+                                              shape: BoxShape.circle,
+                                            ),
+                                            child: const Icon(
+                                              AppIcons.receipt,
+                                              size: 28,
+                                              color: AppColors.textSubtle,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 16),
+                                          Text(
+                                            'No expenses found in database',
+                                            style: AppTextStyles.bodyMedium.copyWith(
+                                              fontWeight: FontWeight.w700,
+                                              color: AppColors.textPrimary,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 6),
+                                          Text(
+                                            'Add your first expense to track business costs and cash reconciliation.',
+                                            textAlign: TextAlign.center,
+                                            style: AppTextStyles.caption.copyWith(
+                                              color: AppColors.textMuted,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 20),
+                                          FilledButton.icon(
+                                            style: FilledButton.styleFrom(
+                                              backgroundColor: AppColors.primary,
+                                              shape: const RoundedRectangleBorder(
+                                                borderRadius: AppRadius.buttonRadius,
+                                              ),
+                                            ),
+                                            onPressed: () => setState(() => _showingAddScreen = true),
+                                            icon: const Icon(AppIcons.add, size: 16),
+                                            label: const Text('Add Expense'),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                )
+                              else
+                                SliverPadding(
+                                  padding: const EdgeInsets.fromLTRB(
+                                    24,
+                                    10,
+                                    24,
+                                    24,
+                                  ),
+                                  sliver: SliverList.separated(
+                                    itemCount: _controller.expenses.length,
+                                    separatorBuilder: (_, __) =>
+                                        const SizedBox(height: 10),
+                                    itemBuilder:
+                                        (BuildContext context, int index) {
+                                          final Expense expense =
+                                              _controller.expenses[index];
+                                          final ExpenseCategory category =
+                                              _controller.categories.firstWhere(
+                                                (ExpenseCategory item) =>
+                                                    item.id ==
+                                                    expense.expenseCategoryId,
+                                                orElse: () => ExpenseCategory(
+                                                  id: expense.expenseCategoryId,
+                                                  name: expense.categoryName.isNotEmpty
+                                                      ? expense.categoryName
+                                                      : 'General',
+                                                  symbol: resolveCategorySymbol(expense.categoryName),
+                                                ),
+                                              );
+                                          return _ExpenseCard(
+                                            category: category,
+                                            expense: expense,
+                                          );
+                                        },
+                                  ),
                                 ),
-                                sliver: SliverList.separated(
-                                  itemCount: _controller.expenses.length,
-                                  separatorBuilder: (_, __) =>
-                                      const SizedBox(height: 10),
-                                  itemBuilder:
-                                      (BuildContext context, int index) {
-                                        final Expense expense =
-                                            _controller.expenses[index];
-                                        final ExpenseCategory category =
-                                            _controller.categories.firstWhere(
-                                              (ExpenseCategory item) =>
-                                                  item.id ==
-                                                  expense.expenseCategoryId,
-                                            );
-                                        return _ExpenseCard(
-                                          category: category,
-                                          expense: expense,
-                                        );
-                                      },
-                                ),
-                              ),
                             ],
                           ),
                   ),
@@ -119,8 +187,29 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
   }
 
   Future<void> _addExpense(CreateExpenseRequest request) async {
-    await _controller.addExpense(request);
-    if (mounted) setState(() => _showingAddScreen = false);
+    try {
+      await _controller.addExpense(request);
+      if (mounted) {
+        setState(() => _showingAddScreen = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Expense saved successfully to database'),
+            backgroundColor: Color(0xFF10B981),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error saving expense: $e'),
+            backgroundColor: AppColors.error,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
   }
 }
 
@@ -146,14 +235,16 @@ class _AddExpenseScreenState extends State<_AddExpenseScreen> {
   final TextEditingController _description = TextEditingController();
   final TextEditingController _vendor = TextEditingController();
   final TextEditingController _amount = TextEditingController();
-  late String _categoryId;
+  String? _categoryId;
   late ExpensePaymentMethod _paymentMethod;
 
   @override
   void initState() {
     super.initState();
-    _categoryId = widget.categories.first.id;
-    _paymentMethod = widget.paymentMethods.first.method;
+    _categoryId = widget.categories.isNotEmpty ? widget.categories.first.id : null;
+    _paymentMethod = widget.paymentMethods.isNotEmpty
+        ? widget.paymentMethods.first.method
+        : ExpensePaymentMethod.cash;
   }
 
   @override
@@ -166,11 +257,18 @@ class _AddExpenseScreenState extends State<_AddExpenseScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final List<ExpenseCategory> availableCategories = widget.categories.isNotEmpty
+        ? widget.categories
+        : const <ExpenseCategory>[
+            ExpenseCategory(id: 'default', name: 'General', symbol: '🏷️'),
+          ];
+    final String currentCategoryId = _categoryId ?? availableCategories.first.id;
+
     return Material(
       color: AppColors.background,
       child: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 375),
+          constraints: const BoxConstraints(maxWidth: 440),
           child: Column(
             children: <Widget>[
               _AddExpenseHeader(onBack: widget.onBack),
@@ -190,15 +288,15 @@ class _AddExpenseScreenState extends State<_AddExpenseScreen> {
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          'Record a new business expense',
+                          'Record a new expense into database',
                           style: AppTextStyles.bodySmall,
                         ),
                         const SizedBox(height: 20),
                         TextFormField(
                           controller: _description,
                           decoration: _inputDecoration(
-                            labelText: 'Expense name',
-                            hintText: 'e.g. Electricity Bill, Detergent',
+                            labelText: 'Expense name / Description',
+                            hintText: 'e.g. Power Bill, Detergent Supplies',
                             prefixIcon: AppIcons.receipt,
                           ),
                           validator: _required,
@@ -210,7 +308,7 @@ class _AddExpenseScreenState extends State<_AddExpenseScreen> {
                             decimal: true,
                           ),
                           decoration: _inputDecoration(
-                            labelText: 'Amount',
+                            labelText: 'Amount (Rs.)',
                             hintText: '0.00',
                             prefixIcon: AppIcons.wallet,
                           ),
@@ -226,10 +324,10 @@ class _AddExpenseScreenState extends State<_AddExpenseScreen> {
                         const SizedBox(height: 14),
                         LayoutBuilder(
                           builder: (BuildContext context, BoxConstraints constraints) {
-                            final ExpenseCategory selectedCategory = widget.categories
+                            final ExpenseCategory selectedCategory = availableCategories
                                 .firstWhere(
-                                  (ExpenseCategory item) => item.id == _categoryId,
-                                  orElse: () => widget.categories.first,
+                                  (ExpenseCategory item) => item.id == currentCategoryId,
+                                  orElse: () => availableCategories.first,
                                 );
                             return PopupMenuButton<String>(
                               tooltip: '',
@@ -248,10 +346,10 @@ class _AddExpenseScreenState extends State<_AddExpenseScreen> {
                               onSelected: (String value) {
                                 setState(() => _categoryId = value);
                               },
-                              itemBuilder: (BuildContext context) => widget.categories
+                              itemBuilder: (BuildContext context) => availableCategories
                                   .map(
                                     (ExpenseCategory category) {
-                                      final bool isSelected = category.id == _categoryId;
+                                      final bool isSelected = category.id == currentCategoryId;
                                       return PopupMenuItem<String>(
                                         value: category.id,
                                         height: 44,
@@ -343,7 +441,9 @@ class _AddExpenseScreenState extends State<_AddExpenseScreen> {
                             final ExpensePaymentOption selectedPayment = widget.paymentMethods
                                 .firstWhere(
                                   (ExpensePaymentOption item) => item.method == _paymentMethod,
-                                  orElse: () => widget.paymentMethods.first,
+                                  orElse: () => widget.paymentMethods.isNotEmpty
+                                      ? widget.paymentMethods.first
+                                      : ExpensePaymentOption.defaultOptions.first,
                                 );
                             final String selectedEmoji = switch (selectedPayment.method) {
                               ExpensePaymentMethod.cash => '💵',
@@ -467,7 +567,7 @@ class _AddExpenseScreenState extends State<_AddExpenseScreen> {
                         TextFormField(
                           controller: _vendor,
                           decoration: _inputDecoration(
-                            labelText: 'Vendor',
+                            labelText: 'Vendor / Recipient',
                             hintText: 'e.g. Power Corp, CleanSupply Co',
                             prefixIcon: AppIcons.branch,
                           ),
@@ -485,7 +585,7 @@ class _AddExpenseScreenState extends State<_AddExpenseScreen> {
                             ),
                             onPressed: _submit,
                             child: const Text(
-                              'Save Expense',
+                              'Save Expense to Database',
                               style: TextStyle(
                                 color: AppColors.surface,
                                 fontSize: 15,
@@ -537,9 +637,16 @@ class _AddExpenseScreenState extends State<_AddExpenseScreen> {
 
   void _submit() {
     if (!_formKey.currentState!.validate()) return;
+    final List<ExpenseCategory> availableCategories = widget.categories.isNotEmpty
+        ? widget.categories
+        : const <ExpenseCategory>[
+            ExpenseCategory(id: 'default', name: 'General', symbol: '🏷️'),
+          ];
+    final String chosenCategoryId = _categoryId ?? availableCategories.first.id;
+
     widget.onSubmit(
       CreateExpenseRequest(
-        categoryId: _categoryId,
+        categoryId: chosenCategoryId,
         amount: double.parse(_amount.text.trim()),
         paymentMethod: _paymentMethod,
         vendor: _vendor.text.trim(),
@@ -649,7 +756,7 @@ class _ExpenseHeader extends StatelessWidget {
                 ),
               ),
               SizedBox(
-                width: 68,
+                width: 76,
                 height: 32,
                 child: Material(
                   color: AppColors.primary,
@@ -711,7 +818,7 @@ class _ExpenseSummary extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: <Widget>[
           Text(
-            'THIS MONTH',
+            'TOTAL EXPENSES',
             style: AppTextStyles.captionBold.copyWith(color: AppColors.surface),
           ),
           const SizedBox(height: 5),
@@ -726,7 +833,9 @@ class _ExpenseSummary extends StatelessWidget {
           ),
           const SizedBox(height: 5),
           Text(
-            'Across $categoryCount expense categories',
+            categoryCount == 0
+                ? 'No expenses recorded in database'
+                : 'Across $categoryCount expense categories',
             style: AppTextStyles.caption.copyWith(
               color: AppColors.surface,
               fontSize: 12,
@@ -841,7 +950,7 @@ class _ExpenseCard extends StatelessWidget {
                     borderRadius: AppRadius.badgeRadius,
                   ),
                   child: Text(
-                    expense.categoryName,
+                    expense.categoryName.isNotEmpty ? expense.categoryName : category.name,
                     style: AppTextStyles.micro.copyWith(
                       color: AppColors.warning,
                       fontSize: 11,
