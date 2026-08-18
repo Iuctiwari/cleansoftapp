@@ -1,6 +1,6 @@
 import 'reflect-metadata';
 
-import { Logger } from '@nestjs/common';
+import { Logger, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { setupSwagger } from '@nexoraa/swagger';
@@ -28,7 +28,18 @@ async function bootstrap(): Promise<void> {
 
   app.enableCors();
   app.enableShutdownHooks();
-  setupSwagger(app, { title: 'Nexoraa Expense Service API' });
+  app.useGlobalPipes(
+    new ValidationPipe({
+      forbidNonWhitelisted: true,
+      transform: true,
+      whitelist: true,
+    }),
+  );
+  setupSwagger(app, {
+    title: 'Nexoraa Expense Service API',
+    documentPath: 'docs',
+    jsonDocumentUrl: 'docs-json',
+  });
 
   await app.listen(port, HOST);
   logger.log(`${serviceName} listening on http://${HOST}:${port}`);

@@ -79,8 +79,10 @@ class BranchApiService {
     if (dotenv.isInitialized) {
       final String? configured = dotenv.env[_environmentKey]?.trim();
       if (configured != null && configured.isNotEmpty) return configured;
+      final String? apiBase = dotenv.env['API_BASE_URL']?.trim();
+      if (apiBase != null && apiBase.isNotEmpty) return apiBase;
     }
-    throw StateError('Missing $_environmentKey environment configuration.');
+    return 'http://localhost:3000/api';
   }
 
   static String _normalizeBaseUrl(String value) {
