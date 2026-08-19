@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
@@ -15,6 +16,9 @@ import 'package:nexoraa_mobile/features/dashboard/screens/notification_screen.da
 import 'package:nexoraa_mobile/features/tenant/services/tenant_api_service.dart';
 
 void main() {
+  setUp(() {
+    FlutterSecureStorage.setMockInitialValues(<String, String>{});
+  });
   testWidgets('forgot password swaps to the local success state', (
     WidgetTester tester,
   ) async {
@@ -159,9 +163,10 @@ void main() {
       routes: <RouteBase>[
         GoRoute(
           path: '/more',
-          builder: (_, _) => const Scaffold(
+          builder: (_, _) => Scaffold(
             body: MoreScreen(
               businessName: 'Ahmed Laundry',
+              onExpensesTap: () {},
               role: 'Owner',
               userProfile: MoreUserProfileData.placeholder,
             ),

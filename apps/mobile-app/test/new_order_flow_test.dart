@@ -257,10 +257,10 @@ void main() {
         tester.getSize(find.widgetWithText(OutlinedButton, 'WhatsApp')),
       );
       final Text washReceipt = tester.widget<Text>(
-        find.text('Wash & Fold').last,
+        find.textContaining('Wash & Fold').last,
       );
       final Text ironingReceipt = tester.widget<Text>(
-        find.text('Ironing').last,
+        find.textContaining('Ironing').last,
       );
       expect(washReceipt.maxLines, 1);
       expect(ironingReceipt.maxLines, 1);
@@ -513,6 +513,18 @@ Map<String, Object?> _orderJson({
       'discount': 0,
       'tax': 5,
       'lineTotal': 105,
+    },
+    <String, Object>{
+      'id': '64f0c18f7c4d2f0012ab348',
+      'itemCategoryId': _categoryId,
+      'itemCategorySnapshot': <String, Object>{'name': 'Shirt'},
+      'serviceId': _secondServiceId,
+      'serviceSnapshot': <String, Object>{'name': 'Ironing'},
+      'quantity': 1,
+      'unitPrice': 10,
+      'discount': 0,
+      'tax': 0.5,
+      'lineTotal': 10.5,
     },
   ],
   'subtotal': 105,

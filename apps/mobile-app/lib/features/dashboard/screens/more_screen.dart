@@ -47,6 +47,7 @@ class MoreMenuSectionData {
 class MoreScreen extends StatelessWidget {
   const MoreScreen({
     required this.businessName,
+    required this.onExpensesTap,
     required this.role,
     required this.userProfile,
     this.branchId,
@@ -55,6 +56,7 @@ class MoreScreen extends StatelessWidget {
   });
 
   final String businessName;
+  final VoidCallback onExpensesTap;
   final String role;
   final MoreUserProfileData userProfile;
   final String? branchId;
@@ -144,6 +146,10 @@ class MoreScreen extends StatelessWidget {
   }
 
   void _handleItemTap(BuildContext context, MoreMenuItemData item) {
+    if (item.title == 'Expenses') {
+      onExpensesTap();
+      return;
+    }
     if (item.title == 'Branch Management') {
       context.pushNamed(AppRouteNames.branchList);
       return;
@@ -212,12 +218,16 @@ class MoreScreen extends StatelessWidget {
     );
 
     if (confirmed != true || !context.mounted) return;
-    await AuthenticationDependencies.controller.signOut();
+    try {
+      await AuthenticationDependencies.controller.signOut();
+    } catch (_) {
+      // Ignore storage clear errors
+    }
     if (!context.mounted) return;
     messenger
       ..hideCurrentSnackBar()
       ..showSnackBar(const SnackBar(content: Text('Signed out successfully')));
-    context.goNamed(AppRouteNames.login);
+    context.go(AppRoutes.login);
   }
 
   @override

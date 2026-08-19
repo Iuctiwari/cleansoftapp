@@ -11,8 +11,9 @@ import 'package:nexoraa_mobile/features/customers/services/customer_api_service.
 import 'package:nexoraa_mobile/features/dashboard/dashboard_models.dart';
 import 'package:nexoraa_mobile/features/dashboard/dashboard_widgets.dart';
 import 'package:nexoraa_mobile/features/dashboard/screens/more_screen.dart';
-import 'package:nexoraa_mobile/features/orders/controllers/order_controller.dart';
+import 'package:nexoraa_mobile/features/expenses/screens/expense_list_screen.dart';
 import 'package:nexoraa_mobile/features/orders/controllers/new_order_controller.dart';
+import 'package:nexoraa_mobile/features/orders/controllers/order_controller.dart';
 import 'package:nexoraa_mobile/features/orders/models/order.dart';
 import 'package:nexoraa_mobile/features/orders/screens/new_order_screen.dart';
 import 'package:nexoraa_mobile/features/orders/screens/orders_screen.dart';
@@ -236,18 +237,23 @@ class _DashboardPlaceholderScreenState
               ),
             ],
           ),
-          2 => CustomerListScreen(
-            key: const ValueKey<String>('customers'),
-            controller: _customerController,
-          ),
           1 => OrdersScreen(
             key: const ValueKey<String>('orders'),
             controller: _orderController,
             onNewOrder: _openNewOrder,
           ),
+          2 => CustomerListScreen(
+            key: const ValueKey<String>('customers'),
+            controller: _customerController,
+          ),
+          4 => ExpenseListScreen(
+            key: const ValueKey<String>('expenses'),
+            onBack: () => setState(() => _currentNavigationIndex = 3),
+          ),
           _ => MoreScreen(
             key: const ValueKey<String>('more'),
             businessName: data.businessName,
+            onExpensesTap: () => setState(() => _currentNavigationIndex = 4),
             role: 'Owner',
             userProfile: MoreUserProfileData(
               name: data.ownerName,
@@ -269,7 +275,9 @@ class _DashboardPlaceholderScreenState
             )
           : null,
       bottomNavigationBar: DashboardBottomNavigation(
-        currentIndex: _currentNavigationIndex,
+        currentIndex: _currentNavigationIndex == 4
+            ? 3
+            : _currentNavigationIndex,
         onTap: (int index) {
           setState(() => _currentNavigationIndex = index);
         },
@@ -359,10 +367,11 @@ class _DashboardContent extends StatelessWidget {
                   ),
                 ),
               const SizedBox(height: AppSpacing.md),
+              const SizedBox(height: AppSpacing.md),
               DashboardSectionHeader(
-                title: 'Recent Bills',
+                title: 'Recent Activity',
                 actionLabel: 'See all',
-                onAction: () => onUiAction('Recent bills selected'),
+                onAction: () => onUiAction('Recent activity selected'),
               ),
               const SizedBox(height: AppSpacing.md),
               if (data.bills.isEmpty)
