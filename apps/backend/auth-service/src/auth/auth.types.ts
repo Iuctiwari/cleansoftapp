@@ -310,7 +310,6 @@ export interface AuthRepository {
   createStaffIdentity(record: StaffAuthRecord): Promise<StaffAuthRecord>;
   findStaffIdentityByUserId(userId: string): Promise<StaffAuthRecord | null>;
   updateStaffIdentityStatus(userId: string, status: 'active' | 'disabled'): Promise<void>;
-
 }
 
 export interface AccessTokenResolution {
@@ -327,7 +326,11 @@ export interface AuthContextRequest extends RequestWithPlatformContext {
 export const AUTH_REPOSITORY = Symbol('AUTH_REPOSITORY');
 export const STAFF_ROLES_PERMISSIONS: Record<string, readonly string[]> = {
   Owner: Object.freeze(['manage:business', 'manage:staff', 'view:analytics', 'manage:billing']),
-  'Branch Manager': Object.freeze(['manage:branch_schedule', 'view:branch_analytics', 'manage:cashiers']),
+  'Branch Manager': Object.freeze([
+    'manage:branch_schedule',
+    'view:branch_analytics',
+    'manage:cashiers',
+  ]),
   Staff: Object.freeze(['view:schedule', 'manage:appointments', 'update:profile']),
   Cashier: Object.freeze(['process:payments', 'issue:refunds', 'view:reports']),
 };

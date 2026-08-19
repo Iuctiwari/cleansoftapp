@@ -328,4 +328,3 @@ export const TenantStaffAuthMongooseSchema = SchemaFactory.createForClass(Tenant
 
 // Compound unique index: loginId must be unique per tenant
 TenantStaffAuthMongooseSchema.index({ tenantId: 1, loginId: 1 }, { unique: true });
-

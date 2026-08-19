@@ -29,7 +29,12 @@ export class UserMongoose extends BaseSchema {
   @Prop({ type: [{ type: MongooseSchema.Types.ObjectId }] })
   branchIds!: Types.ObjectId[];
 
-  @Prop({ required: true, type: String, enum: ['Active', 'Suspended', 'Pending', 'Expired'], default: 'Pending' })
+  @Prop({
+    required: true,
+    type: String,
+    enum: ['Active', 'Suspended', 'Pending', 'Expired'],
+    default: 'Pending',
+  })
   status!: UserStatus;
 
   @Prop({ type: Date })
@@ -42,8 +47,14 @@ export class UserMongoose extends BaseSchema {
 export const UserMongooseSchema = SchemaFactory.createForClass(UserMongoose);
 
 // Ensure index on tenantId and email/mobile for fast lookups
-UserMongooseSchema.index({ tenantId: 1, email: 1 }, { unique: true, partialFilterExpression: { email: { $exists: true, $type: 'string' } } });
-UserMongooseSchema.index({ tenantId: 1, mobileNumber: 1 }, { unique: true, partialFilterExpression: { mobileNumber: { $exists: true, $type: 'string' } } });
+UserMongooseSchema.index(
+  { tenantId: 1, email: 1 },
+  { unique: true, partialFilterExpression: { email: { $exists: true, $type: 'string' } } },
+);
+UserMongooseSchema.index(
+  { tenantId: 1, mobileNumber: 1 },
+  { unique: true, partialFilterExpression: { mobileNumber: { $exists: true, $type: 'string' } } },
+);
 UserMongooseSchema.index({ tenantId: 1, status: 1 });
 // loginId must be unique within a tenant
 UserMongooseSchema.index({ tenantId: 1, loginId: 1 }, { unique: true });

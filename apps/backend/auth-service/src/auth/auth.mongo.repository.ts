@@ -164,14 +164,13 @@ export class MongoAuthRepository implements AuthRepository, OnModuleInit {
     return null;
   }
 
-
   /**
    * Look up a staff member by loginId within a tenant.
    * Called after owner lookup fails so staff can log in with their loginId.
    */
   private async findStaffIdentityByLoginId(
     loginId: string,
-    tenantSlug?: string,
+    _tenantSlug?: string,
   ): Promise<AuthIdentityRecord | null> {
     const normalized = normalizeIdentifier(loginId);
     const filter: Record<string, unknown> = { loginId: normalized };
@@ -468,4 +467,3 @@ export class MongoAuthRepository implements AuthRepository, OnModuleInit {
     await this.tenantStaffModel.updateOne({ userId }, { $set: { status } }).exec();
   }
 }
-

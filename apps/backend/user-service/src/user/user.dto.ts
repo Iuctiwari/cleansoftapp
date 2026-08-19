@@ -19,7 +19,8 @@ export class RegisterStaffDto {
   name!: string;
 
   @ApiProperty({
-    description: 'Unique login username for this employee within the tenant (e.g. john.doe, emp001)',
+    description:
+      'Unique login username for this employee within the tenant (e.g. john.doe, emp001)',
     example: 'john.doe',
     maxLength: 64,
   })
@@ -62,7 +63,11 @@ export class RegisterStaffDto {
   @IsEnum(['Owner', 'Branch Manager', 'Staff', 'Cashier'])
   role!: UserRole;
 
-  @ApiProperty({ type: [String], description: 'List of Branch IDs', example: ['60d5ecb8b392a71500000000'] })
+  @ApiProperty({
+    type: [String],
+    description: 'List of Branch IDs',
+    example: ['60d5ecb8b392a71500000000'],
+  })
   @IsString({ each: true })
   branchIds!: string[];
 }
@@ -117,4 +122,3 @@ export class StaffResponseDto {
   @ApiProperty() createdAt!: string;
   @ApiProperty() updatedAt!: string;
 }
-

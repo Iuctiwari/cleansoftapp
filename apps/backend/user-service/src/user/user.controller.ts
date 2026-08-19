@@ -74,4 +74,3 @@ export class UserController {
     await this.userService.removeStaff(userId);
   }
 }
-

@@ -19,9 +19,9 @@ import { UserModule } from './user/user.module';
       useFactory: (configService: ConfigService) => {
         const rawUri = configService.get<string>('MONGODB_URI');
         const finalUri = (rawUri ?? 'mongodb://127.0.0.1:27017/nexoraa_cleansoft')
-              .replace('mongodb://mongodb:', 'mongodb://127.0.0.1:')
-              .replace('mongodb://localhost:', 'mongodb://127.0.0.1:')
-              .replace('mongodb://mongodb/', 'mongodb://127.0.0.1/');
+          .replace('mongodb://mongodb:', 'mongodb://127.0.0.1:')
+          .replace('mongodb://localhost:', 'mongodb://127.0.0.1:')
+          .replace('mongodb://mongodb/', 'mongodb://127.0.0.1/');
         return {
           uri: finalUri,
           maxPoolSize: 10,

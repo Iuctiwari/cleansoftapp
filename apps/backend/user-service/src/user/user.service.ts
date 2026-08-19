@@ -146,10 +146,9 @@ export class UserService {
     if (!user || user.isDeleted) throw new NotFoundException('User not found');
 
     // Soft delete in User database
-    await this.userModel.updateOne(
-      { _id: user._id },
-      { $set: { isDeleted: true, status: 'Suspended' } }
-    ).exec();
+    await this.userModel
+      .updateOne({ _id: user._id }, { $set: { isDeleted: true, status: 'Suspended' } })
+      .exec();
 
     // Remove credentials from Auth database
     try {
@@ -296,5 +295,3 @@ export class UserService {
     };
   }
 }
-
-
