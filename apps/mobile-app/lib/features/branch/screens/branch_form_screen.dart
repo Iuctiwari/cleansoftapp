@@ -92,7 +92,10 @@ class _BranchFormScreenState extends State<BranchFormScreen> {
     super.dispose();
   }
 
-  static final RegExp _timePattern = RegExp(r'^([01]\d|2[0-3]):([0-5]\d)$');
+  static final RegExp _timePattern = RegExp(
+    r'^(?:([01]\d|2[0-3]):[0-5]\d|(?:0?[1-9]|1[0-2]):[0-5]\d\s?(?:AM|PM))$',
+    caseSensitive: false,
+  );
   static final RegExp _codePattern = RegExp(r'^[A-Za-z0-9\-_]+$');
   static final RegExp _phonePattern = RegExp(r'^\d{10}$');
   static final RegExp _emailPattern = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
@@ -103,13 +106,17 @@ class _BranchFormScreenState extends State<BranchFormScreen> {
     final String trimmed = value?.trim() ?? '';
     if (trimmed.isEmpty) return null;
     if (!_timePattern.hasMatch(trimmed)) {
-      return 'Use 24-hour HH:mm, e.g. 09:00';
+      return 'Enter a valid time, e.g. 09:00 or 9:00 AM';
     }
     return null;
   }
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+
+    final String? managerId = _optional(_managerIdController.text);
+    final bool managerIdChanged =
+        _isEdit && (_unassignManager || managerId != widget.branch!.managerId);
 
     final Branch? result = _isEdit
         ? await _controller.update(
@@ -127,10 +134,8 @@ class _BranchFormScreenState extends State<BranchFormScreen> {
               openingTime: _optional(_openingTimeController.text),
               closingTime: _optional(_closingTimeController.text),
               status: _status,
-              managerId: _unassignManager
-                  ? null
-                  : (_optional(_managerIdController.text) ??
-                        const _KeepUnset()),
+              managerId: _unassignManager ? null : managerId,
+              managerIdChanged: managerIdChanged,
             ),
           )
         : await _controller.create(
@@ -138,7 +143,6 @@ class _BranchFormScreenState extends State<BranchFormScreen> {
               branchName: _branchNameController.text.trim(),
               phone: _phoneController.text.trim(),
               email: _emailController.text.trim(),
-              code: _optional(_codeController.text),
               streetAddress: _optional(_streetAddressController.text),
               city: _optional(_cityController.text),
               state: _optional(_stateController.text),
@@ -259,20 +263,22 @@ class _BranchFormScreenState extends State<BranchFormScreen> {
           },
         ),
         const SizedBox(height: AppSpacing.formGroupGap),
-        AppTextField(
-          controller: _codeController,
-          label: 'Branch Code (optional)',
-          hintText: 'e.g. NX-001',
-          validator: (String? value) {
-            final String trimmed = value?.trim() ?? '';
-            if (trimmed.isEmpty) return null;
-            if (trimmed.length > 16 || !_codePattern.hasMatch(trimmed)) {
-              return 'Use up to 16 letters, numbers, - or _';
-            }
-            return null;
-          },
-        ),
-        const SizedBox(height: AppSpacing.formGroupGap),
+        if (_isEdit) ...<Widget>[
+          AppTextField(
+            controller: _codeController,
+            label: 'Branch Code (optional)',
+            hintText: 'e.g. NX-001',
+            validator: (String? value) {
+              final String trimmed = value?.trim() ?? '';
+              if (trimmed.isEmpty) return null;
+              if (trimmed.length > 16 || !_codePattern.hasMatch(trimmed)) {
+                return 'Use up to 16 letters, numbers, - or _';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: AppSpacing.formGroupGap),
+        ],
         AppTextField(
           controller: _streetAddressController,
           label: 'Street Address (optional)',
@@ -367,7 +373,7 @@ class _BranchFormScreenState extends State<BranchFormScreen> {
               child: AppTextField(
                 controller: _openingTimeController,
                 label: 'Opening Time (optional)',
-                hintText: 'HH:mm, e.g. 09:00',
+                hintText: 'e.g. 09:00 or 9:00 AM',
                 icon: AppIcons.clock,
                 validator: _validateTime,
               ),
@@ -377,7 +383,7 @@ class _BranchFormScreenState extends State<BranchFormScreen> {
               child: AppTextField(
                 controller: _closingTimeController,
                 label: 'Closing Time (optional)',
-                hintText: 'HH:mm, e.g. 21:00',
+                hintText: 'e.g. 21:00 or 9:00 PM',
                 icon: AppIcons.clock,
                 validator: _validateTime,
               ),
@@ -430,6 +436,7 @@ class _BranchFormScreenState extends State<BranchFormScreen> {
               ),
             ],
             onChanged: (BranchStatus next) => setState(() => _status = next),
+            enabled: !_controller.isSubmitting,
           ),
         ],
       ],
@@ -473,11 +480,4 @@ class _FormErrorBanner extends StatelessWidget {
       ),
     );
   }
-}
-
-/// Sentinel used only to keep [UpdateBranchInput.managerId] unset when the
-/// user left the manager field untouched (as opposed to explicitly clearing
-/// it) — see `branch_models.dart` for the tri-state contract.
-class _KeepUnset {
-  const _KeepUnset();
 }

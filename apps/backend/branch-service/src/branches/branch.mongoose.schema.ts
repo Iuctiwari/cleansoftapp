@@ -56,7 +56,7 @@ export class BranchMongoose extends Document {
   @Prop({ required: true })
   email!: string;
 
-  // New for NEX-136 — 24-hour "HH:mm" strings.
+  // New for NEX-136 — API-validated business-time strings.
   @Prop() openingTime?: string;
   @Prop() closingTime?: string;
 

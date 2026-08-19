@@ -11,6 +11,7 @@ import {
 } from './tenant.mongoose.schema';
 import type {
   BranchRecord,
+  CatalogProvisioningCandidate,
   CompleteTenantOnboardingInput,
   CompleteTenantOnboardingOutput,
   RegisterTenantOutput,
@@ -58,6 +59,28 @@ export class MongoTenantRepository implements TenantRepository {
   async listBranches(tenantId: string): Promise<BranchRecord[]> {
     const docs = await this.branchModel.find({ tenantId }).lean().exec();
     return docs.map((d) => this.mapBranch(d));
+  }
+
+  async listCatalogProvisioningCandidates(): Promise<CatalogProvisioningCandidate[]> {
+    const tenants = await this.tenantModel
+      .find({ status: { $in: ['Active', 'PendingVerification'] } })
+      .lean()
+      .exec();
+    const enabledServices = await this.tenantServiceModel
+      .find({ isEnabled: true, tenantId: { $in: tenants.map((tenant) => tenant.tenantId) } })
+      .lean()
+      .exec();
+    return tenants.map((tenant) => ({
+      tenantId: tenant.tenantId,
+      ownerUserId: tenant.ownerUserId,
+      businessTypes: [
+        ...new Set(
+          enabledServices
+            .filter((service) => service.tenantId === tenant.tenantId)
+            .map((service) => service.serviceType),
+        ),
+      ],
+    }));
   }
 
   async updateStatus(tenantId: string, status: TenantStatus): Promise<void> {
@@ -157,14 +180,6 @@ export class MongoTenantRepository implements TenantRepository {
         if (branchResult.matchedCount !== 1) {
           throw new Error('Head-office branch is missing during onboarding');
         }
-
-        await this.tenantServiceModel
-          .deleteMany({
-            tenantId,
-            serviceType: { $nin: input.services },
-          })
-          .session(session)
-          .exec();
 
         await this.tenantServiceModel.bulkWrite(
           input.services.map((serviceType) => ({

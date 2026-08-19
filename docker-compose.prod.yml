@@ -300,6 +300,8 @@ services:
       <<: *backend-base-env
       PORT: '3000'
       SERVICE_NAME: tenant-service
+      SERVICE_MANAGEMENT_BASE_URL: http://service-service:3000/api
+      CATALOG_PROVISIONING_KEY: ${CATALOG_PROVISIONING_KEY}
     networks:
       - nexoraa-internal
     logging: *prod-logging
@@ -376,6 +378,10 @@ services:
       <<: *backend-base-env
       PORT: '3000'
       SERVICE_NAME: service-service
+      AUTH_SERVICE_BASE_URL: http://auth-service:3000/api
+      BRANCH_SERVICE_BASE_URL: http://branch-service:3000
+      CATALOG_CREATE_INDEXES: 'true'
+      CATALOG_PROVISIONING_KEY: ${CATALOG_PROVISIONING_KEY}
     networks:
       - nexoraa-internal
     logging: *prod-logging
@@ -395,6 +401,11 @@ services:
       <<: *backend-base-env
       PORT: '3000'
       SERVICE_NAME: order-service
+      AUTH_SERVICE_BASE_URL: http://auth-service:3000/api
+      BRANCH_SERVICE_BASE_URL: http://branch-service:3000
+      CUSTOMER_SERVICE_BASE_URL: http://customer-service:3000
+      SERVICE_SERVICE_BASE_URL: http://service-service:3000/api/v1
+      PAYMENT_PROJECTION_KEY: ${PAYMENT_PROJECTION_KEY}
     networks:
       - nexoraa-internal
     logging: *prod-logging
@@ -414,6 +425,9 @@ services:
       <<: *backend-base-env
       PORT: '3000'
       SERVICE_NAME: payment-service
+      AUTH_SERVICE_BASE_URL: http://auth-service:3000/api
+      ORDER_SERVICE_BASE_URL: http://order-service:3000
+      PAYMENT_PROJECTION_KEY: ${PAYMENT_PROJECTION_KEY}
     networks:
       - nexoraa-internal
     logging: *prod-logging

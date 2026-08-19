@@ -1,0 +1,24 @@
+import { MiddlewareConsumer, Module, type NestModule } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
+import { MongooseModule } from '@nestjs/mongoose';
+import { DatabaseModule } from '@nexoraa/database';
+
+import { PaymentAuthenticationMiddleware } from './payment-auth.middleware';
+import { PaymentController } from './payment.controller';
+import { PaymentMongoose, PaymentMongooseSchema } from './payment.schema';
+import { PaymentService } from './payment.service';
+
+@Module({
+  imports: [
+    ConfigModule,
+    DatabaseModule,
+    MongooseModule.forFeature([{ name: PaymentMongoose.name, schema: PaymentMongooseSchema }]),
+  ],
+  controllers: [PaymentController],
+  providers: [PaymentAuthenticationMiddleware, PaymentService],
+})
+export class PaymentModule implements NestModule {
+  configure(consumer: MiddlewareConsumer): void {
+    consumer.apply(PaymentAuthenticationMiddleware).forRoutes(PaymentController);
+  }
+}

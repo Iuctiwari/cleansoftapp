@@ -54,13 +54,24 @@ export class BranchController {
     );
   }
 
+  @Get(':branchId')
+  @ApiOperation({ summary: 'Get an accessible branch by its stable branch identifier' })
+  @ApiParam({ name: 'branchId', description: 'Unique branch identifier' })
+  @ApiEnvelopeResponse(BranchDto, { description: 'The accessible branch.' })
+  getBranch(
+    @Param('branchId') branchId: string,
+    @Req() request: RequestWithPlatformContext,
+  ): Promise<BranchRecord> {
+    return this.branchService.getBranch(this.getContext(request), branchId);
+  }
+
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
     summary: 'Create a branch',
     description:
       'Owner only. tenantId is taken from the authenticated context, never from the request body. ' +
-      'Enforces the subscription branchLimit and branch-code uniqueness within the tenant.',
+      'Enforces the subscription branchLimit and generates a unique tenant-scoped branch code when omitted.',
   })
   @ApiEnvelopeResponse(BranchDto, { description: 'The created branch.', status: 'created' })
   async createBranch(

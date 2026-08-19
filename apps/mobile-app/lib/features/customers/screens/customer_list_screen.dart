@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:nexoraa_mobile/design_system/design_system.dart';
 import 'package:nexoraa_mobile/features/customers/controllers/customer_controller.dart';
 import 'package:nexoraa_mobile/features/customers/screens/customer_details_screen.dart';
@@ -44,6 +45,14 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
   }
 
   void _onScroll() {
+    // Only paginate while the user is actively scrolling toward the bottom
+    // (ScrollDirection.reverse = content moving up). Scrolling back toward
+    // the top must never trigger a reload — pagination is separate from
+    // pull-to-refresh.
+    if (_scrollController.position.userScrollDirection !=
+        ScrollDirection.reverse) {
+      return;
+    }
     if (_scrollController.position.extentAfter < 240) {
       unawaited(widget.controller.loadMore());
     }
@@ -187,7 +196,12 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
   );
 
   List<Widget> _content() {
-    if (widget.controller.isLoading) {
+    // Only replace the whole list with a spinner on the true first load
+    // (nothing to show yet). A refresh (pull-to-refresh or search) with
+    // existing customers already on screen relies on RefreshIndicator's own
+    // spinner as the single loading indicator, instead of stacking a second
+    // one on top of it.
+    if (widget.controller.isLoading && widget.controller.customers.isEmpty) {
       return const <Widget>[
         SliverFillRemaining(
           hasScrollBody: false,
@@ -241,9 +255,17 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
               const SizedBox(height: AppSpacing.listGap),
           itemBuilder: (_, int index) {
             final customer = widget.controller.customers[index];
-            return CustomerListCard(
-              customer: customer,
-              onTap: () => _openCustomer(customer.id),
+            return FutureBuilder<int>(
+              future: widget.controller.orderCountFor(customer.id),
+              builder: (context, orderCountSnapshot) => FutureBuilder<double>(
+                future: widget.controller.outstandingBalanceFor(customer.id),
+                builder: (context, balanceSnapshot) => CustomerListCard(
+                  customer: customer,
+                  orderCount: orderCountSnapshot.data,
+                  outstandingBalance: balanceSnapshot.data,
+                  onTap: () => _openCustomer(customer.id),
+                ),
+              ),
             );
           },
         ),

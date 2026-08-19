@@ -11,6 +11,7 @@
     "format:check": "prettier --check .",
     "start": "node ../../../scripts/run-typescript-project.mjs start",
     "start:prod": "node ../../../scripts/run-typescript-project.mjs start:prod",
+    "provision:catalogs": "node -r ts-node/register src/provision-existing-catalogs.ts",
     "lint": "eslint \"src/**/*.ts\" \"test/**/*.ts\" --no-error-on-unmatched-pattern",
     "typecheck": "node ../../../scripts/run-typescript-project.mjs typecheck"
   },

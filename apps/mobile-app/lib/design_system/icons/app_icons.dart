@@ -78,6 +78,7 @@ abstract final class AppIcons {
   static const IconData orders = Icons.shopping_bag_outlined;
   static const IconData tag = Icons.sell_outlined;
   static const IconData trendingUp = Icons.trending_up;
+  static const IconData trendingDown = Icons.trending_down;
   static const IconData delivery = Icons.local_shipping_outlined;
   static const IconData delete = Icons.delete_outline;
   static const IconData unlock = Icons.lock_open_outlined;

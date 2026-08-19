@@ -1,10 +1,40 @@
 import 'package:flutter/material.dart';
 import 'package:nexoraa_mobile/design_system/design_system.dart';
+import 'package:nexoraa_mobile/features/authentication/authentication_dependencies.dart';
 import 'package:nexoraa_mobile/features/customers/controllers/customer_controller.dart';
 import 'package:nexoraa_mobile/features/customers/models/customer.dart';
 import 'package:nexoraa_mobile/features/customers/screens/customer_form_screen.dart';
 import 'package:nexoraa_mobile/features/customers/services/customer_api_service.dart';
 import 'package:nexoraa_mobile/features/customers/widgets/customer_widgets.dart';
+import 'package:nexoraa_mobile/features/orders/controllers/order_controller.dart';
+import 'package:nexoraa_mobile/features/orders/models/order.dart';
+import 'package:nexoraa_mobile/features/orders/screens/order_details_screen.dart';
+import 'package:nexoraa_mobile/features/orders/services/order_api_service.dart';
+import 'package:nexoraa_mobile/features/orders/services/payment_api_service.dart';
+import 'package:nexoraa_mobile/features/orders/widgets/order_widgets.dart';
+import 'package:nexoraa_mobile/features/payments/controllers/payments_controller.dart';
+import 'package:nexoraa_mobile/features/payments/screens/payments_screen.dart';
+import 'package:nexoraa_mobile/features/payments/widgets/payments_widgets.dart';
+
+/// Number of pages fetched (at [_customerOrdersPageLimit] orders each) when
+/// gathering a customer's order history and summing their outstanding
+/// balance. Bounds the work done since neither backend exposes a dedicated
+/// per-customer aggregate endpoint; real customers stay well within this
+/// bound.
+const int _customerOrdersMaxPages = 5;
+const int _customerOrdersPageLimit = 50;
+
+class _CustomerOrdersSummary {
+  const _CustomerOrdersSummary({
+    required this.orders,
+    required this.totalCount,
+    required this.outstandingBalance,
+  });
+
+  final List<Order> orders;
+  final int totalCount;
+  final double outstandingBalance;
+}
 
 class CustomerDetailsScreen extends StatefulWidget {
   const CustomerDetailsScreen({
@@ -26,10 +56,20 @@ class _CustomerDetailsScreenState extends State<CustomerDetailsScreen> {
   bool _deleting = false;
   bool _changed = false;
 
+  OrderController? _orderController;
+  Future<_CustomerOrdersSummary>? _ordersFuture;
+  bool _isCollectingOutstanding = false;
+
   @override
   void initState() {
     super.initState();
     _load();
+  }
+
+  @override
+  void dispose() {
+    _orderController?.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -41,12 +81,158 @@ class _CustomerDetailsScreenState extends State<CustomerDetailsScreen> {
       final Customer customer = await widget.controller.details(
         widget.customerId,
       );
-      if (mounted) setState(() => _customer = customer);
+      if (mounted) {
+        setState(() {
+          _customer = customer;
+          _orderController ??= OrderController(
+            service: widget.controller.orderService
+              ..selectBranch(customer.branchId),
+          );
+          _ordersFuture = _loadCustomerOrders(customer.id);
+        });
+      }
     } on CustomerApiException catch (error) {
       if (mounted) setState(() => _error = error.message);
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  Future<_CustomerOrdersSummary> _loadCustomerOrders(String customerId) async {
+    final OrderController orderController = _orderController!;
+    final List<Order> orders = <Order>[];
+    double outstanding = 0;
+    int total = 0;
+    int page = 1;
+    while (page <= _customerOrdersMaxPages) {
+      final OrderPage result = await orderController.byCustomer(
+        customerId,
+        page: page,
+        limit: _customerOrdersPageLimit,
+      );
+      orders.addAll(result.items);
+      total = result.total;
+      for (final Order order in result.items) {
+        outstanding += order.outstandingAmount;
+      }
+      if (page >= result.totalPages) break;
+      page += 1;
+    }
+    return _CustomerOrdersSummary(
+      orders: orders,
+      totalCount: total,
+      outstandingBalance: outstanding,
+    );
+  }
+
+  /// Opens the SAME collect dialog and payment flow used by
+  /// Payments → Outstanding (`showCollectPaymentDialog` +
+  /// `PaymentsController.collect`), scoped to this customer's largest
+  /// outstanding order, then refreshes the profile from the backend.
+  Future<void> _collectOutstanding(
+    Customer customer,
+    _CustomerOrdersSummary summary,
+  ) async {
+    if (_isCollectingOutstanding) return;
+    final List<Order> outstandingOrders =
+        summary.orders.where((Order order) => order.outstandingAmount > 0).toList()
+          ..sort(
+            (Order a, Order b) =>
+                b.outstandingAmount.compareTo(a.outstandingAmount),
+          );
+    if (outstandingOrders.isEmpty) {
+      _message('No outstanding orders to collect from.');
+      return;
+    }
+    final Order candidate = outstandingOrders.first;
+    // Re-fetch the order right before opening the dialog: the customer
+    // profile's order list is loaded once per screen visit and can go stale
+    // (e.g. the same order was already partially collected elsewhere), which
+    // previously caused the dialog to allow an amount the backend would then
+    // reject as exceeding the order's *current* outstanding balance.
+    final Order target;
+    try {
+      target = await _orderController!.details(candidate.id);
+    } on OrderApiException catch (error) {
+      _message(error.message);
+      return;
+    }
+    if (target.outstandingAmount <= 0) {
+      _message('This order has already been fully paid.');
+      await _load();
+      return;
+    }
+    final ({double amount, PaymentMethod method})? result =
+        await showCollectPaymentDialog(context, order: target);
+    if (result == null) return;
+
+    setState(() => _isCollectingOutstanding = true);
+    final OrderController scopedOrderController = OrderController(
+      service: widget.controller.orderService..selectBranch(customer.branchId),
+    );
+    final PaymentApiService paymentApiService = PaymentApiService(
+      tokenStorage: AuthenticationDependencies.tokenStorage,
+    )..selectBranch(customer.branchId);
+    final PaymentsController paymentsController = PaymentsController(
+      paymentService: paymentApiService,
+      orderController: scopedOrderController,
+    );
+    try {
+      final bool success = await paymentsController.collect(
+        order: target,
+        amount: result.amount,
+        method: result.method,
+      );
+      if (!mounted) return;
+      if (success) {
+        _message('Payment collected.');
+        _changed = true;
+        await _load();
+      } else {
+        _message(paymentsController.collectError ?? 'Unable to collect payment.');
+      }
+    } finally {
+      paymentsController.dispose();
+      scopedOrderController.dispose();
+      if (mounted) setState(() => _isCollectingOutstanding = false);
+    }
+  }
+
+  Future<void> _openPaymentHistory() async {
+    final Customer? customer = _customer;
+    if (customer == null) return;
+    final OrderController scopedOrderController = OrderController(
+      service: widget.controller.orderService..selectBranch(customer.branchId),
+    );
+    final PaymentApiService paymentApiService = PaymentApiService(
+      tokenStorage: AuthenticationDependencies.tokenStorage,
+    )..selectBranch(customer.branchId);
+    final PaymentsController controller = PaymentsController(
+      paymentService: paymentApiService,
+      orderController: scopedOrderController,
+      customerId: customer.id,
+    );
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (_) => PaymentsScreen(
+          controller: controller,
+          title: '${customer.name} · Payments',
+        ),
+      ),
+    );
+    controller.dispose();
+    scopedOrderController.dispose();
+  }
+
+  Future<void> _openOrder(Order order) async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (_) => OrderDetailsScreen(
+          orderId: order.id,
+          controller: _orderController!,
+        ),
+      ),
+    );
   }
 
   Future<void> _edit() async {
@@ -256,11 +442,31 @@ class _CustomerDetailsScreenState extends State<CustomerDetailsScreen> {
           ),
         ),
         const SizedBox(height: AppSpacing.lg),
+        FutureBuilder<_CustomerOrdersSummary>(
+          future: _ordersFuture,
+          builder: (context, snapshot) => _ordersSection(customer, snapshot),
+        ),
+      ],
+    );
+  }
+
+  Widget _ordersSection(
+    Customer customer,
+    AsyncSnapshot<_CustomerOrdersSummary> snapshot,
+  ) {
+    final _CustomerOrdersSummary? summary = snapshot.data;
+    final String ordersValue = summary == null ? '…' : '${summary.totalCount}';
+    final String dueValue = summary == null
+        ? '…'
+        : formatMoney(summary.outstandingBalance);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
         Row(
           children: <Widget>[
             Expanded(
               child: CustomerSummaryCard(
-                value: '${customer.totalOrders}',
+                value: ordersValue,
                 label: 'Orders',
                 color: AppColors.primary,
                 background: AppColors.primarySurface,
@@ -278,7 +484,7 @@ class _CustomerDetailsScreenState extends State<CustomerDetailsScreen> {
             const SizedBox(width: AppSpacing.md),
             Expanded(
               child: CustomerSummaryCard(
-                value: formatMoney(customer.outstandingBalance),
+                value: dueValue,
                 label: 'Due',
                 color: AppColors.error,
                 background: AppColors.errorSurface,
@@ -306,31 +512,41 @@ class _CustomerDetailsScreenState extends State<CustomerDetailsScreen> {
                         color: AppColors.error,
                       ),
                     ),
-                    Text(
-                      formatMoney(customer.outstandingBalance),
-                      style: AppTextStyles.headingMedium,
-                    ),
+                    Text(dueValue, style: AppTextStyles.headingMedium),
                   ],
                 ),
               ),
-              ElevatedButton(
-                onPressed: () => _comingSoon('Collect payment'),
-                child: const Text('Collect'),
-              ),
+              // Hide the button once the balance is cleared — there is
+              // nothing left to collect for this customer.
+              if ((summary != null && summary.outstandingBalance > 0) ||
+                  _isCollectingOutstanding)
+                ElevatedButton(
+                  onPressed: summary == null || _isCollectingOutstanding
+                      ? null
+                      : () => _collectOutstanding(customer, summary),
+                  child: _isCollectingOutstanding
+                      ? const SizedBox(
+                          width: AppIconSizes.sm,
+                          height: AppIconSizes.sm,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: AppColors.surface,
+                          ),
+                        )
+                      : const Text('Collect'),
+                ),
             ],
           ),
         ),
         const SizedBox(height: AppSpacing.xl),
         Text('Order History', style: AppTextStyles.subtitle),
-        const CustomerEmptyState(
-          title: 'Order history coming soon',
-          message:
-              'Orders will appear here when Order Management is available.',
-        ),
+        const SizedBox(height: AppSpacing.md),
+        _orderHistoryContent(snapshot),
+        const SizedBox(height: AppSpacing.xl),
         SizedBox(
           width: double.infinity,
           child: OutlinedButton.icon(
-            onPressed: () => _comingSoon('Payment history'),
+            onPressed: _openPaymentHistory,
             style: OutlinedButton.styleFrom(
               foregroundColor: AppColors.primaryDark,
               backgroundColor: AppColors.primarySurface,
@@ -345,6 +561,47 @@ class _CustomerDetailsScreenState extends State<CustomerDetailsScreen> {
             label: const Text('View Payment History'),
           ),
         ),
+      ],
+    );
+  }
+
+  Widget _orderHistoryContent(
+    AsyncSnapshot<_CustomerOrdersSummary> snapshot,
+  ) {
+    if (snapshot.connectionState != ConnectionState.done) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: AppSpacing.xl),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+    if (snapshot.hasError) {
+      return CustomerEmptyState(
+        title: 'Unable to load orders',
+        message: 'Something went wrong while loading order history.',
+        action: OutlinedButton.icon(
+          onPressed: () {
+            final Customer? customer = _customer;
+            if (customer == null) return;
+            setState(() => _ordersFuture = _loadCustomerOrders(customer.id));
+          },
+          icon: const Icon(AppIcons.refresh),
+          label: const Text('Try again'),
+        ),
+      );
+    }
+    final List<Order> orders = snapshot.data?.orders ?? const <Order>[];
+    if (orders.isEmpty) {
+      return const CustomerEmptyState(
+        title: 'No orders yet',
+        message: 'Orders placed by this customer will appear here.',
+      );
+    }
+    return Column(
+      children: <Widget>[
+        for (final Order order in orders) ...<Widget>[
+          OrderListCard(order: order, onTap: () => _openOrder(order)),
+          const SizedBox(height: AppSpacing.listGap),
+        ],
       ],
     );
   }

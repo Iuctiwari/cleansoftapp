@@ -13,7 +13,9 @@ import {
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
-const TIME_PATTERN = /^([01]\d|2[0-3]):([0-5]\d)$/;
+// Accept standard 24-hour values and common 12-hour business-time values.
+// Invalid hours/minutes are still rejected at the API boundary.
+const TIME_PATTERN = /^(?:([01]\d|2[0-3]):[0-5]\d|(?:0?[1-9]|1[0-2]):[0-5]\d\s?(?:AM|PM))$/i;
 
 export class CreateBranchDto {
   @ApiProperty({ description: 'Display name of the branch', example: 'Kothrud Branch' })
@@ -23,8 +25,9 @@ export class CreateBranchDto {
   branchName!: string;
 
   @ApiPropertyOptional({
-    description: 'Short branch code, unique within the tenant (normalized to uppercase)',
-    example: 'KTD',
+    description:
+      'Optional legacy override. When omitted, the backend generates a tenant-unique NX-### code.',
+    example: 'NX-001',
     maxLength: 16,
   })
   @IsOptional()
@@ -74,13 +77,13 @@ export class CreateBranchDto {
   @MaxLength(160)
   email!: string;
 
-  @ApiPropertyOptional({ description: '24-hour HH:mm', example: '09:00' })
+  @ApiPropertyOptional({ description: 'Valid business time', example: '9:00 AM' })
   @IsOptional()
   @IsString()
   @Matches(TIME_PATTERN)
   openingTime?: string;
 
-  @ApiPropertyOptional({ description: '24-hour HH:mm', example: '21:00' })
+  @ApiPropertyOptional({ description: 'Valid business time', example: '9:00 PM' })
   @IsOptional()
   @IsString()
   @Matches(TIME_PATTERN)
@@ -154,13 +157,13 @@ export class UpdateBranchDto {
   @MaxLength(160)
   email?: string;
 
-  @ApiPropertyOptional({ description: '24-hour HH:mm', example: '09:00' })
+  @ApiPropertyOptional({ description: 'Valid business time', example: '9:00 AM' })
   @IsOptional()
   @IsString()
   @Matches(TIME_PATTERN)
   openingTime?: string;
 
-  @ApiPropertyOptional({ description: '24-hour HH:mm', example: '21:00' })
+  @ApiPropertyOptional({ description: 'Valid business time', example: '9:00 PM' })
   @IsOptional()
   @IsString()
   @Matches(TIME_PATTERN)

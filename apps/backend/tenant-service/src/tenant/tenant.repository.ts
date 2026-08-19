@@ -3,6 +3,7 @@ import { Injectable } from '@nestjs/common';
 import { generateTenantId } from './tenant.crypto';
 import type {
   BranchRecord,
+  CatalogProvisioningCandidate,
   CompleteTenantOnboardingInput,
   CompleteTenantOnboardingOutput,
   RegisterTenantOutput,
@@ -57,6 +58,22 @@ export class InMemoryTenantRepository implements TenantRepository {
 
   listBranches(tenantId: string): Promise<BranchRecord[]> {
     return Promise.resolve([...this.branches.values()].filter((b) => b.tenantId === tenantId));
+  }
+
+  listCatalogProvisioningCandidates(): Promise<CatalogProvisioningCandidate[]> {
+    return Promise.resolve(
+      [...this.tenants.values()].map((tenant) => ({
+        tenantId: tenant.tenantId,
+        ownerUserId: tenant.ownerUserId,
+        businessTypes: [
+          ...new Set(
+            [...this.services.values()]
+              .filter((service) => service.tenantId === tenant.tenantId && service.isEnabled)
+              .map((service) => service.serviceType),
+          ),
+        ],
+      })),
+    );
   }
 
   updateStatus(tenantId: string, status: TenantStatus): Promise<void> {
@@ -139,11 +156,6 @@ export class InMemoryTenantRepository implements TenantRepository {
       updatedAt: now,
     });
 
-    for (const [serviceId, service] of this.services) {
-      if (service.tenantId === tenantId && !input.services.includes(service.serviceType)) {
-        this.services.delete(serviceId);
-      }
-    }
     for (const serviceType of input.services) {
       const existing = [...this.services.values()].find(
         (service) => service.tenantId === tenantId && service.serviceType === serviceType,

@@ -107,7 +107,7 @@ abstract final class AppColors {
   static const Color statusReady = success;
   static const Color statusProcessing = primary;
   static const Color statusPending = warningDeep;
-  static const Color statusCompleted = textMuted;
+  static const Color statusCompleted = success;
   static const Color statusError = error;
   static const Color statusPurple = secondary;
   static const Color availabilityAvailable = successLight;
@@ -174,7 +174,7 @@ abstract final class SemanticColors {
   );
   static const AppSemanticColor statusCompleted = AppSemanticColor(
     text: AppColors.statusCompleted,
-    background: AppColors.surfaceGray,
+    background: AppColors.successSurface,
   );
   static const AppSemanticColor statusError = AppSemanticColor(
     text: AppColors.statusError,
