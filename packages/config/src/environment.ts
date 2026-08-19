@@ -61,7 +61,7 @@ function validateUrlProtocol(value: unknown, variable: string, protocols: readon
   try {
     // URL parser fails on comma-separated hosts used in MongoDB replica sets
     if (String(value).startsWith('mongodb://') && String(value).includes(',')) {
-      url = { protocol: 'mongodb:' } as any;
+      url = { protocol: 'mongodb:' } as unknown as URL;
     } else {
       url = new URL(String(value));
     }
