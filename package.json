@@ -45,5 +45,10 @@
   "dependencies": {
     "@nestjs/swagger": "^11.4.6",
     "swagger-ui-express": "^5.0.1"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "puppeteer"
+    ]
   }
 }
