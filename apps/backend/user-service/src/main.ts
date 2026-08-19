@@ -1,6 +1,6 @@
 import 'reflect-metadata';
 
-import { Logger } from '@nestjs/common';
+import { Logger, ValidationPipe, VersioningType } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { setupSwagger } from '@nexoraa/swagger';
@@ -28,6 +28,17 @@ async function bootstrap(): Promise<void> {
 
   app.enableCors();
   app.enableShutdownHooks();
+
+  app.setGlobalPrefix('api');
+  app.enableVersioning({ type: VersioningType.URI, defaultVersion: '1' });
+  app.useGlobalPipes(
+    new ValidationPipe({
+      forbidNonWhitelisted: true,
+      transform: true,
+      whitelist: true,
+    }),
+  );
+
   setupSwagger(app, { title: 'Nexoraa User Service API' });
 
   await app.listen(port, HOST);

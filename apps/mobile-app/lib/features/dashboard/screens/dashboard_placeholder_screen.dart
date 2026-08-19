@@ -135,7 +135,8 @@ class _DashboardPlaceholderScreenState
                 ownerName: data.ownerName,
                 onNotificationsPressed: () =>
                     context.pushNamed(AppRouteNames.notifications),
-                onProfilePressed: () => _showUiOnlyMessage('Profile selected'),
+                onProfilePressed: () =>
+                    context.pushNamed(AppRouteNames.profile),
               ),
               SliverToBoxAdapter(
                 child: DashboardHeader(

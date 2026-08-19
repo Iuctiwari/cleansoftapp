@@ -5,6 +5,7 @@ import { AuthModule } from './auth/auth.module';
 import { validateAuthEnvironment } from './auth/auth.config';
 import { PlatformModule } from './platform/platform.module';
 import { SchedulerModule } from './scheduler/scheduler.module';
+import { StaffProvisioningController } from './platform/staff-provisioning.controller';
 
 @Module({
   imports: [
@@ -12,6 +13,7 @@ import { SchedulerModule } from './scheduler/scheduler.module';
       cache: true,
       expandVariables: true,
       isGlobal: true,
+      envFilePath: ['.env', '../../../.env'],
       validate: validateAuthEnvironment,
     }),
     PlatformModule,
@@ -19,7 +21,8 @@ import { SchedulerModule } from './scheduler/scheduler.module';
     AuthModule,
     SchedulerModule,
   ],
-  controllers: [],
+  controllers: [StaffProvisioningController],
   providers: [],
 })
 export class AppModule {}
+

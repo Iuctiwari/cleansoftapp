@@ -12,6 +12,7 @@ import type {
   AuthRepository,
   AuthSessionRecord,
   PasswordResetRecord,
+  StaffAuthRecord,
 } from './auth.types';
 
 import {
@@ -31,6 +32,8 @@ import {
   TenantAuthMongoose,
   BranchAuthDocument,
   BranchAuthMongoose,
+  TenantStaffAuthDocument,
+  TenantStaffAuthMongoose,
 } from './auth.mongoose.schema';
 
 @Injectable()
@@ -50,6 +53,8 @@ export class MongoAuthRepository implements AuthRepository, OnModuleInit {
     private readonly tenantOwnerModel: Model<TenantOwnerAuthDocument>,
     @InjectModel(TenantAuthMongoose.name) private readonly tenantModel: Model<TenantAuthDocument>,
     @InjectModel(BranchAuthMongoose.name) private readonly branchModel: Model<BranchAuthDocument>,
+    @InjectModel(TenantStaffAuthMongoose.name)
+    private readonly tenantStaffModel: Model<TenantStaffAuthDocument>,
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -115,7 +120,10 @@ export class MongoAuthRepository implements AuthRepository, OnModuleInit {
         .lean()
         .exec();
 
-      if (!owner) return null;
+      if (!owner) {
+        // Owner not found — try staff lookup by loginId
+        return this.findStaffIdentityByLoginId(normalized, tenantSlug);
+      }
       const resolvedTenant =
         tenant ?? (await this.tenantModel.findOne({ tenantId: owner.tenantId }).lean().exec());
       if (!resolvedTenant) return null;
@@ -156,6 +164,60 @@ export class MongoAuthRepository implements AuthRepository, OnModuleInit {
     return null;
   }
 
+
+  /**
+   * Look up a staff member by loginId within a tenant.
+   * Called after owner lookup fails so staff can log in with their loginId.
+   */
+  private async findStaffIdentityByLoginId(
+    loginId: string,
+    tenantSlug?: string,
+  ): Promise<AuthIdentityRecord | null> {
+    const normalized = normalizeIdentifier(loginId);
+    const filter: Record<string, unknown> = { loginId: normalized };
+    // In a single-tenant or global login system, loginId (email) is unique enough.
+    // If the mobile app sends a generic slug like "nexoraa-admin", filtering by it
+    // will break login for staff members of other tenants.
+    const staff = await this.tenantStaffModel.findOne(filter).lean().exec();
+    if (!staff) return null;
+
+    const resolvedTenant = await this.tenantModel
+      .findOne({ tenantId: staff.tenantId })
+      .lean()
+      .exec();
+    if (!resolvedTenant) return null;
+
+    const branches = await this.branchModel.find({ tenantId: staff.tenantId }).lean().exec();
+    const mappedBranches = branches.map((b) => ({
+      branchId: b.branchId,
+      branchCode: b.branchName.replace(/\s+/g, '-').toLowerCase(),
+      branchName: b.branchName,
+    }));
+
+    return {
+      userId: staff.userId,
+      kind: 'tenant',
+      // Use loginId as the email field so existing auth flow works for identifier lookup
+      email: staff.loginId,
+      displayName: staff.displayName,
+      passwordHash: staff.passwordHash,
+      roleCode: staff.roleCode,
+      permissions: Object.freeze(staff.permissions),
+      status: staff.status as AuthIdentityRecord['status'],
+      accessVersion: staff.accessVersion,
+      tenantId: staff.tenantId,
+      tenantSlug: staff.tenantSlug,
+      tenantName: staff.tenantName,
+      tenantStatus: resolvedTenant.status === 'Active' ? 'active' : 'disabled',
+      branches: Object.freeze(mappedBranches),
+      defaultBranchId: mappedBranches.find(
+        (b) => branches.find((ob) => ob.branchId === b.branchId)?.isHeadOffice,
+      )?.branchId,
+      passwordChangedAtUtc: staff.createdAtUtc,
+      loginId: staff.loginId,
+    };
+  }
+
   async findIdentityByUserId(userId: string): Promise<AuthIdentityRecord | null> {
     const platform = await this.platformUserModel.findOne({ userId }).lean().exec();
     if (platform) {
@@ -166,6 +228,13 @@ export class MongoAuthRepository implements AuthRepository, OnModuleInit {
     if (tenantOwner) {
       return this.findIdentity('tenant', tenantOwner.email, tenantOwner.slug);
     }
+
+    // Check staff identities
+    const staff = await this.tenantStaffModel.findOne({ userId }).lean().exec();
+    if (staff) {
+      return this.findStaffIdentityByLoginId(staff.loginId, staff.tenantSlug);
+    }
+
     return null;
   }
 
@@ -349,4 +418,54 @@ export class MongoAuthRepository implements AuthRepository, OnModuleInit {
     await this.notificationModel.create(intent);
     return intent;
   }
+
+  // ── Staff identity management ──────────────────────────────────────────────
+
+  async createStaffIdentity(record: StaffAuthRecord): Promise<StaffAuthRecord> {
+    await this.tenantStaffModel.create({
+      userId: record.userId,
+      tenantId: record.tenantId,
+      tenantSlug: record.tenantSlug,
+      tenantName: record.tenantName,
+      loginId: record.loginId,
+      displayName: record.displayName,
+      email: record.email,
+      passwordHash: record.passwordHash,
+      roleCode: record.roleCode,
+      permissions: record.permissions,
+      status: record.status,
+      accessVersion: record.accessVersion,
+      createdAtUtc: record.createdAtUtc,
+    });
+    return record;
+  }
+
+  async deleteStaffIdentity(userId: string): Promise<void> {
+    await this.tenantStaffModel.deleteOne({ userId }).exec();
+  }
+
+  async findStaffIdentityByUserId(userId: string): Promise<StaffAuthRecord | null> {
+    const doc = await this.tenantStaffModel.findOne({ userId }).lean().exec();
+    if (!doc) return null;
+    return {
+      userId: doc.userId,
+      tenantId: doc.tenantId,
+      tenantSlug: doc.tenantSlug,
+      tenantName: doc.tenantName,
+      loginId: doc.loginId,
+      displayName: doc.displayName,
+      email: doc.email,
+      passwordHash: doc.passwordHash,
+      roleCode: doc.roleCode,
+      permissions: Object.freeze(doc.permissions),
+      status: doc.status as StaffAuthRecord['status'],
+      accessVersion: doc.accessVersion,
+      createdAtUtc: doc.createdAtUtc,
+    };
+  }
+
+  async updateStaffIdentityStatus(userId: string, status: 'active' | 'disabled'): Promise<void> {
+    await this.tenantStaffModel.updateOne({ userId }, { $set: { status } }).exec();
+  }
 }
+

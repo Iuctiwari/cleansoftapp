@@ -30,6 +30,25 @@ export interface AuthIdentityRecord {
   readonly branches: readonly AuthBranchAssignment[];
   readonly defaultBranchId?: string;
   readonly passwordChangedAtUtc: string;
+  /** Set only for staff identities — the loginId chosen by the owner. */
+  readonly loginId?: string;
+}
+
+/** Minimal record written to the tenantStaff collection when an owner registers a staff member. */
+export interface StaffAuthRecord {
+  readonly userId: string;
+  readonly tenantId: string;
+  readonly tenantSlug: string;
+  readonly tenantName: string;
+  readonly loginId: string;
+  readonly displayName: string;
+  readonly email?: string;
+  readonly passwordHash: string;
+  readonly roleCode: string;
+  readonly permissions: readonly string[];
+  readonly status: AuthIdentityStatus;
+  readonly accessVersion: number;
+  readonly createdAtUtc: string;
 }
 
 export interface AuthLoginTracker {
@@ -287,6 +306,11 @@ export interface AuthRepository {
   consumePasswordReset(record: PasswordResetRecord): Promise<PasswordResetRecord>;
   updatePasswordReset(record: PasswordResetRecord): Promise<PasswordResetRecord>;
   recordNotification(intent: AuthNotificationIntent): Promise<AuthNotificationIntent>;
+  // ── Staff identity management ──────────────────────────────────────────────
+  createStaffIdentity(record: StaffAuthRecord): Promise<StaffAuthRecord>;
+  findStaffIdentityByUserId(userId: string): Promise<StaffAuthRecord | null>;
+  updateStaffIdentityStatus(userId: string, status: 'active' | 'disabled'): Promise<void>;
+
 }
 
 export interface AccessTokenResolution {
@@ -301,3 +325,9 @@ export interface AuthContextRequest extends RequestWithPlatformContext {
 }
 
 export const AUTH_REPOSITORY = Symbol('AUTH_REPOSITORY');
+export const STAFF_ROLES_PERMISSIONS: Record<string, readonly string[]> = {
+  Owner: Object.freeze(['manage:business', 'manage:staff', 'view:analytics', 'manage:billing']),
+  'Branch Manager': Object.freeze(['manage:branch_schedule', 'view:branch_analytics', 'manage:cashiers']),
+  Staff: Object.freeze(['view:schedule', 'manage:appointments', 'update:profile']),
+  Cashier: Object.freeze(['process:payments', 'issue:refunds', 'view:reports']),
+};

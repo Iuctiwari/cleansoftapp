@@ -13,7 +13,7 @@
     "build": "turbo run build",
     "build:backend": "pnpm --filter @nexoraa/config build && pnpm --filter @nexoraa/database build && pnpm --filter @nexoraa/swagger build && pnpm --filter \"./apps/backend/**\" --recursive build",
     "clean": "turbo run clean",
-    "dev": "turbo run dev --parallel",
+    "dev": "turbo run dev --parallel --filter=\"!@nexoraa/mobile-app\"",
     "format": "prettier --write \"eslint.config.mjs\" \"tsconfig.base.json\" \"package.json\" \"turbo.json\" \"pnpm-workspace.yaml\" \"docker-compose.yml\" \"scripts/run-typescript-project.mjs\" \"apps/backend/**/*.{ts,json}\" \"packages/**/*.{ts,json}\"",
     "format:check": "prettier --check \"eslint.config.mjs\" \"tsconfig.base.json\" \"package.json\" \"turbo.json\" \"pnpm-workspace.yaml\" \"docker-compose.yml\" \"scripts/run-typescript-project.mjs\" \"apps/backend/**/*.{ts,json}\" \"packages/**/*.{ts,json}\"",
     "lint": "turbo run lint",

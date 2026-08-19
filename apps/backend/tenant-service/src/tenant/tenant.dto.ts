@@ -5,7 +5,7 @@ import {
   IsArray,
   IsBoolean,
   IsEmail,
-  IsEnum,
+  IsIn,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -50,7 +50,7 @@ export class RegisterTenantDto {
     enum: BUSINESS_TYPE_VALUES,
     example: 'laundry',
   })
-  @IsEnum(BUSINESS_TYPE_VALUES)
+  @IsIn(BUSINESS_TYPE_VALUES)
   businessType!: TenantBusinessType;
 
   @ApiProperty({
@@ -164,7 +164,7 @@ export class CompleteTenantOnboardingDto {
   businessName!: string;
 
   @ApiProperty({ enum: BUSINESS_TYPE_VALUES, example: 'laundry' })
-  @IsEnum(BUSINESS_TYPE_VALUES)
+  @IsIn(BUSINESS_TYPE_VALUES)
   businessType!: TenantBusinessType;
 
   @ApiProperty({ example: 'Priya Sharma', maxLength: 120 })
@@ -198,7 +198,7 @@ export class CompleteTenantOnboardingDto {
   @IsArray()
   @ArrayNotEmpty()
   @ArrayUnique()
-  @IsEnum(BUSINESS_TYPE_VALUES, { each: true })
+  @IsIn(BUSINESS_TYPE_VALUES, { each: true })
   services!: TenantBusinessType[];
 
   @ApiProperty({
