@@ -146,8 +146,24 @@ class MoreScreen extends StatelessWidget {
   }
 
   void _handleItemTap(BuildContext context, MoreMenuItemData item) {
+    if (item.title == 'Staff Management') {
+      context.pushNamed(AppRouteNames.staffList);
+      return;
+    }
+    if (item.title == 'Expenses') {
+      onExpensesTap();
+      return;
+    }
     if (item.title == 'Branch Management') {
       context.pushNamed(AppRouteNames.branchList);
+      return;
+    }
+    if (item.title == 'My Profile') {
+      context.pushNamed(AppRouteNames.profile);
+      return;
+    }
+    if (item.title == 'Payments') {
+      _openPayments(context);
       return;
     }
     _showPlaceholder(context, item.title);
