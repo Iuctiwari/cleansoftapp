@@ -6,6 +6,7 @@ import 'package:nexoraa_mobile/features/orders/controllers/order_controller.dart
 import 'package:nexoraa_mobile/features/orders/models/order.dart';
 import 'package:nexoraa_mobile/features/orders/services/order_api_service.dart';
 import 'package:nexoraa_mobile/features/orders/widgets/order_widgets.dart';
+import 'package:nexoraa_mobile/features/receipt/screens/receipt_preview_screen.dart';
 
 class OrderDetailsScreen extends StatefulWidget {
   const OrderDetailsScreen({
@@ -65,6 +66,18 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
     _message('Order summary copied for WhatsApp sharing.');
   }
 
+  Future<void> _openReceipt(Order order) async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (_) => ReceiptPreviewScreen(
+          orderId: order.id,
+          branchId: order.branchId,
+          orderNumber: order.orderNumber,
+        ),
+      ),
+    );
+  }
+
   Future<void> _markDelivered(Order order) async {
     if (_isUpdatingStatus) return;
     setState(() => _isUpdatingStatus = true);
@@ -106,6 +119,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
               onCall: () => unawaited(_call(data.order)),
               onWhatsApp: () => unawaited(_whatsApp(data.order)),
               onMarkDelivered: () => unawaited(_markDelivered(data.order)),
+              onPrint: () => unawaited(_openReceipt(data.order)),
             );
           },
     ),
@@ -126,6 +140,7 @@ class _OrderDetailsContent extends StatelessWidget {
     required this.onCall,
     required this.onWhatsApp,
     required this.onMarkDelivered,
+    required this.onPrint,
   });
 
   final _OrderDetailsData data;
@@ -133,6 +148,7 @@ class _OrderDetailsContent extends StatelessWidget {
   final VoidCallback onCall;
   final VoidCallback onWhatsApp;
   final VoidCallback onMarkDelivered;
+  final VoidCallback onPrint;
 
   @override
   Widget build(BuildContext context) {
@@ -173,6 +189,7 @@ class _OrderDetailsContent extends StatelessWidget {
               isUpdatingStatus: isUpdatingStatus,
               onWhatsApp: onWhatsApp,
               onMarkDelivered: onMarkDelivered,
+              onPrint: onPrint,
             ),
           ],
         );
@@ -799,12 +816,14 @@ class _BottomActions extends StatelessWidget {
     required this.isUpdatingStatus,
     required this.onWhatsApp,
     required this.onMarkDelivered,
+    required this.onPrint,
   });
 
   final Order order;
   final bool isUpdatingStatus;
   final VoidCallback onWhatsApp;
   final VoidCallback onMarkDelivered;
+  final VoidCallback onPrint;
 
   @override
   Widget build(BuildContext context) {
@@ -815,14 +834,11 @@ class _BottomActions extends StatelessWidget {
       children: <Widget>[
         Expanded(
           flex: 2,
-          child: Tooltip(
-            message: 'Printing is not configured in the current app.',
-            child: _CompactActionButton(
-              label: 'Print',
-              icon: AppIcons.print,
-              onPressed: null,
-              primary: false,
-            ),
+          child: _CompactActionButton(
+            label: 'Print',
+            icon: AppIcons.print,
+            onPressed: onPrint,
+            primary: false,
           ),
         ),
         const SizedBox(width: AppSpacing.md),

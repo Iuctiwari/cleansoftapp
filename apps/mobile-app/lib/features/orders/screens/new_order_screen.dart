@@ -12,6 +12,7 @@ import 'package:nexoraa_mobile/features/orders/models/order_catalog.dart';
 import 'package:nexoraa_mobile/features/orders/screens/order_details_screen.dart';
 import 'package:nexoraa_mobile/features/orders/widgets/new_order_widgets.dart';
 import 'package:nexoraa_mobile/features/orders/widgets/order_widgets.dart';
+import 'package:nexoraa_mobile/features/receipt/screens/receipt_preview_screen.dart';
 
 class NewOrderScreen extends StatefulWidget {
   const NewOrderScreen({
@@ -176,6 +177,18 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
         builder: (_) => OrderDetailsScreen(
           orderId: order.id,
           controller: widget.orderController,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openReceipt(Order order) async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (_) => ReceiptPreviewScreen(
+          orderId: order.id,
+          branchId: order.branchId,
+          orderNumber: order.orderNumber,
         ),
       ),
     );
@@ -736,15 +749,12 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
               Row(
                 children: <Widget>[
                   Expanded(
-                    child: Tooltip(
-                      message: 'Printing is not configured in the current app.',
-                      child: SizedBox(
-                        height: AppSizes.buttonLargeHeight,
-                        child: OutlinedButton.icon(
-                          onPressed: null,
-                          icon: const Icon(AppIcons.print),
-                          label: const Text('Print'),
-                        ),
+                    child: SizedBox(
+                      height: AppSizes.buttonLargeHeight,
+                      child: OutlinedButton.icon(
+                        onPressed: () => unawaited(_openReceipt(order)),
+                        icon: const Icon(AppIcons.print),
+                        label: const Text('Print'),
                       ),
                     ),
                   ),

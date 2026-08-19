@@ -46,6 +46,7 @@ import { ORDER_DEPENDENCIES, ORDER_REPOSITORY } from './order.types';
     HttpOrderDependencies,
     { provide: ORDER_DEPENDENCIES, useExisting: HttpOrderDependencies },
   ],
+  exports: [OrderService],
 })
 export class OrderModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {
