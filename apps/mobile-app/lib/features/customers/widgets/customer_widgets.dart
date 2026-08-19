@@ -54,10 +54,21 @@ class CustomerListCard extends StatelessWidget {
   const CustomerListCard({
     required this.customer,
     required this.onTap,
+    this.orderCount,
+    this.outstandingBalance,
     super.key,
   });
   final Customer customer;
   final VoidCallback onTap;
+
+  /// Real order count fetched from the Orders API. Null while it is still
+  /// loading.
+  final int? orderCount;
+
+  /// Real outstanding balance fetched from the Orders API. Null while it is
+  /// still loading; the "Due" badge stays hidden until a value (including
+  /// zero) arrives.
+  final double? outstandingBalance;
 
   @override
   Widget build(BuildContext context) => CustomerSurfaceCard(
@@ -95,10 +106,9 @@ class CustomerListCard extends StatelessWidget {
                         style: AppTextStyles.subtitle,
                       ),
                     ),
-                    if (customer.outstandingBalance > 0)
+                    if (outstandingBalance != null && outstandingBalance! > 0)
                       _Badge(
-                        label:
-                            'Due ${formatMoney(customer.outstandingBalance)}',
+                        label: 'Due ${formatMoney(outstandingBalance!)}',
                         color: AppColors.error,
                         background: AppColors.errorSurface,
                       ),
@@ -165,7 +175,7 @@ class CustomerListCard extends StatelessWidget {
                         ),
                         const SizedBox(width: AppSpacing.xs),
                         Text(
-                          '${customer.totalOrders}',
+                          orderCount == null ? '…' : '$orderCount',
                           style: AppTextStyles.captionBold.copyWith(
                             color: AppColors.textPrimary,
                           ),

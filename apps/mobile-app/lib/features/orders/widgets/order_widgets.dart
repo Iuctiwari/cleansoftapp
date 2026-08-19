@@ -144,7 +144,7 @@ class OrderListCard extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.xs),
               Text(
-                '${order.orderNumber} · ${orderItemsSummary(order)}',
+                '${compactOrderNumber(order.orderNumber)} · ${orderItemsSummary(order)}',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: AppTextStyles.caption.copyWith(

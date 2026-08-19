@@ -47,6 +47,7 @@ class OrderApiService {
     String search = '',
     OrderStatus? status,
     OrderPaymentStatus? paymentStatus,
+    String? customerId,
     String sortBy = 'createdAt',
     String sortDirection = 'desc',
   }) async {
@@ -57,6 +58,8 @@ class OrderApiService {
         if (search.trim().isNotEmpty) 'search': search.trim(),
         if (status != null) 'status': status.apiValue,
         if (paymentStatus != null) 'paymentStatus': paymentStatus.apiValue,
+        if (customerId != null && customerId.trim().isNotEmpty)
+          'customerId': customerId.trim(),
         'sortBy': sortBy,
         'sortDirection': sortDirection,
       },

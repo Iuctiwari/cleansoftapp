@@ -11,6 +11,7 @@ import 'package:nexoraa_mobile/features/authentication/services/auth_token_stora
 import 'package:nexoraa_mobile/features/customers/controllers/customer_controller.dart';
 import 'package:nexoraa_mobile/features/customers/screens/customer_list_screen.dart';
 import 'package:nexoraa_mobile/features/customers/services/customer_api_service.dart';
+import 'package:nexoraa_mobile/features/orders/services/order_api_service.dart';
 
 void main() {
   testWidgets(
@@ -198,7 +199,60 @@ CustomerController _controller(
     baseUrl: 'http://customer.test',
     client: MockClient(handler),
   )..selectBranch('branch-a'),
+  orderService: OrderApiService(
+    tokenStorage: _MemoryTokenStorage(),
+    baseUrl: 'http://order.test/api',
+    client: MockClient((http.Request request) async {
+      // The branch-wide outstanding total (CustomerController.load) sums
+      // unpaid/partially-paid orders; return the whole 650 for "Unpaid" so
+      // it lands on the same real total the UI previously trusted from the
+      // (now-known-unreliable) customer statistics aggregate.
+      if (request.url.queryParameters['paymentStatus'] == 'Unpaid') {
+        return http.Response(
+          jsonEncode(<String, Object>{
+            'items': <Object>[_outstandingOrderJson()],
+            'total': 1,
+            'page': 1,
+            'limit': 100,
+            'totalPages': 1,
+          }),
+          200,
+        );
+      }
+      return http.Response(
+        jsonEncode(<String, Object>{
+          'items': <Object>[],
+          'total': 0,
+          'page': 1,
+          'limit': 1,
+          'totalPages': 1,
+        }),
+        200,
+      );
+    }),
+  )..selectBranch('branch-a'),
 );
+
+Map<String, Object?> _outstandingOrderJson() => <String, Object?>{
+  'id': 'order-1',
+  'tenantId': 'tenant-1',
+  'branchId': 'branch-a',
+  'orderNumber': 'ORD-MAIN-000001',
+  'customerId': 'customer-1',
+  'customerSnapshot': <String, Object?>{'name': 'Hassan Ali'},
+  'status': 'Received',
+  'paymentStatus': 'Unpaid',
+  'items': <Object>[],
+  'subtotal': 650,
+  'discount': 0,
+  'discountPercentage': 0,
+  'tax': 0,
+  'grandTotal': 650,
+  'paidAmount': 0,
+  'outstandingAmount': 650,
+  'createdAt': '2026-08-12T00:00:00.000Z',
+  'updatedAt': '2026-08-12T00:00:00.000Z',
+};
 
 Widget _app(Widget child) => MaterialApp(
   theme: AppTheme.light,

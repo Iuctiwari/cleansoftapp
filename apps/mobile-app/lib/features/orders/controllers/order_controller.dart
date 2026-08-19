@@ -2,6 +2,13 @@ import 'package:flutter/foundation.dart';
 import 'package:nexoraa_mobile/features/orders/models/order.dart';
 import 'package:nexoraa_mobile/features/orders/services/order_api_service.dart';
 
+/// Number of pages fetched (at [_dashboardCountsPageLimit] orders each) when
+/// scanning today's/yesterday's order counts for the Dashboard. Bounds the
+/// work done since neither backend exposes a dedicated aggregate endpoint;
+/// real branch volumes stay well within this bound.
+const int _dashboardCountsMaxPages = 5;
+const int _dashboardCountsPageLimit = 100;
+
 class OrderController extends ChangeNotifier {
   OrderController({required OrderApiService service}) : _service = service;
 
@@ -36,6 +43,7 @@ class OrderController extends ChangeNotifier {
   }
 
   Future<void> load({String? search, OrderListFilter? filter}) async {
+    if (_loading) return;
     _search = search ?? _search;
     _filter = filter ?? _filter;
     _loading = true;
@@ -110,7 +118,66 @@ class OrderController extends ChangeNotifier {
     OrderPaymentStatus paymentStatus, {
     int page = 1,
     int limit = OrderApiService.defaultPageSize,
-  }) => _service.list(page: page, limit: limit, paymentStatus: paymentStatus);
+    String? customerId,
+  }) => _service.list(
+    page: page,
+    limit: limit,
+    paymentStatus: paymentStatus,
+    customerId: customerId,
+  );
+
+  /// Fetches orders belonging to a single customer directly from the
+  /// backend, without touching the paginated [orders] list used by the full
+  /// Orders screen. Used by the Customer Profile screen's order history and
+  /// outstanding-balance sections, since customer-service does not keep
+  /// per-customer order counts/balances in sync.
+  Future<OrderPage> byCustomer(
+    String customerId, {
+    int page = 1,
+    int limit = OrderApiService.defaultPageSize,
+  }) => _service.list(page: page, limit: limit, customerId: customerId);
+
+  /// Counts orders created today and yesterday from a bounded newest-first
+  /// page scan (no dedicated aggregate endpoint exists), for the Dashboard's
+  /// "Today's Orders" KPI and its yesterday comparison.
+  Future<(int today, int yesterday)> todayVsYesterdayCounts() async {
+    final DateTime now = DateTime.now();
+    final DateTime today = DateTime(now.year, now.month, now.day);
+    final DateTime yesterday = today.subtract(const Duration(days: 1));
+    int todayCount = 0;
+    int yesterdayCount = 0;
+    int page = 1;
+    while (page <= _dashboardCountsMaxPages) {
+      final OrderPage result = await _service.list(
+        page: page,
+        limit: _dashboardCountsPageLimit,
+      );
+      bool reachedOlderDay = false;
+      for (final Order order in result.items) {
+        final DateTime local = order.createdAt.toLocal();
+        final DateTime day = DateTime(local.year, local.month, local.day);
+        if (day.isAtSameMomentAs(today)) {
+          todayCount += 1;
+        } else if (day.isAtSameMomentAs(yesterday)) {
+          yesterdayCount += 1;
+        } else if (day.isBefore(yesterday)) {
+          reachedOlderDay = true;
+          break;
+        }
+      }
+      if (reachedOlderDay || page >= result.totalPages) break;
+      page += 1;
+    }
+    return (todayCount, yesterdayCount);
+  }
+
+  /// Current count of orders in the given status for the selected branch,
+  /// via the existing Orders API's pagination total (no dedicated
+  /// count/aggregate endpoint exists).
+  Future<int> countByStatus(OrderStatus status) async {
+    final OrderPage page = await _service.list(status: status, limit: 1);
+    return page.total;
+  }
 
   Future<Order> changeStatus(String id, OrderStatus status) async {
     final Order order = await _service.changeStatus(id, status);

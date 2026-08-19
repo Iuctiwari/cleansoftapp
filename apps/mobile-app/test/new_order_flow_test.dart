@@ -300,6 +300,12 @@ Future<_FlowDependencies> _dependencies(
   List<Object>? catalogServices,
 }) async {
   final _MemoryTokenStorage storage = _MemoryTokenStorage();
+  final OrderApiService orderApi = OrderApiService(
+    tokenStorage: storage,
+    baseUrl: 'http://order.test/api',
+    client: MockClient(orderHandler),
+  )..selectBranch('branch-a');
+  final OrderController orders = OrderController(service: orderApi);
   final CustomerController customers = CustomerController(
     service: CustomerApiService(
       tokenStorage: storage,
@@ -326,15 +332,13 @@ Future<_FlowDependencies> _dependencies(
         );
       }),
     ),
+    orderService: OrderApiService(
+      tokenStorage: storage,
+      baseUrl: 'http://order.test/api',
+      client: MockClient(orderHandler),
+    )..selectBranch('branch-a'),
   );
   await customers.selectBranch('branch-a');
-
-  final OrderApiService orderApi = OrderApiService(
-    tokenStorage: storage,
-    baseUrl: 'http://order.test/api',
-    client: MockClient(orderHandler),
-  )..selectBranch('branch-a');
-  final OrderController orders = OrderController(service: orderApi);
   final OrderCatalogApiService catalog = OrderCatalogApiService(
     tokenStorage: storage,
     baseUrl: 'http://catalog.test/api',
