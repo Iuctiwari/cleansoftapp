@@ -710,7 +710,9 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
               _receiptRow('Customer', order.customer.name),
               ...order.items.map(_receiptServiceRow),
               _receiptRow('Date', formatOrderDate(context, order.createdAt)),
+              const SizedBox(height: AppSpacing.lg),
               const AppDivider(),
+              const SizedBox(height: AppSpacing.lg),
               _receiptRow(
                 'Grand total',
                 formatOrderMoney(order.grandTotal),

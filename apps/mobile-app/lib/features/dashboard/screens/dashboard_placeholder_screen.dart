@@ -20,6 +20,9 @@ import 'package:nexoraa_mobile/features/orders/services/order_api_service.dart';
 import 'package:nexoraa_mobile/features/orders/services/order_catalog_api_service.dart';
 import 'package:nexoraa_mobile/features/orders/services/payment_api_service.dart';
 import 'package:nexoraa_mobile/features/orders/widgets/order_widgets.dart';
+import 'package:nexoraa_mobile/features/payments/controllers/payments_controller.dart';
+import 'package:nexoraa_mobile/features/payments/models/payment.dart';
+import 'package:nexoraa_mobile/features/payments/screens/payments_screen.dart';
 import 'package:nexoraa_mobile/features/tenant/services/tenant_api_service.dart';
 
 /// Owner dashboard UI served by the existing dashboard route.
@@ -45,9 +48,15 @@ class _DashboardPlaceholderScreenState
     extends State<DashboardPlaceholderScreen> {
   late final CustomerController _customerController;
   late final OrderController _orderController;
+  late final PaymentApiService _paymentApiService;
+  late final PaymentsController _paymentsController;
   int _currentNavigationIndex = 0;
   String _selectedBranchId = 'unavailable';
   List<Order> _recentOrders = const <Order>[];
+  List<PaymentRecord> _recentBills = const <PaymentRecord>[];
+  int _todayOrdersCount = 0;
+  int _yesterdayOrdersCount = 0;
+  int _readyOrdersCount = 0;
   List<DashboardData> _branches = <DashboardData>[
     DashboardData.empty(
       branchId: 'unavailable',
@@ -76,6 +85,13 @@ class _DashboardPlaceholderScreenState
         tokenStorage: AuthenticationDependencies.tokenStorage,
       ),
     );
+    _paymentApiService = PaymentApiService(
+      tokenStorage: AuthenticationDependencies.tokenStorage,
+    );
+    _paymentsController = PaymentsController(
+      paymentService: _paymentApiService,
+      orderController: _orderController,
+    );
     final tenantId = widget.tenantId?.trim() ?? '';
     if (tenantId.isNotEmpty) _loadTenantDashboard(tenantId);
   }
@@ -84,6 +100,7 @@ class _DashboardPlaceholderScreenState
   void dispose() {
     _customerController.dispose();
     _orderController.dispose();
+    _paymentsController.dispose();
     super.dispose();
   }
 
@@ -122,7 +139,11 @@ class _DashboardPlaceholderScreenState
       });
       await _customerController.selectBranch(branches.first.branchId);
       await _orderController.selectBranch(branches.first.branchId);
-      await _loadRecentOrders();
+      _paymentApiService.selectBranch(branches.first.branchId);
+      await Future.wait<void>(<Future<void>>[
+        _loadRecentOrders(),
+        _loadDashboardMetrics(),
+      ]);
     } on Object {
       // The zero/unavailable dashboard remains visible when data cannot load.
     }
@@ -132,10 +153,20 @@ class _DashboardPlaceholderScreenState
     setState(() {
       _selectedBranchId = branchId;
       _recentOrders = const <Order>[];
+      _recentBills = const <PaymentRecord>[];
+      _todayOrdersCount = 0;
+      _yesterdayOrdersCount = 0;
+      _readyOrdersCount = 0;
     });
     _customerController.selectBranch(branchId);
     _orderController.selectBranch(branchId);
-    unawaited(_loadRecentOrders());
+    _paymentApiService.selectBranch(branchId);
+    unawaited(
+      Future.wait<void>(<Future<void>>[
+        _loadRecentOrders(),
+        _loadDashboardMetrics(),
+      ]),
+    );
   }
 
   Future<void> _loadRecentOrders() async {
@@ -148,6 +179,36 @@ class _DashboardPlaceholderScreenState
       if (!mounted) return;
       setState(() => _recentOrders = const <Order>[]);
     }
+  }
+
+  /// Loads today's revenue/outstanding/order metrics and the 3 most recent
+  /// payments (for "Recent Bills"), reusing [PaymentsController] and
+  /// [OrderController] — the same controllers/APIs already backing the
+  /// Payments and Orders screens.
+  Future<void> _loadDashboardMetrics() async {
+    if (_selectedBranchId == 'unavailable') return;
+    await _paymentsController.load();
+    try {
+      final (int today, int yesterday) = await _orderController
+          .todayVsYesterdayCounts();
+      final int ready = await _orderController.countByStatus(
+        OrderStatus.ready,
+      );
+      if (!mounted) return;
+      setState(() {
+        _todayOrdersCount = today;
+        _yesterdayOrdersCount = yesterday;
+        _readyOrdersCount = ready;
+      });
+    } on OrderApiException {
+      // Leave the last-known/zero order counts in place.
+    }
+    if (!mounted) return;
+    setState(() {
+      _recentBills = _paymentsController.history
+          .take(3)
+          .toList(growable: false);
+    });
   }
 
   void _showUiOnlyMessage(String message) {
@@ -187,15 +248,129 @@ class _DashboardPlaceholderScreenState
     if (created == true) await _orderController.load();
   }
 
+  /// Opens the existing Payments screen, reusing the same scoped-controller
+  /// navigation pattern already used by [MoreScreen] and Customer Profile's
+  /// "View Payment History" — not a new route or duplicate screen.
+  Future<void> _openPayments() async {
+    final DashboardData data = _data;
+    if (data.branchId == 'unavailable') {
+      _showUiOnlyMessage('Select an active branch before viewing payments.');
+      return;
+    }
+    final PaymentApiService paymentService = PaymentApiService(
+      tokenStorage: AuthenticationDependencies.tokenStorage,
+    )..selectBranch(data.branchId);
+    final PaymentsController controller = PaymentsController(
+      paymentService: paymentService,
+      orderController: _orderController,
+    );
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (_) => PaymentsScreen(controller: controller),
+      ),
+    );
+    controller.dispose();
+    // A payment may have been collected while on the Payments screen —
+    // refresh so revenue/outstanding/bills reflect it immediately.
+    unawaited(_loadDashboardMetrics());
+  }
+
   void _openOrdersTab() => setState(() => _currentNavigationIndex = 1);
+
+  /// Overlays real backend-derived values (revenue, KPIs, business summary,
+  /// recent orders/bills) onto the selected branch's [DashboardData],
+  /// reusing [_paymentsController]/[_orderController]/[_customerController]
+  /// — the same controllers already backing the Payments, Orders, and
+  /// Customers screens. Metrics with no backend source (Expenses, Delayed
+  /// Orders, Branch Performance, Branch Summary) are left at their existing
+  /// zero/"Unavailable" state.
+  DashboardData _buildDashboardData(BuildContext context) {
+    final DashboardData base = _data;
+    final List<DashboardOrder> orders = _recentOrders
+        .map((Order order) => _toDashboardOrder(context, order))
+        .toList(growable: false);
+    if (base.branchId == 'unavailable') {
+      return base.copyWith(orders: orders);
+    }
+    final List<DashboardBill> bills = _recentBills
+        .map((PaymentRecord payment) => _toDashboardBill(context, payment))
+        .toList(growable: false);
+    final double? percentChange =
+        _paymentsController.todayVsYesterdayPercentChange;
+    final String revenueChange = percentChange == null
+        ? '0%'
+        : '${percentChange >= 0 ? '+' : ''}${percentChange.toStringAsFixed(1)}%';
+    final String revenueComparison = percentChange == null
+        ? 'No payments collected yesterday'
+        : 'vs yesterday';
+    final List<DashboardMetric> kpis = <DashboardMetric>[
+      DashboardMetric(
+        type: DashboardMetricType.orders,
+        label: "Today's Orders",
+        value: '$_todayOrdersCount',
+        supportingText: _orderDeltaLabel(
+          _todayOrdersCount,
+          _yesterdayOrdersCount,
+        ),
+      ),
+      DashboardMetric(
+        type: DashboardMetricType.payments,
+        label: 'Payments',
+        value: formatOrderMoney(_paymentsController.todayCollected),
+        supportingText: _paymentsController.todayCollectedCount == 1
+            ? '1 collected'
+            : '${_paymentsController.todayCollectedCount} collected',
+      ),
+      _metricByType(base.kpis, DashboardMetricType.expenses),
+      DashboardMetric(
+        type: DashboardMetricType.outstanding,
+        label: 'Outstanding',
+        value: formatOrderMoney(_paymentsController.outstandingTotal),
+        supportingText: _paymentsController.outstandingCustomerCount == 1
+            ? '1 customer'
+            : '${_paymentsController.outstandingCustomerCount} customers',
+      ),
+      DashboardMetric(
+        type: DashboardMetricType.ready,
+        label: 'Ready Orders',
+        value: '$_readyOrdersCount',
+        supportingText: 'Awaiting pickup',
+      ),
+      _metricByType(base.kpis, DashboardMetricType.delayed),
+    ];
+    final List<DashboardMetric> summaryMetrics = <DashboardMetric>[
+      DashboardMetric(
+        type: DashboardMetricType.bills,
+        label: 'Bills',
+        value: '${_paymentsController.totalBillsCount}',
+        supportingText: _paymentsController.paidBillsCount == 1
+            ? '1 paid'
+            : '${_paymentsController.paidBillsCount} paid',
+      ),
+      DashboardMetric(
+        type: DashboardMetricType.customers,
+        label: 'Customers',
+        value: '${_customerController.total}',
+        supportingText: _customerController.active == 1
+            ? '1 active'
+            : '${_customerController.active} active',
+      ),
+      _metricByType(base.summaryMetrics, DashboardMetricType.deliveries),
+    ];
+    return base.copyWith(
+      revenue: formatOrderMoney(_paymentsController.todayCollected),
+      revenueChange: revenueChange,
+      revenueComparison: revenueComparison,
+      kpis: kpis,
+      summaryMetrics: summaryMetrics,
+      orders: orders,
+      bills: bills,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    final DashboardData data = _data.copyWith(
-      orders: _recentOrders
-          .map((Order order) => _toDashboardOrder(context, order))
-          .toList(growable: false),
-    );
+    final DashboardData data = _buildDashboardData(context);
     final bool showingDashboard = _currentNavigationIndex == 0;
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -229,6 +404,7 @@ class _DashboardPlaceholderScreenState
                       data: data,
                       onUiAction: _showUiOnlyMessage,
                       onNewOrder: _openNewOrder,
+                      onOpenPayments: _openPayments,
                       onSeeOrders: _openOrdersTab,
                     ),
                   ),
@@ -271,7 +447,19 @@ class _DashboardPlaceholderScreenState
       bottomNavigationBar: DashboardBottomNavigation(
         currentIndex: _currentNavigationIndex,
         onTap: (int index) {
+          final bool returningToDashboard =
+              index == 0 && _currentNavigationIndex != 0;
           setState(() => _currentNavigationIndex = index);
+          if (returningToDashboard) {
+            // Re-fetch so revenue/outstanding reflect any payment collected
+            // while the user was on another tab (e.g. Payments, Customers).
+            unawaited(
+              Future.wait<void>(<Future<void>>[
+                _loadRecentOrders(),
+                _loadDashboardMetrics(),
+              ]),
+            );
+          }
         },
       ),
     );
@@ -283,12 +471,14 @@ class _DashboardContent extends StatelessWidget {
     required this.data,
     required this.onUiAction,
     required this.onNewOrder,
+    required this.onOpenPayments,
     required this.onSeeOrders,
   });
 
   final DashboardData data;
   final ValueChanged<String> onUiAction;
   final VoidCallback onNewOrder;
+  final VoidCallback onOpenPayments;
   final VoidCallback onSeeOrders;
 
   @override
@@ -333,10 +523,11 @@ class _DashboardContent extends StatelessWidget {
               const SizedBox(height: AppSpacing.lg),
               _QuickActionsGrid(
                 actions: data.quickActions,
-                onTap: (DashboardQuickAction action) =>
-                    action.type == DashboardQuickActionType.newOrder
-                    ? onNewOrder()
-                    : onUiAction('${action.label} action selected'),
+                onTap: (DashboardQuickAction action) => switch (action.type) {
+                  DashboardQuickActionType.newOrder => onNewOrder(),
+                  DashboardQuickActionType.payment => onOpenPayments(),
+                  _ => onUiAction('${action.label} action selected'),
+                },
               ),
               const SizedBox(height: AppSpacing.sectionGapLarge),
               DashboardSectionHeader(
@@ -483,3 +674,35 @@ DashboardStatus _dashboardStatus(OrderStatus status) => switch (status) {
   OrderStatus.delivered => DashboardStatus.completed,
   OrderStatus.cancelled => DashboardStatus.cancelled,
 };
+
+/// Maps a real backend [PaymentRecord] onto the existing [DashboardBill]
+/// display shape so [RecentBillCard] can render it without any UI changes.
+DashboardBill _toDashboardBill(BuildContext context, PaymentRecord payment) =>
+    DashboardBill(
+      customerName: payment.customerName ?? 'Customer unavailable',
+      billNumber: payment.orderNumber ?? payment.paymentNumber,
+      amount: formatOrderMoney(payment.amount),
+      dueLabel: formatOrderDate(context, payment.createdAt),
+      status: switch (payment.status) {
+        PaymentTransactionStatus.successful => DashboardStatus.completed,
+        PaymentTransactionStatus.failed => DashboardStatus.cancelled,
+        PaymentTransactionStatus.pending => DashboardStatus.pending,
+      },
+    );
+
+/// Real "+N from yesterday" / "-N from yesterday" delta label for a
+/// today-vs-yesterday count comparison, avoiding a fabricated percentage.
+String _orderDeltaLabel(int today, int yesterday) {
+  final int delta = today - yesterday;
+  if (delta == 0) return 'Same as yesterday';
+  return delta > 0 ? '+$delta from yesterday' : '$delta from yesterday';
+}
+
+/// Finds the metric of [type] within [metrics], used to carry forward
+/// KPIs/summary entries (Expenses, Delayed Orders, Bills, Deliveries) that
+/// have no backend data source and must keep their existing zero/
+/// "Unavailable" state instead of being fabricated.
+DashboardMetric _metricByType(
+  List<DashboardMetric> metrics,
+  DashboardMetricType type,
+) => metrics.firstWhere((DashboardMetric metric) => metric.type == type);

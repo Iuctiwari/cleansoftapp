@@ -527,11 +527,6 @@ class _PaymentCard extends StatelessWidget {
               : AppColors.success,
           strong: true,
         ),
-        _DetailLine(
-          'Payment Method',
-          order.paymentMethod ?? 'Not recorded',
-          valueColor: order.paymentMethod == null ? AppColors.textSubtle : null,
-        ),
       ],
     ),
   );

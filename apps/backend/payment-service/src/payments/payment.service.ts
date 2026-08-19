@@ -77,7 +77,7 @@ export class PaymentService {
       }
       const outstandingMinor = Math.round(Number(order.outstandingAmount) * 100);
       if (amountMinor > outstandingMinor) {
-        throw new BadRequestException('Advance payment cannot exceed the grand total');
+        throw new BadRequestException('Payment amount cannot exceed the order outstanding balance');
       }
       const id = new Types.ObjectId();
       try {

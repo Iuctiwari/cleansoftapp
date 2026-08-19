@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:nexoraa_mobile/design_system/design_system.dart';
 import 'package:nexoraa_mobile/features/orders/controllers/order_controller.dart';
 import 'package:nexoraa_mobile/features/orders/models/order.dart';
@@ -46,6 +47,14 @@ class _OrdersScreenState extends State<OrdersScreen> {
   }
 
   void _onScroll() {
+    // Only paginate while the user is actively scrolling toward the bottom
+    // (ScrollDirection.reverse = content moving up). Scrolling back toward
+    // the top must never trigger a reload — pagination is separate from
+    // pull-to-refresh.
+    if (_scrollController.position.userScrollDirection !=
+        ScrollDirection.reverse) {
+      return;
+    }
     if (_scrollController.position.extentAfter < 240) {
       unawaited(widget.controller.loadMore());
     }
@@ -144,7 +153,12 @@ class _OrdersScreenState extends State<OrdersScreen> {
   );
 
   List<Widget> _content() {
-    if (widget.controller.isLoading) {
+    // Only replace the whole list with a spinner on the true first load
+    // (nothing to show yet). A refresh (pull-to-refresh, search, or filter
+    // change) with existing orders already on screen relies on
+    // RefreshIndicator's own spinner as the single loading indicator,
+    // instead of stacking a second one on top of it.
+    if (widget.controller.isLoading && widget.controller.orders.isEmpty) {
       return const <Widget>[SliverFillRemaining(child: AppLoadingView())];
     }
     if (widget.controller.error != null && widget.controller.orders.isEmpty) {

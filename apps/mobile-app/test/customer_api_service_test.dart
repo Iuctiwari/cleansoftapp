@@ -8,6 +8,7 @@ import 'package:nexoraa_mobile/features/authentication/services/auth_token_stora
 import 'package:nexoraa_mobile/features/customers/controllers/customer_controller.dart';
 import 'package:nexoraa_mobile/features/customers/models/customer.dart';
 import 'package:nexoraa_mobile/features/customers/services/customer_api_service.dart';
+import 'package:nexoraa_mobile/features/orders/services/order_api_service.dart';
 
 void main() {
   late _MemoryTokenStorage tokenStorage;
@@ -148,7 +149,26 @@ void main() {
         );
       }),
     );
-    final controller = CustomerController(service: service);
+    final orderService = OrderApiService(
+      tokenStorage: tokenStorage,
+      baseUrl: 'http://order.test/api',
+      client: MockClient(
+        (http.Request request) async => http.Response(
+          jsonEncode(<String, Object>{
+            'items': <Object>[],
+            'total': 0,
+            'page': 1,
+            'limit': 1,
+            'totalPages': 1,
+          }),
+          200,
+        ),
+      ),
+    );
+    final controller = CustomerController(
+      service: service,
+      orderService: orderService,
+    );
 
     await controller.selectBranch('branch-a');
     await controller.selectBranch('branch-b');
