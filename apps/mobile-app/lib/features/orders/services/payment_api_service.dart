@@ -84,6 +84,7 @@ class PaymentApiService {
     int page = 1,
     int limit = 20,
     PaymentTransactionStatus? status,
+    String? customerId,
     String sortDirection = 'desc',
   }) async {
     final session = await _tokenStorage.read();
@@ -96,6 +97,8 @@ class PaymentApiService {
         'page': '$page',
         'limit': '$limit',
         if (status != null) 'status': status.apiValue,
+        if (customerId != null && customerId.trim().isNotEmpty)
+          'customerId': customerId.trim(),
         'sortDirection': sortDirection,
       },
     );

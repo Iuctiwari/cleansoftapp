@@ -180,12 +180,28 @@ class TenantApiService {
     if (dotenv.isInitialized) {
       final configured = dotenv.env[_environmentKey]?.trim();
       if (configured != null && configured.isNotEmpty) return configured;
+      final apiBase = dotenv.env['API_BASE_URL']?.trim();
+      if (apiBase != null && apiBase.isNotEmpty) return apiBase;
     }
-    throw StateError('Missing $_environmentKey environment configuration.');
+    return 'http://localhost:3000';
   }
 
   static String _normalizeBaseUrl(String value) {
-    return value.endsWith('/') ? value.substring(0, value.length - 1) : value;
+    var trimmed = value.trim();
+    while (trimmed.endsWith('/')) {
+      trimmed = trimmed.substring(0, trimmed.length - 1);
+    }
+    if (trimmed.endsWith('/api/v1')) {
+      trimmed = trimmed.substring(0, trimmed.length - 7);
+    } else if (trimmed.endsWith('/v1')) {
+      trimmed = trimmed.substring(0, trimmed.length - 3);
+    } else if (trimmed.endsWith('/api')) {
+      trimmed = trimmed.substring(0, trimmed.length - 4);
+    }
+    while (trimmed.endsWith('/')) {
+      trimmed = trimmed.substring(0, trimmed.length - 1);
+    }
+    return trimmed;
   }
 
   /// POST /api/v1/tenants/register
@@ -206,6 +222,9 @@ class TenantApiService {
     } on SocketException {
       throw const TenantApiNetworkException('Tenant Service unavailable');
     } on http.ClientException {
+      throw const TenantApiNetworkException('Tenant Service unavailable');
+    } catch (e) {
+      if (e is TenantApiException || e is TenantApiNetworkException) rethrow;
       throw const TenantApiNetworkException('Tenant Service unavailable');
     }
 
@@ -311,7 +330,16 @@ class TenantApiService {
       throw const TenantApiNetworkException(
         'The tenant service timed out. Please try again.',
       );
+    } on SocketException {
+      throw const TenantApiNetworkException(
+        'Unable to reach the tenant service. Check that it is running and reachable from this device.',
+      );
     } on http.ClientException {
+      throw const TenantApiNetworkException(
+        'Unable to reach the tenant service. Check that it is running and reachable from this device.',
+      );
+    } catch (e) {
+      if (e is TenantApiException || e is TenantApiNetworkException) rethrow;
       throw const TenantApiNetworkException(
         'Unable to reach the tenant service. Check that it is running and reachable from this device.',
       );
@@ -398,7 +426,16 @@ class TenantApiService {
       throw const TenantApiNetworkException(
         'The tenant service timed out. Please try again.',
       );
+    } on SocketException {
+      throw const TenantApiNetworkException(
+        'Unable to reach the tenant service. Check that it is running and reachable from this device.',
+      );
     } on http.ClientException {
+      throw const TenantApiNetworkException(
+        'Unable to reach the tenant service. Check that it is running and reachable from this device.',
+      );
+    } catch (e) {
+      if (e is TenantApiException || e is TenantApiNetworkException) rethrow;
       throw const TenantApiNetworkException(
         'Unable to reach the tenant service. Check that it is running and reachable from this device.',
       );

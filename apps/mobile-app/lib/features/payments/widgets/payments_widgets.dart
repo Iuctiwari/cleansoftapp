@@ -7,15 +7,34 @@ import 'package:nexoraa_mobile/features/payments/models/payment.dart';
 
 enum PaymentsTab { history, outstanding }
 
+IconData _todayTrendIcon(double? percentChange) =>
+    percentChange != null && percentChange < 0
+        ? AppIcons.trendingDown
+        : AppIcons.trendingUp;
+
+String _todayTrendLabel(double? percentChange) {
+  if (percentChange == null) return 'No payments collected yesterday';
+  if (percentChange == 0) return 'Same as yesterday';
+  final String rounded = percentChange.abs().toStringAsFixed(1);
+  return percentChange > 0
+      ? '$rounded% higher than yesterday'
+      : '$rounded% lower than yesterday';
+}
+
 class PaymentsSummaryCards extends StatelessWidget {
   const PaymentsSummaryCards({
     required this.todayCollected,
+    required this.todayVsYesterdayPercentChange,
     required this.outstandingTotal,
     required this.outstandingCustomerCount,
     super.key,
   });
 
   final double todayCollected;
+
+  /// Real percentage change of today's collected total versus yesterday's,
+  /// or null when yesterday had no collected payments to compare against.
+  final double? todayVsYesterdayPercentChange;
   final double outstandingTotal;
   final int outstandingCustomerCount;
 
@@ -50,15 +69,15 @@ class PaymentsSummaryCards extends StatelessWidget {
               const SizedBox(height: AppSpacing.sm),
               Row(
                 children: <Widget>[
-                  const Icon(
-                    AppIcons.trendingUp,
+                  Icon(
+                    _todayTrendIcon(todayVsYesterdayPercentChange),
                     size: AppIconSizes.sm,
                     color: AppColors.whiteOverlay80,
                   ),
                   const SizedBox(width: AppSpacing.xs),
                   Expanded(
                     child: Text(
-                      'Successful payments today',
+                      _todayTrendLabel(todayVsYesterdayPercentChange),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: AppTextStyles.caption.copyWith(
@@ -151,11 +170,11 @@ class PaymentsTabBar extends StatelessWidget {
               ),
               labelStyle: AppTextStyles.bodySmall.copyWith(
                 color: tab == selected
-                    ? AppColors.surface
+                    ? AppColors.textPrimary
                     : AppColors.textMuted,
                 fontWeight: AppFontWeights.semibold,
               ),
-              selectedColor: AppColors.primary,
+              selectedColor: AppColors.primaryMuted,
               backgroundColor: AppColors.surface,
               side: tab == selected
                   ? AppBorders.chipActiveSide
@@ -263,11 +282,17 @@ class OutstandingOrderCard extends StatelessWidget {
   const OutstandingOrderCard({
     required this.order,
     required this.onCollect,
+    this.isCollecting = false,
     super.key,
   });
 
   final Order order;
   final VoidCallback? onCollect;
+
+  /// Whether a collect request is in flight for this specific order. Only
+  /// this card's button reflects the pending state; other outstanding
+  /// orders' Collect buttons stay interactive.
+  final bool isCollecting;
 
   @override
   Widget build(BuildContext context) => AppCard(
@@ -314,7 +339,7 @@ class OutstandingOrderCard extends StatelessWidget {
             ],
           ),
         ),
-        if (onCollect != null) ...<Widget>[
+        if (onCollect != null || isCollecting) ...<Widget>[
           const SizedBox(width: AppSpacing.md),
           ElevatedButton(
             onPressed: onCollect,
@@ -325,7 +350,16 @@ class OutstandingOrderCard extends StatelessWidget {
               ),
               textStyle: AppTextStyles.buttonSmall,
             ),
-            child: const Text('Collect'),
+            child: isCollecting
+                ? const SizedBox(
+                    width: AppIconSizes.sm,
+                    height: AppIconSizes.sm,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: AppColors.surface,
+                    ),
+                  )
+                : const Text('Collect'),
           ),
         ],
       ],

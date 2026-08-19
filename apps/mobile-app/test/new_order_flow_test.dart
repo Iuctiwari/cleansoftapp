@@ -257,10 +257,10 @@ void main() {
         tester.getSize(find.widgetWithText(OutlinedButton, 'WhatsApp')),
       );
       final Text washReceipt = tester.widget<Text>(
-        find.text('Wash & Fold').last,
+        find.textContaining('Wash & Fold').last,
       );
       final Text ironingReceipt = tester.widget<Text>(
-        find.text('Ironing').last,
+        find.textContaining('Ironing').last,
       );
       expect(washReceipt.maxLines, 1);
       expect(ironingReceipt.maxLines, 1);
@@ -300,6 +300,12 @@ Future<_FlowDependencies> _dependencies(
   List<Object>? catalogServices,
 }) async {
   final _MemoryTokenStorage storage = _MemoryTokenStorage();
+  final OrderApiService orderApi = OrderApiService(
+    tokenStorage: storage,
+    baseUrl: 'http://order.test/api',
+    client: MockClient(orderHandler),
+  )..selectBranch('branch-a');
+  final OrderController orders = OrderController(service: orderApi);
   final CustomerController customers = CustomerController(
     service: CustomerApiService(
       tokenStorage: storage,
@@ -326,15 +332,13 @@ Future<_FlowDependencies> _dependencies(
         );
       }),
     ),
+    orderService: OrderApiService(
+      tokenStorage: storage,
+      baseUrl: 'http://order.test/api',
+      client: MockClient(orderHandler),
+    )..selectBranch('branch-a'),
   );
   await customers.selectBranch('branch-a');
-
-  final OrderApiService orderApi = OrderApiService(
-    tokenStorage: storage,
-    baseUrl: 'http://order.test/api',
-    client: MockClient(orderHandler),
-  )..selectBranch('branch-a');
-  final OrderController orders = OrderController(service: orderApi);
   final OrderCatalogApiService catalog = OrderCatalogApiService(
     tokenStorage: storage,
     baseUrl: 'http://catalog.test/api',
@@ -513,6 +517,18 @@ Map<String, Object?> _orderJson({
       'discount': 0,
       'tax': 5,
       'lineTotal': 105,
+    },
+    <String, Object>{
+      'id': '64f0c18f7c4d2f0012ab348',
+      'itemCategoryId': _categoryId,
+      'itemCategorySnapshot': <String, Object>{'name': 'Shirt'},
+      'serviceId': _secondServiceId,
+      'serviceSnapshot': <String, Object>{'name': 'Ironing'},
+      'quantity': 1,
+      'unitPrice': 10,
+      'discount': 0,
+      'tax': 0.5,
+      'lineTotal': 10.5,
     },
   ],
   'subtotal': 105,

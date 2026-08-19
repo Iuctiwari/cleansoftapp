@@ -158,7 +158,7 @@ void main() {
     expect(find.text('Orders'), findsOneWidget);
     expect(find.text('Hassan Ali'), findsOneWidget);
     expect(
-      find.text('ORD-MAIN-000123 · Shirt · Dry cleaning 3'),
+      find.text('ORD-123 · Shirt · Dry cleaning 3'),
       findsOneWidget,
     );
 

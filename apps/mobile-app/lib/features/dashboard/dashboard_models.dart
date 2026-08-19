@@ -180,6 +180,11 @@ class DashboardData {
   final List<DashboardMetric> summaryMetrics;
 
   DashboardData copyWith({
+    String? revenue,
+    String? revenueChange,
+    String? revenueComparison,
+    List<DashboardMetric>? kpis,
+    List<DashboardMetric>? summaryMetrics,
     List<DashboardOrder>? orders,
     List<DashboardBill>? bills,
   }) => DashboardData(
@@ -188,11 +193,11 @@ class DashboardData {
     ownerName: ownerName,
     ownerEmail: ownerEmail,
     businessName: businessName,
-    revenue: revenue,
-    revenueChange: revenueChange,
-    revenueComparison: revenueComparison,
-    kpis: kpis,
-    summaryMetrics: summaryMetrics,
+    revenue: revenue ?? this.revenue,
+    revenueChange: revenueChange ?? this.revenueChange,
+    revenueComparison: revenueComparison ?? this.revenueComparison,
+    kpis: kpis ?? this.kpis,
+    summaryMetrics: summaryMetrics ?? this.summaryMetrics,
     orders: orders ?? this.orders,
     bills: bills ?? this.bills,
     customers: customers,

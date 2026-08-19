@@ -1,15 +1,21 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:nexoraa_mobile/design_system/design_system.dart';
 import 'package:nexoraa_mobile/features/orders/models/order.dart';
 import 'package:nexoraa_mobile/features/payments/controllers/payments_controller.dart';
 import 'package:nexoraa_mobile/features/payments/widgets/payments_widgets.dart';
 
 class PaymentsScreen extends StatefulWidget {
-  const PaymentsScreen({required this.controller, super.key});
+  const PaymentsScreen({
+    required this.controller,
+    this.title = 'Payments',
+    super.key,
+  });
 
   final PaymentsController controller;
+  final String title;
 
   @override
   State<PaymentsScreen> createState() => _PaymentsScreenState();
@@ -41,6 +47,14 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
   }
 
   void _onScroll() {
+    // Only paginate while the user is actively scrolling toward the bottom
+    // (ScrollDirection.reverse = content moving up). Scrolling back toward
+    // the top, or programmatic scroll-metric changes with no active drag,
+    // must never trigger a reload.
+    if (_scrollController.position.userScrollDirection !=
+        ScrollDirection.reverse) {
+      return;
+    }
     if (_scrollController.position.extentAfter > 240) return;
     if (_tab == PaymentsTab.history) {
       unawaited(widget.controller.loadMoreHistory());
@@ -78,7 +92,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Payments')),
+    appBar: AppBar(title: Text(widget.title)),
     body: SafeArea(
       bottom: false,
       child: Column(
@@ -92,6 +106,8 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
             ),
             child: PaymentsSummaryCards(
               todayCollected: widget.controller.todayCollected,
+              todayVsYesterdayPercentChange:
+                  widget.controller.todayVsYesterdayPercentChange,
               outstandingTotal: widget.controller.outstandingTotal,
               outstandingCustomerCount:
                   widget.controller.outstandingCustomerCount,
@@ -128,7 +144,10 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
 
   List<Widget> _historyContent() {
     final PaymentsController controller = widget.controller;
-    if (controller.isLoadingHistory) {
+    // Only replace the whole list with a spinner on the true first load
+    // (nothing to show yet). A refresh relies on RefreshIndicator's own
+    // spinner as the single loading indicator.
+    if (controller.isLoadingHistory && controller.history.isEmpty) {
       return const <Widget>[SliverFillRemaining(child: AppLoadingView())];
     }
     if (controller.historyError != null && controller.history.isEmpty) {
@@ -184,7 +203,10 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
 
   List<Widget> _outstandingContent() {
     final PaymentsController controller = widget.controller;
-    if (controller.isLoadingOutstanding) {
+    // Only replace the whole list with a spinner on the true first load
+    // (nothing to show yet). A refresh relies on RefreshIndicator's own
+    // spinner as the single loading indicator.
+    if (controller.isLoadingOutstanding && controller.outstandingOrders.isEmpty) {
       return const <Widget>[SliverFillRemaining(child: AppLoadingView())];
     }
     if (controller.outstandingError != null &&
@@ -233,9 +255,13 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
               );
             }
             final Order order = controller.outstandingOrders[index];
+            final bool collectingThisOrder = controller.isCollectingOrder(
+              order.id,
+            );
             return OutstandingOrderCard(
               order: order,
-              onCollect: controller.isCollecting ? null : () => _collect(order),
+              isCollecting: collectingThisOrder,
+              onCollect: collectingThisOrder ? null : () => _collect(order),
             );
           },
         ),
