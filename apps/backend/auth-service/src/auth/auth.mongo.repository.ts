@@ -122,7 +122,7 @@ export class MongoAuthRepository implements AuthRepository, OnModuleInit {
 
       if (!owner) {
         // Owner not found — try staff lookup by loginId
-        return this.findStaffIdentityByLoginId(normalized, tenantSlug);
+        return this.findStaffIdentityByLoginId(normalized);
       }
       const resolvedTenant =
         tenant ?? (await this.tenantModel.findOne({ tenantId: owner.tenantId }).lean().exec());
@@ -170,7 +170,6 @@ export class MongoAuthRepository implements AuthRepository, OnModuleInit {
    */
   private async findStaffIdentityByLoginId(
     loginId: string,
-    _tenantSlug?: string,
   ): Promise<AuthIdentityRecord | null> {
     const normalized = normalizeIdentifier(loginId);
     const filter: Record<string, unknown> = { loginId: normalized };
@@ -231,7 +230,7 @@ export class MongoAuthRepository implements AuthRepository, OnModuleInit {
     // Check staff identities
     const staff = await this.tenantStaffModel.findOne({ userId }).lean().exec();
     if (staff) {
-      return this.findStaffIdentityByLoginId(staff.loginId, staff.tenantSlug);
+      return this.findStaffIdentityByLoginId(staff.loginId);
     }
 
     return null;
