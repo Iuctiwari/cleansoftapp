@@ -168,9 +168,7 @@ export class MongoAuthRepository implements AuthRepository, OnModuleInit {
    * Look up a staff member by loginId within a tenant.
    * Called after owner lookup fails so staff can log in with their loginId.
    */
-  private async findStaffIdentityByLoginId(
-    loginId: string,
-  ): Promise<AuthIdentityRecord | null> {
+  private async findStaffIdentityByLoginId(loginId: string): Promise<AuthIdentityRecord | null> {
     const normalized = normalizeIdentifier(loginId);
     const filter: Record<string, unknown> = { loginId: normalized };
     // In a single-tenant or global login system, loginId (email) is unique enough.
