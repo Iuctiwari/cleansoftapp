@@ -94,7 +94,10 @@ export class UserService {
       });
     } catch (err) {
       // Roll back user record if auth provisioning fails
-      this.logger.error(`Auth provisioning failed for ${String(user._id)}, rolling back user record`, err);
+      this.logger.error(
+        `Auth provisioning failed for ${String(user._id)}, rolling back user record`,
+        err,
+      );
       await this.userModel.deleteOne({ _id: user._id });
       throw err;
     }
@@ -116,7 +119,9 @@ export class UserService {
     try {
       await this.updateAuthStatus(userId, authStatus);
     } catch (err) {
-      this.logger.warn(`Could not sync auth status for user ${userId}: ${err instanceof Error ? err.message : String(err)}`);
+      this.logger.warn(
+        `Could not sync auth status for user ${userId}: ${err instanceof Error ? err.message : String(err)}`,
+      );
     }
   }
 
@@ -154,7 +159,9 @@ export class UserService {
     try {
       await this.deleteAuthCredentials(userId);
     } catch (err) {
-      this.logger.warn(`Could not remove auth credentials for user ${userId}: ${err instanceof Error ? err.message : String(err)}`);
+      this.logger.warn(
+        `Could not remove auth credentials for user ${userId}: ${err instanceof Error ? err.message : String(err)}`,
+      );
     }
   }
 
