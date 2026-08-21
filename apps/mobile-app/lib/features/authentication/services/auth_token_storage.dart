@@ -23,10 +23,12 @@ final class SecureAuthTokenStorage implements AuthTokenStorage {
   static const String _ownerNameKey = 'auth.owner_name';
   static const String _ownerEmailKey = 'auth.owner_email';
   static const String _businessNameKey = 'auth.business_name';
+  static const String _roleCodeKey = 'auth.role_code';
 
   final FlutterSecureStorage _storage;
 
-  static const Duration _operationTimeout = Duration(milliseconds: 100);
+  // Web (IndexedDB) is async and needs more time than native secure storage
+  static const Duration _operationTimeout = Duration(seconds: 3);
 
   @override
   Future<void> clear() async {
@@ -45,6 +47,7 @@ final class SecureAuthTokenStorage implements AuthTokenStorage {
         _ownerNameKey,
         _ownerEmailKey,
         _businessNameKey,
+        _roleCodeKey,
       ]) {
         try {
           await _storage.delete(key: key).timeout(_operationTimeout);
@@ -90,6 +93,7 @@ final class SecureAuthTokenStorage implements AuthTokenStorage {
         ownerName: values[_ownerNameKey],
         ownerEmail: values[_ownerEmailKey],
         businessName: values[_businessNameKey],
+        roleCode: values[_roleCodeKey] ?? 'tenant_owner',
       );
     } catch (_) {
       return null;
@@ -123,6 +127,7 @@ final class SecureAuthTokenStorage implements AuthTokenStorage {
       await _writeOptional(_ownerNameKey, session.ownerName);
       await _writeOptional(_ownerEmailKey, session.ownerEmail);
       await _writeOptional(_businessNameKey, session.businessName);
+      await _writeOptional(_roleCodeKey, session.roleCode);
     } catch (_) {
       // Ignore storage write errors to allow app to continue
     }

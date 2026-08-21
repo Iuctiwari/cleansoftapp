@@ -27,6 +27,8 @@ import {
   TenantAuthMongooseSchema,
   BranchAuthMongoose,
   BranchAuthMongooseSchema,
+  TenantStaffAuthMongoose,
+  TenantStaffAuthMongooseSchema,
 } from './auth.mongoose.schema';
 
 @Module({
@@ -44,6 +46,7 @@ import {
       { name: TenantOwnerAuthMongoose.name, schema: TenantOwnerAuthMongooseSchema },
       { name: TenantAuthMongoose.name, schema: TenantAuthMongooseSchema },
       { name: BranchAuthMongoose.name, schema: BranchAuthMongooseSchema },
+      { name: TenantStaffAuthMongoose.name, schema: TenantStaffAuthMongooseSchema },
     ]),
   ],
   controllers: [AuthController],
@@ -56,7 +59,7 @@ import {
     },
     AuthenticationContextMiddleware,
   ],
-  exports: [AuthenticationContextMiddleware],
+  exports: [AuthenticationContextMiddleware, MongoAuthRepository],
 })
 export class AuthModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {

@@ -274,3 +274,57 @@ export class BranchAuthMongoose extends Document {
 }
 
 export const BranchAuthMongooseSchema = SchemaFactory.createForClass(BranchAuthMongoose);
+
+// ─── Tenant Staff Auth ─────────────────────────────────────────────────────
+// Stores auth credentials for staff members registered by a tenant owner.
+// The loginId is unique per tenant (not globally) and is used as the login identifier.
+
+export type TenantStaffAuthDocument = HydratedDocument<TenantStaffAuthMongoose>;
+
+@Schema({ collection: 'tenantStaff', timestamps: false, versionKey: false })
+export class TenantStaffAuthMongoose extends Document {
+  @Prop({ required: true, unique: true, index: true })
+  userId!: string;
+
+  @Prop({ required: true, index: true })
+  tenantId!: string;
+
+  @Prop({ required: true, index: true })
+  tenantSlug!: string;
+
+  @Prop({ required: true })
+  tenantName!: string;
+
+  /** Short username set by the owner — unique within the tenant. */
+  @Prop({ required: true, index: true })
+  loginId!: string;
+
+  @Prop({ required: true })
+  displayName!: string;
+
+  @Prop()
+  email?: string;
+
+  @Prop({ required: true })
+  passwordHash!: string;
+
+  @Prop({ required: true })
+  roleCode!: string;
+
+  @Prop({ type: [String], required: true, default: [] })
+  permissions!: string[];
+
+  @Prop({ required: true, enum: ['active', 'disabled'], default: 'active' })
+  status!: string;
+
+  @Prop({ required: true, default: 1 })
+  accessVersion!: number;
+
+  @Prop({ required: true })
+  createdAtUtc!: string;
+}
+
+export const TenantStaffAuthMongooseSchema = SchemaFactory.createForClass(TenantStaffAuthMongoose);
+
+// Compound unique index: loginId must be unique per tenant
+TenantStaffAuthMongooseSchema.index({ tenantId: 1, loginId: 1 }, { unique: true });
