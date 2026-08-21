@@ -25,11 +25,13 @@ final class SecureAuthTokenStorage implements AuthTokenStorage {
   static const String _businessNameKey = 'auth.business_name';
 
   final FlutterSecureStorage _storage;
+  static AuthenticationSession? _cachedSession;
 
-  static const Duration _operationTimeout = Duration(milliseconds: 100);
+  static const Duration _operationTimeout = Duration(seconds: 2);
 
   @override
   Future<void> clear() async {
+    _cachedSession = null;
     try {
       await _storage.deleteAll().timeout(_operationTimeout);
     } catch (_) {
@@ -76,10 +78,10 @@ final class SecureAuthTokenStorage implements AuthTokenStorage {
           refreshToken.isEmpty ||
           accessExpiry == null ||
           refreshExpiry == null) {
-        return null;
+        return _cachedSession;
       }
 
-      return AuthenticationSession(
+      final AuthenticationSession session = AuthenticationSession(
         accessToken: accessToken,
         refreshToken: refreshToken,
         accessTokenExpiresAt: accessExpiry,
@@ -91,13 +93,16 @@ final class SecureAuthTokenStorage implements AuthTokenStorage {
         ownerEmail: values[_ownerEmailKey],
         businessName: values[_businessNameKey],
       );
+      _cachedSession = session;
+      return session;
     } catch (_) {
-      return null;
+      return _cachedSession;
     }
   }
 
   @override
   Future<void> write(AuthenticationSession session) async {
+    _cachedSession = session;
     try {
       await _storage
           .write(key: _refreshTokenKey, value: session.refreshToken)

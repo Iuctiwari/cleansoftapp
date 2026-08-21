@@ -22,6 +22,7 @@ class NotificationController extends ChangeNotifier {
   bool _loading = false;
   bool _loadingMore = false;
   bool _hasLoaded = false;
+  bool _disposed = false;
 
   List<AppNotification> get notifications => _category == NotificationCategory.all
       ? List<AppNotification>.unmodifiable(_notifications)
@@ -109,7 +110,10 @@ class NotificationController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> refreshUnreadCount() => _refreshUnreadCount();
+  Future<void> refreshUnreadCount() async {
+    await _refreshUnreadCount();
+    if (!_disposed) notifyListeners();
+  }
 
   Future<void> _refreshUnreadCount() async {
     try {
@@ -234,6 +238,7 @@ class NotificationController extends ChangeNotifier {
 
   @override
   void dispose() {
+    _disposed = true;
     _socket.disconnect();
     super.dispose();
   }

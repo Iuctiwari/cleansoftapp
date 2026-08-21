@@ -56,6 +56,7 @@ class PaymentsController extends ChangeNotifier {
 
   final Set<String> _collectingOrderIds = <String>{};
   String? _collectError;
+  bool _disposed = false;
 
   double get todayCollected => _todayCollected;
   double get yesterdayCollected => _yesterdayCollected;
@@ -103,7 +104,20 @@ class PaymentsController extends ChangeNotifier {
   bool isCollectingOrder(String orderId) => _collectingOrderIds.contains(orderId);
   String? get collectError => _collectError;
 
+  bool get _isActive => !_disposed;
+
+  void _notifyIfActive() {
+    if (_isActive) notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
+  }
+
   Future<void> load() async {
+    if (!_isActive) return;
     await Future.wait<void>(<Future<void>>[
       _loadHistory(),
       _loadOutstanding(),
@@ -114,45 +128,53 @@ class PaymentsController extends ChangeNotifier {
   Future<void> refresh() => load();
 
   Future<void> loadMoreHistory() async {
+    if (!_isActive) return;
     if (!_historyHasMore || _isLoadingHistory || _isLoadingMoreHistory) return;
     _isLoadingMoreHistory = true;
-    notifyListeners();
+    _notifyIfActive();
     try {
       final PaymentPage page = await _paymentService.list(
         page: _historyPage + 1,
         customerId: _customerId,
       );
+      if (!_isActive) return;
       _history.addAll(page.items);
       _historyPage = page.page;
       _historyHasMore = page.page < page.totalPages;
       _historyError = null;
     } on OrderApiException catch (error) {
+      if (!_isActive) return;
       _historyError = error.message;
     } finally {
+      if (!_isActive) return;
       _isLoadingMoreHistory = false;
-      notifyListeners();
+      _notifyIfActive();
     }
   }
 
   Future<void> loadMoreOutstanding() async {
+    if (!_isActive) return;
     if (!_outstandingHasMore || _isLoadingOutstanding || _isLoadingMoreOutstanding) {
       return;
     }
     _isLoadingMoreOutstanding = true;
-    notifyListeners();
+    _notifyIfActive();
     try {
       final _MergedOrderPage merged = await _fetchOutstandingPage(
         _outstandingPage + 1,
       );
+      if (!_isActive) return;
       _outstanding.addAll(merged.items);
       _outstandingPage += 1;
       _outstandingHasMore = merged.hasMore;
       _outstandingError = null;
     } on OrderApiException catch (error) {
+      if (!_isActive) return;
       _outstandingError = error.message;
     } finally {
+      if (!_isActive) return;
       _isLoadingMoreOutstanding = false;
-      notifyListeners();
+      _notifyIfActive();
     }
   }
 
@@ -161,10 +183,11 @@ class PaymentsController extends ChangeNotifier {
     required double amount,
     required PaymentMethod method,
   }) async {
+    if (!_isActive) return false;
     if (_collectingOrderIds.contains(order.id)) return false;
     _collectingOrderIds.add(order.id);
     _collectError = null;
-    notifyListeners();
+    _notifyIfActive();
     try {
       await _paymentService.createAdvance(
         idempotencyKey:
@@ -174,61 +197,74 @@ class PaymentsController extends ChangeNotifier {
         amount: amount,
         method: method,
       );
+      if (!_isActive) return false;
       await Future.wait<void>(<Future<void>>[_loadOutstanding(), _loadSummary()]);
+      if (!_isActive) return false;
       return true;
     } on OrderApiException catch (error) {
+      if (!_isActive) return false;
       _collectError = error.message;
       return false;
     } finally {
-      _collectingOrderIds.remove(order.id);
-      notifyListeners();
+      if (_isActive) {
+        _collectingOrderIds.remove(order.id);
+        _notifyIfActive();
+      }
     }
   }
 
   Future<void> _loadHistory() async {
+    if (!_isActive) return;
     if (_isLoadingHistory) return;
     _isLoadingHistory = true;
     _historyError = null;
-    notifyListeners();
+    _notifyIfActive();
     try {
       final PaymentPage page = await _paymentService.list(
         page: 1,
         customerId: _customerId,
       );
+      if (!_isActive) return;
       _history
         ..clear()
         ..addAll(page.items);
       _historyPage = page.page;
       _historyHasMore = page.page < page.totalPages;
     } on OrderApiException catch (error) {
+      if (!_isActive) return;
       _historyError = error.message;
       _history.clear();
       _historyHasMore = false;
     } finally {
+      if (!_isActive) return;
       _isLoadingHistory = false;
-      notifyListeners();
+      _notifyIfActive();
     }
   }
 
   Future<void> _loadOutstanding() async {
+    if (!_isActive) return;
     if (_isLoadingOutstanding) return;
     _isLoadingOutstanding = true;
     _outstandingError = null;
-    notifyListeners();
+    _notifyIfActive();
     try {
       final _MergedOrderPage merged = await _fetchOutstandingPage(1);
+      if (!_isActive) return;
       _outstanding
         ..clear()
         ..addAll(merged.items);
       _outstandingPage = 1;
       _outstandingHasMore = merged.hasMore;
     } on OrderApiException catch (error) {
+      if (!_isActive) return;
       _outstandingError = error.message;
       _outstanding.clear();
       _outstandingHasMore = false;
     } finally {
+      if (!_isActive) return;
       _isLoadingOutstanding = false;
-      notifyListeners();
+      _notifyIfActive();
     }
   }
 
@@ -252,9 +288,10 @@ class PaymentsController extends ChangeNotifier {
   }
 
   Future<void> _loadSummary() async {
+    if (!_isActive) return;
     if (_isLoadingSummary) return;
     _isLoadingSummary = true;
-    notifyListeners();
+    _notifyIfActive();
     try {
       final Future<(double, double, int)> collectedFuture =
           _computeCollectedSummary();
@@ -262,22 +299,26 @@ class PaymentsController extends ChangeNotifier {
       final Future<(int, int)> billsFuture = _computeBillsCounts();
       final (double today, double yesterday, int todayCount) =
           await collectedFuture;
+      if (!_isActive) return;
       _todayCollected = today;
       _yesterdayCollected = yesterday;
       _todayCollectedCount = todayCount;
       final (double outstandingTotal, int outstandingCustomerCount) =
           await outstandingFuture;
+      if (!_isActive) return;
       _outstandingTotal = outstandingTotal;
       _outstandingCustomerCount = outstandingCustomerCount;
       final (int totalBills, int paidBills) = await billsFuture;
+      if (!_isActive) return;
       _totalBillsCount = totalBills;
       _paidBillsCount = paidBills;
     } on OrderApiException {
       // Summary is best-effort; the History/Outstanding tabs surface real
       // errors directly, so leave the last-known summary values in place.
     } finally {
+      if (!_isActive) return;
       _isLoadingSummary = false;
-      notifyListeners();
+      _notifyIfActive();
     }
   }
 
@@ -295,6 +336,7 @@ class PaymentsController extends ChangeNotifier {
     int todayCount = 0;
     int page = 1;
     while (page <= _summaryMaxPages) {
+      if (!_isActive) return (todaySum, yesterdaySum, todayCount);
       final PaymentPage result = await _paymentService.list(
         page: page,
         limit: _summaryPageLimit,
@@ -325,15 +367,18 @@ class PaymentsController extends ChangeNotifier {
   /// selected branch, read from the Payment Service's own pagination
   /// `total` (no dedicated count/aggregate endpoint exists).
   Future<(int total, int paid)> _computeBillsCounts() async {
+    if (!_isActive) return (0, 0);
     final PaymentPage totalPage = await _paymentService.list(
       limit: 1,
       customerId: _customerId,
     );
+    if (!_isActive) return (0, 0);
     final PaymentPage paidPage = await _paymentService.list(
       limit: 1,
       status: PaymentTransactionStatus.successful,
       customerId: _customerId,
     );
+    if (!_isActive) return (0, 0);
     return (totalPage.total, paidPage.total);
   }
 
@@ -341,8 +386,10 @@ class PaymentsController extends ChangeNotifier {
     double total = 0;
     final Set<String> customerIds = <String>{};
     for (final OrderPaymentStatus status in _outstandingStatuses) {
+      if (!_isActive) return (total, customerIds.length);
       int page = 1;
       while (page <= _summaryMaxPages) {
+        if (!_isActive) return (total, customerIds.length);
         final OrderPage result = await _orderController.byPaymentStatus(
           status,
           page: page,
