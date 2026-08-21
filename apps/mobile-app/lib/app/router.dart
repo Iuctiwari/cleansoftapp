@@ -12,6 +12,7 @@ import 'package:nexoraa_mobile/features/staff/screens/staff_management_screen.da
 import 'package:nexoraa_mobile/features/staff/screens/register_staff_screen.dart';
 import 'package:nexoraa_mobile/features/staff/screens/view_staff_profile_screen.dart';
 import 'package:nexoraa_mobile/features/staff/screens/edit_staff_screen.dart';
+import 'package:nexoraa_mobile/features/staff/screens/staff_dummy_screen.dart';
 import 'package:nexoraa_mobile/features/staff/models/staff_member.dart';
 
 import '../features/tenant/models/registration_form.dart';
@@ -46,6 +47,7 @@ abstract final class AppRoutes {
   static const String staffViewProfile = '/dashboard/staff/:staffId';
   static const String staffEdit = '/dashboard/staff/:staffId/edit';
   static const String profile = '/dashboard/profile';
+  static const String staffDashboard = '/staff-dashboard';
 }
 
 abstract final class AppRouteNames {
@@ -70,6 +72,7 @@ abstract final class AppRouteNames {
   static const String staffRegister = 'staffRegister';
   static const String staffViewProfile = 'staffViewProfile';
   static const String staffEdit = 'staffEdit';
+  static const String staffDashboard = 'staffDashboard';
 }
 
 abstract final class AppRouter {
@@ -79,12 +82,34 @@ abstract final class AppRouter {
     redirect: (BuildContext context, GoRouterState state) {
       final bool authenticated =
           AuthenticationDependencies.controller.isAuthenticated;
+      final String? role =
+          AuthenticationDependencies.controller.session?.roleCode;
+      
       final bool openingDashboard =
           state.matchedLocation == AppRoutes.dashboard;
       final bool openingLogin = state.matchedLocation == AppRoutes.login;
+      final bool openingStaffDashboard = state.matchedLocation == AppRoutes.staffDashboard;
 
-      if (openingDashboard && !authenticated) return AppRoutes.login;
-      if (openingLogin && authenticated) return AppRoutes.dashboard;
+      if (!authenticated && (openingDashboard || openingStaffDashboard)) {
+        return AppRoutes.login;
+      }
+      
+      if (authenticated) {
+        final bool isStaff = role != 'tenant_owner' && role != 'platform_admin';
+        
+        if (openingLogin) {
+          return isStaff ? AppRoutes.staffDashboard : AppRoutes.dashboard;
+        }
+        
+        if (openingDashboard && isStaff) {
+          return AppRoutes.staffDashboard;
+        }
+        
+        if (openingStaffDashboard && !isStaff) {
+          return AppRoutes.dashboard;
+        }
+      }
+      
       return null;
     },
     routes: <RouteBase>[
@@ -126,6 +151,16 @@ abstract final class AppRouter {
                   onboardingData?.tenantId ??
                   AuthenticationDependencies.controller.session?.tenantId,
             ),
+          );
+        },
+      ),
+      GoRoute(
+        name: AppRouteNames.staffDashboard,
+        path: AppRoutes.staffDashboard,
+        pageBuilder: (BuildContext context, GoRouterState state) {
+          return _fadePage<void>(
+            state: state,
+            child: const StaffDummyScreen(),
           );
         },
       ),

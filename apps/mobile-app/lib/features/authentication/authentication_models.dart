@@ -10,6 +10,7 @@ class AuthenticationSession {
     this.ownerName,
     this.ownerEmail,
     this.businessName,
+    required this.roleCode,
   });
 
   final String accessToken;
@@ -22,6 +23,7 @@ class AuthenticationSession {
   final String? ownerName;
   final String? ownerEmail;
   final String? businessName;
+  final String roleCode;
 }
 
 class AuthenticationException implements Exception {

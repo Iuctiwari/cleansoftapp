@@ -310,6 +310,7 @@ export interface AuthRepository {
   createStaffIdentity(record: StaffAuthRecord): Promise<StaffAuthRecord>;
   findStaffIdentityByUserId(userId: string): Promise<StaffAuthRecord | null>;
   updateStaffIdentityStatus(userId: string, status: 'active' | 'disabled'): Promise<void>;
+  deleteStaffIdentity(userId: string): Promise<void>;
 }
 
 export interface AccessTokenResolution {

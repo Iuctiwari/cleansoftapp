@@ -107,13 +107,15 @@ class StaffApiService {
     try {
       response = await _client.get(uri, headers: headers).timeout(_requestTimeout);
     } catch (e) {
-      throw const StaffApiException(
+      print('StaffApiService get error: $e');
+      throw StaffApiException(
         code: 'network_error',
         messageKey: 'network_error',
         statusCode: 0,
-        backendMessage: 'Unable to reach the staff service.',
+        backendMessage: 'Unable to reach the staff service. Details: $e',
       );
     }
+
 
     if (response.statusCode == 200) {
       final List<dynamic> decoded = jsonDecode(response.body);
