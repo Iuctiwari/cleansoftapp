@@ -45,6 +45,11 @@ class ExpenseController extends ChangeNotifier {
   int get categoryCount =>
       _allExpenses.map((Expense item) => item.expenseCategoryId).toSet().length;
 
+  Future<void> selectBranch(String? branchId) async {
+    _service.selectBranch(branchId);
+    await load();
+  }
+
   Future<void> load() async {
     _loading = true;
     _error = null;

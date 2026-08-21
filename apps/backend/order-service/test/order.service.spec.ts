@@ -7,12 +7,14 @@ import {
   NotFoundException,
   ValidationPipe,
 } from '@nestjs/common';
+import type { ConfigService } from '@nestjs/config';
 import { SortDirection } from '@nexoraa/constants';
 
 import { CreateOrderDto } from '../src/order/dtos/create-order.dto';
 import { OrderQueryDto } from '../src/order/dtos/order-query.dto';
 import { OrderPaymentStatus, OrderStatus } from '../src/order/enums';
 import type { OrderAuditService } from '../src/order/order-audit.service';
+import type { OrderOwnerLookupService } from '../src/order/order-owner.service';
 import { OrderService } from '../src/order/order.service';
 import type {
   OrderDependencies,
@@ -86,6 +88,7 @@ describe('OrderService API use cases', () => {
   let repository: jest.Mocked<OrderRepository>;
   let dependencies: jest.Mocked<OrderDependencies>;
   let audit: jest.Mocked<Pick<OrderAuditService, 'record'>>;
+  let ownerLookup: jest.Mocked<Pick<OrderOwnerLookupService, 'findOwnerId'>>;
   let service: OrderService;
 
   beforeEach(() => {
@@ -117,7 +120,17 @@ describe('OrderService API use cases', () => {
       validateCatalogReference: jest.fn().mockResolvedValue(undefined),
     };
     audit = { record: jest.fn() };
-    service = new OrderService(repository, dependencies, audit as unknown as OrderAuditService);
+    // Defaults to "no owner found" so existing recipient-targeted assertions
+    // are unaffected; owner-notification behavior is covered separately.
+    ownerLookup = { findOwnerId: jest.fn().mockResolvedValue(undefined) };
+    const configService = { get: jest.fn().mockReturnValue('http://localhost:3015') };
+    service = new OrderService(
+      repository,
+      dependencies,
+      audit as unknown as OrderAuditService,
+      configService as unknown as ConfigService,
+      ownerLookup as unknown as OrderOwnerLookupService,
+    );
   });
 
   it('creates a Received order using validated snapshots and authoritative totals', async () => {

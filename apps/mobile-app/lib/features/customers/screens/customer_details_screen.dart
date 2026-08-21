@@ -308,6 +308,9 @@ class _CustomerDetailsScreenState extends State<CustomerDetailsScreen> {
         ),
         PopupMenuButton<String>(
           enabled: _customer != null && !_deleting,
+          shape: const RoundedRectangleBorder(
+            borderRadius: AppRadius.buttonRadius,
+          ),
           onSelected: (String value) {
             if (value == 'delete') _delete();
           },
@@ -334,6 +337,45 @@ class _CustomerDetailsScreenState extends State<CustomerDetailsScreen> {
       ],
     ),
     body: _body(),
+    bottomNavigationBar: _customer == null ? null : _paymentHistoryBar(),
+  );
+
+  /// Pinned footer for "View Payment History" so it stays reachable while
+  /// the rest of the profile scrolls, instead of being the last item of the
+  /// scrolling `ListView` in [_body].
+  Widget _paymentHistoryBar() => DecoratedBox(
+    decoration: const BoxDecoration(
+      color: AppColors.surface,
+      border: AppBorders.bottomNavigation,
+      boxShadow: AppShadows.subtle,
+    ),
+    child: SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.pageHorizontal,
+          vertical: AppSpacing.lg,
+        ),
+        child: SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: _openPaymentHistory,
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.primaryDark,
+              backgroundColor: AppColors.primarySurface,
+              side: const BorderSide(color: AppColors.primaryBorder),
+              minimumSize: const Size(0, AppSizes.touchTarget),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.xl,
+                vertical: AppSpacing.lg,
+              ),
+            ),
+            icon: const Icon(AppIcons.payment, size: AppIconSizes.md),
+            label: const Text('View Payment History'),
+          ),
+        ),
+      ),
+    ),
   );
 
   Widget _body() {
@@ -542,25 +584,6 @@ class _CustomerDetailsScreenState extends State<CustomerDetailsScreen> {
         Text('Order History', style: AppTextStyles.subtitle),
         const SizedBox(height: AppSpacing.md),
         _orderHistoryContent(snapshot),
-        const SizedBox(height: AppSpacing.xl),
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton.icon(
-            onPressed: _openPaymentHistory,
-            style: OutlinedButton.styleFrom(
-              foregroundColor: AppColors.primaryDark,
-              backgroundColor: AppColors.primarySurface,
-              side: const BorderSide(color: AppColors.primaryBorder),
-              minimumSize: const Size(0, AppSizes.touchTarget),
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.xl,
-                vertical: AppSpacing.lg,
-              ),
-            ),
-            icon: const Icon(AppIcons.payment, size: AppIconSizes.md),
-            label: const Text('View Payment History'),
-          ),
-        ),
       ],
     );
   }

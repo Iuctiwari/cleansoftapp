@@ -11,11 +11,16 @@ class PaymentsScreen extends StatefulWidget {
   const PaymentsScreen({
     required this.controller,
     this.title = 'Payments',
+    this.initialTab = PaymentsTab.history,
     super.key,
   });
 
   final PaymentsController controller;
   final String title;
+
+  /// Tab shown on first build (e.g. Outstanding for a "Pending payment"
+  /// notification tap). Defaults to History, matching every existing caller.
+  final PaymentsTab initialTab;
 
   @override
   State<PaymentsScreen> createState() => _PaymentsScreenState();
@@ -23,7 +28,7 @@ class PaymentsScreen extends StatefulWidget {
 
 class _PaymentsScreenState extends State<PaymentsScreen> {
   final ScrollController _scrollController = ScrollController();
-  PaymentsTab _tab = PaymentsTab.history;
+  late PaymentsTab _tab = widget.initialTab;
 
   @override
   void initState() {

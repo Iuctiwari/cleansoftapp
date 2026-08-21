@@ -21,6 +21,15 @@ interface AuthContextEnvelope {
   };
 }
 
+interface AccessTokenEnvelope {
+  readonly claims?: {
+    readonly userId?: string;
+    readonly tenantId?: string;
+    readonly roleCode?: string;
+    readonly permissions?: readonly string[];
+  };
+}
+
 type NextFunction = () => void;
 
 @Injectable()
@@ -33,25 +42,10 @@ export class ExpenseAuthenticationMiddleware implements NestMiddleware {
     next: NextFunction,
   ): Promise<void> {
     const authorization = this.header(request, 'authorization');
-    const directTenantId = this.header(request, 'x-tenant-id');
     const directBranchId = this.header(request, 'x-branch-id');
-    const directUserId = this.header(request, 'x-user-id');
 
-    if (!authorization) {
-      if (directTenantId) {
-        request.trustedContext = {
-          actorId: directUserId ?? 'system',
-          kind: 'tenant',
-          tenantId: directTenantId,
-          branchId: directBranchId ?? 'default_branch',
-        };
-      }
-      next();
-      return;
-    }
-
-    if (!authorization.startsWith('Bearer ')) {
-      throw new UnauthorizedException('Invalid authorization header');
+    if (!authorization?.startsWith('Bearer ')) {
+      throw new UnauthorizedException('A valid bearer token is required');
     }
 
     const authBaseUrl = this.configService.get<string>(
@@ -68,37 +62,24 @@ export class ExpenseAuthenticationMiddleware implements NestMiddleware {
         },
       });
     } catch {
-      if (directTenantId) {
-        request.trustedContext = {
-          actorId: directUserId ?? 'authenticated-user',
-          kind: 'tenant',
-          tenantId: directTenantId,
-          branchId: directBranchId ?? 'default_branch',
-        };
-        next();
-        return;
-      }
       throw new UnauthorizedException('Authentication service is unavailable');
     }
 
     if (response.status === 403) throw new ForbiddenException('Branch access is forbidden');
-    if (!response.ok) {
-      if (directTenantId) {
-        request.trustedContext = {
-          actorId: directUserId ?? 'authenticated-user',
-          kind: 'tenant',
-          tenantId: directTenantId,
-          branchId: directBranchId ?? 'default_branch',
-        };
-        next();
-        return;
-      }
-      throw new UnauthorizedException('Invalid or expired access token');
-    }
+    if (!response.ok) throw new UnauthorizedException('Invalid or expired access token');
 
     const envelope = (await response.json()) as AuthContextEnvelope;
     const context = envelope.data;
-    if (!context?.actorId || !context.tenantId || !context.branchId || context.kind !== 'tenant') {
+    const claims = this.readClaims(authorization.slice('Bearer '.length));
+    if (
+      context?.kind !== 'tenant' ||
+      !context.actorId ||
+      !context.tenantId ||
+      !context.branchId ||
+      claims.userId !== context.actorId ||
+      claims.tenantId !== context.tenantId ||
+      !claims.roleCode
+    ) {
       throw new UnauthorizedException('Invalid authenticated context');
     }
 
@@ -114,5 +95,18 @@ export class ExpenseAuthenticationMiddleware implements NestMiddleware {
   private header(request: ExpenseAuthenticationRequest, name: string): string | undefined {
     const value = request.headers[name];
     return Array.isArray(value) ? value[0] : value;
+  }
+
+  private readClaims(token: string): NonNullable<AccessTokenEnvelope['claims']> {
+    const payload = token.split('.')[1];
+    try {
+      const envelope = JSON.parse(
+        Buffer.from(payload, 'base64url').toString('utf8'),
+      ) as AccessTokenEnvelope;
+      if (envelope.claims) return envelope.claims;
+    } catch {
+      // The token was validated by auth-service, but its local representation is unusable.
+    }
+    throw new UnauthorizedException('Invalid access token claims');
   }
 }

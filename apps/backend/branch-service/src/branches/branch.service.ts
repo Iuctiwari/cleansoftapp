@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { AUTO_BRANCH_CODE_RETRIES, nextAvailableBranchCode } from '@nexoraa/utils';
 
 import { PlatformError } from '../platform/platform.errors';
 import type { PaginatedResult, TrustedContext } from '../platform/platform.types';
@@ -60,23 +61,6 @@ function throwNotFound(): never {
 function normalizeCode(code?: string): string | undefined {
   const trimmed = code?.trim();
   return trimmed && trimmed.length > 0 ? trimmed.toUpperCase() : undefined;
-}
-
-const AUTO_BRANCH_CODE_PREFIX = 'NX-';
-const AUTO_BRANCH_CODE_DIGITS = 3;
-const AUTO_BRANCH_CODE_RETRIES = 5;
-
-function nextAvailableBranchCode(existingCodes: readonly string[]): string {
-  const usedCodes = new Set(existingCodes.map((code) => code.trim().toUpperCase()));
-  let sequence = 1;
-  while (
-    usedCodes.has(
-      `${AUTO_BRANCH_CODE_PREFIX}${String(sequence).padStart(AUTO_BRANCH_CODE_DIGITS, '0')}`,
-    )
-  ) {
-    sequence += 1;
-  }
-  return `${AUTO_BRANCH_CODE_PREFIX}${String(sequence).padStart(AUTO_BRANCH_CODE_DIGITS, '0')}`;
 }
 
 @Injectable()

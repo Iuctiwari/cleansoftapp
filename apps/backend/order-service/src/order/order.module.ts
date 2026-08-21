@@ -20,6 +20,8 @@ import { OrderScopeGuard } from './order.guard';
 import { OrderIdPipe } from './order-id.pipe';
 import { HttpOrderDependencies } from './order.integrations';
 import { MongoOrderRepository } from './order.mongo.repository';
+import { OrderOwnerLookupService } from './order-owner.service';
+import { TenantOwnerMongoose, TenantOwnerMongooseSchema } from './order-owner.schema';
 import { OrderService } from './order.service';
 import { ORDER_DEPENDENCIES, ORDER_REPOSITORY } from './order.types';
 
@@ -32,6 +34,7 @@ import { ORDER_DEPENDENCIES, ORDER_REPOSITORY } from './order.types';
       { name: CounterMongoose.name, schema: CounterMongooseSchema },
       { name: StatusHistoryMongoose.name, schema: StatusHistoryMongooseSchema },
       { name: AssignmentMongoose.name, schema: AssignmentMongooseSchema },
+      { name: TenantOwnerMongoose.name, schema: TenantOwnerMongooseSchema },
     ]),
   ],
   controllers: [OrderController],
@@ -45,6 +48,7 @@ import { ORDER_DEPENDENCIES, ORDER_REPOSITORY } from './order.types';
     { provide: ORDER_REPOSITORY, useExisting: MongoOrderRepository },
     HttpOrderDependencies,
     { provide: ORDER_DEPENDENCIES, useExisting: HttpOrderDependencies },
+    OrderOwnerLookupService,
   ],
   exports: [OrderService],
 })

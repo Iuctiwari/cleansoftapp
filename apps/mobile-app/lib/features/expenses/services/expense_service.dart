@@ -7,6 +7,8 @@ class ExpenseService {
 
   final ExpenseDataSource _dataSource;
 
+  void selectBranch(String? branchId) => _dataSource.selectBranch(branchId);
+
   Future<List<Expense>> list({ExpenseFilter filter = const ExpenseFilter()}) =>
       _dataSource.getExpenses(filter: filter);
   Future<List<ExpenseCategory>> categories() =>

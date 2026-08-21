@@ -34,6 +34,7 @@ export interface BranchRecord {
   readonly branchId: string;
   readonly tenantId: string;
   readonly branchName: string;
+  readonly code?: string;
   readonly streetAddress: string;
   readonly city: string;
   readonly state: string;
