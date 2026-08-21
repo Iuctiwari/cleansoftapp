@@ -9,9 +9,10 @@ abstract final class AuthenticationDependencies {
 
   static final AuthenticationService service = ApiAuthenticationService(
     apiBaseUri: Uri.parse(
-      _environment('API_BASE_URL', 'http://localhost:3000/api'),
+      _environment('API_BASE_URL', 'http://127.0.0.1:3000/api'),
     ),
     loginContext: _environment('AUTH_LOGIN_CONTEXT', 'tenant'),
+    tenantSlug: _environment('AUTH_TENANT_SLUG', 'nexoraa-admin'),
     tokenStorage: tokenStorage,
   );
 

@@ -59,7 +59,12 @@ function validateUrlProtocol(value: unknown, variable: string, protocols: readon
   let url: URL;
 
   try {
-    url = new URL(String(value));
+    // URL parser fails on comma-separated hosts used in MongoDB replica sets
+    if (String(value).startsWith('mongodb://') && String(value).includes(',')) {
+      url = { protocol: 'mongodb:' } as unknown as URL;
+    } else {
+      url = new URL(String(value));
+    }
   } catch {
     throw new Error(`Environment variable ${variable} must be a valid URL`);
   }

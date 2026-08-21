@@ -146,12 +146,20 @@ class MoreScreen extends StatelessWidget {
   }
 
   void _handleItemTap(BuildContext context, MoreMenuItemData item) {
+    if (item.title == 'Staff Management') {
+      context.pushNamed(AppRouteNames.staffList);
+      return;
+    }
     if (item.title == 'Expenses') {
       onExpensesTap();
       return;
     }
     if (item.title == 'Branch Management') {
       context.pushNamed(AppRouteNames.branchList);
+      return;
+    }
+    if (item.title == 'My Profile') {
+      context.pushNamed(AppRouteNames.profile);
       return;
     }
     if (item.title == 'Payments') {
@@ -255,7 +263,7 @@ class MoreScreen extends StatelessWidget {
                     MoreProfileCard(
                       businessName: businessName,
                       email: userProfile.email,
-                      onTap: () => _showPlaceholder(context, 'My Profile'),
+                      onTap: () => context.pushNamed(AppRouteNames.profile),
                       role: role,
                       userName: userProfile.name,
                     ),

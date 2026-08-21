@@ -12,6 +12,7 @@ import { BranchModule } from './branches/branch.module';
       cache: true,
       expandVariables: true,
       isGlobal: true,
+      envFilePath: ['.env', '../../../.env'],
     }),
     DatabaseModule,
     BranchModule,

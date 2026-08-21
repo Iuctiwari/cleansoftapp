@@ -38,6 +38,7 @@ describe('MongoAuthRepository active branch identity', () => {
       ownerModel as never,
       tenantModel as never,
       branchModel as never,
+      undefined as never,
     );
 
     const identity = await repository.findIdentity('tenant', owner.email, tenant.slug);

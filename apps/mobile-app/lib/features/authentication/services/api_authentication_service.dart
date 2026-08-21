@@ -156,7 +156,8 @@ final class ApiAuthenticationService implements AuthenticationService {
       tenantSlug: _optionalString(tenant, 'tenantSlug'),
       ownerUserId: _requiredString(user, 'userId'),
       ownerName: _requiredString(user, 'displayName'),
-      ownerEmail: _requiredString(user, 'email'),
+      ownerEmail: _optionalString(user, 'email'),
+      roleCode: _requiredString(user, 'roleCode'),
       businessName: _optionalString(tenant, 'tenantName'),
     );
   }
