@@ -4,6 +4,7 @@ import {
   ConflictException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -12,6 +13,7 @@ import { DEFAULT_PAGE_NUMBER, DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from '@nexoraa/
 import type { PaginatedResult } from '@nexoraa/types';
 import { FilterQuery, Model, Types } from 'mongoose';
 
+import { PaymentOwnerLookupService } from './payment-owner.service';
 import { PaymentMongoose, type PaymentDocument } from './payment.schema';
 import type {
   CreateAdvancePaymentInput,
@@ -27,12 +29,24 @@ const PAYMENT_STATUSES = new Set(['Pending', 'Successful', 'Failed']);
 const WRITE_ROLES = new Set(['tenant_owner', 'branch_manager', 'cashier']);
 const READ_ROLES = new Set(['tenant_owner', 'branch_manager', 'cashier', 'staff']);
 
+interface NotifyInput {
+  readonly type: string;
+  readonly title: string;
+  readonly message: string;
+  readonly entityType: string;
+  readonly entityId: string;
+  readonly orderId?: string;
+}
+
 @Injectable()
 export class PaymentService {
+  private readonly logger = new Logger(PaymentService.name);
+
   constructor(
     @InjectModel(PaymentMongoose.name)
     private readonly payments: Model<PaymentDocument>,
     private readonly config: ConfigService,
+    private readonly ownerLookup: PaymentOwnerLookupService,
   ) {}
 
   async createAdvance(
@@ -96,6 +110,18 @@ export class PaymentService {
           status: 'Pending',
           tenantId: new Types.ObjectId(scope.tenantId),
         });
+        {
+          const input: NotifyInput = {
+            entityId: String(payment._id),
+            entityType: 'Payment',
+            message: `A payment of ${(amountMinor / 100).toFixed(2)} ${currency} is pending confirmation for order ${this.orderNumberOf(order, orderId)}.`,
+            orderId,
+            title: 'Payment pending',
+            type: 'PaymentPending',
+          };
+          this.notify(scope, this.createdByOf(order), input);
+          this.notifyOwner(scope, this.createdByOf(order), input);
+        }
       } catch (error) {
         if (!this.isDuplicateKey(error)) throw error;
         payment = await this.payments
@@ -110,6 +136,18 @@ export class PaymentService {
     if (payment.status !== 'Successful') {
       payment.status = 'Successful';
       await payment.save();
+      {
+        const input: NotifyInput = {
+          entityId: String(payment._id),
+          entityType: 'Payment',
+          message: `Payment of ${(amountMinor / 100).toFixed(2)} ${currency} received for order ${this.orderNumberOf(projectedOrder, orderId)}.`,
+          orderId,
+          title: 'Payment received',
+          type: 'PaymentReceived',
+        };
+        this.notify(scope, this.createdByOf(projectedOrder), input);
+        this.notifyOwner(scope, this.createdByOf(projectedOrder), input);
+      }
     }
     return {
       payment: this.paymentResponse(payment),
@@ -359,6 +397,95 @@ export class PaymentService {
   private assertWrite(scope: PaymentScope): void {
     if (!WRITE_ROLES.has(scope.roleCode) || !scope.permissions.includes('orders:write')) {
       throw new ForbiddenException('Payment write permission is required');
+    }
+  }
+
+  private createdByOf(order: Record<string, unknown>): string | undefined {
+    return typeof order.createdBy === 'string' && order.createdBy ? order.createdBy : undefined;
+  }
+
+  private orderNumberOf(order: Record<string, unknown>, fallback: string): string {
+    return typeof order.orderNumber === 'string' && order.orderNumber
+      ? order.orderNumber
+      : fallback;
+  }
+
+  /**
+   * Fire-and-forget notification delivery: forwards the acting user's own bearer token
+   * (same service-to-service pattern used for the Order Service calls above), so the
+   * created notification lands in the caller's own verified tenant/branch. Never blocks or
+   * fails the payment operation that triggered it, and never notifies the actor about their
+   * own action.
+   */
+  private notify(scope: PaymentScope, recipientId: string | undefined, input: NotifyInput): void {
+    if (!recipientId || recipientId === scope.actorId) return;
+    void this.sendNotification(scope, recipientId, input);
+  }
+
+  /**
+   * Notifies the tenant Owner in addition to whichever recipient `notify()`
+   * already targeted for this same event. Unlike `notify()`, this never
+   * skips the Owner for being the acting user — the Owner wants visibility
+   * into everything happening in their tenant, including their own actions
+   * (see NEX-142 business rule). It only skips when the existing recipient
+   * already is the Owner and will actually receive that notification (i.e.
+   * that recipient wasn't itself self-skipped), to avoid a duplicate.
+   */
+  private notifyOwner(
+    scope: PaymentScope,
+    existingRecipientId: string | undefined,
+    input: NotifyInput,
+  ): void {
+    void this.deliverToOwner(scope, existingRecipientId, input);
+  }
+
+  private async deliverToOwner(
+    scope: PaymentScope,
+    existingRecipientId: string | undefined,
+    input: NotifyInput,
+  ): Promise<void> {
+    let ownerId: string | undefined;
+    try {
+      ownerId = await this.ownerLookup.findOwnerId(scope.tenantId);
+    } catch (error) {
+      this.logger.warn(`Failed to resolve tenant owner: ${(error as Error).message}`);
+      return;
+    }
+    if (!ownerId) return;
+    const existingRecipientWillDeliver =
+      existingRecipientId !== undefined && existingRecipientId !== scope.actorId;
+    if (existingRecipientWillDeliver && existingRecipientId === ownerId) return;
+    await this.sendNotification(scope, ownerId, input);
+  }
+
+  private async sendNotification(
+    scope: PaymentScope,
+    recipientId: string,
+    input: NotifyInput,
+  ): Promise<void> {
+    try {
+      const baseUrl = this.config
+        .get<string>('NOTIFICATION_SERVICE_BASE_URL', 'http://localhost:3015')
+        .replace(/\/$/, '');
+      const response = await fetch(`${baseUrl}/api/v1/notifications`, {
+        body: JSON.stringify({ recipientId, ...input }),
+        headers: {
+          authorization: scope.authorization,
+          'content-type': 'application/json',
+          'x-branch-id': scope.branchId,
+        },
+        method: 'POST',
+        signal: AbortSignal.timeout(5000),
+      });
+      if (!response.ok) {
+        this.logger.warn(
+          `Notification Service rejected a ${input.type} notification: ${response.status}`,
+        );
+      }
+    } catch (error) {
+      this.logger.warn(
+        `Failed to deliver a ${input.type} notification: ${(error as Error).message}`,
+      );
     }
   }
 }

@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:nexoraa_mobile/design_system/design_system.dart';
+import 'package:nexoraa_mobile/features/customers/models/customer.dart';
+import 'package:nexoraa_mobile/features/customers/widgets/customer_widgets.dart';
+import 'package:nexoraa_mobile/features/dashboard/controllers/dashboard_search_controller.dart';
 import 'package:nexoraa_mobile/features/dashboard/dashboard_models.dart';
+import 'package:nexoraa_mobile/features/orders/models/order.dart';
+import 'package:nexoraa_mobile/features/orders/widgets/order_widgets.dart';
+import 'package:nexoraa_mobile/features/payments/models/payment.dart';
 
 class DashboardTopAppBar extends StatelessWidget {
   const DashboardTopAppBar({
@@ -8,6 +14,7 @@ class DashboardTopAppBar extends StatelessWidget {
     required this.ownerName,
     this.onBackPressed,
     this.onProfilePressed,
+    this.unreadNotificationsCount = 0,
     super.key,
   });
 
@@ -15,6 +22,10 @@ class DashboardTopAppBar extends StatelessWidget {
   final VoidCallback onNotificationsPressed;
   final VoidCallback? onProfilePressed;
   final String ownerName;
+
+  /// Real unread notification count from the Notification Service. The
+  /// badge dot is only shown while this is greater than zero.
+  final int unreadNotificationsCount;
 
   @override
   Widget build(BuildContext context) {
@@ -39,19 +50,20 @@ class DashboardTopAppBar extends StatelessWidget {
             clipBehavior: Clip.none,
             children: <Widget>[
               const Icon(AppIcons.notifications, size: AppIconSizes.lg),
-              Positioned(
-                right: -AppSpacing.xxs,
-                top: -AppSpacing.xxs,
-                child: Container(
-                  width: AppSpacing.md,
-                  height: AppSpacing.md,
-                  decoration: const BoxDecoration(
-                    color: AppColors.errorLight,
-                    shape: BoxShape.circle,
-                    border: AppBorders.toggle,
+              if (unreadNotificationsCount > 0)
+                Positioned(
+                  right: -AppSpacing.xxs,
+                  top: -AppSpacing.xxs,
+                  child: Container(
+                    width: AppSpacing.md,
+                    height: AppSpacing.md,
+                    decoration: const BoxDecoration(
+                      color: AppColors.errorLight,
+                      shape: BoxShape.circle,
+                      border: AppBorders.toggle,
+                    ),
                   ),
                 ),
-              ),
             ],
           ),
         ),
@@ -123,12 +135,20 @@ class DashboardHeader extends StatelessWidget {
     required this.data,
     required this.branches,
     required this.onBranchChanged,
+    required this.searchController,
+    required this.onOrderTap,
+    required this.onCustomerTap,
+    required this.onPaymentTap,
     super.key,
   });
 
   final List<DashboardData> branches;
   final DashboardData data;
   final ValueChanged<String> onBranchChanged;
+  final DashboardSearchController searchController;
+  final ValueChanged<Order> onOrderTap;
+  final ValueChanged<Customer> onCustomerTap;
+  final ValueChanged<PaymentRecord> onPaymentTap;
 
   @override
   Widget build(BuildContext context) {
@@ -187,7 +207,12 @@ class DashboardHeader extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: AppSpacing.xxl),
-                const DashboardSearchBar(),
+                DashboardSearchBar(
+                  controller: searchController,
+                  onOrderTap: onOrderTap,
+                  onCustomerTap: onCustomerTap,
+                  onPaymentTap: onPaymentTap,
+                ),
                 const SizedBox(height: AppSpacing.lg),
                 BranchDropdown(
                   branches: branches,
@@ -231,39 +256,297 @@ class OwnerProfile extends StatelessWidget {
   }
 }
 
-class DashboardSearchBar extends StatelessWidget {
-  const DashboardSearchBar({super.key});
+class DashboardSearchBar extends StatefulWidget {
+  const DashboardSearchBar({
+    required this.controller,
+    required this.onOrderTap,
+    required this.onCustomerTap,
+    required this.onPaymentTap,
+    super.key,
+  });
+
+  final DashboardSearchController controller;
+  final ValueChanged<Order> onOrderTap;
+  final ValueChanged<Customer> onCustomerTap;
+  final ValueChanged<PaymentRecord> onPaymentTap;
+
+  @override
+  State<DashboardSearchBar> createState() => _DashboardSearchBarState();
+}
+
+class _DashboardSearchBarState extends State<DashboardSearchBar> {
+  final TextEditingController _textController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.addListener(_refresh);
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_refresh);
+    _textController.dispose();
+    super.dispose();
+  }
+
+  void _refresh() {
+    if (mounted) setState(() {});
+  }
+
+  void _clear() {
+    _textController.clear();
+    widget.controller.clear();
+  }
+
+  void _selectOrder(Order order) {
+    _clear();
+    widget.onOrderTap(order);
+  }
+
+  void _selectCustomer(Customer customer) {
+    _clear();
+    widget.onCustomerTap(customer);
+  }
+
+  void _selectPayment(PaymentRecord payment) {
+    _clear();
+    widget.onPaymentTap(payment);
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Semantics(
-      textField: true,
-      label: 'Search dashboard',
-      child: Container(
-        height: AppSizes.buttonLargeHeight,
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
-        decoration: const BoxDecoration(
-          color: AppColors.whiteOverlay15,
-          borderRadius: AppRadius.inputRadius,
-          border: Border.fromBorderSide(
-            BorderSide(color: AppColors.whiteOverlay30),
+    final bool isActive = widget.controller.query.isNotEmpty;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        Semantics(
+          textField: true,
+          label: 'Search dashboard',
+          child: Container(
+            height: AppSizes.buttonLargeHeight,
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+            decoration: const BoxDecoration(
+              color: AppColors.transparent,
+              borderRadius: AppRadius.inputRadius,
+              border: Border.fromBorderSide(
+                BorderSide(color: AppColors.whiteOverlay30),
+              ),
+            ),
+            child: Row(
+              children: <Widget>[
+                const Icon(
+                  AppIcons.search,
+                  color: AppColors.whiteOverlay70,
+                  size: AppIconSizes.lg,
+                ),
+                const SizedBox(width: AppSpacing.lg),
+                Expanded(
+                  child: TextField(
+                    controller: _textController,
+                    onChanged: widget.controller.search,
+                    style: AppTextStyles.bodyMedium.copyWith(
+                      color: AppColors.surface,
+                    ),
+                    cursorColor: AppColors.surface,
+                    decoration: InputDecoration(
+                      isCollapsed: true,
+                      isDense: true,
+                      contentPadding: EdgeInsets.zero,
+                      filled: false,
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      hintText: 'Search by customer , orders and payments....',
+                      hintStyle: AppTextStyles.bodyMedium.copyWith(
+                        color: AppColors.whiteOverlay70,
+                      ),
+                    ),
+                  ),
+                ),
+                if (isActive)
+                  InkWell(
+                    onTap: _clear,
+                    borderRadius: AppRadius.circular,
+                    child: const Padding(
+                      padding: EdgeInsets.all(AppSpacing.xs),
+                      child: Icon(
+                        AppIcons.close,
+                        color: AppColors.whiteOverlay70,
+                        size: AppIconSizes.md,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
+        if (isActive) ...<Widget>[
+          const SizedBox(height: AppSpacing.md),
+          _DashboardSearchResults(
+            controller: widget.controller,
+            onOrderTap: _selectOrder,
+            onCustomerTap: _selectCustomer,
+            onPaymentTap: _selectPayment,
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _DashboardSearchResults extends StatelessWidget {
+  const _DashboardSearchResults({
+    required this.controller,
+    required this.onOrderTap,
+    required this.onCustomerTap,
+    required this.onPaymentTap,
+  });
+
+  final DashboardSearchController controller;
+  final ValueChanged<Order> onOrderTap;
+  final ValueChanged<Customer> onCustomerTap;
+  final ValueChanged<PaymentRecord> onPaymentTap;
+
+  @override
+  Widget build(BuildContext context) {
+    if (controller.isLoading) {
+      return Padding(
+        padding: const EdgeInsets.only(top: AppSpacing.xs),
         child: Row(
+          mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            const Icon(
-              AppIcons.search,
-              color: AppColors.whiteOverlay70,
-              size: AppIconSizes.lg,
+            const SizedBox(
+              width: AppIconSizes.md,
+              height: AppIconSizes.md,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: AppColors.surface,
+              ),
             ),
-            const SizedBox(width: AppSpacing.lg),
+            const SizedBox(width: AppSpacing.sm),
             Text(
-              'Search orders, customers...',
-              style: AppTextStyles.bodyMedium.copyWith(
+              'Searching...',
+              style: AppTextStyles.bodySmall.copyWith(
                 color: AppColors.whiteOverlay70,
               ),
             ),
           ],
+        ),
+      );
+    }
+
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxHeight: 320),
+      child: !controller.hasResults
+          ? Padding(
+              padding: const EdgeInsets.all(AppSpacing.xl),
+              child: Text(
+                'No results for "${controller.query}"',
+                style: AppTextStyles.bodySmall.copyWith(
+                  color: AppColors.whiteOverlay70,
+                ),
+              ),
+            )
+          : ListView(
+              padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+              shrinkWrap: true,
+              children: <Widget>[
+                ...controller.orders.map(
+                  (Order order) => _SearchResultTile(
+                    icon: AppIcons.orders,
+                    iconColor: AppColors.primary,
+                    iconBackground: AppColors.primarySurface,
+                    title: order.customer.name,
+                    subtitle:
+                        '${compactOrderNumber(order.orderNumber)} · ${formatOrderMoney(order.grandTotal)}',
+                    onTap: () => onOrderTap(order),
+                  ),
+                ),
+                ...controller.customers.map(
+                  (Customer customer) => _SearchResultTile(
+                    icon: AppIcons.users,
+                    iconColor: AppColors.info,
+                    iconBackground: AppColors.infoSurface,
+                    title: customer.name,
+                    subtitle: customer.mobile ?? 'Customer',
+                    onTap: () => onCustomerTap(customer),
+                  ),
+                ),
+                ...controller.payments.map(
+                  (PaymentRecord payment) => _SearchResultTile(
+                    icon: AppIcons.payment,
+                    iconColor: AppColors.successLight,
+                    iconBackground: AppColors.successSurface,
+                    title: payment.customerName ?? payment.paymentNumber,
+                    subtitle:
+                        '${payment.orderNumber ?? payment.paymentNumber} · ${formatMoney(payment.amount)}',
+                    onTap: () => onPaymentTap(payment),
+                  ),
+                ),
+              ],
+            ),
+    );
+  }
+}
+
+class _SearchResultTile extends StatelessWidget {
+  const _SearchResultTile({
+    required this.icon,
+    required this.iconColor,
+    required this.iconBackground,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final Color iconColor;
+  final Color iconBackground;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppColors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.xl,
+            vertical: AppSpacing.md,
+          ),
+          child: Row(
+            children: <Widget>[
+              _IconBox(icon: icon, color: iconColor, background: iconBackground),
+              const SizedBox(width: AppSpacing.lg),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTextStyles.bodyMedium.copyWith(
+                        color: AppColors.surface,
+                      ),
+                    ),
+                    Text(
+                      subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTextStyles.caption.copyWith(
+                        color: AppColors.whiteOverlay70,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

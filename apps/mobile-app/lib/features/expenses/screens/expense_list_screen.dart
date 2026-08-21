@@ -5,9 +5,10 @@ import 'package:nexoraa_mobile/features/expenses/expense_dependencies.dart';
 import 'package:nexoraa_mobile/features/expenses/models/expense.dart';
 
 class ExpenseListScreen extends StatefulWidget {
-  const ExpenseListScreen({required this.onBack, super.key});
+  const ExpenseListScreen({required this.onBack, this.branchId, super.key});
 
   final VoidCallback onBack;
+  final String? branchId;
 
   @override
   State<ExpenseListScreen> createState() => _ExpenseListScreenState();
@@ -20,7 +21,25 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
   @override
   void initState() {
     super.initState();
-    _controller = ExpenseDependencies.createController()..load();
+    _controller = ExpenseDependencies.createController();
+    _loadForBranch();
+  }
+
+  @override
+  void didUpdateWidget(covariant ExpenseListScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.branchId != widget.branchId) _loadForBranch();
+  }
+
+  void _loadForBranch() {
+    final String? branchId = widget.branchId;
+    if (branchId == null ||
+        branchId.trim().isEmpty ||
+        branchId == 'unavailable') {
+      _controller.load();
+      return;
+    }
+    _controller.selectBranch(branchId);
   }
 
   @override
@@ -107,7 +126,7 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
                                           ),
                                           const SizedBox(height: 16),
                                           Text(
-                                            'No expenses found in database',
+                                            'No expenses found',
                                             style: AppTextStyles.bodyMedium.copyWith(
                                               fontWeight: FontWeight.w700,
                                               color: AppColors.textPrimary,
@@ -288,7 +307,7 @@ class _AddExpenseScreenState extends State<_AddExpenseScreen> {
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          'Record a new expense into database',
+                          'Record a new expense',
                           style: AppTextStyles.bodySmall,
                         ),
                         const SizedBox(height: 20),
@@ -574,22 +593,28 @@ class _AddExpenseScreenState extends State<_AddExpenseScreen> {
                           validator: _required,
                         ),
                         const SizedBox(height: 24),
-                        SizedBox(
-                          height: 48,
-                          child: FilledButton(
-                            style: FilledButton.styleFrom(
-                              backgroundColor: AppColors.primary,
-                              shape: const RoundedRectangleBorder(
-                                borderRadius: AppRadius.buttonRadius,
+                        Align(
+                          alignment: Alignment.center,
+                          child: SizedBox(
+                            height: 48,
+                            child: FilledButton(
+                              style: FilledButton.styleFrom(
+                                backgroundColor: AppColors.primary,
+                                shape: const RoundedRectangleBorder(
+                                  borderRadius: AppRadius.buttonRadius,
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 24,
+                                ),
                               ),
-                            ),
-                            onPressed: _submit,
-                            child: const Text(
-                              'Save Expense to Database',
-                              style: TextStyle(
-                                color: AppColors.surface,
-                                fontSize: 15,
-                                fontWeight: FontWeight.w600,
+                              onPressed: _submit,
+                              child: const Text(
+                                'Save Expense',
+                                style: TextStyle(
+                                  color: AppColors.surface,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                             ),
                           ),
@@ -834,7 +859,7 @@ class _ExpenseSummary extends StatelessWidget {
           const SizedBox(height: 5),
           Text(
             categoryCount == 0
-                ? 'No expenses recorded in database'
+                ? 'No expenses recorded'
                 : 'Across $categoryCount expense categories',
             style: AppTextStyles.caption.copyWith(
               color: AppColors.surface,

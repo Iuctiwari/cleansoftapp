@@ -26,6 +26,7 @@
     "@nexoraa/config": "workspace:*",
     "@nexoraa/database": "workspace:*",
     "@nexoraa/swagger": "workspace:*",
+    "@nexoraa/utils": "workspace:*",
     "bullmq": "5.53.1",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",

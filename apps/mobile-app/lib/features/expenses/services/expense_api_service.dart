@@ -4,7 +4,7 @@ import 'dart:io';
 
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
-import 'package:nexoraa_mobile/features/authentication/authentication_dependencies.dart';
+import 'package:nexoraa_mobile/features/authentication/services/auth_token_storage.dart';
 import 'package:nexoraa_mobile/features/expenses/models/expense.dart';
 import 'package:nexoraa_mobile/features/expenses/services/expense_data_source.dart';
 
@@ -18,25 +18,25 @@ class ExpenseApiException implements Exception {
 
 class ExpenseApiService implements ExpenseDataSource {
   ExpenseApiService({
+    required AuthTokenStorage tokenStorage,
     http.Client? client,
     String? baseUrl,
-  })  : _client = client ?? http.Client(),
-        _baseUrl = _normalizeBaseUrl(baseUrl ?? _configuredBaseUrl());
+  }) : _tokenStorage = tokenStorage,
+       _client = client ?? http.Client(),
+       _baseUrl = _normalizeBaseUrl(baseUrl ?? _configuredBaseUrl());
 
   static const Duration _requestTimeout = Duration(seconds: 15);
   static const String _environmentKey = 'EXPENSE_API_BASE_URL';
 
+  final AuthTokenStorage _tokenStorage;
   final http.Client _client;
   final String _baseUrl;
-  String? _tenantId;
   String? _branchId;
 
+  @override
   void selectBranch(String? branchId) {
-    _branchId = branchId?.trim().isEmpty ?? true ? null : branchId!.trim();
-  }
-
-  void selectTenant(String? tenantId) {
-    _tenantId = tenantId?.trim().isEmpty ?? true ? null : tenantId!.trim();
+    final String value = branchId?.trim() ?? '';
+    _branchId = value.isEmpty || value == 'unavailable' ? null : value;
   }
 
   static String _configuredBaseUrl() {
@@ -68,16 +68,18 @@ class ExpenseApiService implements ExpenseDataSource {
   }
 
   Future<Map<String, String>> _headers() async {
-    final session = await AuthenticationDependencies.tokenStorage.read();
-    final String defaultTenantId = _tenantId ?? '671000000000000000000001';
-    final String defaultBranchId = _branchId ?? 'default_branch';
+    final session = await _tokenStorage.read();
+    if (session == null) {
+      throw const ExpenseApiException('Please sign in again.');
+    }
+    if (_branchId == null) {
+      throw const ExpenseApiException('Select an active branch to manage expenses.');
+    }
 
     return <String, String>{
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-      if (session != null) 'Authorization': 'Bearer ${session.accessToken}',
-      'x-tenant-id': defaultTenantId,
-      'x-branch-id': defaultBranchId,
+      HttpHeaders.acceptHeader: 'application/json',
+      HttpHeaders.authorizationHeader: 'Bearer ${session.accessToken}',
+      'x-branch-id': _branchId!,
     };
   }
 
@@ -155,7 +157,10 @@ class ExpenseApiService implements ExpenseDataSource {
     final http.Response response = await _send(
       () => _client.post(
         uri,
-        headers: headers,
+        headers: <String, String>{
+          ...headers,
+          HttpHeaders.contentTypeHeader: 'application/json',
+        },
         body: jsonEncode(request.toJson()),
       ),
     );
@@ -163,7 +168,8 @@ class ExpenseApiService implements ExpenseDataSource {
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
       if (decoded is Map<String, dynamic>) {
-        final Map<String, dynamic> data = decoded.containsKey('data') && decoded['data'] is Map<String, dynamic>
+        final Map<String, dynamic> data =
+            decoded.containsKey('data') && decoded['data'] is Map<String, dynamic>
             ? decoded['data'] as Map<String, dynamic>
             : decoded;
         return Expense.fromJson(data);
@@ -181,7 +187,10 @@ class ExpenseApiService implements ExpenseDataSource {
     final http.Response response = await _send(
       () => _client.patch(
         uri,
-        headers: headers,
+        headers: <String, String>{
+          ...headers,
+          HttpHeaders.contentTypeHeader: 'application/json',
+        },
         body: jsonEncode(request.toJson()),
       ),
     );
@@ -189,7 +198,8 @@ class ExpenseApiService implements ExpenseDataSource {
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
       if (decoded is Map<String, dynamic>) {
-        final Map<String, dynamic> data = decoded.containsKey('data') && decoded['data'] is Map<String, dynamic>
+        final Map<String, dynamic> data =
+            decoded.containsKey('data') && decoded['data'] is Map<String, dynamic>
             ? decoded['data'] as Map<String, dynamic>
             : decoded;
         return Expense.fromJson(data);

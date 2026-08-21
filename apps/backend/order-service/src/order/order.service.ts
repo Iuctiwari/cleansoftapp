@@ -4,8 +4,10 @@ import {
   ForbiddenException,
   Inject,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { SortDirection } from '@nexoraa/constants';
 
 import type { AssignOrderDto } from './dtos/assign-order.dto';
@@ -17,6 +19,7 @@ import type { UpdateOrderStatusDto } from './dtos/update-order-status.dto';
 import type { UpdateOrderDto } from './dtos/update-order.dto';
 import { OrderStatus } from './enums';
 import { OrderAuditService } from './order-audit.service';
+import { OrderOwnerLookupService } from './order-owner.service';
 import {
   CATALOG_PRICING_TYPES,
   ORDER_DEPENDENCIES,
@@ -38,6 +41,35 @@ const MANAGE_ROLES = new Set(['tenant_owner', 'branch_manager']);
 const STAFF_ROLE = 'staff';
 const ADDITIONAL_SERVICE_SURCHARGE = 10;
 
+interface NotifyInput {
+  readonly type: string;
+  readonly title: string;
+  readonly message: string;
+  readonly entityType: string;
+  readonly entityId: string;
+  readonly orderId?: string;
+}
+
+const STATUS_NOTIFICATIONS: Readonly<
+  Partial<Record<OrderStatus, Pick<NotifyInput, 'type' | 'title' | 'message'>>>
+> = {
+  [OrderStatus.IN_PROGRESS]: {
+    message: 'is now in progress',
+    title: 'Order in progress',
+    type: 'OrderInProgress',
+  },
+  [OrderStatus.OUT_FOR_DELIVERY]: {
+    message: 'is out for delivery',
+    title: 'Order out for delivery',
+    type: 'OrderInDelivery',
+  },
+  [OrderStatus.DELIVERED]: {
+    message: 'has been delivered',
+    title: 'Delivery completed',
+    type: 'DeliveryCompleted',
+  },
+};
+
 const NEXT_STATUSES: Readonly<Partial<Record<OrderStatus, readonly OrderStatus[]>>> = Object.freeze(
   {
     [OrderStatus.DRAFT]: [OrderStatus.RECEIVED],
@@ -50,10 +82,14 @@ const NEXT_STATUSES: Readonly<Partial<Record<OrderStatus, readonly OrderStatus[]
 
 @Injectable()
 export class OrderService {
+  private readonly logger = new Logger(OrderService.name);
+
   constructor(
     @Inject(ORDER_REPOSITORY) private readonly repository: OrderRepository,
     @Inject(ORDER_DEPENDENCIES) private readonly dependencies: OrderDependencies,
     private readonly audit: OrderAuditService,
+    private readonly configService: ConfigService,
+    private readonly ownerLookup: OrderOwnerLookupService,
   ) {}
 
   async create(scope: OrderScope, input: CreateOrderDto): Promise<OrderRecord> {
@@ -77,6 +113,24 @@ export class OrderService {
     this.audit.record(scope, 'order.created', order.id, {
       assignedTo: order.assignedTo,
       status: order.status,
+    });
+    if (order.assignedTo) {
+      this.notify(scope, order.assignedTo, {
+        entityId: order.id,
+        entityType: 'Order',
+        message: `A new order ${order.orderNumber} has been created and assigned to you.`,
+        orderId: order.id,
+        title: 'New order assigned',
+        type: 'OrderCreated',
+      });
+    }
+    this.notifyOwner(scope, order.assignedTo, {
+      entityId: order.id,
+      entityType: 'Order',
+      message: `Order ${order.orderNumber} has been created.`,
+      orderId: order.id,
+      title: 'New order created',
+      type: 'OrderCreated',
     });
     return order;
   }
@@ -170,6 +224,7 @@ export class OrderService {
       newStatus: input.status,
       previousStatus: existing.status,
     });
+    this.notifyStatusChange(scope, order);
     return order;
   }
 
@@ -191,6 +246,22 @@ export class OrderService {
     );
     if (!order) throw new ConflictException('Order assignment changed concurrently');
     this.audit.record(scope, 'order.assigned', id, { assignedTo: input.assignedTo });
+    this.notify(scope, input.assignedTo, {
+      entityId: order.id,
+      entityType: 'Order',
+      message: `You have been assigned to order ${order.orderNumber}.`,
+      orderId: order.id,
+      title: 'Order assigned to you',
+      type: 'WorkerAssigned',
+    });
+    this.notifyOwner(scope, input.assignedTo, {
+      entityId: order.id,
+      entityType: 'Order',
+      message: `Order ${order.orderNumber} has been assigned to a worker.`,
+      orderId: order.id,
+      title: 'Worker assigned',
+      type: 'WorkerAssigned',
+    });
     return order;
   }
 
@@ -465,5 +536,99 @@ export class OrderService {
       return;
     }
     throw new ForbiddenException('Order transition permission is required');
+  }
+
+  private notifyStatusChange(scope: OrderScope, order: OrderRecord): void {
+    const entry = STATUS_NOTIFICATIONS[order.status];
+    if (!entry) return;
+    const input: NotifyInput = {
+      entityId: order.id,
+      entityType: 'Order',
+      message: `Order ${order.orderNumber} ${entry.message}.`,
+      orderId: order.id,
+      title: entry.title,
+      type: entry.type,
+    };
+    this.notify(scope, order.createdBy, input);
+    this.notifyOwner(scope, order.createdBy, input);
+  }
+
+  /**
+   * Fire-and-forget notification delivery: forwards the acting user's own bearer token
+   * (same service-to-service pattern used for Branch/Customer/Catalog Service calls), so the
+   * created notification lands in the caller's own verified tenant/branch. Never blocks or
+   * fails the order operation that triggered it, and never notifies the actor about their own
+   * action.
+   */
+  private notify(scope: OrderScope, recipientId: string | undefined, input: NotifyInput): void {
+    if (!recipientId || recipientId === scope.actorId) return;
+    void this.sendNotification(scope, recipientId, input);
+  }
+
+  /**
+   * Notifies the tenant Owner in addition to whichever recipient `notify()`
+   * already targeted for this same event. Unlike `notify()`, this never
+   * skips the Owner for being the acting user — the Owner wants visibility
+   * into everything happening in their tenant, including their own actions
+   * (see NEX-142 business rule). It only skips when the existing recipient
+   * already is the Owner and will actually receive that notification (i.e.
+   * that recipient wasn't itself self-skipped), to avoid a duplicate.
+   */
+  private notifyOwner(
+    scope: OrderScope,
+    existingRecipientId: string | undefined,
+    input: NotifyInput,
+  ): void {
+    void this.deliverToOwner(scope, existingRecipientId, input);
+  }
+
+  private async deliverToOwner(
+    scope: OrderScope,
+    existingRecipientId: string | undefined,
+    input: NotifyInput,
+  ): Promise<void> {
+    let ownerId: string | undefined;
+    try {
+      ownerId = await this.ownerLookup.findOwnerId(scope.tenantId);
+    } catch (error) {
+      this.logger.warn(`Failed to resolve tenant owner: ${(error as Error).message}`);
+      return;
+    }
+    if (!ownerId) return;
+    const existingRecipientWillDeliver =
+      existingRecipientId !== undefined && existingRecipientId !== scope.actorId;
+    if (existingRecipientWillDeliver && existingRecipientId === ownerId) return;
+    await this.sendNotification(scope, ownerId, input);
+  }
+
+  private async sendNotification(
+    scope: OrderScope,
+    recipientId: string,
+    input: NotifyInput,
+  ): Promise<void> {
+    try {
+      const baseUrl = this.configService
+        .get<string>('NOTIFICATION_SERVICE_BASE_URL', 'http://localhost:3015')
+        .replace(/\/$/, '');
+      const response = await fetch(`${baseUrl}/api/v1/notifications`, {
+        body: JSON.stringify({ recipientId, ...input }),
+        headers: {
+          authorization: scope.authorization,
+          'content-type': 'application/json',
+          'x-branch-id': scope.branchId,
+        },
+        method: 'POST',
+        signal: AbortSignal.timeout(5000),
+      });
+      if (!response.ok) {
+        this.logger.warn(
+          `Notification Service rejected a ${input.type} notification: ${response.status}`,
+        );
+      }
+    } catch (error) {
+      this.logger.warn(
+        `Failed to deliver a ${input.type} notification: ${(error as Error).message}`,
+      );
+    }
   }
 }

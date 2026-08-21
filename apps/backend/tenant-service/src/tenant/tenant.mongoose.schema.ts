@@ -135,6 +135,13 @@ export class BranchMongoose extends Document {
   @Prop({ required: true })
   branchName!: string;
 
+  // Branch code — matches branch-service's BranchMongoose (same shared
+  // `branches` collection). Optional at the schema level for branches
+  // created before this field existed; enforced unique per tenant via the
+  // sparse compound index below whenever present.
+  @Prop({ trim: true, uppercase: true })
+  code?: string;
+
   @Prop({ default: '' })
   streetAddress!: string;
 
@@ -170,6 +177,10 @@ export class BranchMongoose extends Document {
 }
 
 export const BranchMongooseSchema = SchemaFactory.createForClass(BranchMongoose);
+BranchMongooseSchema.index(
+  { tenantId: 1, code: 1 },
+  { unique: true, sparse: true, name: 'tenant_branch_code_unique' },
+);
 
 // ─── Tenant Service ──────────────────────────────────────────────────────────
 

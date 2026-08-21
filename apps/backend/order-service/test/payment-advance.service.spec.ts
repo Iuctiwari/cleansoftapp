@@ -2,9 +2,16 @@ import { BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { Model } from 'mongoose';
 
+import type { PaymentOwnerLookupService } from '../../payment-service/src/payments/payment-owner.service';
 import type { PaymentDocument } from '../../payment-service/src/payments/payment.schema';
 import { PaymentService } from '../../payment-service/src/payments/payment.service';
 import type { PaymentScope } from '../../payment-service/src/payments/payment.types';
+
+// Defaults to "no owner found" so existing recipient-targeted assertions are
+// unaffected; owner-notification behavior is covered separately.
+const ownerLookup = {
+  findOwnerId: jest.fn().mockResolvedValue(undefined),
+} as unknown as PaymentOwnerLookupService;
 
 const ORDER_ID = '64f0c18f7c4d2f0012ab34ff';
 const CUSTOMER_ID = '64f0c18f7c4d2f0012ab34cc';
@@ -81,6 +88,7 @@ describe('Advance Payment Management', () => {
         ORDER_SERVICE_BASE_URL: 'http://order.test',
         PAYMENT_PROJECTION_KEY: 'projection-secret',
       }),
+      ownerLookup,
     );
 
     const result = await service.createAdvance(scope, 'advance-key', {
@@ -126,6 +134,7 @@ describe('Advance Payment Management', () => {
     const service = new PaymentService(
       paymentModel as unknown as Model<PaymentDocument>,
       new ConfigService({ ORDER_SERVICE_BASE_URL: 'http://order.test' }),
+      ownerLookup,
     );
 
     await expect(

@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { nextAvailableBranchCode } from '@nexoraa/utils';
 
 import { generateTenantId, generateUserId, hashPassword, slugify } from './tenant.crypto';
 import { TenantError } from './tenant.errors';
@@ -146,10 +147,17 @@ export class TenantService {
       createdAt: now,
     };
 
+    // This is always the tenant's first branch (tenantId is brand new), so
+    // there are no existing codes to avoid — reuses the same generator
+    // branch-service's createBranch uses for every subsequently created
+    // branch, just with an empty existing-codes list.
+    const headOfficeBranchCode = nextAvailableBranchCode([]);
+
     const headOfficeBranch: BranchRecord = {
       branchId,
       tenantId,
       branchName: 'Head Office',
+      code: headOfficeBranchCode,
       streetAddress: '',
       city: '',
       state: '',

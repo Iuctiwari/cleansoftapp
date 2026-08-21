@@ -12,8 +12,48 @@ import 'package:nexoraa_mobile/features/authentication/screens/forgot_password_s
 import 'package:nexoraa_mobile/features/dashboard/dashboard_widgets.dart';
 import 'package:nexoraa_mobile/features/dashboard/screens/dashboard_placeholder_screen.dart';
 import 'package:nexoraa_mobile/features/dashboard/screens/more_screen.dart';
-import 'package:nexoraa_mobile/features/dashboard/screens/notification_screen.dart';
+import 'package:nexoraa_mobile/features/authentication/authentication_models.dart';
+import 'package:nexoraa_mobile/features/authentication/services/auth_token_storage.dart';
+import 'package:nexoraa_mobile/features/notifications/notifications.dart';
 import 'package:nexoraa_mobile/features/tenant/services/tenant_api_service.dart';
+
+class _FakeAuthTokenStorage implements AuthTokenStorage {
+  final AuthenticationSession _session = AuthenticationSession(
+    accessToken: 'test-access-token',
+    refreshToken: 'test-refresh-token',
+    accessTokenExpiresAt: DateTime.now().add(const Duration(hours: 1)),
+    refreshTokenExpiresAt: DateTime.now().add(const Duration(days: 1)),
+    tenantId: 'tenant-test',
+  );
+
+  @override
+  Future<void> clear() async {}
+
+  @override
+  Future<AuthenticationSession?> read() async => _session;
+
+  @override
+  Future<void> write(AuthenticationSession session) async {}
+}
+
+Map<String, dynamic> _notificationJson({
+  required String id,
+  required String title,
+  required String message,
+  required String type,
+  required bool isRead,
+}) => <String, dynamic>{
+  'id': id,
+  'tenantId': 'tenant-test',
+  'branchId': 'branch-test',
+  'recipientId': 'user-test',
+  'title': title,
+  'message': message,
+  'type': type,
+  'isRead': isRead,
+  'createdAt': DateTime.now().toUtc().toIso8601String(),
+  'updatedAt': DateTime.now().toUtc().toIso8601String(),
+};
 
 void main() {
   setUp(() {
@@ -38,9 +78,77 @@ void main() {
   testWidgets('notification filters and read actions update immediately', (
     WidgetTester tester,
   ) async {
+    final MockClient client = MockClient((http.Request request) async {
+      if (request.method == 'GET' &&
+          request.url.path == '/api/v1/notifications/unread-count') {
+        return http.Response(jsonEncode(<String, int>{'count': 2}), 200);
+      }
+      if (request.method == 'GET' &&
+          request.url.path == '/api/v1/notifications/') {
+        return http.Response(
+          jsonEncode(<String, Object>{
+            'items': <Map<String, dynamic>>[
+              _notificationJson(
+                id: 'n1',
+                title: 'New Order Assigned',
+                message: 'ORD-1043 has been assigned to Muhammad Asif.',
+                type: 'OrderCreated',
+                isRead: false,
+              ),
+              _notificationJson(
+                id: 'n2',
+                title: 'Payment Received',
+                message: 'Rs. 850 collected from Hassan Ali for ORD-1042.',
+                type: 'PaymentReceived',
+                isRead: false,
+              ),
+            ],
+            'total': 2,
+            'page': 1,
+            'limit': 20,
+            'totalPages': 1,
+          }),
+          200,
+        );
+      }
+      if (request.method == 'PATCH' &&
+          request.url.path == '/api/v1/notifications/n1/read') {
+        return http.Response(
+          jsonEncode(
+            _notificationJson(
+              id: 'n1',
+              title: 'New Order Assigned',
+              message: 'ORD-1043 has been assigned to Muhammad Asif.',
+              type: 'OrderCreated',
+              isRead: true,
+            ),
+          ),
+          200,
+        );
+      }
+      if (request.method == 'PATCH' &&
+          request.url.path == '/api/v1/notifications/read-all') {
+        return http.Response(jsonEncode(<String, int>{'modifiedCount': 1}), 200);
+      }
+      return http.Response('Not found', 404);
+    });
+
+    final NotificationController controller = NotificationController(
+      service: NotificationApiService(
+        tokenStorage: _FakeAuthTokenStorage(),
+        client: client,
+        baseUrl: 'http://test',
+      ),
+    )..selectBranch('branch-test');
+    addTearDown(controller.dispose);
+
     await tester.pumpWidget(
-      MaterialApp(theme: AppTheme.light, home: const NotificationScreen()),
+      MaterialApp(
+        theme: AppTheme.light,
+        home: NotificationScreen(controller: controller),
+      ),
     );
+    await tester.pumpAndSettle();
 
     expect(find.text('New Order Assigned'), findsOneWidget);
     expect(find.text('Payment Received'), findsOneWidget);
@@ -49,9 +157,7 @@ void main() {
     final double summaryTop = tester
         .getTopLeft(find.text('2 unread notifications'))
         .dy;
-    final double markAllTop = tester.getTopLeft(find.text('Mark All Read')).dy;
     final double tabsTop = tester.getTopLeft(find.text('All')).dy;
-    expect(markAllTop, lessThan(summaryTop));
     expect(summaryTop, lessThan(tabsTop));
 
     final ChoiceChip selectedTab = tester.widget<ChoiceChip>(
@@ -64,14 +170,14 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('1 unread notification'), findsOneWidget);
 
-    await tester.tap(find.text('Mark All Read'));
+    await tester.tap(find.text('Mark all read'));
     await tester.pumpAndSettle();
-    expect(find.text('Mark All Read'), findsNothing);
+    expect(find.text('Mark all read'), findsNothing);
 
     await tester.tap(find.text('Staff'));
     await tester.pumpAndSettle();
     expect(find.text('No notifications'), findsOneWidget);
-    expect(find.text("You're all caught up!"), findsOneWidget);
+    expect(find.text('Nothing in this category yet.'), findsOneWidget);
   });
 
   testWidgets('existing More tab opens More screen and remains selected', (

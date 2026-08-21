@@ -1,6 +1,6 @@
 import 'reflect-metadata';
 
-import { Logger } from '@nestjs/common';
+import { Logger, VersioningType } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { setupSwagger } from '@nexoraa/swagger';
@@ -28,7 +28,9 @@ async function bootstrap(): Promise<void> {
 
   app.enableCors();
   app.enableShutdownHooks();
-  setupSwagger(app, { title: 'Nexoraa Notification Service API' });
+  app.setGlobalPrefix('api');
+  app.enableVersioning({ type: VersioningType.URI, defaultVersion: '1' });
+  setupSwagger(app, { title: 'Nexoraa Notification Service API', useGlobalPrefix: true });
 
   await app.listen(port, HOST);
   logger.log(`${serviceName} listening on http://${HOST}:${port}`);

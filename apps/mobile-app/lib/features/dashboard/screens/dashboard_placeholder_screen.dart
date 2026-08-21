@@ -6,8 +6,11 @@ import 'package:nexoraa_mobile/app/router.dart';
 import 'package:nexoraa_mobile/design_system/design_system.dart';
 import 'package:nexoraa_mobile/features/authentication/authentication_dependencies.dart';
 import 'package:nexoraa_mobile/features/customers/controllers/customer_controller.dart';
+import 'package:nexoraa_mobile/features/customers/models/customer.dart';
+import 'package:nexoraa_mobile/features/customers/screens/customer_details_screen.dart';
 import 'package:nexoraa_mobile/features/customers/screens/customer_list_screen.dart';
 import 'package:nexoraa_mobile/features/customers/services/customer_api_service.dart';
+import 'package:nexoraa_mobile/features/dashboard/controllers/dashboard_search_controller.dart';
 import 'package:nexoraa_mobile/features/dashboard/dashboard_models.dart';
 import 'package:nexoraa_mobile/features/dashboard/dashboard_widgets.dart';
 import 'package:nexoraa_mobile/features/dashboard/screens/more_screen.dart';
@@ -16,11 +19,14 @@ import 'package:nexoraa_mobile/features/orders/controllers/new_order_controller.
 import 'package:nexoraa_mobile/features/orders/controllers/order_controller.dart';
 import 'package:nexoraa_mobile/features/orders/models/order.dart';
 import 'package:nexoraa_mobile/features/orders/screens/new_order_screen.dart';
+import 'package:nexoraa_mobile/features/orders/screens/order_details_screen.dart';
 import 'package:nexoraa_mobile/features/orders/screens/orders_screen.dart';
 import 'package:nexoraa_mobile/features/orders/services/order_api_service.dart';
 import 'package:nexoraa_mobile/features/orders/services/order_catalog_api_service.dart';
 import 'package:nexoraa_mobile/features/orders/services/payment_api_service.dart';
 import 'package:nexoraa_mobile/features/orders/widgets/order_widgets.dart';
+import 'package:nexoraa_mobile/features/notifications/controllers/notification_controller.dart';
+import 'package:nexoraa_mobile/features/notifications/services/notification_api_service.dart';
 import 'package:nexoraa_mobile/features/payments/controllers/payments_controller.dart';
 import 'package:nexoraa_mobile/features/payments/models/payment.dart';
 import 'package:nexoraa_mobile/features/payments/screens/payments_screen.dart';
@@ -51,6 +57,8 @@ class _DashboardPlaceholderScreenState
   late final OrderController _orderController;
   late final PaymentApiService _paymentApiService;
   late final PaymentsController _paymentsController;
+  late final DashboardSearchController _searchController;
+  late final NotificationController _notificationController;
   int _currentNavigationIndex = 0;
   String _selectedBranchId = 'unavailable';
   List<Order> _recentOrders = const <Order>[];
@@ -93,6 +101,22 @@ class _DashboardPlaceholderScreenState
       paymentService: _paymentApiService,
       orderController: _orderController,
     );
+    _searchController = DashboardSearchController(
+      orderService: OrderApiService(
+        tokenStorage: AuthenticationDependencies.tokenStorage,
+      ),
+      customerService: CustomerApiService(
+        tokenStorage: AuthenticationDependencies.tokenStorage,
+      ),
+      paymentService: PaymentApiService(
+        tokenStorage: AuthenticationDependencies.tokenStorage,
+      ),
+    );
+    _notificationController = NotificationController(
+      service: NotificationApiService(
+        tokenStorage: AuthenticationDependencies.tokenStorage,
+      ),
+    )..addListener(_refreshNotificationBadge);
     final tenantId = widget.tenantId?.trim() ?? '';
     if (tenantId.isNotEmpty) _loadTenantDashboard(tenantId);
   }
@@ -102,7 +126,15 @@ class _DashboardPlaceholderScreenState
     _customerController.dispose();
     _orderController.dispose();
     _paymentsController.dispose();
+    _searchController.dispose();
+    _notificationController
+      ..removeListener(_refreshNotificationBadge)
+      ..dispose();
     super.dispose();
+  }
+
+  void _refreshNotificationBadge() {
+    if (mounted) setState(() {});
   }
 
   Future<void> _loadTenantDashboard(String tenantId) async {
@@ -141,6 +173,10 @@ class _DashboardPlaceholderScreenState
       await _customerController.selectBranch(branches.first.branchId);
       await _orderController.selectBranch(branches.first.branchId);
       _paymentApiService.selectBranch(branches.first.branchId);
+      _searchController.selectBranch(branches.first.branchId);
+      _notificationController.selectBranch(branches.first.branchId);
+      unawaited(_notificationController.connectRealtime());
+      unawaited(_notificationController.refreshUnreadCount());
       await Future.wait<void>(<Future<void>>[
         _loadRecentOrders(),
         _loadDashboardMetrics(),
@@ -162,6 +198,10 @@ class _DashboardPlaceholderScreenState
     _customerController.selectBranch(branchId);
     _orderController.selectBranch(branchId);
     _paymentApiService.selectBranch(branchId);
+    _searchController.selectBranch(branchId);
+    _notificationController.selectBranch(branchId);
+    unawaited(_notificationController.connectRealtime());
+    unawaited(_notificationController.refreshUnreadCount());
     unawaited(
       Future.wait<void>(<Future<void>>[
         _loadRecentOrders(),
@@ -278,6 +318,41 @@ class _DashboardPlaceholderScreenState
 
   void _openOrdersTab() => setState(() => _currentNavigationIndex = 1);
 
+  Future<void> _openSearchOrder(Order order) async {
+    _searchController.clear();
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (_) => OrderDetailsScreen(
+          orderId: order.id,
+          controller: _orderController,
+        ),
+      ),
+    );
+    unawaited(_loadRecentOrders());
+    unawaited(_loadDashboardMetrics());
+  }
+
+  Future<void> _openSearchCustomer(Customer customer) async {
+    _searchController.clear();
+    final bool? changed = await Navigator.of(context).push<bool>(
+      MaterialPageRoute<bool>(
+        builder: (_) => CustomerDetailsScreen(
+          customerId: customer.id,
+          controller: _customerController,
+        ),
+      ),
+    );
+    if (changed == true) {
+      await _customerController.load();
+      unawaited(_loadDashboardMetrics());
+    }
+  }
+
+  Future<void> _openSearchPayment(PaymentRecord _) async {
+    _searchController.clear();
+    await _openPayments();
+  }
+
   /// Overlays real backend-derived values (revenue, KPIs, business summary,
   /// recent orders/bills) onto the selected branch's [DashboardData],
   /// reusing [_paymentsController]/[_orderController]/[_customerController]
@@ -384,6 +459,12 @@ class _DashboardPlaceholderScreenState
             slivers: <Widget>[
               DashboardTopAppBar(
                 ownerName: data.ownerName,
+                unreadNotificationsCount: _notificationController.unreadCount,
+                onNotificationsPressed: () => context.pushNamed(
+                  AppRouteNames.notifications,
+                  extra: _notificationController,
+                ),
+                onProfilePressed: () => _showUiOnlyMessage('Profile selected'),
                 onNotificationsPressed: () =>
                     context.pushNamed(AppRouteNames.notifications),
                 onProfilePressed: () =>
@@ -394,6 +475,13 @@ class _DashboardPlaceholderScreenState
                   data: data,
                   branches: _branches,
                   onBranchChanged: _selectBranch,
+                  searchController: _searchController,
+                  onOrderTap: (Order order) =>
+                      unawaited(_openSearchOrder(order)),
+                  onCustomerTap: (Customer customer) =>
+                      unawaited(_openSearchCustomer(customer)),
+                  onPaymentTap: (PaymentRecord payment) =>
+                      unawaited(_openSearchPayment(payment)),
                 ),
               ),
               SliverToBoxAdapter(
@@ -425,6 +513,7 @@ class _DashboardPlaceholderScreenState
           ),
           4 => ExpenseListScreen(
             key: const ValueKey<String>('expenses'),
+            branchId: data.branchId,
             onBack: () => setState(() => _currentNavigationIndex = 3),
           ),
           _ => MoreScreen(

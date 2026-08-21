@@ -7,6 +7,7 @@ import 'package:nexoraa_mobile/features/authentication/screens/forgot_password_s
 import 'package:nexoraa_mobile/features/authentication/screens/splash_screen.dart';
 import 'package:nexoraa_mobile/features/branch/branch.dart';
 import 'package:nexoraa_mobile/features/dashboard/dashboard.dart';
+import 'package:nexoraa_mobile/features/notifications/notifications.dart';
 import 'package:nexoraa_mobile/features/profile/screens/profile_screen.dart';
 import 'package:nexoraa_mobile/features/staff/screens/staff_management_screen.dart';
 import 'package:nexoraa_mobile/features/staff/screens/register_staff_screen.dart';
@@ -238,9 +239,16 @@ abstract final class AppRouter {
         name: AppRouteNames.notifications,
         path: AppRoutes.notifications,
         pageBuilder: (BuildContext context, GoRouterState state) {
+          final Object? extra = state.extra;
           return _fadePage<void>(
             state: state,
-            child: const NotificationScreen(),
+            child: NotificationScreen(
+              branchId: extra is String ? extra : null,
+              // Dashboard passes its app-wide, already-connected controller
+              // here so the panel shows live data instead of opening a
+              // second, screen-scoped WebSocket connection.
+              controller: extra is NotificationController ? extra : null,
+            ),
           );
         },
       ),

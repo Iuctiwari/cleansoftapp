@@ -1,4 +1,4 @@
-import { Injectable, Logger, type OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, ServiceUnavailableException, type OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createActiveTenantFilter, createAuditFields } from '@nexoraa/database';
 import mongoose, { type Model, Types } from 'mongoose';
@@ -46,9 +46,6 @@ export class MongoExpenseRepository implements ExpenseRepository, OnModuleInit {
   private readonly logger = new Logger(MongoExpenseRepository.name);
   private categoryModel?: Model<ExpenseCategoryMongoose>;
   private expenseModel?: Model<ExpenseMongoose>;
-  private readonly memoryCategories: ExpenseCategoryRecord[] = [];
-  private readonly memoryExpenses: ExpenseRecord[] = [];
-
   constructor(private readonly configService: ConfigService) {}
 
   async onModuleInit(): Promise<void> {
@@ -68,9 +65,10 @@ export class MongoExpenseRepository implements ExpenseRepository, OnModuleInit {
       this.categoryModel = conn.model(ExpenseCategoryMongoose.name, ExpenseCategoryMongooseSchema);
       this.expenseModel = conn.model(ExpenseMongoose.name, ExpenseMongooseSchema);
       this.logger.log(`Expense MongoDB connection established at ${uri}`);
-    } catch {
-      this.logger.warn(
-        `MongoDB not reachable at ${uri}. Expense service running in local memory persistence mode.`,
+    } catch (error) {
+      this.logger.error(
+        `MongoDB not reachable at ${uri}. Expense persistence is unavailable.`,
+        error instanceof Error ? error.stack : undefined,
       );
     }
   }
@@ -81,6 +79,10 @@ export class MongoExpenseRepository implements ExpenseRepository, OnModuleInit {
         this.expenseModel &&
         this.categoryModel.db?.readyState === mongoose.ConnectionStates.connected,
     );
+  }
+
+  private mongoUnavailable(): never {
+    throw new ServiceUnavailableException('Expense persistence is unavailable');
   }
 
   async createCategory(
@@ -99,18 +101,7 @@ export class MongoExpenseRepository implements ExpenseRepository, OnModuleInit {
       return this.mapCategory(category.toObject() as unknown as Record<string, unknown>);
     }
 
-    const now = new Date();
-    const record: ExpenseCategoryRecord = {
-      id: new Types.ObjectId().toHexString(),
-      tenantId: scope.tenantId,
-      categoryName: input.categoryName.trim(),
-      description: input.description?.trim(),
-      status: input.status ?? ExpenseCategoryStatus.ACTIVE,
-      createdAt: now,
-      updatedAt: now,
-    };
-    this.memoryCategories.push(record);
-    return record;
+    this.mongoUnavailable();
   }
 
   async findCategoryById(scope: ExpenseScope, id: string): Promise<ExpenseCategoryRecord | null> {
@@ -127,7 +118,7 @@ export class MongoExpenseRepository implements ExpenseRepository, OnModuleInit {
       return category ? this.mapCategory(category) : null;
     }
 
-    return this.memoryCategories.find((c) => c.id === id && c.tenantId === scope.tenantId) ?? null;
+    this.mongoUnavailable();
   }
 
   async listCategories(scope: ExpenseScope): Promise<ExpenseCategoryRecord[]> {
@@ -140,7 +131,7 @@ export class MongoExpenseRepository implements ExpenseRepository, OnModuleInit {
       return categories.map((item) => this.mapCategory(item));
     }
 
-    return this.memoryCategories.filter((c) => c.tenantId === scope.tenantId);
+    this.mongoUnavailable();
   }
 
   async seedDefaultCategoriesIfEmpty(scope: ExpenseScope): Promise<ExpenseCategoryRecord[]> {
@@ -161,19 +152,7 @@ export class MongoExpenseRepository implements ExpenseRepository, OnModuleInit {
       return this.listCategories(scope);
     }
 
-    const now = new Date();
-    for (const item of DEFAULT_CATEGORIES) {
-      this.memoryCategories.push({
-        id: new Types.ObjectId().toHexString(),
-        tenantId: scope.tenantId,
-        categoryName: item.categoryName,
-        description: item.description,
-        status: ExpenseCategoryStatus.ACTIVE,
-        createdAt: now,
-        updatedAt: now,
-      });
-    }
-    return this.memoryCategories.filter((c) => c.tenantId === scope.tenantId);
+    this.mongoUnavailable();
   }
 
   async createExpense(scope: ExpenseScope, input: CreateExpenseFields): Promise<ExpenseRecord> {
@@ -199,26 +178,7 @@ export class MongoExpenseRepository implements ExpenseRepository, OnModuleInit {
       return populated ?? this.mapExpense(expense.toObject() as unknown as Record<string, unknown>);
     }
 
-    const now = new Date();
-    const category = await this.findCategoryById(scope, input.expenseCategoryId);
-    const record: ExpenseRecord = {
-      id: new Types.ObjectId().toHexString(),
-      tenantId: scope.tenantId,
-      branchId: scope.branchId,
-      expenseCategoryId: input.expenseCategoryId,
-      categoryName: category?.categoryName,
-      amount: input.amount,
-      paymentMethod: input.paymentMethod,
-      vendor: input.vendor?.trim(),
-      description: input.description.trim(),
-      attachment: input.attachment?.trim(),
-      expenseDate: input.expenseDate ?? now,
-      recordedBy: scope.actorId,
-      createdAt: now,
-      updatedAt: now,
-    };
-    this.memoryExpenses.push(record);
-    return record;
+    this.mongoUnavailable();
   }
 
   async findById(scope: ExpenseScope, id: string): Promise<ExpenseRecord | null> {
@@ -239,11 +199,7 @@ export class MongoExpenseRepository implements ExpenseRepository, OnModuleInit {
       return expense ? this.mapPopulatedExpense(expense) : null;
     }
 
-    return (
-      this.memoryExpenses.find(
-        (e) => e.id === id && e.tenantId === scope.tenantId && e.branchId === scope.branchId,
-      ) ?? null
-    );
+    this.mongoUnavailable();
   }
 
   async listExpenses(scope: ExpenseScope, query: ExpenseListQuery): Promise<ExpensePage> {
@@ -297,31 +253,7 @@ export class MongoExpenseRepository implements ExpenseRepository, OnModuleInit {
       };
     }
 
-    const search = query.search?.toLowerCase();
-    const matches = this.memoryExpenses.filter((e) => {
-      if (e.tenantId !== scope.tenantId) return false;
-      if (e.branchId !== (query.branchId ?? scope.branchId)) return false;
-      if (query.categoryId && e.expenseCategoryId !== query.categoryId) return false;
-      if (query.paymentMethod && e.paymentMethod !== query.paymentMethod) return false;
-      if (query.startDate && e.expenseDate < query.startDate) return false;
-      if (query.endDate && e.expenseDate > query.endDate) return false;
-      if (
-        search &&
-        !e.description.toLowerCase().includes(search) &&
-        !e.vendor?.toLowerCase().includes(search)
-      ) {
-        return false;
-      }
-      return true;
-    });
-
-    const start = (query.page - 1) * query.limit;
-    return {
-      items: matches.slice(start, start + query.limit),
-      total: matches.length,
-      page: query.page,
-      limit: query.limit,
-    };
+    this.mongoUnavailable();
   }
 
   async updateExpense(
@@ -367,31 +299,7 @@ export class MongoExpenseRepository implements ExpenseRepository, OnModuleInit {
       return updated ? this.mapPopulatedExpense(updated) : null;
     }
 
-    const index = this.memoryExpenses.findIndex(
-      (e) => e.id === id && e.tenantId === scope.tenantId && e.branchId === scope.branchId,
-    );
-    if (index === -1) return null;
-
-    const current = this.memoryExpenses[index];
-    const category = input.expenseCategoryId
-      ? await this.findCategoryById(scope, input.expenseCategoryId)
-      : undefined;
-
-    const updated: ExpenseRecord = {
-      ...current,
-      expenseCategoryId: input.expenseCategoryId ?? current.expenseCategoryId,
-      categoryName: category ? category.categoryName : current.categoryName,
-      amount: input.amount ?? current.amount,
-      paymentMethod: input.paymentMethod ?? current.paymentMethod,
-      vendor: input.vendor !== undefined ? (input.vendor ?? undefined) : current.vendor,
-      description: input.description ?? current.description,
-      attachment:
-        input.attachment !== undefined ? (input.attachment ?? undefined) : current.attachment,
-      expenseDate: input.expenseDate ?? current.expenseDate,
-      updatedAt: new Date(),
-    };
-    this.memoryExpenses[index] = updated;
-    return updated;
+    this.mongoUnavailable();
   }
 
   async statistics(scope: ExpenseScope): Promise<ExpenseStatistics> {
@@ -468,23 +376,7 @@ export class MongoExpenseRepository implements ExpenseRepository, OnModuleInit {
       };
     }
 
-    const branchExpenses = this.memoryExpenses.filter(
-      (e) => e.tenantId === scope.tenantId && e.branchId === scope.branchId,
-    );
-    const totalAmount = branchExpenses.reduce((sum, e) => sum + e.amount, 0);
-    const categories = new Set(branchExpenses.map((e) => e.expenseCategoryId));
-    const byPaymentMethod: Record<string, number> = {};
-
-    for (const e of branchExpenses) {
-      byPaymentMethod[e.paymentMethod] = (byPaymentMethod[e.paymentMethod] ?? 0) + e.amount;
-    }
-
-    return {
-      totalAmount,
-      count: branchExpenses.length,
-      categoryCount: categories.size,
-      byPaymentMethod,
-    };
+    this.mongoUnavailable();
   }
 
   private mapCategory(document: Record<string, unknown>): ExpenseCategoryRecord {

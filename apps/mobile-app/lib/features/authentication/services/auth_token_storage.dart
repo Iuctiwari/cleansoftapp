@@ -26,12 +26,14 @@ final class SecureAuthTokenStorage implements AuthTokenStorage {
   static const String _roleCodeKey = 'auth.role_code';
 
   final FlutterSecureStorage _storage;
+  static AuthenticationSession? _cachedSession;
 
   // Web (IndexedDB) is async and needs more time than native secure storage
   static const Duration _operationTimeout = Duration(seconds: 3);
 
   @override
   Future<void> clear() async {
+    _cachedSession = null;
     try {
       await _storage.deleteAll().timeout(_operationTimeout);
     } catch (_) {
@@ -79,10 +81,10 @@ final class SecureAuthTokenStorage implements AuthTokenStorage {
           refreshToken.isEmpty ||
           accessExpiry == null ||
           refreshExpiry == null) {
-        return null;
+        return _cachedSession;
       }
 
-      return AuthenticationSession(
+      final AuthenticationSession session = AuthenticationSession(
         accessToken: accessToken,
         refreshToken: refreshToken,
         accessTokenExpiresAt: accessExpiry,
@@ -95,13 +97,16 @@ final class SecureAuthTokenStorage implements AuthTokenStorage {
         businessName: values[_businessNameKey],
         roleCode: values[_roleCodeKey] ?? 'tenant_owner',
       );
+      _cachedSession = session;
+      return session;
     } catch (_) {
-      return null;
+      return _cachedSession;
     }
   }
 
   @override
   Future<void> write(AuthenticationSession session) async {
+    _cachedSession = session;
     try {
       await _storage
           .write(key: _refreshTokenKey, value: session.refreshToken)
