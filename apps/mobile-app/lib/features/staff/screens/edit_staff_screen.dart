@@ -317,13 +317,13 @@ class _EditStaffScreenState extends State<EditStaffScreen> {
             });
           },
           child: Container(
-            margin: const EdgeInsets.only(bottom: AppSpacing.md),
+            margin: const EdgeInsets.only(bottom: AppSpacing.sm),
             padding: const EdgeInsets.all(AppSpacing.md),
             decoration: BoxDecoration(
               color: isSelected
                   ? AppColors.primary.withValues(alpha: 0.05)
                   : Colors.white,
-              borderRadius: BorderRadius.circular(AppRadius.md),
+              borderRadius: BorderRadius.circular(AppRadius.lg),
               border: Border.all(
                 color: isSelected ? AppColors.primary : AppColors.border,
                 width: isSelected ? 2 : 1,
@@ -331,23 +331,43 @@ class _EditStaffScreenState extends State<EditStaffScreen> {
             ),
             child: Row(
               children: [
-                Icon(
-                  AppIcons.branch,
-                  color: isSelected ? AppColors.primary : AppColors.textSubtle,
+                Container(
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: isSelected ? AppColors.primary : AppColors.border,
+                      width: 2,
+                    ),
+                    color: isSelected ? AppColors.primary : Colors.transparent,
+                  ),
+                  child: isSelected
+                      ? const Icon(Icons.check, size: 16, color: Colors.white)
+                      : null,
                 ),
                 const SizedBox(width: AppSpacing.md),
                 Expanded(
-                  child: Text(
-                    branch.branchName,
-                    style: AppTextStyles.bodyMedium.copyWith(
-                      fontWeight: isSelected
-                          ? FontWeight.bold
-                          : FontWeight.normal,
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        branch.branchName,
+                        style: AppTextStyles.bodyMedium.copyWith(
+                          fontWeight: isSelected
+                              ? FontWeight.bold
+                              : FontWeight.normal,
+                        ),
+                      ),
+                      if (branch.isHeadOffice)
+                        Text(
+                          'Head Office',
+                          style: AppTextStyles.caption
+                              .copyWith(color: AppColors.primary),
+                        ),
+                    ],
                   ),
                 ),
-                if (isSelected)
-                  const Icon(AppIcons.brandCheck, color: AppColors.primary),
               ],
             ),
           ),
@@ -359,15 +379,20 @@ class _EditStaffScreenState extends State<EditStaffScreen> {
   Widget _buildBottomBar() {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.pageHorizontal),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: Colors.white,
-        border: Border(top: BorderSide(color: AppColors.border)),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -4)),
+        ],
       ),
       child: Row(
         children: [
           Expanded(
             child: OutlinedButton(
               onPressed: () => context.pop(),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
+              ),
               child: const Text('Cancel'),
             ),
           ),
@@ -376,10 +401,11 @@ class _EditStaffScreenState extends State<EditStaffScreen> {
             flex: 2,
             child: ElevatedButton.icon(
               onPressed: _isSubmitting ? null : _submit,
-              icon: const Icon(AppIcons.brandCheck, size: AppIconSizes.sm),
-              label: _isSubmitting
-                  ? const CircularProgressIndicator()
-                  : const Text('Save Changes'),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
+              ),
+              icon: _isSubmitting ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : const Icon(Icons.check, size: 18),
+              label: Text(_isSubmitting ? 'Saving...' : 'Save Changes'),
             ),
           ),
         ],

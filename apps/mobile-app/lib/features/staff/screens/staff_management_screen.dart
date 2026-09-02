@@ -7,6 +7,8 @@ import 'package:nexoraa_mobile/features/authentication/access_policy.dart';
 import 'package:nexoraa_mobile/features/staff/models/staff_member.dart';
 import 'package:nexoraa_mobile/features/staff/models/system_role.dart';
 import 'package:nexoraa_mobile/features/staff/services/staff_api_service.dart';
+import 'package:nexoraa_mobile/features/branch/branch_dependencies.dart';
+import 'package:nexoraa_mobile/features/branch/branch_models.dart';
 
 class StaffManagementScreen extends StatefulWidget {
   const StaffManagementScreen({super.key});
@@ -22,7 +24,11 @@ class _StaffManagementScreenState extends State<StaffManagementScreen>
 
   List<StaffMember> _staff = [];
   List<SystemRole> _systemRoles = [];
+<<<<<<< Updated upstream
   StaffStatistics? _staffStats;
+=======
+  Map<String, String> _branchNames = {};
+>>>>>>> Stashed changes
   bool _isLoading = true;
   String? _errorMessage;
 
@@ -64,7 +70,12 @@ class _StaffManagementScreenState extends State<StaffManagementScreen>
 
       final futures = await Future.wait(<Future<Object>>[
         _staffApiService.getStaffMembers(session.tenantId!),
+<<<<<<< Updated upstream
         if (_accessPolicy.isOwner) _staffApiService.getSystemRoles(),
+=======
+        _staffApiService.getSystemRoles(),
+        BranchManagementDependencies.service.listBranches(pageSize: 100),
+>>>>>>> Stashed changes
       ]);
 
       StaffStatistics? stats;
@@ -79,10 +90,16 @@ class _StaffManagementScreenState extends State<StaffManagementScreen>
 
       setState(() {
         _staff = futures[0] as List<StaffMember>;
+<<<<<<< Updated upstream
         _systemRoles = _accessPolicy.isOwner
             ? futures[1] as List<SystemRole>
             : const <SystemRole>[];
         _staffStats = stats;
+=======
+        _systemRoles = futures[1] as List<SystemRole>;
+        final branches = (futures[2] as BranchListResult).items;
+        _branchNames = {for (var b in branches) b.branchId: b.branchName};
+>>>>>>> Stashed changes
         _isLoading = false;
       });
     } catch (e) {
@@ -201,6 +218,7 @@ class _StaffManagementScreenState extends State<StaffManagementScreen>
               message: 'Try adjusting your filters.',
             )
           else
+<<<<<<< Updated upstream
             ...filteredStaff.map(
               (member) => Padding(
                 padding: const EdgeInsets.only(bottom: AppSpacing.lg),
@@ -217,6 +235,15 @@ class _StaffManagementScreenState extends State<StaffManagementScreen>
                               .session
                               ?.ownerUserId,
                 ),
+=======
+            ...filteredStaff.map((member) => Padding(
+              padding: const EdgeInsets.only(bottom: AppSpacing.lg),
+              child: _StaffCard(
+                staff: member,
+                branchNames: _branchNames,
+                apiService: _staffApiService,
+                onRefresh: _loadData,
+>>>>>>> Stashed changes
               ),
             ),
         ],
@@ -382,7 +409,7 @@ class _StaffManagementScreenState extends State<StaffManagementScreen>
   }
 
   Widget _buildRoleFilters() {
-    final roles = ['All', 'Owner', 'Branch Manager', 'Staff', 'Cashier'];
+    final roles = ['All', 'Owner', 'Manager', 'Staff', 'Cashier'];
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
@@ -390,6 +417,7 @@ class _StaffManagementScreenState extends State<StaffManagementScreen>
           final isSelected = _selectedRoleFilter == role;
           return Padding(
             padding: const EdgeInsets.only(right: AppSpacing.sm),
+<<<<<<< Updated upstream
             child: FilterChip(
               label: Text(role),
               selected: isSelected,
@@ -400,6 +428,24 @@ class _StaffManagementScreenState extends State<StaffManagementScreen>
               selectedColor: AppColors.primary,
               labelStyle: TextStyle(
                 color: isSelected ? Colors.white : AppColors.textPrimary,
+=======
+            child: GestureDetector(
+              onTap: () => setState(() => _selectedRoleFilter = role),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
+                decoration: BoxDecoration(
+                  color: isSelected ? AppColors.primary : Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: isSelected ? AppColors.primary : AppColors.border),
+                ),
+                child: Text(
+                  role,
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    color: isSelected ? Colors.white : AppColors.textSubtle,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                  ),
+                ),
+>>>>>>> Stashed changes
               ),
             ),
           );
@@ -423,6 +469,7 @@ class _SummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
+<<<<<<< Updated upstream
       padding: const EdgeInsets.symmetric(
         vertical: AppSpacing.md,
         horizontal: AppSpacing.sm,
@@ -443,6 +490,18 @@ class _SummaryCard extends StatelessWidget {
             style: AppTextStyles.caption.copyWith(color: color),
             textAlign: TextAlign.center,
           ),
+=======
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xl, horizontal: AppSpacing.sm),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+      ),
+      child: Column(
+        children: [
+          Text(count.toString(), style: AppTextStyles.headingLarge.copyWith(color: color, fontWeight: FontWeight.bold)),
+          const SizedBox(height: AppSpacing.xs),
+          Text(title, style: AppTextStyles.caption.copyWith(color: color, fontWeight: FontWeight.w600), textAlign: TextAlign.center),
+>>>>>>> Stashed changes
         ],
       ),
     );
@@ -452,6 +511,7 @@ class _SummaryCard extends StatelessWidget {
 class _StaffCard extends StatelessWidget {
   const _StaffCard({
     required this.staff,
+    required this.branchNames,
     required this.apiService,
     required this.onRefresh,
     required this.canRemove,
@@ -459,6 +519,7 @@ class _StaffCard extends StatelessWidget {
   });
 
   final StaffMember staff;
+  final Map<String, String> branchNames;
   final StaffApiService apiService;
   final VoidCallback onRefresh;
   final bool canRemove;
@@ -514,11 +575,25 @@ class _StaffCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final status = staff.status.toLowerCase();
 
+    String branchDisplay = 'No Branch';
+    if (staff.branches.isNotEmpty) {
+      final firstBranchId = staff.branches.first;
+      branchDisplay = branchNames[firstBranchId] ?? firstBranchId;
+      if (branchDisplay.length > 20) branchDisplay = 'Main Branch';
+    }
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
+        borderRadius: BorderRadius.circular(AppRadius.xl),
         border: Border.all(color: AppColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       padding: const EdgeInsets.all(AppSpacing.lg),
       child: Column(
@@ -531,13 +606,14 @@ class _StaffCard extends StatelessWidget {
               Stack(
                 children: [
                   CircleAvatar(
-                    radius: 24,
+                    radius: 28,
                     backgroundColor: AppColors.warning,
                     child: Text(
                       _getInitials(staff.displayName),
                       style: const TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
+                        fontSize: 20,
                       ),
                     ),
                   ),
@@ -545,14 +621,14 @@ class _StaffCard extends StatelessWidget {
                     right: 0,
                     bottom: 0,
                     child: Container(
-                      width: 12,
-                      height: 12,
+                      width: 14,
+                      height: 14,
                       decoration: BoxDecoration(
                         color: status == 'active'
                             ? AppColors.success
                             : AppColors.error,
                         shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 2),
+                        border: Border.all(color: Colors.white, width: 2.5),
                       ),
                     ),
                   ),
@@ -563,15 +639,22 @@ class _StaffCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    Text(staff.displayName, style: AppTextStyles.headingSmall),
+                    Row(
+                      children: [
+                        Text(staff.displayName, style: AppTextStyles.headingSmall),
+                        if (staff.role.toLowerCase() == 'owner') ...[
+                          const SizedBox(width: AppSpacing.xs),
+                          const Icon(Icons.star, color: AppColors.warning, size: 16),
+                        ],
+                      ],
+                    ),
                     const SizedBox(height: AppSpacing.xs),
                     Wrap(
                       spacing: AppSpacing.sm,
                       children: [
-                        Container(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 2,
+                            horizontal: 10,
+                            vertical: 4,
                           ),
                           decoration: BoxDecoration(
                             color: AppColors.warning.withValues(alpha: 0.1),
@@ -581,13 +664,14 @@ class _StaffCard extends StatelessWidget {
                             staff.role,
                             style: AppTextStyles.caption.copyWith(
                               color: AppColors.warning,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
                         ),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 2,
+                            horizontal: 10,
+                            vertical: 4,
                           ),
                           decoration: BoxDecoration(
                             color: status == 'active'
@@ -601,9 +685,22 @@ class _StaffCard extends StatelessWidget {
                               color: status == 'active'
                                   ? AppColors.success
                                   : AppColors.error,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
                         ),
+                      ],
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    Row(
+                      children: [
+                        const Icon(AppIcons.branch, size: 14, color: AppColors.textSubtle),
+                        const SizedBox(width: 4),
+                        Text(branchDisplay, style: AppTextStyles.caption),
+                        const SizedBox(width: AppSpacing.md),
+                        const Icon(AppIcons.phone, size: 14, color: AppColors.textSubtle),
+                        const SizedBox(width: 4),
+                        Text(staff.mobileNumber.isNotEmpty ? staff.mobileNumber : 'No Phone', style: AppTextStyles.caption),
                       ],
                     ),
                   ],
@@ -666,7 +763,7 @@ class _StaffCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: AppSpacing.md),
+          const SizedBox(height: AppSpacing.lg),
           Row(
             children: [
               const Icon(
@@ -675,10 +772,7 @@ class _StaffCard extends StatelessWidget {
                 color: AppColors.textSubtle,
               ),
               const SizedBox(width: 4),
-              if (staff.branches.isNotEmpty)
-                Text(staff.branches.first, style: AppTextStyles.caption)
-              else
-                const Text('No Branch', style: AppTextStyles.caption),
+              Text(branchDisplay, style: AppTextStyles.caption),
               const SizedBox(width: AppSpacing.md),
               const Icon(
                 AppIcons.phone,
