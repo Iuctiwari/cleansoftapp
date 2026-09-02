@@ -38,9 +38,9 @@ class _ViewStaffProfileScreenState extends State<ViewStaffProfileScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Action failed: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Action failed: $e')));
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -95,11 +95,14 @@ class _ViewStaffProfileScreenState extends State<ViewStaffProfileScreen> {
           children: [
             CircleAvatar(
               radius: 48,
-              backgroundColor: AppColors.primary.withOpacity(0.1),
+              backgroundColor: AppColors.primary.withValues(alpha: 0.1),
               child: Text(
                 _getInitials(widget.staff.displayName),
                 style: const TextStyle(
-                    fontSize: 32, color: AppColors.primary, fontWeight: FontWeight.bold),
+                  fontSize: 32,
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
             Positioned(
@@ -109,7 +112,9 @@ class _ViewStaffProfileScreenState extends State<ViewStaffProfileScreen> {
                 width: 20,
                 height: 20,
                 decoration: BoxDecoration(
-                  color: status == 'active' ? AppColors.success : AppColors.error,
+                  color: status == 'active'
+                      ? AppColors.success
+                      : AppColors.error,
                   shape: BoxShape.circle,
                   border: Border.all(color: Colors.white, width: 3),
                 ),
@@ -121,14 +126,21 @@ class _ViewStaffProfileScreenState extends State<ViewStaffProfileScreen> {
         Text(widget.staff.displayName, style: AppTextStyles.headingMedium),
         const SizedBox(height: AppSpacing.xs),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 4),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md,
+            vertical: 4,
+          ),
           decoration: BoxDecoration(
-            color: AppColors.warning.withOpacity(0.1),
+            color: AppColors.warning.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(16),
           ),
-          child: Text(widget.staff.role,
-              style: AppTextStyles.caption
-                  .copyWith(color: AppColors.warning, fontWeight: FontWeight.bold)),
+          child: Text(
+            widget.staff.role,
+            style: AppTextStyles.caption.copyWith(
+              color: AppColors.warning,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
         ),
       ],
     );
@@ -146,23 +158,28 @@ class _ViewStaffProfileScreenState extends State<ViewStaffProfileScreen> {
           _buildInfoRow(AppIcons.email, 'Email Address', widget.staff.email),
           const Divider(height: 1, color: AppColors.border),
           _buildInfoRow(
-              AppIcons.phone,
-              'Mobile Number',
-              widget.staff.mobileNumber.isNotEmpty
-                  ? widget.staff.mobileNumber
-                  : 'Not provided'),
+            AppIcons.phone,
+            'Mobile Number',
+            widget.staff.mobileNumber.isNotEmpty
+                ? widget.staff.mobileNumber
+                : 'Not provided',
+          ),
           const Divider(height: 1, color: AppColors.border),
           _buildInfoRow(
-              AppIcons.branch,
-              'Department',
-              widget.staff.department.isNotEmpty ? widget.staff.department : 'Not assigned'),
+            AppIcons.branch,
+            'Department',
+            widget.staff.department.isNotEmpty
+                ? widget.staff.department
+                : 'Not assigned',
+          ),
           const Divider(height: 1, color: AppColors.border),
           _buildInfoRow(
-              Icons.home_work_outlined,
-              'Branches',
-              widget.staff.branches.isNotEmpty
-                  ? widget.staff.branches.join(', ')
-                  : 'No branches assigned'),
+            Icons.home_work_outlined,
+            'Branches',
+            widget.staff.branches.isNotEmpty
+                ? widget.staff.branches.join(', ')
+                : 'No branches assigned',
+          ),
         ],
       ),
     );
@@ -199,7 +216,10 @@ class _ViewStaffProfileScreenState extends State<ViewStaffProfileScreen> {
           OutlinedButton.icon(
             onPressed: () => _handleAction('suspend'),
             icon: const Icon(AppIcons.close, color: AppColors.error),
-            label: const Text('Suspend Account', style: TextStyle(color: AppColors.error)),
+            label: const Text(
+              'Suspend Account',
+              style: TextStyle(color: AppColors.error),
+            ),
             style: OutlinedButton.styleFrom(
               side: const BorderSide(color: AppColors.error),
             ),
@@ -208,8 +228,10 @@ class _ViewStaffProfileScreenState extends State<ViewStaffProfileScreen> {
           OutlinedButton.icon(
             onPressed: () => _handleAction('reactivate'),
             icon: const Icon(AppIcons.brandCheck, color: AppColors.success),
-            label:
-                const Text('Reactivate Account', style: TextStyle(color: AppColors.success)),
+            label: const Text(
+              'Reactivate Account',
+              style: TextStyle(color: AppColors.success),
+            ),
             style: OutlinedButton.styleFrom(
               side: const BorderSide(color: AppColors.success),
             ),

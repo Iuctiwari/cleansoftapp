@@ -5,6 +5,10 @@ import 'package:nexoraa_mobile/features/branch/branch_models.dart';
 import 'package:nexoraa_mobile/features/branch/screens/branch_form_screen.dart';
 import 'package:nexoraa_mobile/features/branch/services/branch_api_service.dart';
 import 'package:nexoraa_mobile/features/branch/widgets/branch_stat_tile.dart';
+import 'package:nexoraa_mobile/features/authentication/access_policy.dart';
+import 'package:nexoraa_mobile/features/authentication/authentication_dependencies.dart';
+import 'package:nexoraa_mobile/features/staff/models/staff_member.dart';
+import 'package:nexoraa_mobile/features/staff/services/staff_api_service.dart';
 
 class BranchDetailsScreen extends StatefulWidget {
   const BranchDetailsScreen({required this.branch, super.key});
@@ -16,13 +20,55 @@ class BranchDetailsScreen extends StatefulWidget {
 }
 
 class _BranchDetailsScreenState extends State<BranchDetailsScreen> {
+  AccessPolicy get _accessPolicy =>
+      AccessPolicy.fromSession(AuthenticationDependencies.controller.session);
   late Branch _branch = widget.branch;
+  final StaffApiService _staffApiService = StaffApiService();
+  List<StaffMember> _staff = const <StaffMember>[];
+  bool _isLoadingStaff = true;
+  String? _staffError;
   bool _isDeactivating = false;
   String? _actionError;
 
   /// True if this screen ever replaced the branch it was opened with —
   /// signals the caller (branch list) to refresh its copy on pop.
   bool _changed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadStaff();
+  }
+
+  Future<void> _loadStaff() async {
+    setState(() {
+      _isLoadingStaff = true;
+      _staffError = null;
+    });
+    try {
+      final List<StaffMember> tenantStaff = await _staffApiService
+          .getStaffMembers(_branch.tenantId);
+      if (!mounted) return;
+      setState(() {
+        _staff = tenantStaff
+            .where((member) => member.branches.contains(_branch.branchId))
+            .toList(growable: false);
+        _isLoadingStaff = false;
+      });
+    } on StaffApiException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _staffError = error.userMessage;
+        _isLoadingStaff = false;
+      });
+    } on Object {
+      if (!mounted) return;
+      setState(() {
+        _staffError = 'Unable to load branch staff.';
+        _isLoadingStaff = false;
+      });
+    }
+  }
 
   Future<void> _openEdit() async {
     final Branch? updated = await Navigator.of(context).push<Branch>(
@@ -176,25 +222,22 @@ class _BranchDetailsScreenState extends State<BranchDetailsScreen> {
                 ),
               ),
               const SizedBox(height: AppSpacing.xl),
-              // Total Staff / Orders Today / Total Orders have no backing
-              // API yet (Staff and Order Management are not implemented);
-              // kept at 0 until those services ship.
-              const BranchStatRow(
+              BranchStatRow(
                 tiles: <BranchStatTile>[
                   BranchStatTile(
-                    value: '0',
+                    value: '${_branch.totalStaff}',
                     label: 'Total Staff',
                     color: AppColors.success,
                     background: AppColors.successSurface,
                   ),
                   BranchStatTile(
-                    value: '0',
+                    value: '${_branch.ordersToday}',
                     label: 'Orders Today',
                     color: AppColors.primary,
                     background: AppColors.primarySurface,
                   ),
                   BranchStatTile(
-                    value: '0',
+                    value: '${_branch.totalOrders}',
                     label: 'Total Orders',
                     color: AppColors.secondary,
                     background: AppColors.secondarySurface,
@@ -209,17 +252,8 @@ class _BranchDetailsScreenState extends State<BranchDetailsScreen> {
                     Text('Manager', style: AppTextStyles.subtitle),
                     const SizedBox(height: AppSpacing.md),
                     Text(
-                      (_branch.managerId?.isNotEmpty ?? false)
-                          ? _branch.managerId!
-                          : 'Unassigned',
+                      _branch.managerName ?? _branch.managerId ?? 'Unassigned',
                       style: AppTextStyles.bodyMedium,
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    Text(
-                      'To change the manager, use Edit and enter the manager\'s '
-                      'user ID — a manager picker will be available once Staff '
-                      'Management is implemented.',
-                      style: AppTextStyles.caption,
                     ),
                   ],
                 ),
@@ -231,15 +265,12 @@ class _BranchDetailsScreenState extends State<BranchDetailsScreen> {
                   children: <Widget>[
                     Text('Staff', style: AppTextStyles.subtitle),
                     const SizedBox(height: AppSpacing.md),
-                    Text(
-                      'Staff assignment will be available once Staff '
-                      'Management is implemented.',
-                      style: AppTextStyles.caption,
-                    ),
+                    _buildStaffContent(),
                   ],
                 ),
               ),
-              if (_branch.status == BranchStatus.active) ...<Widget>[
+              if (_accessPolicy.isOwner &&
+                  _branch.status == BranchStatus.active) ...<Widget>[
                 const SizedBox(height: AppSpacing.section),
                 Text(
                   'DANGER ZONE',
@@ -287,6 +318,94 @@ class _BranchDetailsScreenState extends State<BranchDetailsScreen> {
         ),
       ),
     );
+  }
+
+  Widget _buildStaffContent() {
+    if (_isLoadingStaff) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(AppSpacing.lg),
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+    if (_staffError != null) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(_staffError!, style: AppTextStyles.caption),
+          const SizedBox(height: AppSpacing.sm),
+          OutlinedButton.icon(
+            onPressed: _loadStaff,
+            icon: const Icon(AppIcons.refresh),
+            label: const Text('Try again'),
+          ),
+        ],
+      );
+    }
+    if (_staff.isEmpty) {
+      return const Text(
+        'No staff are assigned to this branch.',
+        style: AppTextStyles.caption,
+      );
+    }
+    return Column(
+      children: _staff.indexed
+          .map(((int, StaffMember) entry) {
+            final StaffMember member = entry.$2;
+            final bool active = member.status.toLowerCase() == 'active';
+            return Column(
+              children: <Widget>[
+                if (entry.$1 > 0) const Divider(height: AppSpacing.xxl),
+                Row(
+                  children: <Widget>[
+                    CircleAvatar(
+                      backgroundColor: AppColors.primarySurface,
+                      child: Text(
+                        _initials(member.displayName),
+                        style: AppTextStyles.captionBold.copyWith(
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.md),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          Text(
+                            member.displayName,
+                            style: AppTextStyles.bodyMedium,
+                          ),
+                          const SizedBox(height: AppSpacing.xxs),
+                          Text(member.role, style: AppTextStyles.caption),
+                        ],
+                      ),
+                    ),
+                    AppStatusBadge(
+                      label: active ? 'Active' : 'Inactive',
+                      tone: active
+                          ? AppBadgeTone.success
+                          : AppBadgeTone.neutral,
+                    ),
+                  ],
+                ),
+              ],
+            );
+          })
+          .toList(growable: false),
+    );
+  }
+
+  String _initials(String name) {
+    final List<String> parts = name
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((part) => part.isNotEmpty)
+        .toList(growable: false);
+    if (parts.isEmpty) return '?';
+    if (parts.length == 1) return parts.first[0].toUpperCase();
+    return '${parts.first[0]}${parts.last[0]}'.toUpperCase();
   }
 }
 

@@ -29,6 +29,8 @@ import {
   BranchAuthMongooseSchema,
   TenantStaffAuthMongoose,
   TenantStaffAuthMongooseSchema,
+  UserBranchAssignmentMongoose,
+  UserBranchAssignmentMongooseSchema,
 } from './auth.mongoose.schema';
 
 @Module({
@@ -47,6 +49,7 @@ import {
       { name: TenantAuthMongoose.name, schema: TenantAuthMongooseSchema },
       { name: BranchAuthMongoose.name, schema: BranchAuthMongooseSchema },
       { name: TenantStaffAuthMongoose.name, schema: TenantStaffAuthMongooseSchema },
+      { name: UserBranchAssignmentMongoose.name, schema: UserBranchAssignmentMongooseSchema },
     ]),
   ],
   controllers: [AuthController],

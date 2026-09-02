@@ -4,9 +4,8 @@ import 'package:nexoraa_mobile/design_system/design_system.dart';
 /// Small colored metric tile used in the Branch List and Branch Details
 /// summary rows (e.g. "Total Staff", "Orders Today").
 ///
-/// Some values (staff/orders) are not yet backed by an API — callers pass
-/// `0` for those until Staff/Order Management ships. The widget itself has
-/// no knowledge of which values are real vs. placeholder.
+/// Values are supplied by the scoped branch APIs; this widget contains no
+/// business-data fallback values.
 class BranchStatTile extends StatelessWidget {
   const BranchStatTile({
     required this.value,

@@ -11,6 +11,7 @@ class ExpenseService {
 
   Future<List<Expense>> list({ExpenseFilter filter = const ExpenseFilter()}) =>
       _dataSource.getExpenses(filter: filter);
+  Future<ExpenseStatistics> statistics() => _dataSource.getStatistics();
   Future<List<ExpenseCategory>> categories() =>
       _dataSource.getExpenseCategories();
   Future<List<ExpensePaymentOption>> paymentMethods() =>

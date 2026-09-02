@@ -78,6 +78,7 @@ export class MongoBranchRepository implements BranchRepository {
     page: { page: number; pageSize: number },
   ): Promise<PaginatedResult<BranchRecord>> {
     const query: Record<string, unknown> = { tenantId };
+    if (filters.branchId) query.branchId = filters.branchId;
     if (filters.status) {
       query.status = filters.status;
     }

@@ -8,6 +8,8 @@ import {
   Patch,
   Post,
   UseFilters,
+  Req,
+  ForbiddenException,
 } from '@nestjs/common';
 import { ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 
@@ -21,6 +23,13 @@ import {
 } from './tenant.dto';
 import { TenantExceptionFilter } from './tenant.filter';
 import { TenantService } from './tenant.service';
+import type { TenantAccessRequest } from './tenant-auth.middleware';
+
+function assertOwnTenant(request: TenantAccessRequest, tenantId: string): void {
+  if (request.tenantAccess?.tenantId !== tenantId) {
+    throw new ForbiddenException('Tenant access is forbidden');
+  }
+}
 
 @ApiTags('Tenants')
 @UseFilters(TenantExceptionFilter)
@@ -75,7 +84,11 @@ export class TenantController {
   @ApiParam({ name: 'tenantId', description: 'Unique tenant identifier (24-char hex)' })
   @ApiResponse({ status: 200, description: 'Tenant profile', type: TenantProfileDto })
   @ApiResponse({ status: 404, description: 'Tenant not found' })
-  async getTenantById(@Param('tenantId') tenantId: string): Promise<TenantProfileDto> {
+  async getTenantById(
+    @Req() request: TenantAccessRequest,
+    @Param('tenantId') tenantId: string,
+  ): Promise<TenantProfileDto> {
+    assertOwnTenant(request, tenantId);
     return this.tenantService.getTenantById(tenantId);
   }
 
@@ -93,7 +106,11 @@ export class TenantController {
   @ApiParam({ name: 'tenantId', description: 'Unique tenant identifier' })
   @ApiResponse({ status: 200, description: 'Branch list', type: [BranchDto] })
   @ApiResponse({ status: 404, description: 'Tenant not found' })
-  async listBranches(@Param('tenantId') tenantId: string): Promise<BranchDto[]> {
+  async listBranches(
+    @Req() request: TenantAccessRequest,
+    @Param('tenantId') tenantId: string,
+  ): Promise<BranchDto[]> {
+    assertOwnTenant(request, tenantId);
     return this.tenantService.listBranches(tenantId);
   }
 
@@ -140,7 +157,11 @@ export class TenantController {
   @ApiResponse({ status: 204, description: 'Tenant suspended' })
   @ApiResponse({ status: 404, description: 'Tenant not found' })
   @ApiResponse({ status: 409, description: 'Tenant is already suspended' })
-  async suspendTenant(@Param('tenantId') tenantId: string): Promise<void> {
+  async suspendTenant(
+    @Req() request: TenantAccessRequest,
+    @Param('tenantId') tenantId: string,
+  ): Promise<void> {
+    assertOwnTenant(request, tenantId);
     await this.tenantService.suspendTenant(tenantId);
   }
 
@@ -160,7 +181,11 @@ export class TenantController {
   @ApiResponse({ status: 204, description: 'Tenant reactivated' })
   @ApiResponse({ status: 404, description: 'Tenant not found' })
   @ApiResponse({ status: 409, description: 'Tenant is already active' })
-  async reactivateTenant(@Param('tenantId') tenantId: string): Promise<void> {
+  async reactivateTenant(
+    @Req() request: TenantAccessRequest,
+    @Param('tenantId') tenantId: string,
+  ): Promise<void> {
+    assertOwnTenant(request, tenantId);
     await this.tenantService.reactivateTenant(tenantId);
   }
 }

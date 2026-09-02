@@ -1133,7 +1133,7 @@ class BranchPerformanceCard extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.md),
           Text(
-            '${(performance.progress * 100).round()}% of selected branch revenue',
+            '${(performance.progress * 100).round()}% of total revenue',
             style: AppTextStyles.caption,
           ),
         ],

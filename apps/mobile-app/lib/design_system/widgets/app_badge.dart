@@ -4,7 +4,16 @@ import 'package:nexoraa_mobile/design_system/radius/app_radius.dart';
 import 'package:nexoraa_mobile/design_system/spacing/app_spacing.dart';
 import 'package:nexoraa_mobile/design_system/typography/app_text_styles.dart';
 
-enum AppBadgeTone { success, neutral, warning, error, info }
+enum AppBadgeTone {
+  success,
+  neutral,
+  warning,
+  error,
+  info,
+  purple,
+  orange,
+  black,
+}
 
 /// Small status pill, e.g. active/inactive branch status.
 class AppStatusBadge extends StatelessWidget {
@@ -37,8 +46,23 @@ class AppStatusBadge extends StatelessWidget {
         );
       case AppBadgeTone.info:
         return const AppSemanticColor(
-          text: AppColors.info,
-          background: AppColors.infoSurface,
+          text: AppColors.primary,
+          background: AppColors.primarySurface,
+        );
+      case AppBadgeTone.purple:
+        return const AppSemanticColor(
+          text: Color(0xFF7C3AED),
+          background: Color(0xFFF5F3FF),
+        );
+      case AppBadgeTone.black:
+        return const AppSemanticColor(
+          text: Color(0xFF0F172A),
+          background: Color(0xFFF1F5F9),
+        );
+      case AppBadgeTone.orange:
+        return const AppSemanticColor(
+          text: Color(0xFFEA580C),
+          background: Color(0xFFFFF7ED),
         );
     }
   }

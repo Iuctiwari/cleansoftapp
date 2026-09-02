@@ -46,6 +46,7 @@ export interface OrderAssignmentRecord {
   readonly assignedTo: string;
   readonly assignedBy: string;
   readonly dueDate?: Date;
+  readonly note?: string;
   readonly status: string;
   readonly createdAt: Date;
   readonly updatedAt: Date;
@@ -146,10 +147,23 @@ export interface OrderListQuery {
 
 export type OrderPage = PaginatedResult<OrderRecord>;
 
+export interface OrderStatistics {
+  readonly totalOrders: number;
+  readonly todayOrders: number;
+  readonly yesterdayOrders: number;
+  readonly outstandingTotal: number;
+  readonly outstandingCustomerCount: number;
+  readonly statusBreakdown: Readonly<Record<string, number>>;
+}
+
 export interface OrderRepository {
   create(scope: OrderScope, input: CreateOrderRecord): Promise<OrderRecord>;
   findById(scope: OrderScope, id: string, assignedTo?: string): Promise<OrderRecord | null>;
   list(scope: OrderScope, query: OrderListQuery): Promise<OrderPage>;
+  statistics(
+    scope: OrderScope,
+    filters: { readonly assignedTo?: string; readonly customerId?: string },
+  ): Promise<OrderStatistics>;
   update(
     scope: OrderScope,
     id: string,
@@ -169,7 +183,10 @@ export interface OrderRepository {
     id: string,
     assignedTo: string,
     dueDate?: Date,
+    note?: string,
   ): Promise<OrderRecord | null>;
+  acceptAssignment(scope: OrderScope, id: string): Promise<OrderRecord | null>;
+  rejectAssignment(scope: OrderScope, id: string, reason?: string): Promise<OrderRecord | null>;
   history(scope: OrderScope, orderId: string): Promise<readonly StatusHistoryRecord[]>;
   applyPaymentProjection(
     scope: OrderScope,

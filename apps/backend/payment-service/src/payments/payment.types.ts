@@ -56,3 +56,11 @@ export interface PaymentRecord {
   /** Resolved from the referenced order when Order Service is reachable. */
   readonly orderNumber?: string;
 }
+
+export interface PaymentStatistics {
+  readonly todayCollectedMinor: number;
+  readonly yesterdayCollectedMinor: number;
+  readonly todayCollectedCount: number;
+  readonly totalBills: number;
+  readonly successfulBills: number;
+}

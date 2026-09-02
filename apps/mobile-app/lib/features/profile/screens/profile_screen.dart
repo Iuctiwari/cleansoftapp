@@ -24,20 +24,22 @@ class ProfileData {
     required this.passwordLastChanged,
   });
 
-  /// Build from the live [AuthenticationSession] coming from the backend JWT.
-  /// Falls back to placeholder strings so the UI always renders.
+  /// Build from live authenticated session data. Fields not supplied by an
+  /// existing backend contract are shown as unavailable, never fabricated.
   factory ProfileData.fromSession(AuthenticationSession? session) {
     return ProfileData(
-      displayName: session?.ownerName ?? 'User',
+      displayName: session?.ownerName ?? 'Unavailable',
       email: session?.ownerEmail ?? '—',
-      role: 'Owner',
+      role: session?.roleCode ?? 'User',
       businessName: session?.businessName ?? '—',
-      phone: '—', // not yet stored in session; extend when user-service returns it
-      location: '—', // not yet stored in session; extend when user-service returns it
-      memberSince: 'Jan 2025', // will come from tenant.createdAt once wired
-      plan: 'Pro', // will come from subscription when wired
-      branch: 'Main', // will come from selected branch when wired
-      passwordLastChanged: '30 days ago', // will come from user-service when wired
+      phone:
+          '—', // not yet stored in session; extend when user-service returns it
+      location:
+          '—', // not yet stored in session; extend when user-service returns it
+      memberSince: '—',
+      plan: '—',
+      branch: session?.branchName ?? '—',
+      passwordLastChanged: '—',
     );
   }
 
@@ -144,6 +146,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     final session = AuthenticationDependencies.controller.session;
     final data = ProfileData.fromSession(session);
+    final bool isOwner = const <String>{
+      'Owner',
+      'tenant_owner',
+      'owner',
+    }.contains(session?.roleCode);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -226,7 +233,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           _SecurityTile(
                             icon: AppIcons.key,
                             title: 'Change Password',
-                            subtitle: 'Last changed ${data.passwordLastChanged}',
+                            subtitle:
+                                'Last changed ${data.passwordLastChanged}',
                             onTap: _onChangePassword,
                           ),
                         ],
@@ -238,26 +246,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       const SizedBox(height: AppSpacing.xxl),
 
                       // ── Role Switch ─────────────────────────────────────
-                      _ProfileSection(
-                        title: 'ROLE SWITCH',
-                        headerSubtitle: 'Demo mode — switch dashboard view',
-                        children: List<Widget>.generate(
-                          _roles.length,
-                          (int i) => Column(
-                            children: <Widget>[
-                              _RoleTile(
-                                role: _roles[i],
-                                isSelected: _activeRoleIndex == i,
-                                onTap: () => setState(() => _activeRoleIndex = i),
-                              ),
-                              if (i < _roles.length - 1)
-                                const _SectionDivider(),
-                            ],
+                      if (isOwner)
+                        _ProfileSection(
+                          title: 'ROLE SWITCH',
+                          headerSubtitle: 'Demo mode — switch dashboard view',
+                          children: List<Widget>.generate(
+                            _roles.length,
+                            (int i) => Column(
+                              children: <Widget>[
+                                _RoleTile(
+                                  role: _roles[i],
+                                  isSelected: _activeRoleIndex == i,
+                                  onTap: () =>
+                                      setState(() => _activeRoleIndex = i),
+                                ),
+                                if (i < _roles.length - 1)
+                                  const _SectionDivider(),
+                              ],
+                            ),
+                            growable: false,
                           ),
-                          growable: false,
                         ),
-                      ),
-                      const SizedBox(height: AppSpacing.xxl),
+                      if (isOwner) const SizedBox(height: AppSpacing.xxl),
 
                       // ── Sign Out button ─────────────────────────────────
                       _SignOutButton(onTap: _signOut),
@@ -383,9 +393,7 @@ class _ProfileSection extends StatelessWidget {
         const SizedBox(height: AppSpacing.lg),
 
         // Card
-        _CardSurface(
-          child: Column(children: children),
-        ),
+        _CardSurface(child: Column(children: children)),
       ],
     );
   }
@@ -420,7 +428,11 @@ class _InfoTile extends StatelessWidget {
             ),
             child: SizedBox.square(
               dimension: AppSizes.touchTarget,
-              child: Icon(icon, color: AppColors.textMuted, size: AppIconSizes.xl),
+              child: Icon(
+                icon,
+                color: AppColors.textMuted,
+                size: AppIconSizes.xl,
+              ),
             ),
           ),
           const SizedBox(width: AppSpacing.xl),
@@ -429,7 +441,9 @@ class _InfoTile extends StatelessWidget {
             children: <Widget>[
               Text(
                 label,
-                style: AppTextStyles.caption.copyWith(color: AppColors.textSubtle),
+                style: AppTextStyles.caption.copyWith(
+                  color: AppColors.textSubtle,
+                ),
               ),
               const SizedBox(height: AppSpacing.xxs),
               Text(value, style: AppTextStyles.bodyLarge),
@@ -516,11 +530,17 @@ class _StatsRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: <Widget>[
-        Expanded(child: _StatChip(value: data.memberSince, label: 'Member Since')),
+        Expanded(
+          child: _StatChip(value: data.memberSince, label: 'Member Since'),
+        ),
         const SizedBox(width: AppSpacing.lg),
-        Expanded(child: _StatChip(value: data.plan, label: 'Plan')),
+        Expanded(
+          child: _StatChip(value: data.plan, label: 'Plan'),
+        ),
         const SizedBox(width: AppSpacing.lg),
-        Expanded(child: _StatChip(value: data.branch, label: 'Branch')),
+        Expanded(
+          child: _StatChip(value: data.branch, label: 'Branch'),
+        ),
       ],
     );
   }
@@ -601,7 +621,9 @@ class _RoleTile extends StatelessWidget {
               DecoratedBox(
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: isSelected ? AppColors.primary : AppColors.textDisabled,
+                  color: isSelected
+                      ? AppColors.primary
+                      : AppColors.textDisabled,
                 ),
                 child: const SizedBox.square(dimension: 10),
               ),
@@ -619,10 +641,7 @@ class _RoleTile extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: AppSpacing.xxs),
-                    Text(
-                      role.subtitle,
-                      style: AppTextStyles.caption,
-                    ),
+                    Text(role.subtitle, style: AppTextStyles.caption),
                   ],
                 ),
               ),
@@ -661,11 +680,17 @@ class _SignOutButton extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
-              const Icon(AppIcons.logout, color: AppColors.error, size: AppIconSizes.xl),
+              const Icon(
+                AppIcons.logout,
+                color: AppColors.error,
+                size: AppIconSizes.xl,
+              ),
               const SizedBox(width: AppSpacing.md),
               Text(
                 'Sign Out',
-                style: AppTextStyles.buttonLarge.copyWith(color: AppColors.error),
+                style: AppTextStyles.buttonLarge.copyWith(
+                  color: AppColors.error,
+                ),
               ),
             ],
           ),

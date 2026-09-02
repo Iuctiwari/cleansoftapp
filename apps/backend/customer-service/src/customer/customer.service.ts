@@ -1,4 +1,17 @@
-import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import {
+  Permissions,
+  hasPermission,
+  isBranchManagerRole,
+  isOwnerRole,
+  isStaffRole,
+} from '@nexoraa/shared';
 
 import type { CreateCustomerDto, ListCustomersQueryDto, UpdateCustomerDto } from './customer.dto';
 import { CustomerType } from './customer.mongoose.schema';
@@ -20,6 +33,7 @@ export class CustomerService {
   ) {}
 
   create(scope: CustomerScope, input: CreateCustomerDto): Promise<CustomerRecord> {
+    this.assertCreate(scope);
     return this.customerRepository.create(scope, {
       name: input.name.trim(),
       mobile: input.mobile?.trim(),
@@ -31,6 +45,7 @@ export class CustomerService {
   }
 
   list(scope: CustomerScope, query: ListCustomersQueryDto): Promise<CustomerPage> {
+    this.assertRead(scope);
     return this.customerRepository.list(scope, {
       page: query.page,
       limit: query.limit,
@@ -39,10 +54,12 @@ export class CustomerService {
   }
 
   statistics(scope: CustomerScope): Promise<CustomerStatistics> {
+    this.assertRead(scope);
     return this.customerRepository.statistics(scope);
   }
 
   async getById(scope: CustomerScope, id: string): Promise<CustomerRecord> {
+    this.assertRead(scope);
     const customer = await this.customerRepository.findById(scope, id);
     if (!customer) throw new NotFoundException('Customer not found');
     return customer;
@@ -53,6 +70,7 @@ export class CustomerService {
     id: string,
     input: UpdateCustomerDto,
   ): Promise<CustomerRecord> {
+    this.assertManage(scope);
     const existing = await this.getById(scope, id);
     const customerType = input.customerType ?? existing.customerType;
     const mobile = input.mobile === null ? undefined : (input.mobile?.trim() ?? existing.mobile);
@@ -83,7 +101,48 @@ export class CustomerService {
   }
 
   async delete(scope: CustomerScope, id: string): Promise<void> {
+    if (
+      !(isOwnerRole(scope.roleCode) || isBranchManagerRole(scope.roleCode)) ||
+      !hasPermission(scope.roleCode, scope.permissions, Permissions.customersDelete)
+    ) {
+      throw new ForbiddenException('Customer delete permission is required');
+    }
     const deleted = await this.customerRepository.softDelete(scope, id);
     if (!deleted) throw new NotFoundException('Customer not found');
+  }
+
+  private assertRead(scope: CustomerScope): void {
+    if (
+      !(
+        isOwnerRole(scope.roleCode) ||
+        isBranchManagerRole(scope.roleCode) ||
+        isStaffRole(scope.roleCode)
+      ) ||
+      !hasPermission(scope.roleCode, scope.permissions, Permissions.customersRead)
+    ) {
+      throw new ForbiddenException('Customer read permission is required');
+    }
+  }
+
+  private assertCreate(scope: CustomerScope): void {
+    if (
+      !(
+        isOwnerRole(scope.roleCode) ||
+        isBranchManagerRole(scope.roleCode) ||
+        isStaffRole(scope.roleCode)
+      ) ||
+      !hasPermission(scope.roleCode, scope.permissions, Permissions.customersWrite)
+    ) {
+      throw new ForbiddenException('Customer create permission is required');
+    }
+  }
+
+  private assertManage(scope: CustomerScope): void {
+    if (
+      !(isOwnerRole(scope.roleCode) || isBranchManagerRole(scope.roleCode)) ||
+      !hasPermission(scope.roleCode, scope.permissions, Permissions.customersWrite)
+    ) {
+      throw new ForbiddenException('Customer management permission is required');
+    }
   }
 }

@@ -165,12 +165,12 @@ abstract final class SemanticColors {
     background: AppColors.successSurface,
   );
   static const AppSemanticColor statusProcessing = AppSemanticColor(
-    text: AppColors.statusProcessing,
-    background: AppColors.primarySurface,
+    text: Color(0xFFEA580C),
+    background: Color(0xFFFFF7ED),
   );
   static const AppSemanticColor statusPending = AppSemanticColor(
-    text: AppColors.statusPending,
-    background: AppColors.warningSurface,
+    text: AppColors.primary,
+    background: AppColors.primarySurface,
   );
   static const AppSemanticColor statusCompleted = AppSemanticColor(
     text: AppColors.statusCompleted,
@@ -181,7 +181,11 @@ abstract final class SemanticColors {
     background: AppColors.errorSurface,
   );
   static const AppSemanticColor statusPurple = AppSemanticColor(
-    text: AppColors.statusPurple,
-    background: AppColors.secondarySurface,
+    text: Color(0xFF7C3AED),
+    background: Color(0xFFF5F3FF),
+  );
+  static const AppSemanticColor statusBlack = AppSemanticColor(
+    text: Color(0xFF0F172A),
+    background: Color(0xFFF1F5F9),
   );
 }

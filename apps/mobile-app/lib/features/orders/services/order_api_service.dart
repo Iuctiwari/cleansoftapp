@@ -91,21 +91,36 @@ class OrderApiService {
     }
   }
 
+  Future<OrderStatistics> statistics({String? customerId}) async {
+    final Uri uri = _ordersUri()
+        .resolve('statistics')
+        .replace(
+          queryParameters: <String, String>{
+            if (customerId != null && customerId.trim().isNotEmpty)
+              'customerId': customerId.trim(),
+          },
+        );
+    try {
+      return OrderStatistics.fromJson(_map(_unwrap(await _get(uri))));
+    } on OrderApiException {
+      rethrow;
+    } on FormatException {
+      throw const OrderApiException(
+        'Order Service returned invalid statistics.',
+      );
+    }
+  }
+
   Future<List<OrderStatusHistory>> getHistory(String id) async {
     try {
       final Object? value = _unwrap(
-        await _get(
-          _ordersUri().resolve('${Uri.encodeComponent(id)}/history'),
-        ),
+        await _get(_ordersUri().resolve('${Uri.encodeComponent(id)}/history')),
       );
       if (value is! List) {
         throw const FormatException('Expected an order history list.');
       }
       return value
-          .map(
-            (Object? entry) =>
-                OrderStatusHistory.fromJson(_map(entry)),
-          )
+          .map((Object? entry) => OrderStatusHistory.fromJson(_map(entry)))
           .toList(growable: false);
     } on OrderApiException {
       rethrow;
@@ -150,6 +165,87 @@ class OrderApiService {
       return Order.fromJson(
         _map(
           _unwrap(await _request('POST', _ordersUri(), body: input.toJson())),
+        ),
+      );
+    } on OrderApiException {
+      rethrow;
+    } on FormatException {
+      throw const OrderApiException(
+        'Order Service returned an invalid response.',
+      );
+    }
+  }
+
+  Future<Order> assignWorker(
+    String id,
+    String staffId, {
+    DateTime? dueDate,
+    String? note,
+  }) async {
+    try {
+      return Order.fromJson(
+        _map(
+          _unwrap(
+            await _request(
+              'POST',
+              _ordersUri().resolve('${Uri.encodeComponent(id)}/assign'),
+              body: <String, Object?>{
+                'assignedTo': staffId.trim(),
+                if (dueDate != null)
+                  'dueDate': dueDate.toUtc().toIso8601String(),
+                if (note != null && note.trim().isNotEmpty) 'note': note.trim(),
+              },
+            ),
+          ),
+        ),
+      );
+    } on OrderApiException {
+      rethrow;
+    } on FormatException {
+      throw const OrderApiException(
+        'Order Service returned an invalid response.',
+      );
+    }
+  }
+
+  Future<Order> acceptAssignment(String id) async {
+    try {
+      return Order.fromJson(
+        _map(
+          _unwrap(
+            await _request(
+              'POST',
+              _ordersUri().resolve(
+                '${Uri.encodeComponent(id)}/assignment/accept',
+              ),
+            ),
+          ),
+        ),
+      );
+    } on OrderApiException {
+      rethrow;
+    } on FormatException {
+      throw const OrderApiException(
+        'Order Service returned an invalid response.',
+      );
+    }
+  }
+
+  Future<Order> rejectAssignment(String id, {String? reason}) async {
+    try {
+      return Order.fromJson(
+        _map(
+          _unwrap(
+            await _request(
+              'POST',
+              _ordersUri().resolve(
+                '${Uri.encodeComponent(id)}/assignment/reject',
+              ),
+              body: reason?.trim().isNotEmpty == true
+                  ? <String, Object?>{'reason': reason!.trim()}
+                  : null,
+            ),
+          ),
         ),
       );
     } on OrderApiException {

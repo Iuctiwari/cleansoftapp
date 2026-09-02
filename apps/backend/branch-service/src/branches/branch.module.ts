@@ -8,7 +8,7 @@ import { BranchController } from './branch.controller';
 import {
   ConfiguredBranchLimitProvider,
   MongoManagerEligibilityService,
-  NullOrdersGateway,
+  MongoBranchMetricsGateway,
 } from './branch.collaborators';
 import { MongoBranchRepository } from './branch.mongo.repository';
 import {
@@ -20,6 +20,7 @@ import {
 import { BranchService } from './branch.service';
 import {
   BRANCH_LIMIT_PROVIDER,
+  BRANCH_METRICS_GATEWAY,
   BRANCH_REPOSITORY,
   MANAGER_ELIGIBILITY_SERVICE,
   ORDERS_GATEWAY,
@@ -43,8 +44,9 @@ import {
     { provide: MANAGER_ELIGIBILITY_SERVICE, useExisting: MongoManagerEligibilityService },
     ConfiguredBranchLimitProvider,
     { provide: BRANCH_LIMIT_PROVIDER, useExisting: ConfiguredBranchLimitProvider },
-    NullOrdersGateway,
-    { provide: ORDERS_GATEWAY, useExisting: NullOrdersGateway },
+    MongoBranchMetricsGateway,
+    { provide: BRANCH_METRICS_GATEWAY, useExisting: MongoBranchMetricsGateway },
+    { provide: ORDERS_GATEWAY, useExisting: MongoBranchMetricsGateway },
     TrustedContextMiddleware,
   ],
 })

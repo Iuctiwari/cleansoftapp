@@ -3,6 +3,7 @@ import {
   Controller,
   ForbiddenException,
   Get,
+  Headers,
   HttpCode,
   HttpStatus,
   Param,
@@ -10,7 +11,6 @@ import {
   Post,
   Query,
   Req,
-  Headers,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -30,20 +30,31 @@ import {
 } from '@nestjs/swagger';
 import { JWT_AUTH_NAME } from '@nexoraa/swagger';
 
-import { AssignOrderDto } from './dtos/assign-order.dto';
+import { ConfigService } from '@nestjs/config';
 import { ApplyPaymentProjectionDto } from './dtos/apply-payment-projection.dto';
+import { AssignOrderDto } from './dtos/assign-order.dto';
 import { CancelOrderDto } from './dtos/cancel-order.dto';
 import { CreateOrderDto } from './dtos/create-order.dto';
+import { RejectAssignmentDto } from './dtos/reject-assignment.dto';
 import { OrderHistoryResponseDto } from './dtos/order-history-response.dto';
 import { OrderQueryDto } from './dtos/order-query.dto';
-import { OrderPageResponseDto, OrderResponseDto } from './dtos/order-response.dto';
+import {
+  OrderPageResponseDto,
+  OrderResponseDto,
+  OrderStatisticsResponseDto,
+} from './dtos/order-response.dto';
 import { UpdateOrderStatusDto } from './dtos/update-order-status.dto';
 import { UpdateOrderDto } from './dtos/update-order.dto';
-import { type OrderRequest, OrderScopeGuard } from './order.guard';
 import { OrderIdPipe } from './order-id.pipe';
+import { type OrderRequest, OrderScopeGuard } from './order.guard';
 import { OrderService } from './order.service';
-import { ConfigService } from '@nestjs/config';
-import type { OrderPage, OrderRecord, OrderScope, StatusHistoryRecord } from './order.types';
+import type {
+  OrderPage,
+  OrderRecord,
+  OrderScope,
+  OrderStatistics,
+  StatusHistoryRecord,
+} from './order.types';
 
 const ID_PARAMETER = {
   description: 'Order MongoDB ObjectId.',
@@ -126,6 +137,16 @@ export class OrderController {
     return this.orderService.list(scope(request), query);
   }
 
+  @Get('statistics')
+  @ApiOperation({ summary: 'Get database-aggregated statistics for the authenticated scope' })
+  @ApiOkResponse({ type: OrderStatisticsResponseDto })
+  statistics(
+    @Req() request: OrderRequest,
+    @Query('customerId') customerId?: string,
+  ): Promise<OrderStatistics> {
+    return this.orderService.statistics(scope(request), customerId);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get complete scoped order details' })
   @ApiParam(ID_PARAMETER)
@@ -197,6 +218,43 @@ export class OrderController {
     @Body() body: AssignOrderDto,
   ): Promise<OrderRecord> {
     return this.orderService.assign(scope(request), id, body);
+  }
+
+  @Post(':id/assignment/accept')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Accept the authenticated worker assignment' })
+  @ApiParam(ID_PARAMETER)
+  @ApiOkResponse({ description: 'Assignment accepted and order lifecycle updated.', type: OrderResponseDto })
+  @ApiUnauthorizedResponse({ description: 'A valid JWT is required.' })
+  @ApiForbiddenResponse({ description: 'Only the assigned worker may accept the assignment.' })
+  @ApiNotFoundResponse({ description: 'Order was not found in the authenticated scope.' })
+  @ApiConflictResponse({ description: 'Assignment is no longer available to accept.' })
+  @ApiInternalServerErrorResponse({ description: 'Assignment acceptance failed unexpectedly.' })
+  acceptAssignment(
+    @Req() request: OrderRequest,
+    @Param('id', OrderIdPipe) id: string,
+  ): Promise<OrderRecord> {
+    return this.orderService.acceptAssignment(scope(request), id);
+  }
+
+  @Post(':id/assignment/reject')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Reject the authenticated worker assignment' })
+  @ApiParam(ID_PARAMETER)
+  @ApiBody({ type: RejectAssignmentDto })
+  @ApiOkResponse({ description: 'Assignment rejected and order lifecycle updated.', type: OrderResponseDto })
+  @ApiBadRequestResponse({ description: 'Rejection reason validation failed.' })
+  @ApiUnauthorizedResponse({ description: 'A valid JWT is required.' })
+  @ApiForbiddenResponse({ description: 'Only the assigned worker may reject the assignment.' })
+  @ApiNotFoundResponse({ description: 'Order was not found in the authenticated scope.' })
+  @ApiConflictResponse({ description: 'Assignment is no longer available to reject.' })
+  @ApiInternalServerErrorResponse({ description: 'Assignment rejection failed unexpectedly.' })
+  rejectAssignment(
+    @Req() request: OrderRequest,
+    @Param('id', OrderIdPipe) id: string,
+    @Body() body: RejectAssignmentDto,
+  ): Promise<OrderRecord> {
+    return this.orderService.rejectAssignment(scope(request), id, body.reason);
   }
 
   @Post(':id/cancel')

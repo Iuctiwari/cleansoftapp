@@ -171,6 +171,12 @@ describe('CatalogService', () => {
     expect(quote.effectiveFrom.toISOString()).toBe('2026-01-01T00:00:00.000Z');
   });
 
+  it('allows the authenticated Branch Manager role label to read catalog data', async () => {
+    await expect(catalog.getService(scope('Branch Manager'), ID)).resolves.toMatchObject({
+      id: ID,
+    });
+  });
+
   it('rejects invalid quantity/weight combinations', async () => {
     repository.findService.mockResolvedValue(serviceRecord(PricingType.PER_KG));
     repository.resolvePricing.mockResolvedValue(price(PricingType.PER_KG));

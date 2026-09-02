@@ -1,4 +1,10 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { Permissions, hasPermission } from '@nexoraa/shared';
 import { InjectModel } from '@nestjs/mongoose';
 import { DEFAULT_PAGE_NUMBER, DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from '@nexoraa/constants';
 import { FilterQuery, Model, Types } from 'mongoose';
@@ -32,6 +38,7 @@ export class NotificationService {
     scope: NotificationScope,
     input: CreateNotificationInput,
   ): Promise<NotificationRecord> {
+    this.assertAccess(scope);
     const recipientId = this.objectId(input.recipientId, 'recipientId');
     const title = this.requiredString(input.title, 'title', TITLE_MAX_LENGTH);
     const message = this.requiredString(input.message, 'message', MESSAGE_MAX_LENGTH);
@@ -60,6 +67,7 @@ export class NotificationService {
   }
 
   async list(scope: NotificationScope, input: Record<string, unknown>): Promise<NotificationPage> {
+    this.assertAccess(scope);
     const query = this.parseListQuery(input);
     const filter: FilterQuery<NotificationDocument> = {
       branchId: scope.branchId,
@@ -89,6 +97,7 @@ export class NotificationService {
   }
 
   async unreadCount(scope: NotificationScope): Promise<NotificationUnreadCount> {
+    this.assertAccess(scope);
     const count = await this.notifications
       .countDocuments({
         branchId: scope.branchId,
@@ -101,6 +110,7 @@ export class NotificationService {
   }
 
   async markRead(scope: NotificationScope, id: string): Promise<NotificationRecord> {
+    this.assertAccess(scope);
     const notificationId = this.objectId(id, 'id');
     const updated = await this.notifications
       .findOneAndUpdate(
@@ -116,6 +126,7 @@ export class NotificationService {
   }
 
   async markAllRead(scope: NotificationScope): Promise<{ modifiedCount: number }> {
+    this.assertAccess(scope);
     const result = await this.notifications
       .updateMany(
         {
@@ -132,11 +143,18 @@ export class NotificationService {
   }
 
   async remove(scope: NotificationScope, id: string): Promise<void> {
+    this.assertAccess(scope);
     const notificationId = this.objectId(id, 'id');
     const result = await this.notifications
       .deleteOne(this.ownedFilter(scope, notificationId))
       .exec();
     if (result.deletedCount === 0) throw new NotFoundException('Notification not found');
+  }
+
+  private assertAccess(scope: NotificationScope): void {
+    if (!hasPermission(scope.roleCode, scope.permissions, Permissions.notificationsRead)) {
+      throw new ForbiddenException('Notification permission is required');
+    }
   }
 
   private ownedFilter(

@@ -82,7 +82,7 @@ export class MongoCustomerRepository implements CustomerRepository {
     const [customers, total] = await Promise.all([
       this.customerModel
         .find(filter)
-        .sort({ name: 1, _id: 1 })
+        .sort({ createdAt: -1, _id: -1 })
         .skip(skip)
         .limit(query.limit)
         .lean()
@@ -133,20 +133,23 @@ export class MongoCustomerRepository implements CustomerRepository {
     const filter = createActiveTenantFilter<CustomerMongoose>(new Types.ObjectId(scope.tenantId), {
       branchId: scope.branchId,
     });
-    const [result] = await this.customerModel
-      .aggregate<{ total: number; outstanding: number }>([
-        { $match: filter },
-        {
-          $group: {
-            _id: null,
-            total: { $sum: 1 },
-            outstanding: { $sum: '$outstandingBalance' },
+    const [total, outstandingResult] = await Promise.all([
+      this.customerModel.countDocuments(filter).exec(),
+      this.customerModel.db
+        .collection('orders')
+        .aggregate<{ outstanding: number }>([
+          {
+            $match: {
+              tenantId: new Types.ObjectId(scope.tenantId),
+              branchId: scope.branchId,
+              paymentStatus: { $in: ['Unpaid', 'PartiallyPaid'] },
+            },
           },
-        },
-      ])
-      .exec();
-    const total = result?.total ?? 0;
-    return { total, active: total, outstanding: result?.outstanding ?? 0 };
+          { $group: { _id: null, outstanding: { $sum: '$outstandingAmount' } } },
+        ])
+        .toArray(),
+    ]);
+    return { total, active: total, outstanding: outstandingResult[0]?.outstanding ?? 0 };
   }
 
   async softDelete(scope: CustomerScope, id: string): Promise<boolean> {

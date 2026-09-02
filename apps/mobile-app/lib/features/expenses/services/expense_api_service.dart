@@ -150,6 +150,28 @@ class ExpenseApiService implements ExpenseDataSource {
   }
 
   @override
+  Future<ExpenseStatistics> getStatistics() async {
+    final Uri uri = Uri.parse('$_baseUrl/expenses/statistics');
+    final Map<String, String> headers = await _headers();
+    final http.Response response = await _send(
+      () => _client.get(uri, headers: headers),
+    );
+    final Object? decoded = _decodeBody(response);
+
+    if (response.statusCode >= 200 &&
+        response.statusCode < 300 &&
+        decoded is Map<String, dynamic>) {
+      final Map<String, dynamic> data =
+          decoded['data'] is Map<String, dynamic>
+          ? decoded['data'] as Map<String, dynamic>
+          : decoded;
+      return ExpenseStatistics.fromJson(data);
+    }
+
+    throw ExpenseApiException(_errorMessage(decoded, response.statusCode));
+  }
+
+  @override
   Future<Expense> createExpense(CreateExpenseRequest request) async {
     final Uri uri = Uri.parse('$_baseUrl/expenses');
     final Map<String, String> headers = await _headers();

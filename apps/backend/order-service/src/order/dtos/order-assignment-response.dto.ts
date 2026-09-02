@@ -16,6 +16,9 @@ export class OrderAssignmentResponseDto {
   @ApiPropertyOptional({ format: 'date-time' })
   dueDate?: Date;
 
+  @ApiPropertyOptional()
+  note?: string;
+
   @ApiProperty()
   status!: string;
 

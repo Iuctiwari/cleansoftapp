@@ -146,6 +146,10 @@ final class ApiAuthenticationService implements AuthenticationService {
     final Map<String, dynamic>? tenant = tenantValue == null
         ? null
         : _asMap(tenantValue);
+    final Object? branchValue = data['branch'];
+    final Map<String, dynamic>? branch = branchValue == null
+        ? null
+        : _asMap(branchValue);
 
     return AuthenticationSession(
       accessToken: accessToken,
@@ -158,7 +162,12 @@ final class ApiAuthenticationService implements AuthenticationService {
       ownerName: _requiredString(user, 'displayName'),
       ownerEmail: _optionalString(user, 'email'),
       roleCode: _requiredString(user, 'roleCode'),
+      permissions: (data['permissions'] as List<dynamic>? ?? const <dynamic>[])
+          .whereType<String>()
+          .toList(growable: false),
       businessName: _optionalString(tenant, 'tenantName'),
+      branchId: _optionalString(branch, 'branchId'),
+      branchName: _optionalString(branch, 'branchName'),
     );
   }
 

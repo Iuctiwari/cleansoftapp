@@ -1,17 +1,155 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { InjectConnection, InjectModel } from '@nestjs/mongoose';
+import { Connection, Model, Types } from 'mongoose';
 
 import { PlatformError } from '../platform/platform.errors';
 import { ManagerCandidateMongoose } from './branch.mongoose.schema';
 import {
   BRANCH_MANAGER_ROLE_CODE,
   OWNER_ROLE_CODE,
+  type BranchMetrics,
+  type BranchMetricsGateway,
   type BranchLimitProvider,
   type ManagerEligibilityService,
   type OrdersGateway,
 } from './branch.types';
+
+interface StaffCountAggregation {
+  readonly _id: string;
+  readonly count: number;
+}
+
+interface OrderCountAggregation {
+  readonly _id: string;
+  readonly ordersToday: number;
+  readonly totalOrders: number;
+}
+
+@Injectable()
+export class MongoBranchMetricsGateway implements BranchMetricsGateway, OrdersGateway {
+  constructor(@InjectConnection() private readonly connection: Connection) {}
+
+  async getMetrics(
+    tenantId: string,
+    branchIds: readonly string[],
+  ): Promise<ReadonlyMap<string, BranchMetrics>> {
+    const result = new Map<string, BranchMetrics>(
+      branchIds.map((branchId) => [branchId, { ordersToday: 0, totalOrders: 0, totalStaff: 0 }]),
+    );
+    if (!Types.ObjectId.isValid(tenantId) || branchIds.length === 0) return result;
+
+    const tenantObjectId = new Types.ObjectId(tenantId);
+    const branchObjectIds = branchIds
+      .filter((branchId) => Types.ObjectId.isValid(branchId))
+      .map((branchId) => new Types.ObjectId(branchId));
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+
+    const staffPromise =
+      branchObjectIds.length === 0
+        ? Promise.resolve<StaffCountAggregation[]>([])
+        : this.connection
+            .collection('users')
+            .aggregate<StaffCountAggregation>([
+              {
+                $match: {
+                  tenantId: tenantObjectId,
+                  branchIds: { $in: branchObjectIds },
+                  isDeleted: false,
+                },
+              },
+              { $unwind: '$branchIds' },
+              { $match: { branchIds: { $in: branchObjectIds } } },
+              { $group: { _id: { $toString: '$branchIds' }, count: { $sum: 1 } } },
+            ])
+            .toArray();
+    const ordersPromise = this.connection
+      .collection('orders')
+      .aggregate<OrderCountAggregation>([
+        { $match: { tenantId: tenantObjectId, branchId: { $in: [...branchIds] } } },
+        {
+          $group: {
+            _id: '$branchId',
+            totalOrders: { $sum: 1 },
+            ordersToday: {
+              $sum: { $cond: [{ $gte: ['$createdAt', startOfToday] }, 1, 0] },
+            },
+          },
+        },
+      ])
+      .toArray();
+    const [staffCounts, orderCounts] = await Promise.all([staffPromise, ordersPromise]);
+
+    for (const item of staffCounts) {
+      const current = result.get(item._id);
+      if (current) result.set(item._id, { ...current, totalStaff: item.count });
+    }
+    for (const item of orderCounts) {
+      const current = result.get(item._id);
+      if (current) {
+        result.set(item._id, {
+          ...current,
+          ordersToday: item.ordersToday,
+          totalOrders: item.totalOrders,
+        });
+      }
+    }
+    return result;
+  }
+
+  async getManagerNames(
+    tenantId: string,
+    managerIds: readonly string[],
+  ): Promise<ReadonlyMap<string, string>> {
+    const names = new Map<string, string>();
+    const uniqueIds = [...new Set(managerIds.filter(Boolean))];
+    if (uniqueIds.length === 0) return names;
+
+    const objectIds = uniqueIds
+      .filter((id) => Types.ObjectId.isValid(id))
+      .map((id) => new Types.ObjectId(id));
+    const userPromise =
+      Types.ObjectId.isValid(tenantId) && objectIds.length > 0
+        ? this.connection
+            .collection('users')
+            .find(
+              { _id: { $in: objectIds }, tenantId: new Types.ObjectId(tenantId), isDeleted: false },
+              { projection: { name: 1 } },
+            )
+            .toArray()
+        : Promise.resolve([]);
+    const ownerPromise = this.connection
+      .collection('tenantOwners')
+      .find({ userId: { $in: uniqueIds }, tenantId }, { projection: { displayName: 1, userId: 1 } })
+      .toArray();
+    const [users, owners] = await Promise.all([userPromise, ownerPromise]);
+    for (const user of users) {
+      if (typeof user.name === 'string' && user.name.trim()) {
+        names.set(String(user._id), user.name.trim());
+      }
+    }
+    for (const owner of owners) {
+      if (
+        typeof owner.userId === 'string' &&
+        typeof owner.displayName === 'string' &&
+        owner.displayName.trim()
+      ) {
+        names.set(owner.userId, owner.displayName.trim());
+      }
+    }
+    return names;
+  }
+
+  async countNonTerminalByBranch(tenantId: string, branchId: string): Promise<number> {
+    if (!Types.ObjectId.isValid(tenantId)) return 0;
+    return this.connection.collection('orders').countDocuments({
+      tenantId: new Types.ObjectId(tenantId),
+      branchId,
+      status: { $nin: ['Delivered', 'Cancelled'] },
+    });
+  }
+}
 
 const ELIGIBLE_MANAGER_ROLE_CODES: readonly string[] = [OWNER_ROLE_CODE, BRANCH_MANAGER_ROLE_CODE];
 
@@ -27,12 +165,35 @@ export class MongoManagerEligibilityService implements ManagerEligibilityService
   constructor(
     @InjectModel(ManagerCandidateMongoose.name)
     private readonly candidateModel: Model<ManagerCandidateMongoose>,
+    @InjectConnection() private readonly connection: Connection,
   ) {}
 
   async assertEligible(userId: string, tenantId: string): Promise<void> {
-    const candidate = await this.candidateModel.findOne({ userId }).lean().exec();
+    const [ownerCandidate, userCandidate] = await Promise.all([
+      this.candidateModel.findOne({ userId }).lean().exec(),
+      Types.ObjectId.isValid(userId) && Types.ObjectId.isValid(tenantId)
+        ? this.connection.collection('users').findOne({
+            _id: new Types.ObjectId(userId),
+            tenantId: new Types.ObjectId(tenantId),
+            isDeleted: false,
+          })
+        : Promise.resolve(null),
+    ]);
+    const candidate = ownerCandidate
+      ? {
+          roleCode: ownerCandidate.roleCode,
+          status: ownerCandidate.status === 'active' ? 'Active' : 'Inactive',
+          tenantMatches: ownerCandidate.tenantId === tenantId,
+        }
+      : userCandidate
+        ? {
+            roleCode: userCandidate.role,
+            status: userCandidate.status,
+            tenantMatches: true,
+          }
+        : null;
 
-    if (!candidate || candidate.tenantId !== tenantId) {
+    if (!candidate || !candidate.tenantMatches) {
       // Never distinguish "not found" from "belongs to another tenant" — both
       // read as the same client-facing error so we don't leak cross-tenant existence.
       throw new PlatformError({
@@ -43,7 +204,7 @@ export class MongoManagerEligibilityService implements ManagerEligibilityService
       });
     }
 
-    if (candidate.status !== 'active') {
+    if (candidate.status !== 'Active') {
       throw new PlatformError({
         code: 'branch.manager_inactive',
         category: 'conflict',
@@ -52,7 +213,11 @@ export class MongoManagerEligibilityService implements ManagerEligibilityService
       });
     }
 
-    if (!ELIGIBLE_MANAGER_ROLE_CODES.includes(candidate.roleCode)) {
+    if (
+      !ELIGIBLE_MANAGER_ROLE_CODES.includes(String(candidate.roleCode)) &&
+      candidate.roleCode !== 'Owner' &&
+      candidate.roleCode !== 'Branch Manager'
+    ) {
       throw new PlatformError({
         code: 'branch.manager_not_eligible',
         category: 'conflict',
@@ -96,24 +261,5 @@ export class ConfiguredBranchLimitProvider implements BranchLimitProvider {
         `(${this.defaultLimit}) for tenant ${tenantId}.`,
     );
     return Promise.resolve(this.defaultLimit);
-  }
-}
-
-/**
- * Stand-in for a real order-service integration — see the OrdersGateway doc
- * comment in branch.types.ts. Always reports zero non-terminal orders, i.e.
- * it never blocks a deactivation, because order-service has no `orders`
- * collection to query yet.
- */
-@Injectable()
-export class NullOrdersGateway implements OrdersGateway {
-  private readonly logger = new Logger(NullOrdersGateway.name);
-
-  countNonTerminalByBranch(tenantId: string, branchId: string): Promise<number> {
-    this.logger.warn(
-      `order-service is not implemented yet — skipping unresolved-order check for ` +
-        `branch ${branchId} (tenant ${tenantId}). Deactivation will proceed unconditionally.`,
-    );
-    return Promise.resolve(0);
   }
 }

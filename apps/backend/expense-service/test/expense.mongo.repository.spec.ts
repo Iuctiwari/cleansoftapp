@@ -12,6 +12,8 @@ describe('MongoExpenseRepository persistence availability', () => {
     actorId: '64f0c18f7c4d2f0012ab34bb',
     tenantId: '64f0c18f7c4d2f0012ab34aa',
     branchId: 'branch-a',
+    roleCode: 'Owner',
+    permissions: [],
   };
 
   it('does not return a successful create response when MongoDB is unavailable', async () => {

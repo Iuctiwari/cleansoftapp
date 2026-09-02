@@ -314,6 +314,9 @@ export class TenantStaffAuthMongoose extends Document {
   @Prop({ type: [String], required: true, default: [] })
   permissions!: string[];
 
+  @Prop({ type: [String], required: true, default: [] })
+  branchIds!: string[];
+
   @Prop({ required: true, enum: ['active', 'disabled'], default: 'active' })
   status!: string;
 
@@ -328,3 +331,15 @@ export const TenantStaffAuthMongooseSchema = SchemaFactory.createForClass(Tenant
 
 // Compound unique index: loginId must be unique per tenant
 TenantStaffAuthMongooseSchema.index({ tenantId: 1, loginId: 1 }, { unique: true });
+
+export type UserBranchAssignmentDocument = HydratedDocument<UserBranchAssignmentMongoose>;
+
+@Schema({ collection: 'users', timestamps: false, versionKey: false })
+export class UserBranchAssignmentMongoose extends Document {
+  @Prop({ type: [MongooseSchema.Types.ObjectId], required: true, default: [] })
+  branchIds!: MongooseSchema.Types.ObjectId[];
+}
+
+export const UserBranchAssignmentMongooseSchema = SchemaFactory.createForClass(
+  UserBranchAssignmentMongoose,
+);

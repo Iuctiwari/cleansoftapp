@@ -3,6 +3,8 @@ import 'package:nexoraa_mobile/design_system/design_system.dart';
 import 'package:nexoraa_mobile/features/branch/branch_dependencies.dart';
 import 'package:nexoraa_mobile/features/branch/branch_models.dart';
 import 'package:nexoraa_mobile/features/branch/controllers/branch_form_controller.dart';
+import 'package:nexoraa_mobile/features/authentication/access_policy.dart';
+import 'package:nexoraa_mobile/features/authentication/authentication_dependencies.dart';
 
 enum BranchFormMode { add, edit }
 
@@ -44,6 +46,8 @@ class _BranchFormScreenState extends State<BranchFormScreen> {
   bool _unassignManager = false;
 
   bool get _isEdit => widget.mode == BranchFormMode.edit;
+  AccessPolicy get _accessPolicy =>
+      AccessPolicy.fromSession(AuthenticationDependencies.controller.session);
 
   @override
   void initState() {
@@ -116,14 +120,18 @@ class _BranchFormScreenState extends State<BranchFormScreen> {
 
     final String? managerId = _optional(_managerIdController.text);
     final bool managerIdChanged =
-        _isEdit && (_unassignManager || managerId != widget.branch!.managerId);
+        _accessPolicy.isOwner &&
+        _isEdit &&
+        (_unassignManager || managerId != widget.branch!.managerId);
 
     final Branch? result = _isEdit
         ? await _controller.update(
             widget.branch!.branchId,
             UpdateBranchInput(
               branchName: _optional(_branchNameController.text),
-              code: _optional(_codeController.text),
+              code: _accessPolicy.isOwner
+                  ? _optional(_codeController.text)
+                  : null,
               streetAddress: _optional(_streetAddressController.text),
               city: _optional(_cityController.text),
               state: _optional(_stateController.text),
@@ -133,8 +141,10 @@ class _BranchFormScreenState extends State<BranchFormScreen> {
               email: _optional(_emailController.text),
               openingTime: _optional(_openingTimeController.text),
               closingTime: _optional(_closingTimeController.text),
-              status: _status,
-              managerId: _unassignManager ? null : managerId,
+              status: _accessPolicy.isOwner ? _status : null,
+              managerId: _accessPolicy.isOwner
+                  ? (_unassignManager ? null : managerId)
+                  : null,
               managerIdChanged: managerIdChanged,
             ),
           )
@@ -195,8 +205,10 @@ class _BranchFormScreenState extends State<BranchFormScreen> {
                 AppCard(child: _branchInformationSection()),
                 const SizedBox(height: AppSpacing.formSectionGap),
                 AppCard(child: _operatingHoursSection()),
-                const SizedBox(height: AppSpacing.formSectionGap),
-                AppCard(child: _managementAndStatusSection()),
+                if (_accessPolicy.isOwner) ...<Widget>[
+                  const SizedBox(height: AppSpacing.formSectionGap),
+                  AppCard(child: _managementAndStatusSection()),
+                ],
               ],
             ),
           );
@@ -263,7 +275,7 @@ class _BranchFormScreenState extends State<BranchFormScreen> {
           },
         ),
         const SizedBox(height: AppSpacing.formGroupGap),
-        if (_isEdit) ...<Widget>[
+        if (_isEdit && _accessPolicy.isOwner) ...<Widget>[
           AppTextField(
             controller: _codeController,
             label: 'Branch Code (optional)',

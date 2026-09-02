@@ -2,13 +2,6 @@ import 'package:flutter/foundation.dart';
 import 'package:nexoraa_mobile/features/orders/models/order.dart';
 import 'package:nexoraa_mobile/features/orders/services/order_api_service.dart';
 
-/// Number of pages fetched (at [_dashboardCountsPageLimit] orders each) when
-/// scanning today's/yesterday's order counts for the Dashboard. Bounds the
-/// work done since neither backend exposes a dedicated aggregate endpoint;
-/// real branch volumes stay well within this bound.
-const int _dashboardCountsMaxPages = 5;
-const int _dashboardCountsPageLimit = 100;
-
 class OrderController extends ChangeNotifier {
   OrderController({required OrderApiService service}) : _service = service;
 
@@ -137,50 +130,55 @@ class OrderController extends ChangeNotifier {
     int limit = OrderApiService.defaultPageSize,
   }) => _service.list(page: page, limit: limit, customerId: customerId);
 
-  /// Counts orders created today and yesterday from a bounded newest-first
-  /// page scan (no dedicated aggregate endpoint exists), for the Dashboard's
-  /// "Today's Orders" KPI and its yesterday comparison.
-  Future<(int today, int yesterday)> todayVsYesterdayCounts() async {
-    final DateTime now = DateTime.now();
-    final DateTime today = DateTime(now.year, now.month, now.day);
-    final DateTime yesterday = today.subtract(const Duration(days: 1));
-    int todayCount = 0;
-    int yesterdayCount = 0;
-    int page = 1;
-    while (page <= _dashboardCountsMaxPages) {
-      final OrderPage result = await _service.list(
-        page: page,
-        limit: _dashboardCountsPageLimit,
-      );
-      bool reachedOlderDay = false;
-      for (final Order order in result.items) {
-        final DateTime local = order.createdAt.toLocal();
-        final DateTime day = DateTime(local.year, local.month, local.day);
-        if (day.isAtSameMomentAs(today)) {
-          todayCount += 1;
-        } else if (day.isAtSameMomentAs(yesterday)) {
-          yesterdayCount += 1;
-        } else if (day.isBefore(yesterday)) {
-          reachedOlderDay = true;
-          break;
-        }
-      }
-      if (reachedOlderDay || page >= result.totalPages) break;
-      page += 1;
+  Future<OrderStatistics> statistics({String? customerId}) =>
+      _service.statistics(customerId: customerId);
+
+  Future<Order> changeStatus(
+    String id,
+    OrderStatus status, {
+    String? note,
+  }) async {
+    final Order order = await _service.changeStatus(id, status, note: note);
+    final int index = _orders.indexWhere((Order item) => item.id == order.id);
+    if (index >= 0) {
+      _orders.removeAt(index);
+      _orders.insert(0, order);
     }
-    return (todayCount, yesterdayCount);
+    notifyListeners();
+    return order;
   }
 
-  /// Current count of orders in the given status for the selected branch,
-  /// via the existing Orders API's pagination total (no dedicated
-  /// count/aggregate endpoint exists).
-  Future<int> countByStatus(OrderStatus status) async {
-    final OrderPage page = await _service.list(status: status, limit: 1);
-    return page.total;
+  Future<Order> assignWorker(
+    String id,
+    String staffId, {
+    DateTime? dueDate,
+    String? note,
+  }) async {
+    final Order order = await _service.assignWorker(
+      id,
+      staffId,
+      dueDate: dueDate,
+      note: note,
+    );
+    final int index = _orders.indexWhere((Order item) => item.id == order.id);
+    if (index >= 0) {
+      _orders.removeAt(index);
+      _orders.insert(0, order);
+    }
+    notifyListeners();
+    return order;
   }
 
-  Future<Order> changeStatus(String id, OrderStatus status) async {
-    final Order order = await _service.changeStatus(id, status);
+  Future<Order> acceptAssignment(String id) async {
+    final Order order = await _service.acceptAssignment(id);
+    final int index = _orders.indexWhere((Order item) => item.id == order.id);
+    if (index >= 0) _orders[index] = order;
+    notifyListeners();
+    return order;
+  }
+
+  Future<Order> rejectAssignment(String id, {String? reason}) async {
+    final Order order = await _service.rejectAssignment(id, reason: reason);
     final int index = _orders.indexWhere((Order item) => item.id == order.id);
     if (index >= 0) _orders[index] = order;
     notifyListeners();

@@ -1,5 +1,5 @@
-import type { OrderItemRecord, OrderRecord } from '../../order/order.types';
 import { OrderPaymentStatus, OrderStatus } from '../../order/enums';
+import type { OrderItemRecord, OrderRecord } from '../../order/order.types';
 import type { ReceiptBranchView, ReceiptItemView } from '../receipt.types';
 
 const CURRENCY = 'LKR';
@@ -76,6 +76,9 @@ function formatDateOnly(value?: Date): string {
 const STATUS_LABEL: Record<OrderStatus, string> = {
   [OrderStatus.DRAFT]: 'Draft',
   [OrderStatus.RECEIVED]: 'Received',
+  [OrderStatus.ASSIGNED]: 'Assigned',
+  [OrderStatus.ACCEPTED]: 'Accepted',
+  [OrderStatus.REJECTED]: 'Rejected',
   [OrderStatus.IN_PROGRESS]: 'In Progress',
   [OrderStatus.READY]: 'Ready',
   [OrderStatus.OUT_FOR_DELIVERY]: 'Out for Delivery',

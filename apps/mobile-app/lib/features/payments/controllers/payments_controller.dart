@@ -5,14 +5,6 @@ import 'package:nexoraa_mobile/features/orders/services/order_api_service.dart';
 import 'package:nexoraa_mobile/features/orders/services/payment_api_service.dart';
 import 'package:nexoraa_mobile/features/payments/models/payment.dart';
 
-/// Number of pages fetched (per outstanding payment status) when computing
-/// the outstanding summary total/customer count and the "today collected"
-/// total. Bounds the work done for these aggregates since neither backend
-/// exposes a dedicated aggregate endpoint; real branch volumes stay well
-/// within this bound.
-const int _summaryMaxPages = 5;
-const int _summaryPageLimit = 100;
-
 const List<OrderPaymentStatus> _outstandingStatuses = <OrderPaymentStatus>[
   OrderPaymentStatus.unpaid,
   OrderPaymentStatus.partiallyPaid,
@@ -101,7 +93,8 @@ class PaymentsController extends ChangeNotifier {
   /// Whether a collect request is in flight for [orderId] specifically, so
   /// only that order's Collect button reflects the pending state instead of
   /// disabling every outstanding order's button at once.
-  bool isCollectingOrder(String orderId) => _collectingOrderIds.contains(orderId);
+  bool isCollectingOrder(String orderId) =>
+      _collectingOrderIds.contains(orderId);
   String? get collectError => _collectError;
 
   bool get _isActive => !_disposed;
@@ -154,7 +147,9 @@ class PaymentsController extends ChangeNotifier {
 
   Future<void> loadMoreOutstanding() async {
     if (!_isActive) return;
-    if (!_outstandingHasMore || _isLoadingOutstanding || _isLoadingMoreOutstanding) {
+    if (!_outstandingHasMore ||
+        _isLoadingOutstanding ||
+        _isLoadingMoreOutstanding) {
       return;
     }
     _isLoadingMoreOutstanding = true;
@@ -198,7 +193,10 @@ class PaymentsController extends ChangeNotifier {
         method: method,
       );
       if (!_isActive) return false;
-      await Future.wait<void>(<Future<void>>[_loadOutstanding(), _loadSummary()]);
+      await Future.wait<void>(<Future<void>>[
+        _loadOutstanding(),
+        _loadSummary(),
+      ]);
       if (!_isActive) return false;
       return true;
     } on OrderApiException catch (error) {
@@ -268,7 +266,10 @@ class PaymentsController extends ChangeNotifier {
     }
   }
 
-  Future<_MergedOrderPage> _fetchOutstandingPage(int page, {int limit = 20}) async {
+  Future<_MergedOrderPage> _fetchOutstandingPage(
+    int page, {
+    int limit = 20,
+  }) async {
     final List<OrderPage> results = await Future.wait<OrderPage>(
       _outstandingStatuses.map(
         (OrderPaymentStatus status) => _orderController.byPaymentStatus(
@@ -279,11 +280,14 @@ class PaymentsController extends ChangeNotifier {
         ),
       ),
     );
-    final List<Order> merged = results
-        .expand((OrderPage result) => result.items)
-        .toList(growable: false)
-      ..sort((Order a, Order b) => b.createdAt.compareTo(a.createdAt));
-    final bool hasMore = results.any((OrderPage result) => page < result.totalPages);
+    final List<Order> merged =
+        results
+            .expand((OrderPage result) => result.items)
+            .toList(growable: false)
+          ..sort((Order a, Order b) => b.createdAt.compareTo(a.createdAt));
+    final bool hasMore = results.any(
+      (OrderPage result) => page < result.totalPages,
+    );
     return _MergedOrderPage(items: merged, hasMore: hasMore);
   }
 
@@ -293,25 +297,26 @@ class PaymentsController extends ChangeNotifier {
     _isLoadingSummary = true;
     _notifyIfActive();
     try {
-      final Future<(double, double, int)> collectedFuture =
-          _computeCollectedSummary();
-      final Future<(double, int)> outstandingFuture = _computeOutstandingTotal();
-      final Future<(int, int)> billsFuture = _computeBillsCounts();
-      final (double today, double yesterday, int todayCount) =
-          await collectedFuture;
+      final Future<PaymentStatistics> paymentStatisticsFuture = _paymentService
+          .statistics(customerId: _customerId);
+      final Future<OrderStatistics> outstandingFuture = _orderController
+          .statistics(customerId: _customerId);
+      final List<Object> summaries = await Future.wait<Object>(<Future<Object>>[
+        paymentStatisticsFuture,
+        outstandingFuture,
+      ]);
+      final PaymentStatistics paymentStatistics =
+          summaries[0] as PaymentStatistics;
       if (!_isActive) return;
-      _todayCollected = today;
-      _yesterdayCollected = yesterday;
-      _todayCollectedCount = todayCount;
-      final (double outstandingTotal, int outstandingCustomerCount) =
-          await outstandingFuture;
+      _todayCollected = paymentStatistics.todayCollected;
+      _yesterdayCollected = paymentStatistics.yesterdayCollected;
+      _todayCollectedCount = paymentStatistics.todayCollectedCount;
+      _totalBillsCount = paymentStatistics.totalBills;
+      _paidBillsCount = paymentStatistics.successfulBills;
+      final OrderStatistics orderStatistics = summaries[1] as OrderStatistics;
       if (!_isActive) return;
-      _outstandingTotal = outstandingTotal;
-      _outstandingCustomerCount = outstandingCustomerCount;
-      final (int totalBills, int paidBills) = await billsFuture;
-      if (!_isActive) return;
-      _totalBillsCount = totalBills;
-      _paidBillsCount = paidBills;
+      _outstandingTotal = orderStatistics.outstandingTotal;
+      _outstandingCustomerCount = orderStatistics.outstandingCustomerCount;
     } on OrderApiException {
       // Summary is best-effort; the History/Outstanding tabs surface real
       // errors directly, so leave the last-known summary values in place.
@@ -320,91 +325,6 @@ class PaymentsController extends ChangeNotifier {
       _isLoadingSummary = false;
       _notifyIfActive();
     }
-  }
-
-  /// Sums successful payments for today and yesterday from the same
-  /// newest-first page scan (no dedicated aggregate endpoint exists on the
-  /// Payment Service), so the "today vs yesterday" comparison always reflects
-  /// real persisted payment data.
-  Future<(double today, double yesterday, int todayCount)>
-  _computeCollectedSummary() async {
-    final DateTime now = DateTime.now();
-    final DateTime today = DateTime(now.year, now.month, now.day);
-    final DateTime yesterday = today.subtract(const Duration(days: 1));
-    double todaySum = 0;
-    double yesterdaySum = 0;
-    int todayCount = 0;
-    int page = 1;
-    while (page <= _summaryMaxPages) {
-      if (!_isActive) return (todaySum, yesterdaySum, todayCount);
-      final PaymentPage result = await _paymentService.list(
-        page: page,
-        limit: _summaryPageLimit,
-        status: PaymentTransactionStatus.successful,
-        customerId: _customerId,
-      );
-      bool reachedOlderDay = false;
-      for (final PaymentRecord record in result.items) {
-        final DateTime local = record.createdAt.toLocal();
-        final DateTime day = DateTime(local.year, local.month, local.day);
-        if (day.isAtSameMomentAs(today)) {
-          todaySum += record.amount;
-          todayCount += 1;
-        } else if (day.isAtSameMomentAs(yesterday)) {
-          yesterdaySum += record.amount;
-        } else if (day.isBefore(yesterday)) {
-          reachedOlderDay = true;
-          break;
-        }
-      }
-      if (reachedOlderDay || page >= result.totalPages) break;
-      page += 1;
-    }
-    return (todaySum, yesterdaySum, todayCount);
-  }
-
-  /// Real total and successful ("paid") payment/bill counts for the
-  /// selected branch, read from the Payment Service's own pagination
-  /// `total` (no dedicated count/aggregate endpoint exists).
-  Future<(int total, int paid)> _computeBillsCounts() async {
-    if (!_isActive) return (0, 0);
-    final PaymentPage totalPage = await _paymentService.list(
-      limit: 1,
-      customerId: _customerId,
-    );
-    if (!_isActive) return (0, 0);
-    final PaymentPage paidPage = await _paymentService.list(
-      limit: 1,
-      status: PaymentTransactionStatus.successful,
-      customerId: _customerId,
-    );
-    if (!_isActive) return (0, 0);
-    return (totalPage.total, paidPage.total);
-  }
-
-  Future<(double, int)> _computeOutstandingTotal() async {
-    double total = 0;
-    final Set<String> customerIds = <String>{};
-    for (final OrderPaymentStatus status in _outstandingStatuses) {
-      if (!_isActive) return (total, customerIds.length);
-      int page = 1;
-      while (page <= _summaryMaxPages) {
-        if (!_isActive) return (total, customerIds.length);
-        final OrderPage result = await _orderController.byPaymentStatus(
-          status,
-          page: page,
-          limit: _summaryPageLimit,
-          customerId: _customerId,
-        );
-        for (final Order order in result.items) {
-          total += order.outstandingAmount;
-          customerIds.add(order.customerId);
-        }
-        if (page >= result.totalPages) break;
-        page += 1;
-      }
-    }
-    return (total, customerIds.length);
   }
 }
 

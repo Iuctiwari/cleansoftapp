@@ -27,6 +27,7 @@
     "@nexoraa/config": "workspace:*",
     "@nexoraa/constants": "workspace:*",
     "@nexoraa/database": "workspace:*",
+    "@nexoraa/shared": "workspace:*",
     "@nexoraa/swagger": "workspace:*",
     "@nexoraa/types": "workspace:*",
     "bullmq": "5.53.1",

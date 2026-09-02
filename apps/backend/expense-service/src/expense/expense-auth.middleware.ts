@@ -88,6 +88,8 @@ export class ExpenseAuthenticationMiddleware implements NestMiddleware {
       kind: context.kind,
       tenantId: context.tenantId,
       branchId: context.branchId,
+      roleCode: claims.roleCode,
+      permissions: Object.freeze([...(claims.permissions ?? [])]),
     };
     next();
   }

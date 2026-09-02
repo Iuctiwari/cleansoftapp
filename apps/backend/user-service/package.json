@@ -24,6 +24,7 @@
     "@nestjs/swagger": "^11.4.6",
     "@nexoraa/config": "workspace:*",
     "@nexoraa/database": "workspace:*",
+    "@nexoraa/shared": "workspace:*",
     "@nexoraa/swagger": "workspace:*",
     "bullmq": "5.53.1",
     "class-transformer": "^0.5.1",

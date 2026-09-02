@@ -18,6 +18,12 @@ final class BranchListController extends ChangeNotifier {
   BranchStatus? _statusFilter;
   int _page = 1;
   int _total = 0;
+  BranchStatistics _statistics = const BranchStatistics(
+    totalBranches: 0,
+    totalStaff: 0,
+    totalOrders: 0,
+    ordersToday: 0,
+  );
   bool _isLoadingMore = false;
 
   BranchListStatus get status => _status;
@@ -25,6 +31,7 @@ final class BranchListController extends ChangeNotifier {
   List<Branch> get branches => _branches;
   BranchStatus? get statusFilter => _statusFilter;
   int get total => _total;
+  BranchStatistics get statistics => _statistics;
   bool get isLoadingMore => _isLoadingMore;
   bool get hasMore => _branches.length < _total;
 
@@ -35,14 +42,19 @@ final class BranchListController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final BranchListResult result = await _service.listBranches(
-        status: _statusFilter,
-        page: 1,
-        pageSize: _pageSize,
-      );
+      final List<Object> results = await Future.wait<Object>(<Future<Object>>[
+        _service.listBranches(
+          status: _statusFilter,
+          page: 1,
+          pageSize: _pageSize,
+        ),
+        _service.statistics(status: _statusFilter),
+      ]);
+      final BranchListResult result = results[0] as BranchListResult;
       _branches = result.items;
       _page = result.page;
       _total = result.total;
+      _statistics = results[1] as BranchStatistics;
       _status = BranchListStatus.loaded;
     } on BranchApiException catch (error) {
       _status = BranchListStatus.error;

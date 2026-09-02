@@ -9,6 +9,15 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { SortDirection } from '@nexoraa/constants';
+import {
+  Permissions,
+  hasPermission,
+  isBranchManagerRole,
+  isCashierRole,
+  isOwnerRole,
+  isStaffRole,
+} from '@nexoraa/shared';
+import { Types } from 'mongoose';
 
 import type { AssignOrderDto } from './dtos/assign-order.dto';
 import type { CancelOrderDto } from './dtos/cancel-order.dto';
@@ -24,21 +33,19 @@ import {
   CATALOG_PRICING_TYPES,
   ORDER_DEPENDENCIES,
   ORDER_REPOSITORY,
-  type CatalogQuote,
   type CatalogPricingType,
+  type CatalogQuote,
   type OrderDependencies,
   type OrderPage,
   type OrderRecord,
   type OrderRepository,
   type OrderScope,
+  type OrderStatistics,
   type OrderTotals,
   type PersistedOrderItem,
   type StatusHistoryRecord,
 } from './order.types';
 
-const WRITE_ROLES = new Set(['tenant_owner', 'branch_manager', 'cashier']);
-const MANAGE_ROLES = new Set(['tenant_owner', 'branch_manager']);
-const STAFF_ROLE = 'staff';
 const ADDITIONAL_SERVICE_SURCHARGE = 10;
 
 interface NotifyInput {
@@ -73,7 +80,9 @@ const STATUS_NOTIFICATIONS: Readonly<
 const NEXT_STATUSES: Readonly<Partial<Record<OrderStatus, readonly OrderStatus[]>>> = Object.freeze(
   {
     [OrderStatus.DRAFT]: [OrderStatus.RECEIVED],
-    [OrderStatus.RECEIVED]: [OrderStatus.IN_PROGRESS],
+    [OrderStatus.RECEIVED]: [OrderStatus.ASSIGNED, OrderStatus.IN_PROGRESS],
+    [OrderStatus.ASSIGNED]: [OrderStatus.ACCEPTED],
+    [OrderStatus.ACCEPTED]: [OrderStatus.IN_PROGRESS],
     [OrderStatus.IN_PROGRESS]: [OrderStatus.READY],
     [OrderStatus.READY]: [OrderStatus.OUT_FOR_DELIVERY, OrderStatus.DELIVERED],
     [OrderStatus.OUT_FOR_DELIVERY]: [OrderStatus.DELIVERED],
@@ -149,7 +158,18 @@ export class OrderService {
       sortBy: query.sortBy,
       sortDirection: query.sortDirection === SortDirection.Ascending ? 1 : -1,
       status: query.status,
-      ...(scope.roleCode === STAFF_ROLE ? { assignedTo: scope.actorId } : {}),
+      ...(isStaffRole(scope.roleCode) ? { assignedTo: scope.actorId } : {}),
+    });
+  }
+
+  statistics(scope: OrderScope, customerId?: string): Promise<OrderStatistics> {
+    this.assertRead(scope);
+    if (customerId && !Types.ObjectId.isValid(customerId)) {
+      throw new BadRequestException('customerId must be a valid identifier');
+    }
+    return this.repository.statistics(scope, {
+      ...(customerId ? { customerId } : {}),
+      ...(isStaffRole(scope.roleCode) ? { assignedTo: scope.actorId } : {}),
     });
   }
 
@@ -158,7 +178,7 @@ export class OrderService {
     const order = await this.repository.findById(
       scope,
       id,
-      scope.roleCode === STAFF_ROLE ? scope.actorId : undefined,
+      isStaffRole(scope.roleCode) ? scope.actorId : undefined,
     );
     if (!order) throw new NotFoundException('Order not found');
     return order;
@@ -243,6 +263,7 @@ export class OrderService {
       id,
       input.assignedTo,
       input.dueDate ? new Date(input.dueDate) : undefined,
+      input.note?.trim(),
     );
     if (!order) throw new ConflictException('Order assignment changed concurrently');
     this.audit.record(scope, 'order.assigned', id, { assignedTo: input.assignedTo });
@@ -261,6 +282,40 @@ export class OrderService {
       orderId: order.id,
       title: 'Worker assigned',
       type: 'WorkerAssigned',
+    });
+    return order;
+  }
+
+  async acceptAssignment(scope: OrderScope, id: string): Promise<OrderRecord> {
+    const existing = await this.get(scope, id);
+    this.assertAssignmentAction(scope, existing);
+    const order = await this.repository.acceptAssignment(scope, id);
+    if (!order) throw new ConflictException('Order assignment could not be accepted');
+    this.audit.record(scope, 'order.assignment_accepted', id);
+    this.notifyOwner(scope, existing.assignedTo, {
+      entityId: order.id,
+      entityType: 'Order',
+      message: `Worker accepted assignment for order ${order.orderNumber}.`,
+      orderId: order.id,
+      title: 'Assignment accepted',
+      type: 'WorkerAssignmentAccepted',
+    });
+    return order;
+  }
+
+  async rejectAssignment(scope: OrderScope, id: string, reason?: string): Promise<OrderRecord> {
+    const existing = await this.get(scope, id);
+    this.assertAssignmentAction(scope, existing);
+    const order = await this.repository.rejectAssignment(scope, id, reason);
+    if (!order) throw new ConflictException('Order assignment could not be rejected');
+    this.audit.record(scope, 'order.assignment_rejected', id, { reason });
+    this.notifyOwner(scope, existing.assignedTo, {
+      entityId: order.id,
+      entityType: 'Order',
+      message: `Worker rejected assignment for order ${order.orderNumber}.`,
+      orderId: order.id,
+      title: 'Assignment rejected',
+      type: 'WorkerAssignmentRejected',
     });
     return order;
   }
@@ -505,37 +560,71 @@ export class OrderService {
 
   private assertRead(scope: OrderScope): void {
     if (
-      !['tenant_owner', 'branch_manager', 'cashier', STAFF_ROLE].includes(scope.roleCode) ||
-      !scope.permissions.includes('orders:read')
+      !(
+        isOwnerRole(scope.roleCode) ||
+        isBranchManagerRole(scope.roleCode) ||
+        isCashierRole(scope.roleCode) ||
+        isStaffRole(scope.roleCode)
+      ) ||
+      !hasPermission(scope.roleCode, scope.permissions, Permissions.ordersRead)
     ) {
       throw new ForbiddenException('Order read permission is required');
     }
   }
 
   private assertWrite(scope: OrderScope): void {
-    if (!WRITE_ROLES.has(scope.roleCode) || !scope.permissions.includes('orders:write')) {
+    if (
+      !(
+        isOwnerRole(scope.roleCode) ||
+        isBranchManagerRole(scope.roleCode) ||
+        isCashierRole(scope.roleCode)
+      ) ||
+      !hasPermission(scope.roleCode, scope.permissions, Permissions.ordersWrite)
+    ) {
       throw new ForbiddenException('Order write permission is required');
     }
   }
 
   private assertManage(scope: OrderScope): void {
-    if (!MANAGE_ROLES.has(scope.roleCode) || !scope.permissions.includes('orders:write')) {
+    if (
+      !(isOwnerRole(scope.roleCode) || isBranchManagerRole(scope.roleCode)) ||
+      !(
+        hasPermission(scope.roleCode, scope.permissions, Permissions.ordersAssign) ||
+        hasPermission(scope.roleCode, scope.permissions, Permissions.ordersWrite)
+      )
+    ) {
       throw new ForbiddenException('Order management permission is required');
     }
   }
 
   private assertTransition(scope: OrderScope, order: OrderRecord): void {
-    if (MANAGE_ROLES.has(scope.roleCode) && scope.permissions.includes('orders:write')) {
+    if (
+      (isOwnerRole(scope.roleCode) || isBranchManagerRole(scope.roleCode)) &&
+      hasPermission(scope.roleCode, scope.permissions, Permissions.ordersWrite)
+    ) {
       return;
     }
     if (
-      scope.roleCode === STAFF_ROLE &&
-      scope.permissions.includes('orders:write') &&
+      isStaffRole(scope.roleCode) &&
+      hasPermission(scope.roleCode, scope.permissions, Permissions.ordersWrite) &&
       order.assignedTo === scope.actorId
     ) {
       return;
     }
     throw new ForbiddenException('Order transition permission is required');
+  }
+
+  private assertAssignmentAction(scope: OrderScope, order: OrderRecord): void {
+    if (
+      (isOwnerRole(scope.roleCode) || isBranchManagerRole(scope.roleCode)) &&
+      hasPermission(scope.roleCode, scope.permissions, Permissions.ordersWrite)
+    ) {
+      return;
+    }
+    if (isStaffRole(scope.roleCode) && order.assignedTo === scope.actorId) {
+      return;
+    }
+    throw new ForbiddenException('You are not authorized to respond to this assignment');
   }
 
   private notifyStatusChange(scope: OrderScope, order: OrderRecord): void {

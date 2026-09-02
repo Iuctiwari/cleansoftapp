@@ -95,6 +95,44 @@ void main() {
       throwsA(isA<ExpenseApiException>()),
     );
   });
+
+  test('loads database expense statistics for the selected branch', () async {
+    final service = ExpenseApiService(
+      tokenStorage: _MemoryTokenStorage(
+        AuthenticationSession(
+          accessToken: 'expense-token',
+          refreshToken: 'refresh-token',
+          accessTokenExpiresAt: DateTime.utc(2027),
+          refreshTokenExpiresAt: DateTime.utc(2028),
+        ),
+      ),
+      baseUrl: 'http://expense.test/api',
+      client: MockClient((http.Request request) async {
+        expect(request.method, 'GET');
+        expect(
+          request.url.toString(),
+          'http://expense.test/expenses/statistics',
+        );
+        expect(request.headers['authorization'], 'Bearer expense-token');
+        expect(request.headers['x-branch-id'], 'branch-a');
+        return http.Response(
+          jsonEncode(<String, Object?>{
+            'totalAmount': 4321.50,
+            'count': 3,
+            'categoryCount': 2,
+            'byPaymentMethod': <String, num>{'Cash': 4321.50},
+          }),
+          200,
+        );
+      }),
+    )..selectBranch('branch-a');
+
+    final ExpenseStatistics statistics = await service.getStatistics();
+
+    expect(statistics.totalAmount, 4321.50);
+    expect(statistics.count, 3);
+    expect(statistics.categoryCount, 2);
+  });
 }
 
 class _MemoryTokenStorage implements AuthTokenStorage {

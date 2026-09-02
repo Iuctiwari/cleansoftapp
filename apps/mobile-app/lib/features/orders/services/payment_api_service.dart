@@ -17,7 +17,8 @@ class PaymentApiService {
   }) : _tokenStorage = tokenStorage,
        _client = client ?? http.Client(),
        _baseUrl = _apiV1Url(
-         baseUrl ?? _environment('PAYMENT_API_BASE_URL', 'http://10.0.2.2:3008'),
+         baseUrl ??
+             _environment('PAYMENT_API_BASE_URL', 'http://10.0.2.2:3008'),
        );
 
   final AuthTokenStorage _tokenStorage;
@@ -37,7 +38,9 @@ class PaymentApiService {
     final session = await _tokenStorage.read();
     if (session == null) throw const OrderApiException('Please sign in again.');
     if (_branchId == null || _branchId!.isEmpty) {
-      throw const OrderApiException('Select an active branch before recording payment.');
+      throw const OrderApiException(
+        'Select an active branch before recording payment.',
+      );
     }
     try {
       final http.Response response = await _client
@@ -70,13 +73,17 @@ class PaymentApiService {
     } on OrderApiException {
       rethrow;
     } on TimeoutException {
-      throw const OrderApiException('The payment request timed out. Please retry.');
+      throw const OrderApiException(
+        'The payment request timed out. Please retry.',
+      );
     } on SocketException {
       throw const OrderApiException('Unable to reach Payment Management.');
     } on http.ClientException {
       throw const OrderApiException('Unable to reach Payment Management.');
     } on FormatException {
-      throw const OrderApiException('Payment Management returned an invalid response.');
+      throw const OrderApiException(
+        'Payment Management returned an invalid response.',
+      );
     }
   }
 
@@ -90,7 +97,9 @@ class PaymentApiService {
     final session = await _tokenStorage.read();
     if (session == null) throw const OrderApiException('Please sign in again.');
     if (_branchId == null || _branchId!.isEmpty) {
-      throw const OrderApiException('Select an active branch to view payments.');
+      throw const OrderApiException(
+        'Select an active branch to view payments.',
+      );
     }
     final Uri uri = Uri.parse('$_baseUrl/payments').replace(
       queryParameters: <String, String>{
@@ -131,6 +140,60 @@ class PaymentApiService {
       throw const OrderApiException(
         'Payment Management returned an invalid response.',
       );
+    }
+  }
+
+  Future<PaymentStatistics> statistics({String? customerId}) async {
+    final Uri uri = Uri.parse('$_baseUrl/payments/statistics').replace(
+      queryParameters: <String, String>{
+        if (customerId != null && customerId.trim().isNotEmpty)
+          'customerId': customerId.trim(),
+      },
+    );
+    try {
+      return PaymentStatistics.fromJson(_map(await _get(uri)));
+    } on OrderApiException {
+      rethrow;
+    } on FormatException {
+      throw const OrderApiException(
+        'Payment Management returned invalid statistics.',
+      );
+    }
+  }
+
+  Future<Object?> _get(Uri uri) async {
+    final session = await _tokenStorage.read();
+    if (session == null) throw const OrderApiException('Please sign in again.');
+    if (_branchId == null || _branchId!.isEmpty) {
+      throw const OrderApiException(
+        'Select an active branch to view payments.',
+      );
+    }
+    try {
+      final http.Response response = await _client
+          .get(
+            uri,
+            headers: <String, String>{
+              HttpHeaders.authorizationHeader: 'Bearer ${session.accessToken}',
+              'x-branch-id': _branchId!,
+            },
+          )
+          .timeout(const Duration(seconds: 20));
+      final Object? decoded = response.body.trim().isEmpty
+          ? null
+          : jsonDecode(response.body);
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        throw OrderApiException(_message(decoded));
+      }
+      return decoded;
+    } on OrderApiException {
+      rethrow;
+    } on TimeoutException {
+      throw const OrderApiException('The request timed out. Please try again.');
+    } on SocketException {
+      throw const OrderApiException('Unable to reach Payment Management.');
+    } on http.ClientException {
+      throw const OrderApiException('Unable to reach Payment Management.');
     }
   }
 

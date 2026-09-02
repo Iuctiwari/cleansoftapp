@@ -1,6 +1,7 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, FilterQuery } from 'mongoose';
+import { effectivePermissions } from '@nexoraa/shared';
 import { hashPassword } from './auth.crypto';
 import { normalizeIdentifier } from './auth.normalization';
 
@@ -34,6 +35,8 @@ import {
   BranchAuthMongoose,
   TenantStaffAuthDocument,
   TenantStaffAuthMongoose,
+  UserBranchAssignmentDocument,
+  UserBranchAssignmentMongoose,
 } from './auth.mongoose.schema';
 
 @Injectable()
@@ -55,6 +58,8 @@ export class MongoAuthRepository implements AuthRepository, OnModuleInit {
     @InjectModel(BranchAuthMongoose.name) private readonly branchModel: Model<BranchAuthDocument>,
     @InjectModel(TenantStaffAuthMongoose.name)
     private readonly tenantStaffModel: Model<TenantStaffAuthDocument>,
+    @InjectModel(UserBranchAssignmentMongoose.name)
+    private readonly userBranchAssignmentModel: Model<UserBranchAssignmentDocument>,
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -146,7 +151,7 @@ export class MongoAuthRepository implements AuthRepository, OnModuleInit {
         displayName: owner.displayName,
         passwordHash: owner.passwordHash,
         roleCode: owner.roleCode,
-        permissions: Object.freeze(owner.permissions),
+        permissions: effectivePermissions(owner.roleCode, owner.permissions),
         status: owner.status as AuthIdentityRecord['status'],
         accessVersion: owner.accessVersion,
         tenantId: resolvedTenant.tenantId,
@@ -183,7 +188,14 @@ export class MongoAuthRepository implements AuthRepository, OnModuleInit {
       .exec();
     if (!resolvedTenant) return null;
 
-    const branches = await this.branchModel.find({ tenantId: staff.tenantId }).lean().exec();
+    const assignment = await this.userBranchAssignmentModel.findById(staff.userId).lean().exec();
+    const assignedBranchIds = staff.branchIds?.length
+      ? staff.branchIds
+      : (assignment?.branchIds ?? []).map(String);
+    const branches = await this.branchModel
+      .find({ tenantId: staff.tenantId, branchId: { $in: assignedBranchIds } })
+      .lean()
+      .exec();
     const mappedBranches = branches.map((b) => ({
       branchId: b.branchId,
       branchCode: b.branchName.replace(/\s+/g, '-').toLowerCase(),
@@ -198,7 +210,7 @@ export class MongoAuthRepository implements AuthRepository, OnModuleInit {
       displayName: staff.displayName,
       passwordHash: staff.passwordHash,
       roleCode: staff.roleCode,
-      permissions: Object.freeze(staff.permissions),
+      permissions: effectivePermissions(staff.roleCode, staff.permissions),
       status: staff.status as AuthIdentityRecord['status'],
       accessVersion: staff.accessVersion,
       tenantId: staff.tenantId,
@@ -429,6 +441,7 @@ export class MongoAuthRepository implements AuthRepository, OnModuleInit {
       passwordHash: record.passwordHash,
       roleCode: record.roleCode,
       permissions: record.permissions,
+      branchIds: record.branchIds,
       status: record.status,
       accessVersion: record.accessVersion,
       createdAtUtc: record.createdAtUtc,
@@ -453,7 +466,8 @@ export class MongoAuthRepository implements AuthRepository, OnModuleInit {
       email: doc.email,
       passwordHash: doc.passwordHash,
       roleCode: doc.roleCode,
-      permissions: Object.freeze(doc.permissions),
+      permissions: effectivePermissions(doc.roleCode, doc.permissions),
+      branchIds: Object.freeze(doc.branchIds ?? []),
       status: doc.status as StaffAuthRecord['status'],
       accessVersion: doc.accessVersion,
       createdAtUtc: doc.createdAtUtc,
@@ -462,5 +476,22 @@ export class MongoAuthRepository implements AuthRepository, OnModuleInit {
 
   async updateStaffIdentityStatus(userId: string, status: 'active' | 'disabled'): Promise<void> {
     await this.tenantStaffModel.updateOne({ userId }, { $set: { status } }).exec();
+  }
+
+  async updateStaffIdentityAccess(
+    userId: string,
+    roleCode: string,
+    permissions: readonly string[],
+    branchIds: readonly string[],
+  ): Promise<void> {
+    await this.tenantStaffModel
+      .updateOne(
+        { userId },
+        {
+          $set: { roleCode, permissions: [...permissions], branchIds: [...branchIds] },
+          $inc: { accessVersion: 1 },
+        },
+      )
+      .exec();
   }
 }

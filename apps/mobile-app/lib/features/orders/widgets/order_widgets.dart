@@ -16,9 +16,8 @@ String formatIndianMobile(String value) {
   return value.trim();
 }
 
-Future<void> copyOrderCustomerMobile(String mobile) => Clipboard.setData(
-  ClipboardData(text: formatIndianMobile(mobile)),
-);
+Future<void> copyOrderCustomerMobile(String mobile) =>
+    Clipboard.setData(ClipboardData(text: formatIndianMobile(mobile)));
 
 /// Compacts a real backend order number (e.g. `ORD-KTD-000001`) into a short
 /// `ORD-<sequence>` form (e.g. `ORD-1042`) by trimming the leading zeros off
@@ -180,12 +179,27 @@ class OrderListCard extends StatelessWidget {
 }
 
 AppBadgeTone orderStatusTone(OrderStatus status) => switch (status) {
-  OrderStatus.ready => AppBadgeTone.success,
-  OrderStatus.inProgress || OrderStatus.outForDelivery => AppBadgeTone.info,
-  OrderStatus.received || OrderStatus.draft => AppBadgeTone.warning,
-  OrderStatus.delivered => AppBadgeTone.neutral,
-  OrderStatus.cancelled => AppBadgeTone.error,
+  OrderStatus.ready || OrderStatus.delivered => AppBadgeTone.success,
+  OrderStatus.inProgress || OrderStatus.outForDelivery => AppBadgeTone.orange,
+  OrderStatus.accepted => AppBadgeTone.black,
+  OrderStatus.assigned => AppBadgeTone.purple,
+  OrderStatus.received || OrderStatus.draft => AppBadgeTone.info,
+  OrderStatus.rejected || OrderStatus.cancelled => AppBadgeTone.error,
 };
+
+(Color, Color) orderStatusColors(OrderStatus status) {
+  final AppBadgeTone tone = orderStatusTone(status);
+  return switch (tone) {
+    AppBadgeTone.success => (AppColors.success, AppColors.successSurface),
+    AppBadgeTone.info => (AppColors.primary, AppColors.primarySurface),
+    AppBadgeTone.purple => (const Color(0xFF7C3AED), const Color(0xFFF5F3FF)),
+    AppBadgeTone.black => (const Color(0xFF0F172A), const Color(0xFFF1F5F9)),
+    AppBadgeTone.orange => (const Color(0xFFEA580C), const Color(0xFFFFF7ED)),
+    AppBadgeTone.error => (AppColors.error, AppColors.errorSurface),
+    AppBadgeTone.warning => (AppColors.warningDark, AppColors.warningSurface),
+    AppBadgeTone.neutral => (AppColors.textMuted, AppColors.surfaceMuted),
+  };
+}
 
 String orderInitials(String name) {
   final List<String> parts = name

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:nexoraa_mobile/design_system/design_system.dart';
+import 'package:nexoraa_mobile/features/authentication/access_policy.dart';
 import 'package:nexoraa_mobile/features/authentication/authentication_dependencies.dart';
+import 'package:nexoraa_mobile/design_system/design_system.dart';
 import 'package:nexoraa_mobile/features/customers/controllers/customer_controller.dart';
 import 'package:nexoraa_mobile/features/customers/models/customer.dart';
 import 'package:nexoraa_mobile/features/customers/screens/customer_form_screen.dart';
@@ -16,12 +17,8 @@ import 'package:nexoraa_mobile/features/payments/controllers/payments_controller
 import 'package:nexoraa_mobile/features/payments/screens/payments_screen.dart';
 import 'package:nexoraa_mobile/features/payments/widgets/payments_widgets.dart';
 
-/// Number of pages fetched (at [_customerOrdersPageLimit] orders each) when
-/// gathering a customer's order history and summing their outstanding
-/// balance. Bounds the work done since neither backend exposes a dedicated
-/// per-customer aggregate endpoint; real customers stay well within this
-/// bound.
-const int _customerOrdersMaxPages = 5;
+/// Page size used to load the customer's complete order history. Summary
+/// values are supplied by the server-side order statistics aggregate.
 const int _customerOrdersPageLimit = 50;
 
 class _CustomerOrdersSummary {
@@ -40,16 +37,19 @@ class CustomerDetailsScreen extends StatefulWidget {
   const CustomerDetailsScreen({
     required this.customerId,
     required this.controller,
+    this.accessPolicy = const AccessPolicy(roleCode: 'Owner'),
     super.key,
   });
   final String customerId;
   final CustomerController controller;
+  final AccessPolicy accessPolicy;
 
   @override
   State<CustomerDetailsScreen> createState() => _CustomerDetailsScreenState();
 }
 
 class _CustomerDetailsScreenState extends State<CustomerDetailsScreen> {
+  AccessPolicy get _accessPolicy => widget.accessPolicy;
   Customer? _customer;
   String? _error;
   bool _loading = true;
@@ -101,27 +101,26 @@ class _CustomerDetailsScreenState extends State<CustomerDetailsScreen> {
   Future<_CustomerOrdersSummary> _loadCustomerOrders(String customerId) async {
     final OrderController orderController = _orderController!;
     final List<Order> orders = <Order>[];
-    double outstanding = 0;
-    int total = 0;
+    final Future<OrderStatistics> statisticsFuture = orderController.statistics(
+      customerId: customerId,
+    );
     int page = 1;
-    while (page <= _customerOrdersMaxPages) {
+    int totalPages = 1;
+    while (page <= totalPages) {
       final OrderPage result = await orderController.byCustomer(
         customerId,
         page: page,
         limit: _customerOrdersPageLimit,
       );
       orders.addAll(result.items);
-      total = result.total;
-      for (final Order order in result.items) {
-        outstanding += order.outstandingAmount;
-      }
-      if (page >= result.totalPages) break;
+      totalPages = result.totalPages;
       page += 1;
     }
+    final OrderStatistics statistics = await statisticsFuture;
     return _CustomerOrdersSummary(
       orders: orders,
-      totalCount: total,
-      outstandingBalance: outstanding,
+      totalCount: statistics.totalOrders,
+      outstandingBalance: statistics.outstandingTotal,
     );
   }
 
@@ -135,7 +134,9 @@ class _CustomerDetailsScreenState extends State<CustomerDetailsScreen> {
   ) async {
     if (_isCollectingOutstanding) return;
     final List<Order> outstandingOrders =
-        summary.orders.where((Order order) => order.outstandingAmount > 0).toList()
+        summary.orders
+            .where((Order order) => order.outstandingAmount > 0)
+            .toList()
           ..sort(
             (Order a, Order b) =>
                 b.outstandingAmount.compareTo(a.outstandingAmount),
@@ -189,7 +190,9 @@ class _CustomerDetailsScreenState extends State<CustomerDetailsScreen> {
         _changed = true;
         await _load();
       } else {
-        _message(paymentsController.collectError ?? 'Unable to collect payment.');
+        _message(
+          paymentsController.collectError ?? 'Unable to collect payment.',
+        );
       }
     } finally {
       paymentsController.dispose();
@@ -302,42 +305,47 @@ class _CustomerDetailsScreenState extends State<CustomerDetailsScreen> {
       ),
       title: const Text('Customer Profile'),
       actions: <Widget>[
-        IconButton(
-          onPressed: _customer == null ? null : _edit,
-          icon: const Icon(AppIcons.edit),
-        ),
-        PopupMenuButton<String>(
-          enabled: _customer != null && !_deleting,
-          shape: const RoundedRectangleBorder(
-            borderRadius: AppRadius.buttonRadius,
+        if (_accessPolicy.allows(AppCapability.customersEdit))
+          IconButton(
+            onPressed: _customer == null ? null : _edit,
+            icon: const Icon(AppIcons.edit),
           ),
-          onSelected: (String value) {
-            if (value == 'delete') _delete();
-          },
-          itemBuilder: (_) => const <PopupMenuEntry<String>>[
-            PopupMenuItem<String>(
-              value: 'delete',
-              padding: EdgeInsets.symmetric(
-                horizontal: AppSpacing.xl,
-                vertical: AppSpacing.md,
-              ),
-              child: Row(
-                children: <Widget>[
-                  Icon(AppIcons.delete, color: AppColors.error),
-                  SizedBox(width: AppSpacing.mdPlus),
-                  Text(
-                    'Delete customer',
-                    style: TextStyle(color: AppColors.error),
-                  ),
-                ],
-              ),
+        if (_accessPolicy.allows(AppCapability.customersDelete))
+          PopupMenuButton<String>(
+            enabled: _customer != null && !_deleting,
+            shape: const RoundedRectangleBorder(
+              borderRadius: AppRadius.buttonRadius,
             ),
-          ],
-        ),
+            onSelected: (String value) {
+              if (value == 'delete') _delete();
+            },
+            itemBuilder: (_) => const <PopupMenuEntry<String>>[
+              PopupMenuItem<String>(
+                value: 'delete',
+                padding: EdgeInsets.symmetric(
+                  horizontal: AppSpacing.xl,
+                  vertical: AppSpacing.md,
+                ),
+                child: Row(
+                  children: <Widget>[
+                    Icon(AppIcons.delete, color: AppColors.error),
+                    SizedBox(width: AppSpacing.mdPlus),
+                    Text(
+                      'Delete customer',
+                      style: TextStyle(color: AppColors.error),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
       ],
     ),
     body: _body(),
-    bottomNavigationBar: _customer == null ? null : _paymentHistoryBar(),
+    bottomNavigationBar:
+        _customer == null || !_accessPolicy.allows(AppCapability.paymentsView)
+        ? null
+        : _paymentHistoryBar(),
   );
 
   /// Pinned footer for "View Payment History" so it stays reachable while
@@ -560,8 +568,9 @@ class _CustomerDetailsScreenState extends State<CustomerDetailsScreen> {
               ),
               // Hide the button once the balance is cleared — there is
               // nothing left to collect for this customer.
-              if ((summary != null && summary.outstandingBalance > 0) ||
-                  _isCollectingOutstanding)
+              if (_accessPolicy.allows(AppCapability.paymentsRecord) &&
+                  ((summary != null && summary.outstandingBalance > 0) ||
+                      _isCollectingOutstanding))
                 ElevatedButton(
                   onPressed: summary == null || _isCollectingOutstanding
                       ? null
@@ -588,9 +597,7 @@ class _CustomerDetailsScreenState extends State<CustomerDetailsScreen> {
     );
   }
 
-  Widget _orderHistoryContent(
-    AsyncSnapshot<_CustomerOrdersSummary> snapshot,
-  ) {
+  Widget _orderHistoryContent(AsyncSnapshot<_CustomerOrdersSummary> snapshot) {
     if (snapshot.connectionState != ConnectionState.done) {
       return const Padding(
         padding: EdgeInsets.symmetric(vertical: AppSpacing.xl),

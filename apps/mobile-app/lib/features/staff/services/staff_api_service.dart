@@ -63,6 +63,10 @@ class StaffApiService {
       if (token != null && token.isNotEmpty) {
         headers['Authorization'] = 'Bearer $token';
       }
+      final branchId = session?.branchId;
+      if (branchId != null && branchId.isNotEmpty) {
+        headers['x-branch-id'] = branchId;
+      }
     } catch (_) {
       // Proceed without token
     }
@@ -100,6 +104,36 @@ class StaffApiService {
     }
   }
 
+  Future<StaffStatistics> getStaffStatistics(String tenantId, {String? branchId}) async {
+    final queryParams = branchId != null && branchId.isNotEmpty ? '?branchId=$branchId' : '';
+    final uri = Uri.parse('$_baseUrl/api/v1/users/tenant/$tenantId/statistics$queryParams');
+    final headers = await _authHeaders();
+
+    late http.Response response;
+    try {
+      response = await _client.get(uri, headers: headers).timeout(_requestTimeout);
+    } catch (_) {
+      throw const StaffApiException(
+        code: 'network_error',
+        messageKey: 'network_error',
+        statusCode: 0,
+        backendMessage: 'Unable to reach the staff service.',
+      );
+    }
+
+    if (response.statusCode == 200) {
+      final Map<String, dynamic> decoded = jsonDecode(response.body);
+      return StaffStatistics.fromJson(decoded);
+    } else {
+      throw StaffApiException(
+        code: 'error',
+        messageKey: 'error',
+        statusCode: response.statusCode,
+        backendMessage: 'Failed to load staff statistics.',
+      );
+    }
+  }
+
   Future<List<SystemRole>> getSystemRoles() async {
     final uri = Uri.parse('$_baseUrl/api/v1/users/roles');
     final headers = await _authHeaders();
@@ -107,7 +141,6 @@ class StaffApiService {
     try {
       response = await _client.get(uri, headers: headers).timeout(_requestTimeout);
     } catch (e) {
-      print('StaffApiService get error: $e');
       throw StaffApiException(
         code: 'network_error',
         messageKey: 'network_error',
@@ -115,7 +148,6 @@ class StaffApiService {
         backendMessage: 'Unable to reach the staff service. Details: $e',
       );
     }
-
 
     if (response.statusCode == 200) {
       final List<dynamic> decoded = jsonDecode(response.body);
