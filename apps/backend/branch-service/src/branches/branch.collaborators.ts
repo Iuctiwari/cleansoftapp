@@ -8,9 +8,9 @@ import { ManagerCandidateMongoose } from './branch.mongoose.schema';
 import {
   BRANCH_MANAGER_ROLE_CODE,
   OWNER_ROLE_CODE,
+  type BranchLimitProvider,
   type BranchMetrics,
   type BranchMetricsGateway,
-  type BranchLimitProvider,
   type ManagerEligibilityService,
   type OrdersGateway,
 } from './branch.types';
@@ -187,8 +187,8 @@ export class MongoManagerEligibilityService implements ManagerEligibilityService
         }
       : userCandidate
         ? {
-            roleCode: userCandidate.role,
-            status: userCandidate.status,
+            roleCode: userCandidate.role as string,
+            status: userCandidate.status as string,
             tenantMatches: true,
           }
         : null;
