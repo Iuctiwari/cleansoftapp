@@ -520,16 +520,16 @@ class _StaffAcceptedAssignmentCard extends StatelessWidget {
                             vertical: 3,
                           ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF1F5F9),
+                            color: const Color(0xFFF5F3FF),
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: const Color(0xFFCBD5E1)),
+                            border: Border.all(color: const Color(0xFFDDD6FE)),
                           ),
                           child: const Text(
                             'Accepted',
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
-                              color: Color(0xFF0F172A),
+                              color: Color(0xFF7C3AED),
                             ),
                           ),
                         ),
@@ -539,21 +539,17 @@ class _StaffAcceptedAssignmentCard extends StatelessWidget {
                             vertical: 3,
                           ),
                           decoration: BoxDecoration(
-                            color: order.status == OrderStatus.inProgress
-                                ? const Color(0xFFFFF7ED)
-                                : const Color(0xFFEFF6FF),
+                            color: const Color(0xFFEFF6FF),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
                             order.status == OrderStatus.inProgress
                                 ? 'Processing'
                                 : order.status.label,
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
-                              color: order.status == OrderStatus.inProgress
-                                  ? const Color(0xFFEA580C)
-                                  : const Color(0xFF2563EB),
+                              color: Color(0xFF2563EB),
                             ),
                           ),
                         ),
@@ -619,10 +615,34 @@ class _OrderHeaderCard extends StatelessWidget {
               ),
             ),
             const SizedBox(width: AppSpacing.lg),
-            AppStatusBadge(
-              label: order.status.label,
-              tone: orderStatusTone(order.status),
-            ),
+            if (order.status == OrderStatus.assigned ||
+                order.status == OrderStatus.accepted)
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 3,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF5F3FF),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFDDD6FE)),
+                ),
+                child: Text(
+                  order.status == OrderStatus.accepted
+                      ? 'Accepted'
+                      : 'Assigned',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF7C3AED),
+                  ),
+                ),
+              )
+            else
+              AppStatusBadge(
+                label: order.status.label,
+                tone: orderStatusTone(order.status),
+              ),
           ],
         ),
         const SizedBox(height: AppSpacing.lgPlus),
@@ -953,12 +973,12 @@ class _AssignmentCard extends StatelessWidget {
     final Color statusBg = isRejected
         ? const Color(0xFFFEF2F2)
         : isAccepted
-        ? const Color(0xFFF1F5F9)
+        ? const Color(0xFFECFDF5)
         : const Color(0xFFF5F3FF);
     final Color statusFg = isRejected
         ? const Color(0xFFEF4444)
         : isAccepted
-        ? const Color(0xFF0F172A)
+        ? const Color(0xFF10B981)
         : const Color(0xFF7C3AED);
 
     return AppCard(
@@ -1056,21 +1076,17 @@ class _AssignmentCard extends StatelessWidget {
                               vertical: 3,
                             ),
                             decoration: BoxDecoration(
-                              color: order.status == OrderStatus.inProgress
-                                  ? const Color(0xFFFFF7ED)
-                                  : const Color(0xFFEFF6FF),
+                              color: const Color(0xFFEFF6FF),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
                               order.status == OrderStatus.inProgress
                                   ? 'Processing'
                                   : order.status.label,
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
-                                color: order.status == OrderStatus.inProgress
-                                    ? const Color(0xFFEA580C)
-                                    : const Color(0xFF2563EB),
+                                color: Color(0xFF2563EB),
                               ),
                             ),
                           ),
@@ -1653,8 +1669,8 @@ _TimelineVisual _timelineVisual(OrderStatus status) => switch (status) {
   ),
   OrderStatus.accepted => const _TimelineVisual(
     icon: Icons.how_to_reg,
-    color: Color(0xFF0F172A),
-    background: Color(0xFFF1F5F9),
+    color: Color(0xFF7C3AED),
+    background: Color(0xFFF5F3FF),
   ),
   OrderStatus.rejected => const _TimelineVisual(
     icon: Icons.cancel_outlined,
@@ -1663,8 +1679,8 @@ _TimelineVisual _timelineVisual(OrderStatus status) => switch (status) {
   ),
   OrderStatus.inProgress => const _TimelineVisual(
     icon: AppIcons.clock,
-    color: Color(0xFFEA580C),
-    background: Color(0xFFFFF7ED),
+    color: AppColors.warning,
+    background: AppColors.warningSurface,
   ),
   OrderStatus.ready => const _TimelineVisual(
     icon: AppIcons.package,
