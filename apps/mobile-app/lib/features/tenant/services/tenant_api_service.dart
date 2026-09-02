@@ -4,6 +4,8 @@ import 'dart:io';
 
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
+import 'package:nexoraa_mobile/features/authentication/authentication_dependencies.dart';
+import 'package:nexoraa_mobile/features/authentication/services/auth_token_storage.dart';
 
 import '../models/registration_form.dart';
 import '../models/tenant_onboarding_data.dart';
@@ -166,15 +168,20 @@ class TenantApiException implements Exception {
 
 /// HTTP client for the existing tenant-service registration API.
 class TenantApiService {
-  TenantApiService({http.Client? client, String? baseUrl})
-    : _client = client ?? http.Client(),
-      _baseUrl = _normalizeBaseUrl(baseUrl ?? _configuredBaseUrl());
+  TenantApiService({
+    http.Client? client,
+    String? baseUrl,
+    AuthTokenStorage? tokenStorage,
+  }) : _client = client ?? http.Client(),
+       _baseUrl = _normalizeBaseUrl(baseUrl ?? _configuredBaseUrl()),
+       _tokenStorage = tokenStorage ?? AuthenticationDependencies.tokenStorage;
 
   static const Duration _requestTimeout = Duration(seconds: 15);
   static const String _environmentKey = 'TENANT_API_BASE_URL';
 
   final http.Client _client;
   final String _baseUrl;
+  final AuthTokenStorage _tokenStorage;
 
   static String _configuredBaseUrl() {
     if (dotenv.isInitialized) {
@@ -417,10 +424,23 @@ class TenantApiService {
   }
 
   Future<Object?> _get(String path) async {
+    final session = await _tokenStorage.read();
+    if (session == null) {
+      throw const TenantApiException(
+        code: 'tenant.unauthenticated',
+        messageKey: 'errors.unauthenticated',
+        category: 'unauthenticated',
+        statusCode: 401,
+        backendMessage: 'Please sign in again.',
+      );
+    }
     late http.Response response;
     try {
       response = await _client
-          .get(Uri.parse('$_baseUrl$path'))
+          .get(
+            Uri.parse('$_baseUrl$path'),
+            headers: {'Authorization': 'Bearer ${session.accessToken}'},
+          )
           .timeout(_requestTimeout);
     } on TimeoutException {
       throw const TenantApiNetworkException(

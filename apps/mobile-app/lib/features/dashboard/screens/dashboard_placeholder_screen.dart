@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:nexoraa_mobile/app/router.dart';
 import 'package:nexoraa_mobile/design_system/design_system.dart';
+import 'package:nexoraa_mobile/features/authentication/access_policy.dart';
 import 'package:nexoraa_mobile/features/authentication/authentication_dependencies.dart';
 import 'package:nexoraa_mobile/features/customers/controllers/customer_controller.dart';
 import 'package:nexoraa_mobile/features/customers/models/customer.dart';
@@ -14,7 +15,11 @@ import 'package:nexoraa_mobile/features/dashboard/controllers/dashboard_search_c
 import 'package:nexoraa_mobile/features/dashboard/dashboard_models.dart';
 import 'package:nexoraa_mobile/features/dashboard/dashboard_widgets.dart';
 import 'package:nexoraa_mobile/features/dashboard/screens/more_screen.dart';
+import 'package:nexoraa_mobile/features/expenses/models/expense.dart';
 import 'package:nexoraa_mobile/features/expenses/screens/expense_list_screen.dart';
+import 'package:nexoraa_mobile/features/expenses/services/expense_api_service.dart';
+import 'package:nexoraa_mobile/features/notifications/controllers/notification_controller.dart';
+import 'package:nexoraa_mobile/features/notifications/services/notification_api_service.dart';
 import 'package:nexoraa_mobile/features/orders/controllers/new_order_controller.dart';
 import 'package:nexoraa_mobile/features/orders/controllers/order_controller.dart';
 import 'package:nexoraa_mobile/features/orders/models/order.dart';
@@ -25,11 +30,13 @@ import 'package:nexoraa_mobile/features/orders/services/order_api_service.dart';
 import 'package:nexoraa_mobile/features/orders/services/order_catalog_api_service.dart';
 import 'package:nexoraa_mobile/features/orders/services/payment_api_service.dart';
 import 'package:nexoraa_mobile/features/orders/widgets/order_widgets.dart';
-import 'package:nexoraa_mobile/features/notifications/controllers/notification_controller.dart';
-import 'package:nexoraa_mobile/features/notifications/services/notification_api_service.dart';
 import 'package:nexoraa_mobile/features/payments/controllers/payments_controller.dart';
 import 'package:nexoraa_mobile/features/payments/models/payment.dart';
 import 'package:nexoraa_mobile/features/payments/screens/payments_screen.dart';
+import 'package:nexoraa_mobile/features/reports/models/report_data.dart';
+import 'package:nexoraa_mobile/features/reports/screens/reports_screen.dart';
+import 'package:nexoraa_mobile/features/reports/services/report_api_service.dart';
+import 'package:nexoraa_mobile/features/reports/services/report_data_source.dart';
 import 'package:nexoraa_mobile/features/tenant/services/tenant_api_service.dart';
 
 /// Owner dashboard UI served by the existing dashboard route.
@@ -40,11 +47,15 @@ class DashboardPlaceholderScreen extends StatefulWidget {
   const DashboardPlaceholderScreen({
     this.tenantId,
     this.tenantApiService,
+    this.expenseApiService,
+    this.reportDataSource,
     super.key,
   });
 
   final String? tenantId;
   final TenantApiService? tenantApiService;
+  final ExpenseApiService? expenseApiService;
+  final ReportDataSource? reportDataSource;
 
   @override
   State<DashboardPlaceholderScreen> createState() =>
@@ -56,9 +67,11 @@ class _DashboardPlaceholderScreenState
   late final CustomerController _customerController;
   late final OrderController _orderController;
   late final PaymentApiService _paymentApiService;
+  late final ExpenseApiService _expenseApiService;
   late final PaymentsController _paymentsController;
   late final DashboardSearchController _searchController;
   late final NotificationController _notificationController;
+  late final ReportDataSource _reportDataSource;
   int _currentNavigationIndex = 0;
   String _selectedBranchId = 'unavailable';
   List<Order> _recentOrders = const <Order>[];
@@ -66,6 +79,16 @@ class _DashboardPlaceholderScreenState
   int _todayOrdersCount = 0;
   int _yesterdayOrdersCount = 0;
   int _readyOrdersCount = 0;
+  int _deliveriesCount = 0;
+  ReportSummary? _dashboardReportSummary;
+  double _totalExpenses = 0;
+  int _expenseCount = 0;
+  bool _expensesLoading = false;
+  String? _expenseError;
+  List<DashboardBranchPerformance> _branchPerformance =
+      const <DashboardBranchPerformance>[];
+  bool _branchPerformanceLoading = false;
+  String? _branchPerformanceError;
   List<DashboardData> _branches = <DashboardData>[
     DashboardData.empty(
       branchId: 'unavailable',
@@ -93,10 +116,15 @@ class _DashboardPlaceholderScreenState
       service: OrderApiService(
         tokenStorage: AuthenticationDependencies.tokenStorage,
       ),
-    );
+    )..addListener(_onOrderControllerChanged);
     _paymentApiService = PaymentApiService(
       tokenStorage: AuthenticationDependencies.tokenStorage,
     );
+    _expenseApiService =
+        widget.expenseApiService ??
+        ExpenseApiService(
+          tokenStorage: AuthenticationDependencies.tokenStorage,
+        );
     _paymentsController = PaymentsController(
       paymentService: _paymentApiService,
       orderController: _orderController,
@@ -117,6 +145,9 @@ class _DashboardPlaceholderScreenState
         tokenStorage: AuthenticationDependencies.tokenStorage,
       ),
     )..addListener(_refreshNotificationBadge);
+    _reportDataSource =
+        widget.reportDataSource ??
+        ReportApiService(tokenStorage: AuthenticationDependencies.tokenStorage);
     final tenantId = widget.tenantId?.trim() ?? '';
     if (tenantId.isNotEmpty) _loadTenantDashboard(tenantId);
   }
@@ -124,13 +155,21 @@ class _DashboardPlaceholderScreenState
   @override
   void dispose() {
     _customerController.dispose();
-    _orderController.dispose();
+    _orderController
+      ..removeListener(_onOrderControllerChanged)
+      ..dispose();
     _paymentsController.dispose();
     _searchController.dispose();
     _notificationController
       ..removeListener(_refreshNotificationBadge)
       ..dispose();
     super.dispose();
+  }
+
+  void _onOrderControllerChanged() {
+    if (mounted && _selectedBranchId != 'unavailable') {
+      unawaited(_loadDashboardMetrics());
+    }
   }
 
   void _refreshNotificationBadge() {
@@ -169,10 +208,19 @@ class _DashboardPlaceholderScreenState
       setState(() {
         _branches = branches;
         _selectedBranchId = branches.first.branchId;
+        _totalExpenses = 0;
+        _expenseCount = 0;
+        _expensesLoading = branches.first.branchId != 'unavailable';
+        _expenseError = null;
+        _branchPerformance = const <DashboardBranchPerformance>[];
+        _branchPerformanceLoading = branches.first.branchId != 'unavailable';
+        _branchPerformanceError = null;
       });
       await _customerController.selectBranch(branches.first.branchId);
       await _orderController.selectBranch(branches.first.branchId);
       _paymentApiService.selectBranch(branches.first.branchId);
+      _expenseApiService.selectBranch(branches.first.branchId);
+      _reportDataSource.selectBranch(branches.first.branchId);
       _searchController.selectBranch(branches.first.branchId);
       _notificationController.selectBranch(branches.first.branchId);
       unawaited(_notificationController.connectRealtime());
@@ -194,10 +242,18 @@ class _DashboardPlaceholderScreenState
       _todayOrdersCount = 0;
       _yesterdayOrdersCount = 0;
       _readyOrdersCount = 0;
+      _deliveriesCount = 0;
+      _dashboardReportSummary = null;
+      _totalExpenses = 0;
+      _expenseCount = 0;
+      _expensesLoading = branchId != 'unavailable';
+      _expenseError = null;
     });
     _customerController.selectBranch(branchId);
     _orderController.selectBranch(branchId);
     _paymentApiService.selectBranch(branchId);
+    _expenseApiService.selectBranch(branchId);
+    _reportDataSource.selectBranch(branchId);
     _searchController.selectBranch(branchId);
     _notificationController.selectBranch(branchId);
     unawaited(_notificationController.connectRealtime());
@@ -228,18 +284,20 @@ class _DashboardPlaceholderScreenState
   /// Payments and Orders screens.
   Future<void> _loadDashboardMetrics() async {
     if (_selectedBranchId == 'unavailable') return;
-    await _paymentsController.load();
+    await Future.wait<void>(<Future<void>>[
+      _paymentsController.load(),
+      _loadExpenseMetrics(),
+      _loadBranchPerformance(),
+      _loadReportSummary(),
+    ]);
     try {
-      final (int today, int yesterday) = await _orderController
-          .todayVsYesterdayCounts();
-      final int ready = await _orderController.countByStatus(
-        OrderStatus.ready,
-      );
+      final OrderStatistics statistics = await _orderController.statistics();
       if (!mounted) return;
       setState(() {
-        _todayOrdersCount = today;
-        _yesterdayOrdersCount = yesterday;
-        _readyOrdersCount = ready;
+        _todayOrdersCount = statistics.todayOrders;
+        _yesterdayOrdersCount = statistics.yesterdayOrders;
+        _readyOrdersCount = statistics.count(OrderStatus.ready);
+        _deliveriesCount = statistics.count(OrderStatus.outForDelivery);
       });
     } on OrderApiException {
       // Leave the last-known/zero order counts in place.
@@ -250,6 +308,97 @@ class _DashboardPlaceholderScreenState
           .take(3)
           .toList(growable: false);
     });
+  }
+
+  Future<void> _loadReportSummary() async {
+    if (_selectedBranchId == 'unavailable') return;
+    final String requestedBranchId = _selectedBranchId;
+    try {
+      final ReportSummary summary = await _reportDataSource.loadSummary(
+        const ReportQuery.period(ReportPeriod.sevenDays),
+      );
+      if (!mounted || requestedBranchId != _selectedBranchId) return;
+      setState(() => _dashboardReportSummary = summary);
+    } on Object {
+      if (!mounted || requestedBranchId != _selectedBranchId) return;
+      setState(() => _dashboardReportSummary = null);
+    }
+  }
+
+  Future<void> _loadExpenseMetrics() async {
+    if (_selectedBranchId == 'unavailable') return;
+    final String requestedBranchId = _selectedBranchId;
+    if (mounted) {
+      setState(() {
+        _expensesLoading = true;
+        _expenseError = null;
+      });
+    }
+    try {
+      final ExpenseStatistics statistics = await _expenseApiService
+          .getStatistics();
+      if (!mounted || requestedBranchId != _selectedBranchId) return;
+      setState(() {
+        _totalExpenses = statistics.totalAmount;
+        _expenseCount = statistics.count;
+        _expensesLoading = false;
+      });
+    } on Object catch (error) {
+      if (!mounted || requestedBranchId != _selectedBranchId) return;
+      setState(() {
+        _expensesLoading = false;
+        _expenseError = error is ExpenseApiException
+            ? error.message
+            : 'Unable to load expenses.';
+      });
+    }
+  }
+
+  Future<void> _loadBranchPerformance() async {
+    if (_selectedBranchId == 'unavailable') return;
+    if (mounted) {
+      setState(() {
+        _branchPerformanceLoading = true;
+        _branchPerformanceError = null;
+      });
+    }
+    try {
+      final BranchPerformanceReport report = await _reportDataSource
+          .loadBranchPerformance(
+            const ReportQuery.period(ReportPeriod.sevenDays),
+          );
+      if (!mounted) return;
+      final List<DashboardBranchPerformance> performances = report.branches
+          .map(
+            (BranchPerformanceRecord branch) => DashboardBranchPerformance(
+              branchCode: branch.branchCode,
+              branchId: branch.branchId,
+              name: branch.branchName,
+              ordersLabel: '${branch.metrics.orders} orders',
+              progress: (branch.metrics.revenueSharePercentage / 100).clamp(
+                0,
+                1,
+              ),
+              revenueLabel: formatOrderMoney(branch.metrics.revenue),
+            ),
+          )
+          .toList(growable: false);
+      final List<DashboardBranchPerformance> orderedPerformances =
+          alignBranchPerformanceToBranchOrder(
+            branchIds: _branches.map((DashboardData branch) => branch.branchId),
+            performances: performances,
+          );
+      setState(() {
+        _branchPerformance = orderedPerformances;
+        _branchPerformanceLoading = false;
+      });
+    } on Object {
+      if (!mounted) return;
+      setState(() {
+        _branchPerformanceLoading = false;
+        _branchPerformanceError = 'Unable to load branch performance.';
+      });
+    }
   }
 
   void _showUiOnlyMessage(String message) {
@@ -322,10 +471,8 @@ class _DashboardPlaceholderScreenState
     _searchController.clear();
     await Navigator.of(context).push<void>(
       MaterialPageRoute<void>(
-        builder: (_) => OrderDetailsScreen(
-          orderId: order.id,
-          controller: _orderController,
-        ),
+        builder: (_) =>
+            OrderDetailsScreen(orderId: order.id, controller: _orderController),
       ),
     );
     unawaited(_loadRecentOrders());
@@ -339,6 +486,7 @@ class _DashboardPlaceholderScreenState
         builder: (_) => CustomerDetailsScreen(
           customerId: customer.id,
           controller: _customerController,
+          accessPolicy: const AccessPolicy(roleCode: 'Owner'),
         ),
       ),
     );
@@ -357,8 +505,8 @@ class _DashboardPlaceholderScreenState
   /// recent orders/bills) onto the selected branch's [DashboardData],
   /// reusing [_paymentsController]/[_orderController]/[_customerController]
   /// — the same controllers already backing the Payments, Orders, and
-  /// Customers screens. Metrics with no backend source (Expenses, Delayed
-  /// Orders, Branch Performance, Branch Summary) are left at their existing
+  /// Customers screens. Metrics with no backend source (Delayed Orders,
+  /// Branch Summary) are left at their existing
   /// zero/"Unavailable" state.
   DashboardData _buildDashboardData(BuildContext context) {
     final DashboardData base = _data;
@@ -366,7 +514,10 @@ class _DashboardPlaceholderScreenState
         .map((Order order) => _toDashboardOrder(context, order))
         .toList(growable: false);
     if (base.branchId == 'unavailable') {
-      return base.copyWith(orders: orders);
+      return base.copyWith(
+        branchPerformance: _branchPerformance,
+        orders: orders,
+      );
     }
     final List<DashboardBill> bills = _recentBills
         .map((PaymentRecord payment) => _toDashboardBill(context, payment))
@@ -397,7 +548,22 @@ class _DashboardPlaceholderScreenState
             ? '1 collected'
             : '${_paymentsController.todayCollectedCount} collected',
       ),
-      _metricByType(base.kpis, DashboardMetricType.expenses),
+      DashboardMetric(
+        type: DashboardMetricType.expenses,
+        label: 'Expenses',
+        value: _expensesLoading || _expenseError != null
+            ? '—'
+            : formatOrderMoney(_totalExpenses),
+        supportingText: _expensesLoading
+            ? 'Loading...'
+            : _expenseError != null
+            ? 'Unable to load'
+            : _expenseCount == 0
+            ? 'No expenses recorded'
+            : _expenseCount == 1
+            ? '1 expense'
+            : '$_expenseCount expenses',
+      ),
       DashboardMetric(
         type: DashboardMetricType.outstanding,
         label: 'Outstanding',
@@ -412,7 +578,12 @@ class _DashboardPlaceholderScreenState
         value: '$_readyOrdersCount',
         supportingText: 'Awaiting pickup',
       ),
-      _metricByType(base.kpis, DashboardMetricType.delayed),
+      const DashboardMetric(
+        type: DashboardMetricType.delayed,
+        label: 'Delayed Orders',
+        value: '—',
+        supportingText: 'Not tracked',
+      ),
     ];
     final List<DashboardMetric> summaryMetrics = <DashboardMetric>[
       DashboardMetric(
@@ -431,7 +602,14 @@ class _DashboardPlaceholderScreenState
             ? '1 active'
             : '${_customerController.active} active',
       ),
-      _metricByType(base.summaryMetrics, DashboardMetricType.deliveries),
+      DashboardMetric(
+        type: DashboardMetricType.deliveries,
+        label: 'Deliveries',
+        value: '$_deliveriesCount',
+        supportingText: _deliveriesCount == 1
+            ? '1 out for delivery'
+            : '$_deliveriesCount out for delivery',
+      ),
     ];
     return base.copyWith(
       revenue: formatOrderMoney(_paymentsController.todayCollected),
@@ -441,6 +619,17 @@ class _DashboardPlaceholderScreenState
       summaryMetrics: summaryMetrics,
       orders: orders,
       bills: bills,
+      branchPerformance: _branchPerformance,
+      revenuePoints:
+          _dashboardReportSummary?.trend
+              .map(
+                (point) => DashboardRevenuePoint(
+                  label: point.label,
+                  value: point.revenue,
+                ),
+              )
+              .toList(growable: false) ??
+          const <DashboardRevenuePoint>[],
     );
   }
 
@@ -464,9 +653,6 @@ class _DashboardPlaceholderScreenState
                   AppRouteNames.notifications,
                   extra: _notificationController,
                 ),
-                onProfilePressed: () => _showUiOnlyMessage('Profile selected'),
-                onNotificationsPressed: () =>
-                    context.pushNamed(AppRouteNames.notifications),
                 onProfilePressed: () =>
                     context.pushNamed(AppRouteNames.profile),
               ),
@@ -495,6 +681,11 @@ class _DashboardPlaceholderScreenState
                       onUiAction: _showUiOnlyMessage,
                       onNewOrder: _openNewOrder,
                       onOpenPayments: _openPayments,
+                      onOpenReports: () =>
+                          setState(() => _currentNavigationIndex = 5),
+                      branchPerformanceError: _branchPerformanceError,
+                      branchPerformanceLoading: _branchPerformanceLoading,
+                      onRetryBranchPerformance: _loadBranchPerformance,
                       onSeeOrders: _openOrdersTab,
                     ),
                   ),
@@ -510,9 +701,16 @@ class _DashboardPlaceholderScreenState
           2 => CustomerListScreen(
             key: const ValueKey<String>('customers'),
             controller: _customerController,
+            accessPolicy: const AccessPolicy(roleCode: 'Owner'),
           ),
           4 => ExpenseListScreen(
             key: const ValueKey<String>('expenses'),
+            branchId: data.branchId,
+            onExpensesChanged: () => unawaited(_loadExpenseMetrics()),
+            onBack: () => setState(() => _currentNavigationIndex = 3),
+          ),
+          5 => ReportsScreen(
+            key: const ValueKey<String>('reports'),
             branchId: data.branchId,
             onBack: () => setState(() => _currentNavigationIndex = 3),
           ),
@@ -520,6 +718,7 @@ class _DashboardPlaceholderScreenState
             key: const ValueKey<String>('more'),
             businessName: data.businessName,
             onExpensesTap: () => setState(() => _currentNavigationIndex = 4),
+            onReportsTap: () => setState(() => _currentNavigationIndex = 5),
             role: 'Owner',
             userProfile: MoreUserProfileData(
               name: data.ownerName,
@@ -527,6 +726,7 @@ class _DashboardPlaceholderScreenState
             ),
             branchId: data.branchId,
             orderController: _orderController,
+            accessPolicy: const AccessPolicy(roleCode: 'Owner'),
           ),
         },
       ),
@@ -541,7 +741,8 @@ class _DashboardPlaceholderScreenState
             )
           : null,
       bottomNavigationBar: DashboardBottomNavigation(
-        currentIndex: _currentNavigationIndex == 4
+        currentIndex:
+            _currentNavigationIndex == 4 || _currentNavigationIndex == 5
             ? 3
             : _currentNavigationIndex,
         onTap: (int index) {
@@ -566,17 +767,25 @@ class _DashboardPlaceholderScreenState
 
 class _DashboardContent extends StatelessWidget {
   const _DashboardContent({
+    required this.branchPerformanceError,
+    required this.branchPerformanceLoading,
     required this.data,
     required this.onUiAction,
     required this.onNewOrder,
     required this.onOpenPayments,
+    required this.onOpenReports,
+    required this.onRetryBranchPerformance,
     required this.onSeeOrders,
   });
 
   final DashboardData data;
+  final String? branchPerformanceError;
+  final bool branchPerformanceLoading;
   final ValueChanged<String> onUiAction;
   final VoidCallback onNewOrder;
   final VoidCallback onOpenPayments;
+  final VoidCallback onOpenReports;
+  final Future<void> Function() onRetryBranchPerformance;
   final VoidCallback onSeeOrders;
 
   @override
@@ -607,14 +816,14 @@ class _DashboardContent extends StatelessWidget {
               DashboardSectionHeader(
                 title: 'Branch Performance',
                 actionLabel: 'Reports',
-                onAction: () => onUiAction('Reports action selected'),
+                onAction: onOpenReports,
               ),
               const SizedBox(height: AppSpacing.md),
-              ...data.branchPerformance.map(
-                (DashboardBranchPerformance performance) => Padding(
-                  padding: const EdgeInsets.only(bottom: AppSpacing.lg),
-                  child: BranchPerformanceCard(performance: performance),
-                ),
+              _BranchPerformanceBody(
+                error: branchPerformanceError,
+                isLoading: branchPerformanceLoading,
+                onRetry: onRetryBranchPerformance,
+                performances: data.branchPerformance,
               ),
               const SizedBox(height: AppSpacing.md),
               const DashboardSectionHeader(title: 'Quick Actions'),
@@ -624,6 +833,7 @@ class _DashboardContent extends StatelessWidget {
                 onTap: (DashboardQuickAction action) => switch (action.type) {
                   DashboardQuickActionType.newOrder => onNewOrder(),
                   DashboardQuickActionType.payment => onOpenPayments(),
+                  DashboardQuickActionType.report => onOpenReports(),
                   _ => onUiAction('${action.label} action selected'),
                 },
               ),
@@ -707,6 +917,63 @@ class _KpiGrid extends StatelessWidget {
   }
 }
 
+class _BranchPerformanceBody extends StatelessWidget {
+  const _BranchPerformanceBody({
+    required this.error,
+    required this.isLoading,
+    required this.onRetry,
+    required this.performances,
+  });
+
+  final String? error;
+  final bool isLoading;
+  final Future<void> Function() onRetry;
+  final List<DashboardBranchPerformance> performances;
+
+  @override
+  Widget build(BuildContext context) {
+    if (isLoading && performances.isEmpty) {
+      return const DashboardSurfaceCard(
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+    if (error != null && performances.isEmpty) {
+      return DashboardSurfaceCard(
+        child: Column(
+          children: <Widget>[
+            Text(error!, style: AppTextStyles.bodySmall),
+            const SizedBox(height: AppSpacing.md),
+            TextButton(
+              onPressed: () => unawaited(onRetry()),
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      );
+    }
+    if (performances.isEmpty) {
+      return const DashboardSurfaceCard(child: Text('No branches available.'));
+    }
+    return Column(
+      children: performances.indexed
+          .map(
+            ((int, DashboardBranchPerformance) entry) => Padding(
+              padding: EdgeInsets.only(
+                bottom: entry.$1 == performances.length - 1
+                    ? AppSpacing.none
+                    : AppSpacing.lg,
+              ),
+              child: BranchPerformanceCard(
+                key: ValueKey<String>(entry.$2.branchId),
+                performance: entry.$2,
+              ),
+            ),
+          )
+          .toList(growable: false),
+    );
+  }
+}
+
 class _QuickActionsGrid extends StatelessWidget {
   const _QuickActionsGrid({required this.actions, required this.onTap});
 
@@ -767,10 +1034,14 @@ DashboardOrder _toDashboardOrder(BuildContext context, Order order) =>
     );
 
 DashboardStatus _dashboardStatus(OrderStatus status) => switch (status) {
-  OrderStatus.draft || OrderStatus.received => DashboardStatus.pending,
+  OrderStatus.draft ||
+  OrderStatus.received ||
+  OrderStatus.assigned ||
+  OrderStatus.accepted => DashboardStatus.pending,
   OrderStatus.inProgress => DashboardStatus.processing,
   OrderStatus.ready || OrderStatus.outForDelivery => DashboardStatus.ready,
   OrderStatus.delivered => DashboardStatus.completed,
+  OrderStatus.rejected ||
   OrderStatus.cancelled => DashboardStatus.cancelled,
 };
 
@@ -796,12 +1067,3 @@ String _orderDeltaLabel(int today, int yesterday) {
   if (delta == 0) return 'Same as yesterday';
   return delta > 0 ? '+$delta from yesterday' : '$delta from yesterday';
 }
-
-/// Finds the metric of [type] within [metrics], used to carry forward
-/// KPIs/summary entries (Expenses, Delayed Orders, Bills, Deliveries) that
-/// have no backend data source and must keep their existing zero/
-/// "Unavailable" state instead of being fabricated.
-DashboardMetric _metricByType(
-  List<DashboardMetric> metrics,
-  DashboardMetricType type,
-) => metrics.firstWhere((DashboardMetric metric) => metric.type == type);

@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsDateString, IsMongoId, IsOptional } from 'class-validator';
+import { IsDateString, IsMongoId, IsOptional, IsString } from 'class-validator';
 
 export class AssignOrderDto {
   @ApiProperty({
@@ -13,4 +13,15 @@ export class AssignOrderDto {
   @IsOptional()
   @IsDateString({ strict: true })
   dueDate?: string;
+
+  @ApiPropertyOptional({ maxLength: 500, description: 'Optional assignment instructions or note.' })
+  @IsOptional()
+  @IsString()
+  note?: string;
+}
+
+export class RejectAssignmentDto {
+  @ApiPropertyOptional({ maxLength: 500, description: 'Optional assignment rejection reason.' })
+  @IsOptional()
+  reason?: string;
 }

@@ -6,6 +6,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { isBranchManagerRole, isCashierRole, isOwnerRole, isStaffRole } from '@nexoraa/shared';
 
 import type { CreateItemCategoryDto } from './dtos/create-item-category.dto';
 import type { CreateServiceDto } from './dtos/create-service.dto';
@@ -38,9 +39,6 @@ import {
   type ServicePricingRecord,
   type ServiceRecord,
 } from './catalog.types';
-
-const READ_ROLES = new Set(['tenant_owner', 'branch_manager', 'staff', 'cashier']);
-const MANAGE_ROLES = new Set(['tenant_owner', 'branch_manager']);
 
 export interface QuoteRecord {
   readonly serviceId: string;
@@ -625,11 +623,18 @@ export class CatalogService {
       throw new ForbiddenException(`${label} is unavailable in the authenticated branch`);
   }
   private assertRead(scope: CatalogScope): void {
-    if (!READ_ROLES.has(scope.roleCode))
+    if (
+      !(
+        isOwnerRole(scope.roleCode) ||
+        isBranchManagerRole(scope.roleCode) ||
+        isStaffRole(scope.roleCode) ||
+        isCashierRole(scope.roleCode)
+      )
+    )
       throw new ForbiddenException('Catalog access is forbidden for this role');
   }
   private assertManage(scope: CatalogScope): void {
-    if (!MANAGE_ROLES.has(scope.roleCode))
+    if (!(isOwnerRole(scope.roleCode) || isBranchManagerRole(scope.roleCode)))
       throw new ForbiddenException('Catalog modification is forbidden for this role');
   }
   private assertPatch(input: object): void {

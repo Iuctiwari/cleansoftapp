@@ -5,10 +5,16 @@ import 'package:nexoraa_mobile/features/expenses/expense_dependencies.dart';
 import 'package:nexoraa_mobile/features/expenses/models/expense.dart';
 
 class ExpenseListScreen extends StatefulWidget {
-  const ExpenseListScreen({required this.onBack, this.branchId, super.key});
+  const ExpenseListScreen({
+    required this.onBack,
+    this.branchId,
+    this.onExpensesChanged,
+    super.key,
+  });
 
   final VoidCallback onBack;
   final String? branchId;
+  final VoidCallback? onExpensesChanged;
 
   @override
   State<ExpenseListScreen> createState() => _ExpenseListScreenState();
@@ -208,6 +214,7 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
   Future<void> _addExpense(CreateExpenseRequest request) async {
     try {
       await _controller.addExpense(request);
+      widget.onExpensesChanged?.call();
       if (mounted) {
         setState(() => _showingAddScreen = false);
         ScaffoldMessenger.of(context).showSnackBar(

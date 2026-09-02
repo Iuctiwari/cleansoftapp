@@ -10,7 +10,14 @@ enum DashboardMetricType {
   deliveries,
 }
 
-enum DashboardStatus { ready, processing, pending, completed, overdue, cancelled }
+enum DashboardStatus {
+  ready,
+  processing,
+  pending,
+  completed,
+  overdue,
+  cancelled,
+}
 
 enum DashboardQuickActionType { newOrder, payment, report, assign }
 
@@ -112,16 +119,40 @@ class DashboardRevenuePoint {
 
 class DashboardBranchPerformance {
   const DashboardBranchPerformance({
+    required this.branchId,
     required this.name,
     required this.ordersLabel,
     required this.revenueLabel,
     required this.progress,
+    this.branchCode,
   });
 
+  final String? branchCode;
+  final String branchId;
   final String name;
   final String ordersLabel;
   final double progress;
   final String revenueLabel;
+}
+
+List<DashboardBranchPerformance> alignBranchPerformanceToBranchOrder({
+  required Iterable<String> branchIds,
+  required Iterable<DashboardBranchPerformance> performances,
+}) {
+  final Map<String, DashboardBranchPerformance> performanceByBranchId = {
+    for (final DashboardBranchPerformance performance in performances)
+      performance.branchId: performance,
+  };
+  final List<DashboardBranchPerformance> orderedPerformances =
+      <DashboardBranchPerformance>[];
+  for (final String branchId in branchIds) {
+    final DashboardBranchPerformance? performance = performanceByBranchId
+        .remove(branchId);
+    if (performance != null) orderedPerformances.add(performance);
+  }
+  // A transient API mismatch must not hide otherwise valid report data.
+  orderedPerformances.addAll(performanceByBranchId.values);
+  return List<DashboardBranchPerformance>.unmodifiable(orderedPerformances);
 }
 
 class DashboardBranchSummary {
@@ -187,6 +218,8 @@ class DashboardData {
     List<DashboardMetric>? summaryMetrics,
     List<DashboardOrder>? orders,
     List<DashboardBill>? bills,
+    List<DashboardBranchPerformance>? branchPerformance,
+    List<DashboardRevenuePoint>? revenuePoints,
   }) => DashboardData(
     branchId: branchId,
     branchName: branchName,
@@ -203,8 +236,8 @@ class DashboardData {
     customers: customers,
     activities: activities,
     quickActions: quickActions,
-    revenuePoints: revenuePoints,
-    branchPerformance: branchPerformance,
+    revenuePoints: revenuePoints ?? this.revenuePoints,
+    branchPerformance: branchPerformance ?? this.branchPerformance,
     branchSummary: branchSummary,
   );
 
@@ -219,37 +252,37 @@ class DashboardData {
       DashboardMetric(
         type: DashboardMetricType.orders,
         label: "Today's Orders",
-        value: '0',
+        value: '—',
         supportingText: 'Unavailable',
       ),
       DashboardMetric(
         type: DashboardMetricType.payments,
         label: 'Payments',
-        value: '0',
+        value: '—',
         supportingText: 'Unavailable',
       ),
       DashboardMetric(
         type: DashboardMetricType.expenses,
         label: 'Expenses',
-        value: '0',
+        value: '—',
         supportingText: 'Unavailable',
       ),
       DashboardMetric(
         type: DashboardMetricType.outstanding,
         label: 'Outstanding',
-        value: '0',
+        value: '—',
         supportingText: 'Unavailable',
       ),
       DashboardMetric(
         type: DashboardMetricType.ready,
         label: 'Ready Orders',
-        value: '0',
+        value: '—',
         supportingText: 'Unavailable',
       ),
       DashboardMetric(
         type: DashboardMetricType.delayed,
         label: 'Delayed Orders',
-        value: '0',
+        value: '—',
         supportingText: 'Unavailable',
       ),
     ];
@@ -257,20 +290,20 @@ class DashboardData {
       DashboardMetric(
         type: DashboardMetricType.bills,
         label: 'Bills',
-        value: '0',
-        supportingText: '0',
+        value: '—',
+        supportingText: 'Unavailable',
       ),
       DashboardMetric(
         type: DashboardMetricType.customers,
         label: 'Customers',
-        value: '0',
-        supportingText: '0',
+        value: '—',
+        supportingText: 'Unavailable',
       ),
       DashboardMetric(
         type: DashboardMetricType.deliveries,
         label: 'Deliveries',
-        value: '0',
-        supportingText: '0',
+        value: '—',
+        supportingText: 'Unavailable',
       ),
     ];
     const actions = <DashboardQuickAction>[
@@ -291,24 +324,14 @@ class DashboardData {
         label: 'Assign',
       ),
     ];
-    const revenue = <DashboardRevenuePoint>[
-      DashboardRevenuePoint(label: 'Mon', value: 0),
-      DashboardRevenuePoint(label: 'Tue', value: 0),
-      DashboardRevenuePoint(label: 'Wed', value: 0),
-      DashboardRevenuePoint(label: 'Thu', value: 0),
-      DashboardRevenuePoint(label: 'Fri', value: 0),
-      DashboardRevenuePoint(label: 'Sat', value: 0),
-      DashboardRevenuePoint(label: 'Sun', value: 0),
-    ];
-
     return DashboardData(
       branchId: branchId,
       branchName: branchName,
       ownerName: ownerName,
       ownerEmail: ownerEmail,
       businessName: businessName,
-      revenue: '0',
-      revenueChange: '0%',
+      revenue: '—',
+      revenueChange: '—',
       revenueComparison: 'Unavailable',
       kpis: zeroKpis,
       summaryMetrics: summary,
@@ -317,13 +340,13 @@ class DashboardData {
       customers: const <DashboardCustomer>[],
       activities: const <DashboardActivity>[],
       quickActions: actions,
-      revenuePoints: revenue,
+      revenuePoints: const <DashboardRevenuePoint>[],
       branchPerformance: const <DashboardBranchPerformance>[],
       branchSummary: const DashboardBranchSummary(
         manager: 'Unavailable',
-        teamSize: '0',
-        openOrders: '0',
-        completedToday: '0',
+        teamSize: 'Unavailable',
+        openOrders: 'Unavailable',
+        completedToday: 'Unavailable',
       ),
     );
   }

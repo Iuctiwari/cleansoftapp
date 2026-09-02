@@ -6,6 +6,8 @@ import 'package:nexoraa_mobile/features/branch/branch_dependencies.dart';
 import 'package:nexoraa_mobile/features/branch/branch_models.dart';
 import 'package:nexoraa_mobile/features/branch/controllers/branch_list_controller.dart';
 import 'package:nexoraa_mobile/features/branch/widgets/branch_stat_tile.dart';
+import 'package:nexoraa_mobile/features/authentication/access_policy.dart';
+import 'package:nexoraa_mobile/features/authentication/authentication_dependencies.dart';
 
 class BranchListScreen extends StatefulWidget {
   const BranchListScreen({super.key});
@@ -15,6 +17,8 @@ class BranchListScreen extends StatefulWidget {
 }
 
 class _BranchListScreenState extends State<BranchListScreen> {
+  AccessPolicy get _accessPolicy =>
+      AccessPolicy.fromSession(AuthenticationDependencies.controller.session);
   late final BranchListController _controller = BranchListController(
     service: BranchManagementDependencies.service,
   );
@@ -80,23 +84,24 @@ class _BranchListScreenState extends State<BranchListScreen> {
       appBar: AppBar(
         title: const Text('Branches'),
         actions: <Widget>[
-          Padding(
-            padding: const EdgeInsets.only(right: AppSpacing.xl),
-            child: Center(
-              child: ElevatedButton.icon(
-                onPressed: _openAddBranch,
-                style: ElevatedButton.styleFrom(
-                  minimumSize: const Size(0, AppSizes.controlMediumLarge),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.xl,
-                    vertical: AppSpacing.sm,
+          if (_accessPolicy.isOwner)
+            Padding(
+              padding: const EdgeInsets.only(right: AppSpacing.xl),
+              child: Center(
+                child: ElevatedButton.icon(
+                  onPressed: _openAddBranch,
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: const Size(0, AppSizes.controlMediumLarge),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.xl,
+                      vertical: AppSpacing.sm,
+                    ),
                   ),
+                  icon: const Icon(AppIcons.add, size: AppIconSizes.sm),
+                  label: const Text('Add Branch'),
                 ),
-                icon: const Icon(AppIcons.add, size: AppIconSizes.sm),
-                label: const Text('Add Branch'),
               ),
             ),
-          ),
         ],
       ),
       body: SafeArea(
@@ -115,23 +120,19 @@ class _BranchListScreenState extends State<BranchListScreen> {
                   child: BranchStatRow(
                     tiles: <BranchStatTile>[
                       BranchStatTile(
-                        value: '${_controller.total}',
+                        value: '${_controller.statistics.totalBranches}',
                         label: 'Branches',
                         color: AppColors.primary,
                         background: AppColors.primarySurface,
                       ),
-                      // Total Staff has no backing API yet; kept at 0 until
-                      // Staff Management ships (see branch feature notes).
-                      const BranchStatTile(
-                        value: '0',
+                      BranchStatTile(
+                        value: '${_controller.statistics.totalStaff}',
                         label: 'Total Staff',
                         color: AppColors.success,
                         background: AppColors.successSurface,
                       ),
-                      // Orders Today has no backing API yet; kept at 0 until
-                      // Order Management ships.
-                      const BranchStatTile(
-                        value: '0',
+                      BranchStatTile(
+                        value: '${_controller.statistics.ordersToday}',
                         label: 'Orders Today',
                         color: AppColors.secondary,
                         background: AppColors.secondarySurface,
@@ -361,8 +362,7 @@ class _BranchCard extends StatelessWidget {
                 size: AppSizes.iconSmall,
               ),
               const SizedBox(width: AppSpacing.xs),
-              // Staff count is not yet available from Branch Service.
-              const Text('0 staff', style: AppTextStyles.caption),
+              Text('${branch.totalStaff} staff', style: AppTextStyles.caption),
               const SizedBox(width: AppSpacing.lg),
               const Icon(
                 AppIcons.orders,
@@ -370,8 +370,10 @@ class _BranchCard extends StatelessWidget {
                 size: AppSizes.iconSmall,
               ),
               const SizedBox(width: AppSpacing.xs),
-              // Orders-today is not yet available from Branch Service.
-              const Text('0 orders today', style: AppTextStyles.caption),
+              Text(
+                '${branch.ordersToday} orders today',
+                style: AppTextStyles.caption,
+              ),
               if (branch.managerId?.isNotEmpty ?? false) ...<Widget>[
                 const Spacer(),
                 const Icon(
@@ -382,7 +384,7 @@ class _BranchCard extends StatelessWidget {
                 const SizedBox(width: AppSpacing.xs),
                 Flexible(
                   child: Text(
-                    branch.managerId!,
+                    branch.managerName ?? branch.managerId!,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: AppTextStyles.caption,

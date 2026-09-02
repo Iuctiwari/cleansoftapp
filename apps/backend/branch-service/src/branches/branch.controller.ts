@@ -19,9 +19,9 @@ import { ApiEnvelopeResponse } from '../platform/platform.swagger';
 import type { RequestWithPlatformContext } from '../platform/platform.request';
 import type { TrustedContext } from '../platform/platform.types';
 import { BranchQueryDto, CreateBranchDto, UpdateBranchDto } from './branch.dto';
-import { BranchDto } from './branch.swagger';
+import { BranchDto, BranchStatisticsDto } from './branch.swagger';
 import { BranchService } from './branch.service';
-import type { BranchRecord } from './branch.types';
+import type { BranchStatistics, BranchView } from './branch.types';
 
 @ApiTags('Branches')
 @ApiBearerAuth('access-token')
@@ -54,6 +54,24 @@ export class BranchController {
     );
   }
 
+  @Get('statistics')
+  @ApiOperation({
+    summary: 'Get real operational totals for accessible branches',
+    description:
+      'Counts users and orders in MongoDB. Owners receive tenant-wide totals; Branch Managers are always restricted to their assigned branch.',
+  })
+  @ApiEnvelopeResponse(BranchStatisticsDto, {
+    description: 'Operational totals for the authenticated branch scope.',
+  })
+  statistics(
+    @Query() query: BranchQueryDto,
+    @Req() request: RequestWithPlatformContext,
+  ): Promise<BranchStatistics> {
+    return this.branchService.statistics(this.getContext(request), {
+      status: query.status === 'closed' ? undefined : query.status,
+    });
+  }
+
   @Get(':branchId')
   @ApiOperation({ summary: 'Get an accessible branch by its stable branch identifier' })
   @ApiParam({ name: 'branchId', description: 'Unique branch identifier' })
@@ -61,7 +79,7 @@ export class BranchController {
   getBranch(
     @Param('branchId') branchId: string,
     @Req() request: RequestWithPlatformContext,
-  ): Promise<BranchRecord> {
+  ): Promise<BranchView> {
     return this.branchService.getBranch(this.getContext(request), branchId);
   }
 
@@ -77,7 +95,7 @@ export class BranchController {
   async createBranch(
     @Body() body: CreateBranchDto,
     @Req() request: RequestWithPlatformContext,
-  ): Promise<BranchRecord> {
+  ): Promise<BranchView> {
     const context = this.getContext(request);
     return this.branchService.createBranch(context, {
       branchName: body.branchName,
@@ -108,7 +126,7 @@ export class BranchController {
     @Param('branchId') branchId: string,
     @Body() body: UpdateBranchDto,
     @Req() request: RequestWithPlatformContext,
-  ): Promise<BranchRecord> {
+  ): Promise<BranchView> {
     return this.branchService.updateBranch(this.getContext(request), branchId, {
       branchName: body.branchName,
       code: body.code,
@@ -138,7 +156,7 @@ export class BranchController {
   async deactivateBranch(
     @Param('branchId') branchId: string,
     @Req() request: RequestWithPlatformContext,
-  ): Promise<BranchRecord> {
+  ): Promise<BranchView> {
     return this.branchService.deactivateBranch(this.getContext(request), branchId);
   }
 

@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ApiExcludeController } from '@nestjs/swagger';
-import { IsEnum, IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsArray, IsEnum, IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
 
 import { hashPassword } from '../auth/auth.crypto';
 import { MongoAuthRepository } from '../auth/auth.mongo.repository';
@@ -26,10 +26,16 @@ class ProvisionStaffDto {
   @IsOptional() @IsString() @MaxLength(160) email?: string;
   @IsString() @IsNotEmpty() @MaxLength(256) password!: string;
   @IsString() @IsNotEmpty() roleCode!: string;
+  @IsArray() @IsString({ each: true }) branchIds!: string[];
 }
 
 class UpdateStaffStatusDto {
   @IsEnum(['active', 'disabled']) status!: 'active' | 'disabled';
+}
+
+class UpdateStaffAccessDto {
+  @IsString() @IsNotEmpty() roleCode!: string;
+  @IsArray() @IsString({ each: true }) branchIds!: string[];
 }
 
 /**
@@ -64,6 +70,7 @@ export class StaffProvisioningController {
       passwordHash: hashPassword(dto.password),
       roleCode: dto.roleCode,
       permissions,
+      branchIds: Object.freeze([...dto.branchIds]),
       status: 'active',
       accessVersion: 1,
       createdAtUtc: new Date().toISOString(),
@@ -80,6 +87,32 @@ export class StaffProvisioningController {
   ): Promise<void> {
     this.assertInternalSecret(secret);
     await this.authRepository.updateStaffIdentityStatus(userId, dto.status);
+    await this.authRepository.revokeSessionsByUser(
+      userId,
+      'staff_status_changed',
+      new Date().toISOString(),
+    );
+  }
+
+  @Patch(':userId/access')
+  async updateAccess(
+    @Headers('x-internal-secret') secret: string,
+    @Param('userId') userId: string,
+    @Body() dto: UpdateStaffAccessDto,
+  ): Promise<void> {
+    this.assertInternalSecret(secret);
+    const permissions = STAFF_ROLES_PERMISSIONS[dto.roleCode] ?? [];
+    await this.authRepository.updateStaffIdentityAccess(
+      userId,
+      dto.roleCode,
+      permissions,
+      dto.branchIds,
+    );
+    await this.authRepository.revokeSessionsByUser(
+      userId,
+      'staff_access_changed',
+      new Date().toISOString(),
+    );
   }
 
   @Delete(':userId')

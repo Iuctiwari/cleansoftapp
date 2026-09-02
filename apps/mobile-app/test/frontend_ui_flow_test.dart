@@ -211,6 +211,7 @@ void main() {
           tenantApiService: TenantApiService(
             client: client,
             baseUrl: 'http://test',
+            tokenStorage: _FakeAuthTokenStorage(),
           ),
         ),
       ),

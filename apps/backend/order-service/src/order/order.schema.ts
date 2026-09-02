@@ -258,6 +258,9 @@ export class AssignmentMongoose {
   @Prop({ type: Date })
   dueDate?: Date;
 
+  @Prop({ trim: true, type: String })
+  note?: string;
+
   @Prop({ required: true, trim: true, type: String })
   status!: string;
 

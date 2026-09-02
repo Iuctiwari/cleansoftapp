@@ -1,6 +1,9 @@
 enum OrderStatus {
   draft('Draft'),
   received('Received'),
+  assigned('Assigned'),
+  accepted('Accepted'),
+  rejected('Rejected'),
   inProgress('InProgress'),
   ready('Ready'),
   outForDelivery('OutForDelivery'),
@@ -169,6 +172,7 @@ class OrderAssignment {
     required this.createdAt,
     required this.updatedAt,
     this.dueDate,
+    this.note,
   });
 
   factory OrderAssignment.fromJson(Map<String, dynamic> json) =>
@@ -178,6 +182,7 @@ class OrderAssignment {
         assignedBy: _requiredText(json, 'assignedBy'),
         status: _requiredText(json, 'status'),
         dueDate: _date(json['dueDate']),
+        note: _text(json['note']),
         createdAt: DateTime.parse(_requiredText(json, 'createdAt')),
         updatedAt: DateTime.parse(_requiredText(json, 'updatedAt')),
       );
@@ -187,6 +192,7 @@ class OrderAssignment {
   final String assignedBy;
   final String status;
   final DateTime? dueDate;
+  final String? note;
   final DateTime createdAt;
   final DateTime updatedAt;
 }
@@ -337,6 +343,41 @@ class OrderPage {
   final int totalPages;
 }
 
+class OrderStatistics {
+  const OrderStatistics({
+    required this.totalOrders,
+    required this.todayOrders,
+    required this.yesterdayOrders,
+    required this.outstandingTotal,
+    required this.outstandingCustomerCount,
+    required this.statusBreakdown,
+  });
+
+  factory OrderStatistics.fromJson(Map<String, dynamic> json) =>
+      OrderStatistics(
+        totalOrders: _requiredInt(json, 'totalOrders'),
+        todayOrders: _requiredInt(json, 'todayOrders'),
+        yesterdayOrders: _requiredInt(json, 'yesterdayOrders'),
+        outstandingTotal: _requiredNumber(json, 'outstandingTotal'),
+        outstandingCustomerCount: _requiredInt(
+          json,
+          'outstandingCustomerCount',
+        ),
+        statusBreakdown: _map(
+          json['statusBreakdown'],
+        ).map((key, value) => MapEntry(key, value is num ? value.toInt() : 0)),
+      );
+
+  final int totalOrders;
+  final int todayOrders;
+  final int yesterdayOrders;
+  final double outstandingTotal;
+  final int outstandingCustomerCount;
+  final Map<String, int> statusBreakdown;
+
+  int count(OrderStatus status) => statusBreakdown[status.apiValue] ?? 0;
+}
+
 class CreateOrderItemInput {
   const CreateOrderItemInput({
     required this.itemCategoryId,
@@ -382,8 +423,7 @@ class CreateOrderInput {
     'items': items
         .map((CreateOrderItemInput item) => item.toJson())
         .toList(growable: false),
-    if (discountPercentage > 0)
-      'discountPercentage': discountPercentage,
+    if (discountPercentage > 0) 'discountPercentage': discountPercentage,
     if (expectedDeliveryDate != null)
       'expectedDeliveryDate': expectedDeliveryDate!.toUtc().toIso8601String(),
   };

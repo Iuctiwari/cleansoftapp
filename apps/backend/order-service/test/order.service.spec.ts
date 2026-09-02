@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/unbound-method */
 import 'reflect-metadata';
 
 import {
@@ -93,12 +94,15 @@ describe('OrderService API use cases', () => {
 
   beforeEach(() => {
     repository = {
+      acceptAssignment: jest.fn(),
       applyPaymentProjection: jest.fn(),
       assign: jest.fn(),
       create: jest.fn(),
       findById: jest.fn(),
       history: jest.fn(),
       list: jest.fn(),
+      rejectAssignment: jest.fn(),
+      statistics: jest.fn(),
       transition: jest.fn(),
       update: jest.fn(),
     };
@@ -697,6 +701,34 @@ describe('OrderService API use cases', () => {
     ).rejects.toBeInstanceOf(ConflictException);
   });
 
+  it('allows an accepted assignment to move into processing', async () => {
+    repository.findById.mockResolvedValueOnce(
+      order({ assignedTo: STAFF_ID, status: OrderStatus.ACCEPTED }),
+    );
+    repository.transition.mockResolvedValueOnce(
+      order({ assignedTo: STAFF_ID, status: OrderStatus.IN_PROGRESS }),
+    );
+
+    await expect(
+      service.changeStatus(
+        scope({
+          actorId: STAFF_ID,
+          permissions: ['orders:read', 'orders:write'],
+          roleCode: 'Staff',
+        }),
+        ORDER_ID,
+        { status: OrderStatus.IN_PROGRESS },
+      ),
+    ).resolves.toMatchObject({ status: OrderStatus.IN_PROGRESS });
+    expect(repository.transition).toHaveBeenCalledWith(
+      expect.anything(),
+      ORDER_ID,
+      OrderStatus.ACCEPTED,
+      OrderStatus.IN_PROGRESS,
+      undefined,
+    );
+  });
+
   it('assigns only validated staff and restricts assignment by role', async () => {
     repository.findById.mockResolvedValue(order());
     repository.assign.mockResolvedValue(order({ assignedTo: STAFF_ID }));
@@ -785,6 +817,33 @@ describe('OrderService API use cases', () => {
     await expect(service.history(scope(), ORDER_ID)).resolves.toHaveLength(1);
   });
 
+  it('keeps order statistics in authenticated branch scope and restricts staff to assignments', async () => {
+    repository.statistics.mockResolvedValue({
+      outstandingCustomerCount: 0,
+      outstandingTotal: 0,
+      statusBreakdown: {},
+      todayOrders: 0,
+      totalOrders: 0,
+      yesterdayOrders: 0,
+    });
+
+    await service.statistics(scope({ roleCode: 'Owner' }));
+    await service.statistics(scope({ roleCode: 'Branch Manager' }), CUSTOMER_ID);
+    await service.statistics(scope({ roleCode: 'Staff' }));
+
+    expect(repository.statistics.mock.calls).toEqual([
+      [expect.objectContaining({ branchId: 'branch-a', tenantId: TENANT_ID }), {}],
+      [
+        expect.objectContaining({ branchId: 'branch-a', tenantId: TENANT_ID }),
+        { customerId: CUSTOMER_ID },
+      ],
+      [
+        expect.objectContaining({ branchId: 'branch-a', tenantId: TENANT_ID }),
+        { assignedTo: ACTOR_ID },
+      ],
+    ]);
+  });
+
   it('rejects invalid create DTOs through the project validation pipe', async () => {
     const pipe = new ValidationPipe({
       forbidNonWhitelisted: true,
@@ -817,5 +876,83 @@ describe('OrderService API use cases', () => {
         { metatype: CreateOrderDto, type: 'body' },
       ),
     ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  describe('acceptAssignment & rejectAssignment', () => {
+    it('allows assigned staff to accept assignment', async () => {
+      const existingOrder = order({ assignedTo: STAFF_ID });
+      repository.findById.mockResolvedValue(existingOrder);
+      repository.acceptAssignment.mockResolvedValue({
+        ...existingOrder,
+        assignment: {
+          assignedBy: ACTOR_ID,
+          assignedTo: STAFF_ID,
+          createdAt: new Date(),
+          id: 'assign-1',
+          orderId: ORDER_ID,
+          status: 'Accepted',
+          updatedAt: new Date(),
+          version: 0,
+        },
+      });
+
+      const staffScope = scope({
+        actorId: STAFF_ID,
+        permissions: ['orders:read', 'orders:write'],
+        roleCode: 'Staff',
+      });
+
+      const result = await service.acceptAssignment(staffScope, ORDER_ID);
+      expect(result.assignment?.status).toBe('Accepted');
+      expect(repository.acceptAssignment).toHaveBeenCalledWith(staffScope, ORDER_ID);
+    });
+
+    it('allows assigned staff to reject assignment and clear worker', async () => {
+      const existingOrder = order({ assignedTo: STAFF_ID });
+      repository.findById.mockResolvedValue(existingOrder);
+      repository.rejectAssignment.mockResolvedValue({
+        ...existingOrder,
+        assignedTo: undefined,
+        assignment: {
+          assignedBy: ACTOR_ID,
+          assignedTo: STAFF_ID,
+          createdAt: new Date(),
+          id: 'assign-1',
+          orderId: ORDER_ID,
+          status: 'Rejected',
+          updatedAt: new Date(),
+          version: 0,
+        },
+      });
+
+      const staffScope = scope({
+        actorId: STAFF_ID,
+        permissions: ['orders:read', 'orders:write'],
+        roleCode: 'Staff',
+      });
+
+      const result = await service.rejectAssignment(staffScope, ORDER_ID, 'Not available');
+      expect(result.assignedTo).toBeUndefined();
+      expect(result.assignment?.status).toBe('Rejected');
+      expect(repository.rejectAssignment).toHaveBeenCalledWith(
+        staffScope,
+        ORDER_ID,
+        'Not available',
+      );
+    });
+
+    it('forbids unassigned staff from accepting or rejecting assignment', async () => {
+      const existingOrder = order({ assignedTo: 'another-staff-id' });
+      repository.findById.mockResolvedValue(existingOrder);
+
+      const unauthorizedStaffScope = scope({
+        actorId: STAFF_ID,
+        permissions: ['orders:read', 'orders:write'],
+        roleCode: 'Staff',
+      });
+
+      await expect(service.acceptAssignment(unauthorizedStaffScope, ORDER_ID)).rejects.toThrow();
+      await expect(service.rejectAssignment(unauthorizedStaffScope, ORDER_ID)).rejects.toThrow();
+    });
   });
 });

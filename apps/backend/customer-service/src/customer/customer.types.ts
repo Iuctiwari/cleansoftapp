@@ -8,6 +8,8 @@ export interface CustomerScope {
   readonly actorId: string;
   readonly tenantId: string;
   readonly branchId: string;
+  readonly roleCode: string;
+  readonly permissions: readonly string[];
 }
 
 export interface CustomerRecord {

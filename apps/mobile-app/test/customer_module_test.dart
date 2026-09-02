@@ -44,7 +44,7 @@ void main() {
       expect(find.text('Customers'), findsOneWidget);
       expect(find.text('Hassan Ali'), findsOneWidget);
       expect(find.text('Rs. 650'), findsWidgets);
-    expect(find.text('7'), findsNWidgets(2));
+      expect(find.text('7'), findsNWidgets(2));
 
       await tester.enterText(find.byType(TextField).first, 'missing');
       await tester.pump(const Duration(milliseconds: 400));
@@ -203,18 +203,15 @@ CustomerController _controller(
     tokenStorage: _MemoryTokenStorage(),
     baseUrl: 'http://order.test/api',
     client: MockClient((http.Request request) async {
-      // The branch-wide outstanding total (CustomerController.load) sums
-      // unpaid/partially-paid orders; return the whole 650 for "Unpaid" so
-      // it lands on the same real total the UI previously trusted from the
-      // (now-known-unreliable) customer statistics aggregate.
-      if (request.url.queryParameters['paymentStatus'] == 'Unpaid') {
+      if (request.url.path.endsWith('/statistics')) {
         return http.Response(
           jsonEncode(<String, Object>{
-            'items': <Object>[_outstandingOrderJson()],
-            'total': 1,
-            'page': 1,
-            'limit': 100,
-            'totalPages': 1,
+            'totalOrders': 1,
+            'todayOrders': 0,
+            'yesterdayOrders': 0,
+            'outstandingTotal': 650,
+            'outstandingCustomerCount': 1,
+            'statusBreakdown': <String, int>{'Received': 1},
           }),
           200,
         );
@@ -232,27 +229,6 @@ CustomerController _controller(
     }),
   )..selectBranch('branch-a'),
 );
-
-Map<String, Object?> _outstandingOrderJson() => <String, Object?>{
-  'id': 'order-1',
-  'tenantId': 'tenant-1',
-  'branchId': 'branch-a',
-  'orderNumber': 'ORD-MAIN-000001',
-  'customerId': 'customer-1',
-  'customerSnapshot': <String, Object?>{'name': 'Hassan Ali'},
-  'status': 'Received',
-  'paymentStatus': 'Unpaid',
-  'items': <Object>[],
-  'subtotal': 650,
-  'discount': 0,
-  'discountPercentage': 0,
-  'tax': 0,
-  'grandTotal': 650,
-  'paidAmount': 0,
-  'outstandingAmount': 650,
-  'createdAt': '2026-08-12T00:00:00.000Z',
-  'updatedAt': '2026-08-12T00:00:00.000Z',
-};
 
 Widget _app(Widget child) => MaterialApp(
   theme: AppTheme.light,

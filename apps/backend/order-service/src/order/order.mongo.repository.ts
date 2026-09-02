@@ -18,6 +18,7 @@ import type {
   OrderRecord,
   OrderRepository,
   OrderScope,
+  OrderStatistics,
   StatusHistoryRecord,
   UpdateOrderRecord,
 } from './order.types';
@@ -194,6 +195,105 @@ export class MongoOrderRepository implements OrderRepository {
     };
   }
 
+  async statistics(
+    scope: OrderScope,
+    filters: { readonly assignedTo?: string; readonly customerId?: string },
+  ): Promise<OrderStatistics> {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const [result] = await this.orderModel
+      .aggregate<{
+        totals: Array<{
+          totalOrders: number;
+          todayOrders: number;
+          yesterdayOrders: number;
+          outstandingTotal: number;
+        }>;
+        outstandingCustomers: Array<{ count: number }>;
+        statuses: Array<{ _id: string; count: number }>;
+      }>([
+        {
+          $match: {
+            tenantId: new Types.ObjectId(scope.tenantId),
+            branchId: scope.branchId,
+            ...(filters.assignedTo ? { assignedTo: new Types.ObjectId(filters.assignedTo) } : {}),
+            ...(filters.customerId ? { customerId: new Types.ObjectId(filters.customerId) } : {}),
+          },
+        },
+        {
+          $facet: {
+            totals: [
+              {
+                $group: {
+                  _id: null,
+                  totalOrders: { $sum: 1 },
+                  todayOrders: {
+                    $sum: {
+                      $cond: [
+                        {
+                          $and: [
+                            { $gte: ['$createdAt', today] },
+                            { $lt: ['$createdAt', tomorrow] },
+                          ],
+                        },
+                        1,
+                        0,
+                      ],
+                    },
+                  },
+                  yesterdayOrders: {
+                    $sum: {
+                      $cond: [
+                        {
+                          $and: [
+                            { $gte: ['$createdAt', yesterday] },
+                            { $lt: ['$createdAt', today] },
+                          ],
+                        },
+                        1,
+                        0,
+                      ],
+                    },
+                  },
+                  outstandingTotal: {
+                    $sum: {
+                      $cond: [
+                        { $in: ['$paymentStatus', ['Unpaid', 'PartiallyPaid']] },
+                        '$outstandingAmount',
+                        0,
+                      ],
+                    },
+                  },
+                },
+              },
+            ],
+            outstandingCustomers: [
+              { $match: { paymentStatus: { $in: ['Unpaid', 'PartiallyPaid'] } } },
+              { $group: { _id: '$customerId' } },
+              { $count: 'count' },
+            ],
+            statuses: [{ $group: { _id: '$status', count: { $sum: 1 } } }, { $sort: { _id: 1 } }],
+          },
+        },
+      ])
+      .exec();
+    const totals = result?.totals[0];
+    return {
+      totalOrders: totals?.totalOrders ?? 0,
+      todayOrders: totals?.todayOrders ?? 0,
+      yesterdayOrders: totals?.yesterdayOrders ?? 0,
+      outstandingTotal: totals?.outstandingTotal ?? 0,
+      outstandingCustomerCount: result?.outstandingCustomers[0]?.count ?? 0,
+      statusBreakdown: Object.fromEntries(
+        (result?.statuses ?? []).map((item) => [item._id, item.count]),
+      ),
+    };
+  }
+
   async update(
     scope: OrderScope,
     id: string,
@@ -246,6 +346,7 @@ export class MongoOrderRepository implements OrderRepository {
               ...(cancelReason ? { cancelReason } : {}),
               ...(newStatus === OrderStatus.DELIVERED ? { deliveryDate: new Date() } : {}),
               status: newStatus,
+              updatedAt: new Date(),
             },
           },
           { new: true, runValidators: true, session },
@@ -331,6 +432,7 @@ export class MongoOrderRepository implements OrderRepository {
     id: string,
     assignedTo: string,
     dueDate?: Date,
+    note?: string,
   ): Promise<OrderRecord | null> {
     if (!Types.ObjectId.isValid(id)) return null;
     return this.connection.transaction(async (session) => {
@@ -343,7 +445,13 @@ export class MongoOrderRepository implements OrderRepository {
             status: { $nin: [OrderStatus.DELIVERED, OrderStatus.CANCELLED] },
             tenantId: scope.tenantId,
           },
-          { $set: { assignedTo: new Types.ObjectId(assignedTo) } },
+          {
+            $set: {
+              assignedTo: new Types.ObjectId(assignedTo),
+              status: OrderStatus.ASSIGNED,
+              updatedAt: new Date(),
+            },
+          },
           { new: true, runValidators: true, session },
         )
         .lean()
@@ -356,6 +464,7 @@ export class MongoOrderRepository implements OrderRepository {
             $set: {
               assignedTo: new Types.ObjectId(assignedTo),
               dueDate,
+              note,
               status: 'Assigned',
             },
             $setOnInsert: { assignedBy: new Types.ObjectId(scope.actorId) },
@@ -371,7 +480,133 @@ export class MongoOrderRepository implements OrderRepository {
         .lean()
         .exec();
       if (!assignment) throw new Error('Order assignment persistence failed');
+
+      if (typeof this.historyModel?.create === 'function') {
+        await this.historyModel.create(
+          [
+            {
+              branchId: scope.branchId,
+              changedBy: new Types.ObjectId(scope.actorId),
+              newStatus: OrderStatus.ASSIGNED,
+              note,
+              orderId: new Types.ObjectId(id),
+              previousStatus: OrderStatus.RECEIVED,
+              tenantId: new Types.ObjectId(scope.tenantId),
+              timestamp: new Date(),
+            },
+          ],
+          { session },
+        );
+      }
+
       return { ...this.mapOrder(order), assignment: this.mapAssignment(assignment) };
+    });
+  }
+
+  async acceptAssignment(scope: OrderScope, id: string): Promise<OrderRecord | null> {
+    if (!Types.ObjectId.isValid(id)) return null;
+    return this.connection.transaction(async (session) => {
+      const order = await this.orderModel
+        .findOneAndUpdate(
+          {
+            _id: id,
+            branchId: scope.branchId,
+            status: { $nin: [OrderStatus.DELIVERED, OrderStatus.CANCELLED] },
+            tenantId: scope.tenantId,
+          },
+          { $set: { status: OrderStatus.ACCEPTED, updatedAt: new Date() } },
+          { new: true, runValidators: true, session },
+        )
+        .lean()
+        .exec();
+      if (!order) return null;
+
+      const assignment = await this.assignmentModel
+        .findOneAndUpdate(
+          { branchId: scope.branchId, orderId: id, tenantId: scope.tenantId },
+          { $set: { status: 'Accepted' } },
+          { new: true, runValidators: true, session },
+        )
+        .lean()
+        .exec();
+      if (!assignment) return null;
+
+      await this.historyModel.create(
+        [
+          {
+            branchId: scope.branchId,
+            changedBy: new Types.ObjectId(scope.actorId),
+            newStatus: OrderStatus.ACCEPTED,
+            note: 'Assignment accepted by worker',
+            orderId: new Types.ObjectId(id),
+            previousStatus: OrderStatus.ASSIGNED,
+            tenantId: new Types.ObjectId(scope.tenantId),
+            timestamp: new Date(),
+          },
+        ],
+        { session },
+      );
+
+      return { ...this.mapOrder(order), assignment: this.mapAssignment(assignment) };
+    });
+  }
+
+  async rejectAssignment(
+    scope: OrderScope,
+    id: string,
+    reason?: string,
+  ): Promise<OrderRecord | null> {
+    if (!Types.ObjectId.isValid(id)) return null;
+    return this.connection.transaction(async (session) => {
+      const order = await this.orderModel
+        .findOneAndUpdate(
+          {
+            _id: id,
+            branchId: scope.branchId,
+            status: { $nin: [OrderStatus.DELIVERED, OrderStatus.CANCELLED] },
+            tenantId: scope.tenantId,
+          },
+          {
+            $unset: { assignedTo: 1 },
+            $set: { status: OrderStatus.REJECTED, updatedAt: new Date() },
+          },
+          { new: true, runValidators: true, session },
+        )
+        .lean()
+        .exec();
+      if (!order) return null;
+
+      const assignment = await this.assignmentModel
+        .findOneAndUpdate(
+          { branchId: scope.branchId, orderId: id, tenantId: scope.tenantId },
+          { $set: { status: 'Rejected' } },
+          { new: true, runValidators: true, session },
+        )
+        .lean()
+        .exec();
+
+      await this.historyModel.create(
+        [
+          {
+            branchId: scope.branchId,
+            changedBy: new Types.ObjectId(scope.actorId),
+            newStatus: OrderStatus.REJECTED,
+            note: reason?.trim()
+              ? `Assignment rejected: ${reason.trim()}`
+              : 'Assignment rejected by worker',
+            orderId: new Types.ObjectId(id),
+            previousStatus: OrderStatus.ASSIGNED,
+            tenantId: new Types.ObjectId(scope.tenantId),
+            timestamp: new Date(),
+          },
+        ],
+        { session },
+      );
+
+      return {
+        ...this.mapOrder(order),
+        ...(assignment ? { assignment: this.mapAssignment(assignment) } : {}),
+      };
     });
   }
 
@@ -446,6 +681,7 @@ export class MongoOrderRepository implements OrderRepository {
       createdAt: document.createdAt as Date,
       dueDate: document.dueDate as Date | undefined,
       id: identifier(document._id),
+      note: document.note as string | undefined,
       orderId: identifier(document.orderId),
       status: document.status as string,
       updatedAt: document.updatedAt as Date,

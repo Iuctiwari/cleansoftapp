@@ -73,3 +73,13 @@ export class OrderPageResponseDto {
   @ApiProperty({ minimum: 0 })
   totalPages!: number;
 }
+
+export class OrderStatisticsResponseDto {
+  @ApiProperty({ minimum: 0 }) totalOrders!: number;
+  @ApiProperty({ minimum: 0 }) todayOrders!: number;
+  @ApiProperty({ minimum: 0 }) yesterdayOrders!: number;
+  @ApiProperty({ minimum: 0 }) outstandingTotal!: number;
+  @ApiProperty({ minimum: 0 }) outstandingCustomerCount!: number;
+  @ApiProperty({ additionalProperties: { type: 'number' }, type: 'object' })
+  statusBreakdown!: Record<string, number>;
+}

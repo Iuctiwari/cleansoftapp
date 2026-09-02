@@ -14,6 +14,8 @@ export interface ExpenseTrustedContext {
   readonly kind: 'tenant';
   readonly tenantId: string;
   readonly branchId: string;
+  readonly roleCode: string;
+  readonly permissions: readonly string[];
 }
 
 export interface ExpenseRequest {
@@ -49,6 +51,8 @@ export class ExpenseScopeGuard implements CanActivate {
       actorId: trustedContext.actorId,
       tenantId: trustedContext.tenantId,
       branchId: trustedContext.branchId,
+      roleCode: trustedContext.roleCode,
+      permissions: trustedContext.permissions,
     };
     return true;
   }

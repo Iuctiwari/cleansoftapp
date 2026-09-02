@@ -1,4 +1,17 @@
-import { ConflictException, Injectable, NotFoundException, Logger } from '@nestjs/common';
+import {
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+  Logger,
+} from '@nestjs/common';
+import {
+  Permissions,
+  defaultPermissionsForRole,
+  hasPermission,
+  isBranchManagerRole,
+  isOwnerRole,
+} from '@nexoraa/shared';
 import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
@@ -6,6 +19,7 @@ import { Model, Types } from 'mongoose';
 import { RegisterStaffDto, StaffResponseDto, UpdateStaffDto } from './user.dto';
 import { UserMongoose } from './user.schema';
 import { UserStatus } from './user.types';
+import type { UserAccessScope } from './user-auth.middleware';
 
 @Injectable()
 export class UserService {
@@ -19,9 +33,22 @@ export class UserService {
 
   // ── Read ─────────────────────────────────────────────────────────────────
 
-  async listStaff(tenantId: string): Promise<StaffResponseDto[]> {
+  async listStaff(scope: UserAccessScope, tenantId: string): Promise<StaffResponseDto[]> {
+    this.assertTenant(scope, tenantId);
+    this.assertStaffRead(scope);
     const users = await this.userModel
-      .find({ tenantId: new Types.ObjectId(tenantId), isDeleted: false })
+      .find({
+        tenantId: new Types.ObjectId(tenantId),
+        isDeleted: false,
+        ...(isBranchManagerRole(scope.roleCode)
+          ? {
+              // Read access includes every user assigned to the manager's
+              // branch (Staff, Cashier, and its manager). Mutation rules
+              // remain narrower in assertTarget/registerStaff.
+              branchIds: new Types.ObjectId(scope.branchId),
+            }
+          : {}),
+      })
       .exec();
     return users.map((user) => this.mapToDto(user));
   }
@@ -34,7 +61,21 @@ export class UserService {
    * 2. Calls auth-service to provision loginId + passwordHash.
    * If auth provisioning fails, rolls back by deleting the user record.
    */
-  async registerStaff(tenantId: string, dto: RegisterStaffDto): Promise<StaffResponseDto> {
+  async registerStaff(
+    scope: UserAccessScope,
+    tenantId: string,
+    dto: RegisterStaffDto,
+  ): Promise<StaffResponseDto> {
+    this.assertTenant(scope, tenantId);
+    this.assertStaffWrite(scope);
+    if (
+      isBranchManagerRole(scope.roleCode) &&
+      (dto.role !== 'Staff' || dto.branchIds.some((id) => id !== scope.branchId))
+    ) {
+      throw new ForbiddenException(
+        'Branch Managers may invite Staff only to their assigned branch',
+      );
+    }
     // Check duplicate loginId within tenant
     const tenantOid = new Types.ObjectId(tenantId);
     const existingLoginId = await this.userModel.findOne({
@@ -91,6 +132,7 @@ export class UserService {
         email: dto.email,
         password: dto.password,
         roleCode: dto.role,
+        branchIds: dto.branchIds,
       });
     } catch (err) {
       // Roll back user record if auth provisioning fails
@@ -107,9 +149,11 @@ export class UserService {
 
   // ── Status ────────────────────────────────────────────────────────────────
 
-  async updateStatus(userId: string, status: UserStatus): Promise<void> {
+  async updateStatus(scope: UserAccessScope, userId: string, status: UserStatus): Promise<void> {
+    this.assertStaffWrite(scope);
     const user = await this.userModel.findById(userId);
     if (!user || user.isDeleted) throw new NotFoundException('User not found');
+    this.assertTarget(scope, user);
 
     user.status = status;
     await user.save();
@@ -127,9 +171,22 @@ export class UserService {
 
   // ── Update ────────────────────────────────────────────────────────────────
 
-  async updateStaff(userId: string, dto: UpdateStaffDto): Promise<StaffResponseDto> {
+  async updateStaff(
+    scope: UserAccessScope,
+    userId: string,
+    dto: UpdateStaffDto,
+  ): Promise<StaffResponseDto> {
+    this.assertStaffWrite(scope);
     const user = await this.userModel.findById(userId);
     if (!user || user.isDeleted) throw new NotFoundException('User not found');
+    this.assertTarget(scope, user);
+    if (
+      isBranchManagerRole(scope.roleCode) &&
+      ((dto.role !== undefined && dto.role !== 'Staff') ||
+        (dto.branchIds !== undefined && dto.branchIds.some((id) => id !== scope.branchId)))
+    ) {
+      throw new ForbiddenException('Branch Managers cannot change role or branch scope');
+    }
 
     if (dto.name) user.name = dto.name;
     if (dto.email !== undefined) user.email = dto.email;
@@ -141,14 +198,23 @@ export class UserService {
     }
 
     await user.save();
+    if (dto.role !== undefined || dto.branchIds !== undefined) {
+      await this.updateAuthAccess(
+        userId,
+        user.role,
+        user.branchIds.map((id) => id.toString()),
+      );
+    }
     return this.mapToDto(user);
   }
 
   // ── Remove ────────────────────────────────────────────────────────────────
 
-  async removeStaff(userId: string): Promise<void> {
+  async removeStaff(scope: UserAccessScope, userId: string): Promise<void> {
+    if (!isOwnerRole(scope.roleCode)) throw new ForbiddenException('Owner permission is required');
     const user = await this.userModel.findById(userId);
     if (!user || user.isDeleted) throw new NotFoundException('User not found');
+    this.assertTarget(scope, user);
 
     // Soft delete in User database
     await this.userModel
@@ -167,22 +233,25 @@ export class UserService {
 
   // ── Roles ─────────────────────────────────────────────────────────────────
 
-  getSystemRoles(): Array<{ role: string; description: string; permissions: string[] }> {
+  getSystemRoles(
+    scope: UserAccessScope,
+  ): Array<{ role: string; description: string; permissions: string[] }> {
+    this.assertStaffRead(scope);
     return [
       {
         role: 'Owner',
         description: 'Full access to all business settings, analytics, and branches.',
-        permissions: ['Manage Business', 'Manage Staff', 'View Analytics', 'Manage Billing'],
+        permissions: [...defaultPermissionsForRole('Owner')],
       },
       {
         role: 'Branch Manager',
         description: 'Can manage daily operations and staff for assigned branches.',
-        permissions: ['Manage Branch Schedule', 'View Branch Analytics', 'Manage Cashiers'],
+        permissions: [...defaultPermissionsForRole('Branch Manager')],
       },
       {
         role: 'Staff',
         description: 'Standard worker role with basic access to assigned services.',
-        permissions: ['View Schedule', 'Manage Appointments', 'Basic Profile Update'],
+        permissions: [...defaultPermissionsForRole('Staff')],
       },
       {
         role: 'Cashier',
@@ -190,6 +259,44 @@ export class UserService {
         permissions: ['Process Payments', 'Issue Refunds', 'End of Day Reports'],
       },
     ];
+  }
+
+  private assertTenant(scope: UserAccessScope, tenantId: string): void {
+    if (scope.tenantId !== tenantId) throw new ForbiddenException('Tenant access is forbidden');
+  }
+
+  private assertStaffRead(scope: UserAccessScope): void {
+    if (
+      !(isOwnerRole(scope.roleCode) || isBranchManagerRole(scope.roleCode)) ||
+      !hasPermission(scope.roleCode, scope.permissions, Permissions.staffRead)
+    ) {
+      throw new ForbiddenException('Staff read permission is required');
+    }
+  }
+
+  private assertStaffWrite(scope: UserAccessScope): void {
+    if (
+      !(isOwnerRole(scope.roleCode) || isBranchManagerRole(scope.roleCode)) ||
+      !hasPermission(scope.roleCode, scope.permissions, Permissions.staffWrite)
+    ) {
+      throw new ForbiddenException('Staff management permission is required');
+    }
+  }
+
+  private assertTarget(scope: UserAccessScope, user: UserMongoose): void {
+    const target = user as unknown as {
+      tenantId: Types.ObjectId;
+      branchIds: Types.ObjectId[];
+      role: string;
+    };
+    if (
+      target.tenantId.toString() !== scope.tenantId ||
+      (isBranchManagerRole(scope.roleCode) &&
+        (target.role !== 'Staff' ||
+          !target.branchIds.some((id) => id.toString() === scope.branchId)))
+    ) {
+      throw new NotFoundException('User not found');
+    }
   }
 
   // ── Private helpers ───────────────────────────────────────────────────────
@@ -202,6 +309,7 @@ export class UserService {
     email?: string;
     password: string;
     roleCode: string;
+    branchIds: string[];
   }): Promise<void> {
     const authBaseUrl = this.configService.getOrThrow<string>('AUTH_SERVICE_INTERNAL_URL');
     const secret = this.configService.getOrThrow<string>('INTERNAL_SERVICE_SECRET');
@@ -222,6 +330,7 @@ export class UserService {
       email: params.email,
       password: params.password,
       roleCode: params.roleCode,
+      branchIds: params.branchIds,
     });
 
     const response = await fetch(url, {
@@ -269,6 +378,28 @@ export class UserService {
         'x-internal-secret': secret,
       },
     });
+  }
+
+  private async updateAuthAccess(
+    userId: string,
+    roleCode: string,
+    branchIds: string[],
+  ): Promise<void> {
+    const authBaseUrl = this.configService.getOrThrow<string>('AUTH_SERVICE_INTERNAL_URL');
+    const secret = this.configService.getOrThrow<string>('INTERNAL_SERVICE_SECRET');
+    const apiVersion = this.configService.get<string>('API_VERSION', 'v1');
+    const apiPrefix = this.configService.get<string>('API_PREFIX', 'api');
+    const response = await fetch(
+      `${authBaseUrl}/${apiPrefix}/${apiVersion}/internal/staff/${userId}/access`,
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'x-internal-secret': secret },
+        body: JSON.stringify({ roleCode, branchIds }),
+      },
+    );
+    if (!response.ok) {
+      throw new Error(`Auth access update failed (${response.status})`);
+    }
   }
 
   private mapToDto(user: UserMongoose): StaffResponseDto {

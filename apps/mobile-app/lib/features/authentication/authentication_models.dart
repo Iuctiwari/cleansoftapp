@@ -10,7 +10,10 @@ class AuthenticationSession {
     this.ownerName,
     this.ownerEmail,
     this.businessName,
-    required this.roleCode,
+    this.branchId,
+    this.branchName,
+    this.roleCode = 'tenant_owner',
+    this.permissions = const <String>[],
   });
 
   final String accessToken;
@@ -23,7 +26,10 @@ class AuthenticationSession {
   final String? ownerName;
   final String? ownerEmail;
   final String? businessName;
+  final String? branchId;
+  final String? branchName;
   final String roleCode;
+  final List<String> permissions;
 }
 
 class AuthenticationException implements Exception {

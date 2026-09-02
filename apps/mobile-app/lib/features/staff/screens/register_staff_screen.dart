@@ -5,6 +5,8 @@ import 'package:nexoraa_mobile/features/branch/branch_dependencies.dart';
 import 'package:nexoraa_mobile/features/branch/branch_models.dart';
 import 'package:nexoraa_mobile/features/staff/models/system_role.dart';
 import 'package:nexoraa_mobile/features/staff/services/staff_api_service.dart';
+import 'package:nexoraa_mobile/features/authentication/access_policy.dart';
+import 'package:nexoraa_mobile/features/authentication/authentication_dependencies.dart';
 
 class RegisterStaffScreen extends StatefulWidget {
   final String tenantId;
@@ -16,6 +18,8 @@ class RegisterStaffScreen extends StatefulWidget {
 }
 
 class _RegisterStaffScreenState extends State<RegisterStaffScreen> {
+  AccessPolicy get _accessPolicy =>
+      AccessPolicy.fromSession(AuthenticationDependencies.controller.session);
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -105,8 +109,12 @@ class _RegisterStaffScreenState extends State<RegisterStaffScreen> {
         loginId: _emailController.text.trim().toLowerCase(),
         password: _passwordController.text,
         email: _emailController.text.trim().toLowerCase(),
-        mobileNumber: _mobileController.text.trim().isEmpty ? null : _mobileController.text.trim(),
-        department: _departmentController.text.trim().isEmpty ? null : _departmentController.text.trim(),
+        mobileNumber: _mobileController.text.trim().isEmpty
+            ? null
+            : _mobileController.text.trim(),
+        department: _departmentController.text.trim().isEmpty
+            ? null
+            : _departmentController.text.trim(),
         role: _selectedRole,
         branches: _selectedBranchIds,
       );
@@ -136,12 +144,18 @@ class _RegisterStaffScreenState extends State<RegisterStaffScreen> {
                         margin: const EdgeInsets.only(bottom: AppSpacing.lg),
                         padding: const EdgeInsets.all(AppSpacing.md),
                         decoration: BoxDecoration(
-                          color: AppColors.error.withOpacity(0.1),
+                          color: AppColors.error.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(AppRadius.md),
-                          border: Border.all(color: AppColors.error.withOpacity(0.3)),
+                          border: Border.all(
+                            color: AppColors.error.withValues(alpha: 0.3),
+                          ),
                         ),
-                        child: Text(_errorMessage!,
-                            style: AppTextStyles.bodySmall.copyWith(color: AppColors.error)),
+                        child: Text(
+                          _errorMessage!,
+                          style: AppTextStyles.bodySmall.copyWith(
+                            color: AppColors.error,
+                          ),
+                        ),
                       ),
 
                     // ── Personal Info ───────────────────────────────────────
@@ -153,8 +167,9 @@ class _RegisterStaffScreenState extends State<RegisterStaffScreen> {
                         labelText: 'Full Name *',
                         prefixIcon: Icon(Icons.person),
                       ),
-                      validator: (v) =>
-                          v == null || v.trim().isEmpty ? 'Name is required' : null,
+                      validator: (v) => v == null || v.trim().isEmpty
+                          ? 'Name is required'
+                          : null,
                       textInputAction: TextInputAction.next,
                     ),
                     const SizedBox(height: AppSpacing.md),
@@ -166,8 +181,12 @@ class _RegisterStaffScreenState extends State<RegisterStaffScreen> {
                       ),
                       keyboardType: TextInputType.emailAddress,
                       validator: (v) {
-                        if (v == null || v.trim().isEmpty) return 'Email is required';
-                        if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(v.trim())) return 'Enter a valid email';
+                        if (v == null || v.trim().isEmpty)
+                          return 'Email is required';
+                        if (!RegExp(
+                          r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                        ).hasMatch(v.trim()))
+                          return 'Enter a valid email';
                         return null;
                       },
                       textInputAction: TextInputAction.next,
@@ -199,7 +218,9 @@ class _RegisterStaffScreenState extends State<RegisterStaffScreen> {
                     const SizedBox(height: AppSpacing.xs),
                     Text(
                       'The employee will use these to sign in to the app.',
-                      style: AppTextStyles.caption.copyWith(color: AppColors.textSubtle),
+                      style: AppTextStyles.caption.copyWith(
+                        color: AppColors.textSubtle,
+                      ),
                     ),
                     const SizedBox(height: AppSpacing.md),
 
@@ -212,20 +233,31 @@ class _RegisterStaffScreenState extends State<RegisterStaffScreen> {
                         prefixIcon: const Icon(Icons.lock_outline),
                         suffixIcon: IconButton(
                           icon: Icon(
-                              _passwordVisible ? Icons.visibility_off : Icons.visibility),
-                          onPressed: () =>
-                              setState(() => _passwordVisible = !_passwordVisible),
+                            _passwordVisible
+                                ? Icons.visibility_off
+                                : Icons.visibility,
+                          ),
+                          onPressed: () => setState(
+                            () => _passwordVisible = !_passwordVisible,
+                          ),
                         ),
-                        helperText: 'Min 8 chars, upper + lower + number + special',
+                        helperText:
+                            'Min 8 chars, upper + lower + number + special',
                       ),
                       textInputAction: TextInputAction.next,
                       validator: (v) {
-                        if (v == null || v.isEmpty) return 'Password is required';
-                        if (v.length < 8) return 'At least 8 characters required';
-                        if (!v.contains(RegExp(r'[A-Z]'))) return 'Add an uppercase letter';
-                        if (!v.contains(RegExp(r'[a-z]'))) return 'Add a lowercase letter';
-                        if (!v.contains(RegExp(r'[0-9]'))) return 'Add a number';
-                        if (!v.contains(RegExp(r'[^A-Za-z0-9]'))) return 'Add a special character';
+                        if (v == null || v.isEmpty)
+                          return 'Password is required';
+                        if (v.length < 8)
+                          return 'At least 8 characters required';
+                        if (!v.contains(RegExp(r'[A-Z]')))
+                          return 'Add an uppercase letter';
+                        if (!v.contains(RegExp(r'[a-z]')))
+                          return 'Add a lowercase letter';
+                        if (!v.contains(RegExp(r'[0-9]')))
+                          return 'Add a number';
+                        if (!v.contains(RegExp(r'[^A-Za-z0-9]')))
+                          return 'Add a special character';
                         return null;
                       },
                     ),
@@ -238,9 +270,13 @@ class _RegisterStaffScreenState extends State<RegisterStaffScreen> {
                         prefixIcon: const Icon(Icons.lock_outline),
                         suffixIcon: IconButton(
                           icon: Icon(
-                              _confirmVisible ? Icons.visibility_off : Icons.visibility),
-                          onPressed: () =>
-                              setState(() => _confirmVisible = !_confirmVisible),
+                            _confirmVisible
+                                ? Icons.visibility_off
+                                : Icons.visibility,
+                          ),
+                          onPressed: () => setState(
+                            () => _confirmVisible = !_confirmVisible,
+                          ),
                         ),
                       ),
                       textInputAction: TextInputAction.next,
@@ -288,10 +324,13 @@ class _RegisterStaffScreenState extends State<RegisterStaffScreen> {
     );
   }
 
-  Widget _sectionTitle(String title) => Text(title, style: AppTextStyles.headingSmall);
+  Widget _sectionTitle(String title) =>
+      Text(title, style: AppTextStyles.headingSmall);
 
   Widget _buildRoleDropdown() {
-    final roles = ['Branch Manager', 'Staff'];
+    final roles = _accessPolicy.isOwner
+        ? <String>['Branch Manager', 'Staff']
+        : <String>['Staff'];
     // Default to 'Staff' if current selection is not in the list
     if (!roles.contains(_selectedRole)) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -302,16 +341,13 @@ class _RegisterStaffScreenState extends State<RegisterStaffScreen> {
     }
 
     return DropdownButtonFormField<String>(
-      value: roles.contains(_selectedRole) ? _selectedRole : 'Staff',
+      initialValue: roles.contains(_selectedRole) ? _selectedRole : 'Staff',
       decoration: const InputDecoration(
         labelText: 'Select Role *',
         prefixIcon: Icon(AppIcons.user),
       ),
       items: roles.map((role) {
-        return DropdownMenuItem(
-          value: role,
-          child: Text(role),
-        );
+        return DropdownMenuItem(value: role, child: Text(role));
       }).toList(),
       onChanged: (value) {
         if (value != null) {
@@ -338,11 +374,13 @@ class _RegisterStaffScreenState extends State<RegisterStaffScreen> {
           ...role.permissions.map(
             (p) => Padding(
               padding: const EdgeInsets.symmetric(vertical: 2),
-              child: Row(children: [
-                const Icon(Icons.check, size: 14, color: AppColors.success),
-                const SizedBox(width: 4),
-                Text(p, style: AppTextStyles.bodySmall),
-              ]),
+              child: Row(
+                children: [
+                  const Icon(Icons.check, size: 14, color: AppColors.success),
+                  const SizedBox(width: 4),
+                  Text(p, style: AppTextStyles.bodySmall),
+                ],
+              ),
             ),
           ),
         ],

@@ -1,4 +1,3 @@
-import { Transform } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import {
   DEFAULT_PAGE_NUMBER,
@@ -6,6 +5,7 @@ import {
   MAX_PAGE_SIZE,
   SortDirection,
 } from '@nexoraa/constants';
+import { Transform } from 'class-transformer';
 import {
   IsEnum,
   IsIn,
@@ -21,6 +21,7 @@ import {
 import { OrderPaymentStatus, OrderStatus } from '../enums';
 
 const STATUS_ALIASES: Readonly<Record<string, OrderStatus>> = Object.freeze({
+  ASSIGNED: OrderStatus.ASSIGNED,
   CANCELLED: OrderStatus.CANCELLED,
   CANCELED: OrderStatus.CANCELLED,
   COMPLETED: OrderStatus.DELIVERED,

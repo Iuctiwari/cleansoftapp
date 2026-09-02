@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:nexoraa_mobile/app/router.dart';
 import 'package:nexoraa_mobile/design_system/design_system.dart';
 import 'package:nexoraa_mobile/features/authentication/authentication_dependencies.dart';
+import 'package:nexoraa_mobile/features/authentication/access_policy.dart';
 import 'package:nexoraa_mobile/features/orders/controllers/order_controller.dart';
 import 'package:nexoraa_mobile/features/orders/services/payment_api_service.dart';
 import 'package:nexoraa_mobile/features/payments/controllers/payments_controller.dart';
@@ -13,8 +14,8 @@ class MoreUserProfileData {
   const MoreUserProfileData({required this.email, required this.name});
 
   static const MoreUserProfileData placeholder = MoreUserProfileData(
-    email: 'user@example.com',
-    name: 'User',
+    email: '',
+    name: 'Unavailable',
   );
 
   final String email;
@@ -48,19 +49,36 @@ class MoreScreen extends StatelessWidget {
   const MoreScreen({
     required this.businessName,
     required this.onExpensesTap,
+    this.onReportsTap,
     required this.role,
     required this.userProfile,
     this.branchId,
     this.orderController,
+    this.accessPolicy = const AccessPolicy(roleCode: 'Owner'),
     super.key,
   });
 
   final String businessName;
   final VoidCallback onExpensesTap;
+  final VoidCallback? onReportsTap;
   final String role;
   final MoreUserProfileData userProfile;
   final String? branchId;
   final OrderController? orderController;
+  final AccessPolicy accessPolicy;
+
+  bool _canSee(MoreMenuItemData item) => switch (item.title) {
+    'Payments' => accessPolicy.allows(AppCapability.paymentsView),
+    'Expenses' => accessPolicy.allows(AppCapability.expensesView),
+    'Cash Register' => accessPolicy.allows(AppCapability.cashRegister),
+    'Reports' => accessPolicy.allows(AppCapability.reportsView),
+    'Staff Management' => accessPolicy.allows(AppCapability.staffView),
+    'Worker Availability' => accessPolicy.allows(AppCapability.staffView),
+    'Branch Management' => accessPolicy.allows(AppCapability.branchesView),
+    'Business Settings' => accessPolicy.allows(AppCapability.businessSettings),
+    'My Profile' => accessPolicy.allows(AppCapability.ownProfile),
+    _ => false,
+  };
 
   static const List<MoreMenuSectionData> _sections = <MoreMenuSectionData>[
     MoreMenuSectionData(
@@ -152,6 +170,10 @@ class MoreScreen extends StatelessWidget {
     }
     if (item.title == 'Expenses') {
       onExpensesTap();
+      return;
+    }
+    if (item.title == 'Reports' && onReportsTap != null) {
+      onReportsTap!();
       return;
     }
     if (item.title == 'Branch Management') {
@@ -268,18 +290,25 @@ class MoreScreen extends StatelessWidget {
                       userName: userProfile.name,
                     ),
                     const SizedBox(height: AppSpacing.xxlPlus),
-                    ..._sections.map(
-                      (MoreMenuSectionData section) => Padding(
+                    ..._sections.map((MoreMenuSectionData section) {
+                      final List<MoreMenuItemData> visibleItems = section.items
+                          .where(_canSee)
+                          .toList(growable: false);
+                      if (visibleItems.isEmpty) return const SizedBox.shrink();
+                      return Padding(
                         padding: const EdgeInsets.only(
                           bottom: AppSpacing.xxlPlus,
                         ),
                         child: MoreMenuSection(
-                          section: section,
+                          section: MoreMenuSectionData(
+                            title: section.title,
+                            items: visibleItems,
+                          ),
                           onItemTap: (MoreMenuItemData item) =>
                               _handleItemTap(context, item),
                         ),
-                      ),
-                    ),
+                      );
+                    }),
                     SignOutCard(onTap: () => _confirmSignOut(context)),
                   ],
                 ),

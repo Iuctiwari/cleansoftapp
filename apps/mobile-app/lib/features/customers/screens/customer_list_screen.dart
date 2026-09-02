@@ -7,10 +7,16 @@ import 'package:nexoraa_mobile/features/customers/controllers/customer_controlle
 import 'package:nexoraa_mobile/features/customers/screens/customer_details_screen.dart';
 import 'package:nexoraa_mobile/features/customers/screens/customer_form_screen.dart';
 import 'package:nexoraa_mobile/features/customers/widgets/customer_widgets.dart';
+import 'package:nexoraa_mobile/features/authentication/access_policy.dart';
 
 class CustomerListScreen extends StatefulWidget {
-  const CustomerListScreen({required this.controller, super.key});
+  const CustomerListScreen({
+    required this.controller,
+    this.accessPolicy = const AccessPolicy(roleCode: 'Owner'),
+    super.key,
+  });
   final CustomerController controller;
+  final AccessPolicy accessPolicy;
 
   @override
   State<CustomerListScreen> createState() => _CustomerListScreenState();
@@ -83,6 +89,7 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
         builder: (_) => CustomerDetailsScreen(
           customerId: id,
           controller: widget.controller,
+          accessPolicy: widget.accessPolicy,
         ),
       ),
     );

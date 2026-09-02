@@ -6,6 +6,8 @@ import 'package:nexoraa_mobile/features/branch/branch_models.dart';
 import 'package:nexoraa_mobile/features/staff/models/staff_member.dart';
 import 'package:nexoraa_mobile/features/staff/models/system_role.dart';
 import 'package:nexoraa_mobile/features/staff/services/staff_api_service.dart';
+import 'package:nexoraa_mobile/features/authentication/access_policy.dart';
+import 'package:nexoraa_mobile/features/authentication/authentication_dependencies.dart';
 
 class EditStaffScreen extends StatefulWidget {
   final StaffMember staff;
@@ -17,6 +19,8 @@ class EditStaffScreen extends StatefulWidget {
 }
 
 class _EditStaffScreenState extends State<EditStaffScreen> {
+  AccessPolicy get _accessPolicy =>
+      AccessPolicy.fromSession(AuthenticationDependencies.controller.session);
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _nameController;
   late TextEditingController _emailController;
@@ -40,7 +44,9 @@ class _EditStaffScreenState extends State<EditStaffScreen> {
     _nameController = TextEditingController(text: widget.staff.displayName);
     _emailController = TextEditingController(text: widget.staff.email);
     _mobileController = TextEditingController(text: widget.staff.mobileNumber);
-    _departmentController = TextEditingController(text: widget.staff.department);
+    _departmentController = TextEditingController(
+      text: widget.staff.department,
+    );
     _selectedRole = widget.staff.role;
     _selectedBranchIds = List.from(widget.staff.branches);
     _loadData();
@@ -103,8 +109,10 @@ class _EditStaffScreenState extends State<EditStaffScreen> {
         email: _emailController.text.trim(),
         mobileNumber: _mobileController.text.trim(),
         department: _departmentController.text.trim(),
-        role: _selectedRole,
-        branchIds: _selectedBranchIds.isEmpty ? null : _selectedBranchIds,
+        role: _accessPolicy.isOwner ? _selectedRole : null,
+        branchIds: _accessPolicy.isOwner && _selectedBranchIds.isNotEmpty
+            ? _selectedBranchIds
+            : null,
       );
 
       if (mounted) {
@@ -121,84 +129,91 @@ class _EditStaffScreenState extends State<EditStaffScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Edit Staff Details'),
-      ),
+      appBar: AppBar(title: const Text('Edit Staff Details')),
       body: SafeArea(
         child: _isLoading
             ? const AppLoadingView()
             : _errorMessage != null && _systemRoles.isEmpty
-                ? AppErrorView(message: _errorMessage!, onRetry: _loadData)
-                : Column(
-                    children: [
-                      Expanded(
-                        child: SingleChildScrollView(
-                          padding: const EdgeInsets.all(AppSpacing.pageHorizontal),
-                          child: Form(
-                            key: _formKey,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                if (_errorMessage != null) ...[
-                                  Text(_errorMessage!,
-                                      style: const TextStyle(color: AppColors.error)),
-                                  const SizedBox(height: AppSpacing.md),
-                                ],
-                                _buildSectionTitle('STAFF INFORMATION'),
-                                AppTextField(
-                                  label: 'Full Name *',
-                                  hintText: 'Enter full name',
-                                  icon: AppIcons.user,
-                                  controller: _nameController,
-                                  validator: (value) =>
-                                      value == null || value.isEmpty ? 'Please enter a name' : null,
-                                ),
-                                const SizedBox(height: AppSpacing.lg),
-                                TextFormField(
-                                  decoration: const InputDecoration(
-                                    labelText: 'Login ID (Read-only)',
-                                    prefixIcon: Icon(Icons.account_circle_outlined),
-                                  ),
-                                  controller: TextEditingController(text: widget.staff.loginId),
-                                  readOnly: true,
-                                ),
-                                const SizedBox(height: AppSpacing.lg),
-                                AppTextField(
-                                  label: 'Email',
-                                  hintText: 'Email address',
-                                  icon: AppIcons.email,
-                                  controller: _emailController,
-                                ),
-                                const SizedBox(height: AppSpacing.lg),
-                                AppTextField(
-                                  label: 'Mobile Number',
-                                  hintText: 'Mobile number',
-                                  icon: AppIcons.phone,
-                                  controller: _mobileController,
-                                ),
-                                const SizedBox(height: AppSpacing.lg),
-                                AppTextField(
-                                  label: 'Department',
-                                  hintText: 'e.g. Laundry, Finance',
-                                  icon: AppIcons.branch,
-                                  controller: _departmentController,
-                                ),
-                                const SizedBox(height: AppSpacing.xxxl),
-                                _buildSectionTitle('ROLE & ACCESS'),
-                                _buildRoleDropdown(),
-                                if (_currentRoleInfo != null) _buildRolePreview(_currentRoleInfo!),
-                                const SizedBox(height: AppSpacing.xxxl),
-                                _buildSectionTitle('BRANCH ASSIGNMENT'),
-                                _buildBranchSelection(),
-                                const SizedBox(height: AppSpacing.xxxl),
-                              ],
+            ? AppErrorView(message: _errorMessage!, onRetry: _loadData)
+            : Column(
+                children: [
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(AppSpacing.pageHorizontal),
+                      child: Form(
+                        key: _formKey,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            if (_errorMessage != null) ...[
+                              Text(
+                                _errorMessage!,
+                                style: const TextStyle(color: AppColors.error),
+                              ),
+                              const SizedBox(height: AppSpacing.md),
+                            ],
+                            _buildSectionTitle('STAFF INFORMATION'),
+                            AppTextField(
+                              label: 'Full Name *',
+                              hintText: 'Enter full name',
+                              icon: AppIcons.user,
+                              controller: _nameController,
+                              validator: (value) =>
+                                  value == null || value.isEmpty
+                                  ? 'Please enter a name'
+                                  : null,
                             ),
-                          ),
+                            const SizedBox(height: AppSpacing.lg),
+                            TextFormField(
+                              decoration: const InputDecoration(
+                                labelText: 'Login ID (Read-only)',
+                                prefixIcon: Icon(Icons.account_circle_outlined),
+                              ),
+                              controller: TextEditingController(
+                                text: widget.staff.loginId,
+                              ),
+                              readOnly: true,
+                            ),
+                            const SizedBox(height: AppSpacing.lg),
+                            AppTextField(
+                              label: 'Email',
+                              hintText: 'Email address',
+                              icon: AppIcons.email,
+                              controller: _emailController,
+                            ),
+                            const SizedBox(height: AppSpacing.lg),
+                            AppTextField(
+                              label: 'Mobile Number',
+                              hintText: 'Mobile number',
+                              icon: AppIcons.phone,
+                              controller: _mobileController,
+                            ),
+                            const SizedBox(height: AppSpacing.lg),
+                            AppTextField(
+                              label: 'Department',
+                              hintText: 'e.g. Laundry, Finance',
+                              icon: AppIcons.branch,
+                              controller: _departmentController,
+                            ),
+                            if (_accessPolicy.isOwner) ...<Widget>[
+                              const SizedBox(height: AppSpacing.xxxl),
+                              _buildSectionTitle('ROLE & ACCESS'),
+                              _buildRoleDropdown(),
+                              if (_currentRoleInfo != null)
+                                _buildRolePreview(_currentRoleInfo!),
+                              const SizedBox(height: AppSpacing.xxxl),
+                              _buildSectionTitle('BRANCH ASSIGNMENT'),
+                              _buildBranchSelection(),
+                            ],
+                            const SizedBox(height: AppSpacing.xxxl),
+                          ],
                         ),
                       ),
-                      _buildBottomBar(),
-                    ],
+                    ),
                   ),
+                  _buildBottomBar(),
+                ],
+              ),
       ),
     );
   }
@@ -206,7 +221,10 @@ class _EditStaffScreenState extends State<EditStaffScreen> {
   Widget _buildSectionTitle(String title) {
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.md),
-      child: Text(title, style: AppTextStyles.label.copyWith(color: AppColors.textSubtle)),
+      child: Text(
+        title,
+        style: AppTextStyles.label.copyWith(color: AppColors.textSubtle),
+      ),
     );
   }
 
@@ -222,16 +240,13 @@ class _EditStaffScreenState extends State<EditStaffScreen> {
     }
 
     return DropdownButtonFormField<String>(
-      value: roles.contains(_selectedRole) ? _selectedRole : 'Staff',
+      initialValue: roles.contains(_selectedRole) ? _selectedRole : 'Staff',
       decoration: const InputDecoration(
         labelText: 'Select Role *',
         prefixIcon: Icon(AppIcons.user),
       ),
       items: roles.map((role) {
-        return DropdownMenuItem(
-          value: role,
-          child: Text(role),
-        );
+        return DropdownMenuItem(value: role, child: Text(role));
       }).toList(),
       onChanged: (value) {
         if (value != null) {
@@ -248,27 +263,37 @@ class _EditStaffScreenState extends State<EditStaffScreen> {
       margin: const EdgeInsets.only(top: AppSpacing.md),
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
-        color: AppColors.primary.withOpacity(0.05),
+        color: AppColors.primary.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(AppRadius.md),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('${role.role} — ${role.permissions.length} permissions',
-              style: AppTextStyles.bodyMedium
-                  .copyWith(fontWeight: FontWeight.bold, color: AppColors.primary)),
+          Text(
+            '${role.role} — ${role.permissions.length} permissions',
+            style: AppTextStyles.bodyMedium.copyWith(
+              fontWeight: FontWeight.bold,
+              color: AppColors.primary,
+            ),
+          ),
           const SizedBox(height: AppSpacing.sm),
-          ...role.permissions.map((p) => Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Icon(AppIcons.brandCheck, size: AppIconSizes.xs, color: AppColors.primary),
-                    const SizedBox(width: AppSpacing.sm),
-                    Expanded(child: Text(p, style: AppTextStyles.bodySmall)),
-                  ],
-                ),
-              )),
+          ...role.permissions.map(
+            (p) => Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(
+                    AppIcons.brandCheck,
+                    size: AppIconSizes.xs,
+                    color: AppColors.primary,
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  Expanded(child: Text(p, style: AppTextStyles.bodySmall)),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -295,7 +320,9 @@ class _EditStaffScreenState extends State<EditStaffScreen> {
             margin: const EdgeInsets.only(bottom: AppSpacing.md),
             padding: const EdgeInsets.all(AppSpacing.md),
             decoration: BoxDecoration(
-              color: isSelected ? AppColors.primary.withOpacity(0.05) : Colors.white,
+              color: isSelected
+                  ? AppColors.primary.withValues(alpha: 0.05)
+                  : Colors.white,
               borderRadius: BorderRadius.circular(AppRadius.md),
               border: Border.all(
                 color: isSelected ? AppColors.primary : AppColors.border,
@@ -304,15 +331,23 @@ class _EditStaffScreenState extends State<EditStaffScreen> {
             ),
             child: Row(
               children: [
-                Icon(AppIcons.branch,
-                    color: isSelected ? AppColors.primary : AppColors.textSubtle),
+                Icon(
+                  AppIcons.branch,
+                  color: isSelected ? AppColors.primary : AppColors.textSubtle,
+                ),
                 const SizedBox(width: AppSpacing.md),
                 Expanded(
-                  child: Text(branch.branchName,
-                      style: AppTextStyles.bodyMedium.copyWith(
-                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
+                  child: Text(
+                    branch.branchName,
+                    style: AppTextStyles.bodyMedium.copyWith(
+                      fontWeight: isSelected
+                          ? FontWeight.bold
+                          : FontWeight.normal,
+                    ),
+                  ),
                 ),
-                if (isSelected) const Icon(AppIcons.brandCheck, color: AppColors.primary),
+                if (isSelected)
+                  const Icon(AppIcons.brandCheck, color: AppColors.primary),
               ],
             ),
           ),

@@ -220,6 +220,34 @@ class ExpenseFilter {
 }
 
 @immutable
+class ExpenseStatistics {
+  const ExpenseStatistics({
+    required this.totalAmount,
+    required this.count,
+    required this.categoryCount,
+  });
+
+  final double totalAmount;
+  final int count;
+  final int categoryCount;
+
+  factory ExpenseStatistics.fromJson(Map<String, dynamic> json) {
+    double parseAmount(dynamic value) => value is num
+        ? value.toDouble()
+        : double.tryParse(value?.toString() ?? '') ?? 0;
+    int parseCount(dynamic value) => value is num
+        ? value.toInt()
+        : int.tryParse(value?.toString() ?? '') ?? 0;
+
+    return ExpenseStatistics(
+      totalAmount: parseAmount(json['totalAmount']),
+      count: parseCount(json['count']),
+      categoryCount: parseCount(json['categoryCount']),
+    );
+  }
+}
+
+@immutable
 class CreateExpenseRequest {
   const CreateExpenseRequest({
     required this.categoryId,

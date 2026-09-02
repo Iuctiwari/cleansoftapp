@@ -134,6 +134,27 @@ class BranchApiService {
     );
   }
 
+  /// GET /v1/branches/statistics
+  Future<BranchStatistics> statistics({BranchStatus? status}) async {
+    final Uri uri = Uri.parse('$_baseUrl/v1/branches/statistics').replace(
+      queryParameters: <String, String>{
+        if (status != null) 'status': branchStatusToJson(status),
+      },
+    );
+    final http.Response response = await _send(
+      () async => _client.get(uri, headers: await _headers()),
+    );
+    final Map<String, dynamic> envelope = _requireEnvelope(
+      _decodeBody(response),
+      response,
+    );
+    _throwIfError(envelope, response);
+    final Object? data = envelope['data'];
+    if (data is! Map<String, dynamic>)
+      throw _invalidResponse(response.statusCode);
+    return BranchStatistics.fromJson(data);
+  }
+
   /// POST /v1/branches
   Future<Branch> createBranch(CreateBranchInput input) async {
     final Map<String, String> headers = await _headers();

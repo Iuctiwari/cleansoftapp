@@ -9,6 +9,20 @@ interface TestRequest extends CustomerRequest {
 }
 
 describe('CustomerAuthenticationMiddleware', () => {
+  const validToken = [
+    'header',
+    Buffer.from(
+      JSON.stringify({
+        claims: {
+          userId: '64f0c18f7c4d2f0012ab34aa',
+          tenantId: '64f0c18f7c4d2f0012ab34bb',
+          roleCode: 'Staff',
+          permissions: ['customers:read', 'customers:write'],
+        },
+      }),
+    ).toString('base64url'),
+    'signature',
+  ].join('.');
   const middleware = new CustomerAuthenticationMiddleware(
     new ConfigService({ AUTH_SERVICE_BASE_URL: 'http://auth.test/api' }),
   );
@@ -34,7 +48,7 @@ describe('CustomerAuthenticationMiddleware', () => {
       ),
     ) as typeof fetch;
     const request: TestRequest = {
-      headers: { authorization: 'Bearer valid-token', 'x-branch-id': 'branch-b' },
+      headers: { authorization: `Bearer ${validToken}`, 'x-branch-id': 'branch-b' },
     };
     const next = jest.fn();
 
@@ -44,7 +58,7 @@ describe('CustomerAuthenticationMiddleware', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock.mock.calls[0][0]).toBe('http://auth.test/api/v1/auth/context');
     expect(fetchMock.mock.calls[0][1]?.headers).toEqual({
-      authorization: 'Bearer valid-token',
+      authorization: `Bearer ${validToken}`,
       'x-branch-id': 'branch-b',
     });
     expect(request.trustedContext).toMatchObject({

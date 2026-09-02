@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:nexoraa_mobile/features/authentication/authentication_models.dart';
 
@@ -24,6 +26,9 @@ final class SecureAuthTokenStorage implements AuthTokenStorage {
   static const String _ownerEmailKey = 'auth.owner_email';
   static const String _businessNameKey = 'auth.business_name';
   static const String _roleCodeKey = 'auth.role_code';
+  static const String _permissionsKey = 'auth.permissions';
+  static const String _branchIdKey = 'auth.branch_id';
+  static const String _branchNameKey = 'auth.branch_name';
 
   final FlutterSecureStorage _storage;
   static AuthenticationSession? _cachedSession;
@@ -50,6 +55,9 @@ final class SecureAuthTokenStorage implements AuthTokenStorage {
         _ownerEmailKey,
         _businessNameKey,
         _roleCodeKey,
+        _permissionsKey,
+        _branchIdKey,
+        _branchNameKey,
       ]) {
         try {
           await _storage.delete(key: key).timeout(_operationTimeout);
@@ -63,9 +71,9 @@ final class SecureAuthTokenStorage implements AuthTokenStorage {
   @override
   Future<AuthenticationSession?> read() async {
     try {
-      final Map<String, String> values = await _storage
-          .readAll()
-          .timeout(_operationTimeout);
+      final Map<String, String> values = await _storage.readAll().timeout(
+        _operationTimeout,
+      );
       final String? accessToken = values[_accessTokenKey];
       final String? refreshToken = values[_refreshTokenKey];
       final DateTime? accessExpiry = DateTime.tryParse(
@@ -96,6 +104,12 @@ final class SecureAuthTokenStorage implements AuthTokenStorage {
         ownerEmail: values[_ownerEmailKey],
         businessName: values[_businessNameKey],
         roleCode: values[_roleCodeKey] ?? 'tenant_owner',
+        permissions:
+            (jsonDecode(values[_permissionsKey] ?? '[]') as List<dynamic>)
+                .whereType<String>()
+                .toList(growable: false),
+        branchId: values[_branchIdKey],
+        branchName: values[_branchNameKey],
       );
       _cachedSession = session;
       return session;
@@ -133,6 +147,9 @@ final class SecureAuthTokenStorage implements AuthTokenStorage {
       await _writeOptional(_ownerEmailKey, session.ownerEmail);
       await _writeOptional(_businessNameKey, session.businessName);
       await _writeOptional(_roleCodeKey, session.roleCode);
+      await _writeOptional(_permissionsKey, jsonEncode(session.permissions));
+      await _writeOptional(_branchIdKey, session.branchId);
+      await _writeOptional(_branchNameKey, session.branchName);
     } catch (_) {
       // Ignore storage write errors to allow app to continue
     }

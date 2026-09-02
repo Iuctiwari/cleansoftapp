@@ -42,7 +42,13 @@ void main() {
                   'userId': 'owner-1',
                   'displayName': 'Owner Name',
                   'email': 'owner@example.com',
+                  'roleCode': 'Owner',
                 },
+                'branch': <String, String>{
+                  'branchId': 'branch-1',
+                  'branchName': 'Assigned Branch',
+                },
+                'permissions': <String>['orders:read', 'orders:write'],
                 'tenant': <String, String>{
                   'tenantId': 'tenant-1',
                   'tenantSlug': 'alpha',
@@ -74,6 +80,10 @@ void main() {
         expect(session.ownerUserId, 'owner-1');
         expect(session.ownerName, 'Owner Name');
         expect(session.businessName, 'Alpha Laundry');
+        expect(session.roleCode, 'Owner');
+        expect(session.branchId, 'branch-1');
+        expect(session.branchName, 'Assigned Branch');
+        expect(session.permissions, contains('orders:read'));
         expect(storage.session, same(session));
         expect(await service.restoreSession(), same(session));
       },

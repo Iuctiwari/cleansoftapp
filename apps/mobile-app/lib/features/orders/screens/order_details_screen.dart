@@ -2,11 +2,16 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:nexoraa_mobile/design_system/design_system.dart';
+import 'package:nexoraa_mobile/features/authentication/access_policy.dart';
+import 'package:nexoraa_mobile/features/authentication/authentication_dependencies.dart';
 import 'package:nexoraa_mobile/features/orders/controllers/order_controller.dart';
 import 'package:nexoraa_mobile/features/orders/models/order.dart';
+import 'package:nexoraa_mobile/features/orders/screens/assign_worker_screen.dart';
 import 'package:nexoraa_mobile/features/orders/services/order_api_service.dart';
 import 'package:nexoraa_mobile/features/orders/widgets/order_widgets.dart';
 import 'package:nexoraa_mobile/features/receipt/screens/receipt_preview_screen.dart';
+import 'package:nexoraa_mobile/features/staff/models/staff_member.dart';
+import 'package:nexoraa_mobile/features/staff/services/staff_api_service.dart';
 
 class OrderDetailsScreen extends StatefulWidget {
   const OrderDetailsScreen({
@@ -26,6 +31,9 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
   late Future<_OrderDetailsData> _details;
   bool _isUpdatingStatus = false;
 
+  AccessPolicy get _accessPolicy =>
+      AccessPolicy.fromSession(AuthenticationDependencies.controller.session);
+
   @override
   void initState() {
     super.initState();
@@ -35,13 +43,22 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
   void _load() => _details = _fetchDetails();
 
   Future<_OrderDetailsData> _fetchDetails() async {
+    final session = AuthenticationDependencies.controller.session;
+    final tenantId = session?.tenantId ?? '';
     final List<Object> results = await Future.wait<Object>(<Future<Object>>[
       widget.controller.details(widget.orderId),
       widget.controller.history(widget.orderId),
+      if (tenantId.isNotEmpty)
+        StaffApiService(
+          tokenStorage: AuthenticationDependencies.tokenStorage,
+        ).getStaffMembers(tenantId).catchError((_) => <StaffMember>[])
+      else
+        Future.value(<StaffMember>[]),
     ]);
     return _OrderDetailsData(
       order: results[0] as Order,
       history: results[1] as List<OrderStatusHistory>,
+      staffMembers: results[2] as List<StaffMember>,
     );
   }
 
@@ -93,6 +110,75 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
     }
   }
 
+  Future<void> _openAssignWorkerScreen(Order order) async {
+    final bool? assigned = await Navigator.of(context).push<bool>(
+      MaterialPageRoute<bool>(
+        builder: (_) =>
+            AssignWorkerScreen(order: order, controller: widget.controller),
+      ),
+    );
+    if (assigned == true && mounted) {
+      setState(_load);
+    }
+  }
+
+  Future<void> _acceptAssignment(Order order) async {
+    if (_isUpdatingStatus) return;
+    setState(() => _isUpdatingStatus = true);
+    try {
+      await widget.controller.acceptAssignment(order.id);
+      if (!mounted) return;
+      setState(_load);
+      _message('Assignment accepted.');
+    } on OrderApiException catch (error) {
+      _message(error.message);
+    } finally {
+      if (mounted) setState(() => _isUpdatingStatus = false);
+    }
+  }
+
+  Future<void> _rejectAssignment(Order order) async {
+    if (_isUpdatingStatus) return;
+    setState(() => _isUpdatingStatus = true);
+    try {
+      await widget.controller.rejectAssignment(order.id);
+      if (!mounted) return;
+      _message('Assignment rejected.');
+      Navigator.of(context).pop();
+    } on OrderApiException catch (error) {
+      _message(error.message);
+      if (mounted) setState(() => _isUpdatingStatus = false);
+    }
+  }
+
+  Future<void> _transitionStatus(
+    Order order,
+    OrderStatus newStatus, {
+    String? note,
+  }) async {
+    if (_isUpdatingStatus) return;
+    setState(() => _isUpdatingStatus = true);
+    try {
+      await widget.controller.changeStatus(order.id, newStatus, note: note);
+      if (!mounted) return;
+      setState(_load);
+      _message('Order moved to ${newStatus.label}.');
+    } on OrderApiException catch (error) {
+      _message(error.message);
+    } finally {
+      if (mounted) setState(() => _isUpdatingStatus = false);
+    }
+  }
+
+  Future<void> _inProgress(Order order) async {
+    final String staffName = order.assignedTo ?? 'Staff';
+    final String? assignmentNote = order.assignment?.note?.trim();
+    final String note = (assignmentNote != null && assignmentNote.isNotEmpty)
+        ? 'Started by $staffName: $assignmentNote'
+        : 'Started by $staffName';
+    await _transitionStatus(order, OrderStatus.inProgress, note: note);
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('Order Detail')),
@@ -116,10 +202,25 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
             return _OrderDetailsContent(
               data: data,
               isUpdatingStatus: _isUpdatingStatus,
+              accessPolicy: _accessPolicy,
               onCall: () => unawaited(_call(data.order)),
               onWhatsApp: () => unawaited(_whatsApp(data.order)),
               onMarkDelivered: () => unawaited(_markDelivered(data.order)),
               onPrint: () => unawaited(_openReceipt(data.order)),
+              onAssignWorker: () =>
+                  unawaited(_openAssignWorkerScreen(data.order)),
+              onAcceptAssignment: () =>
+                  unawaited(_acceptAssignment(data.order)),
+              onRejectAssignment: () =>
+                  unawaited(_rejectAssignment(data.order)),
+              onInProgress: () => unawaited(_inProgress(data.order)),
+              onReady: () => unawaited(
+                _transitionStatus(
+                  data.order,
+                  OrderStatus.ready,
+                  note: 'All items pressed and packaged',
+                ),
+              ),
             );
           },
     ),
@@ -127,32 +228,74 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
 }
 
 class _OrderDetailsData {
-  const _OrderDetailsData({required this.order, required this.history});
+  const _OrderDetailsData({
+    required this.order,
+    required this.history,
+    this.staffMembers = const <StaffMember>[],
+  });
 
   final Order order;
   final List<OrderStatusHistory> history;
+  final List<StaffMember> staffMembers;
+
+  String resolveStaffName(String? idOrName) {
+    if (idOrName == null || idOrName.trim().isEmpty) return 'Worker';
+    for (final StaffMember staff in staffMembers) {
+      if (staff.id == idOrName || staff.loginId == idOrName) {
+        return staff.displayName;
+      }
+    }
+    return idOrName;
+  }
 }
 
 class _OrderDetailsContent extends StatelessWidget {
   const _OrderDetailsContent({
     required this.data,
     required this.isUpdatingStatus,
+    required this.accessPolicy,
     required this.onCall,
     required this.onWhatsApp,
     required this.onMarkDelivered,
     required this.onPrint,
+    required this.onAssignWorker,
+    required this.onAcceptAssignment,
+    required this.onRejectAssignment,
+    required this.onInProgress,
+    required this.onReady,
   });
 
   final _OrderDetailsData data;
   final bool isUpdatingStatus;
+  final AccessPolicy accessPolicy;
   final VoidCallback onCall;
   final VoidCallback onWhatsApp;
   final VoidCallback onMarkDelivered;
   final VoidCallback onPrint;
+  final VoidCallback onAssignWorker;
+  final VoidCallback onAcceptAssignment;
+  final VoidCallback onRejectAssignment;
+  final VoidCallback onInProgress;
+  final VoidCallback onReady;
 
   @override
   Widget build(BuildContext context) {
     final Order order = data.order;
+    final bool isStaff = accessPolicy.isStaff;
+    final String? assignedWorkerName =
+        order.assignedTo != null || order.assignment?.assignedTo != null
+        ? data.resolveStaffName(
+            order.assignment?.assignedTo ?? order.assignedTo,
+          )
+        : null;
+    final bool isPendingStaffAcceptance =
+        isStaff &&
+        order.assignedTo != null &&
+        order.status != OrderStatus.accepted &&
+        order.status != OrderStatus.rejected &&
+        order.assignment?.status != 'Accepted' &&
+        order.assignment?.status != 'Rejected';
+
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints constraints) {
         final double horizontalPadding =
@@ -175,9 +318,32 @@ class _OrderDetailsContent extends StatelessWidget {
             const SizedBox(height: AppSpacing.lgPlus),
             _PaymentCard(order: order),
             const SizedBox(height: AppSpacing.lgPlus),
-            _AssignmentCard(order: order),
+            if (isStaff) ...<Widget>[
+              if (isPendingStaffAcceptance)
+                _StaffAssignmentActionsCard(
+                  order: order,
+                  isUpdatingStatus: isUpdatingStatus,
+                  onAccept: onAcceptAssignment,
+                  onReject: onRejectAssignment,
+                )
+              else if (order.assignedTo != null)
+                _StaffAcceptedAssignmentCard(order: order),
+            ] else ...<Widget>[
+              _AssignmentCard(
+                order: order,
+                canManage: accessPolicy.allows(AppCapability.ordersAssign),
+                onAssignOrReassign: onAssignWorker,
+                assignedWorkerName: assignedWorkerName,
+              ),
+            ],
             const SizedBox(height: AppSpacing.lgPlus),
-            _TimelineCard(history: data.history, currentStatus: order.status),
+            _TimelineCard(
+              history: data.history,
+              order: order,
+              currentStatus: order.status,
+              assignedWorkerName: assignedWorkerName,
+              isStaff: isStaff,
+            ),
             if (order.expectedDeliveryDate != null ||
                 order.deliveryDate != null) ...<Widget>[
               const SizedBox(height: AppSpacing.lgPlus),
@@ -187,13 +353,215 @@ class _OrderDetailsContent extends StatelessWidget {
             _BottomActions(
               order: order,
               isUpdatingStatus: isUpdatingStatus,
+              accessPolicy: accessPolicy,
               onWhatsApp: onWhatsApp,
               onMarkDelivered: onMarkDelivered,
               onPrint: onPrint,
+              onInProgress: onInProgress,
+              onReady: onReady,
             ),
           ],
         );
       },
+    );
+  }
+}
+
+class _StaffAssignmentActionsCard extends StatelessWidget {
+  const _StaffAssignmentActionsCard({
+    required this.order,
+    required this.isUpdatingStatus,
+    required this.onAccept,
+    required this.onReject,
+  });
+
+  final Order order;
+  final bool isUpdatingStatus;
+  final VoidCallback onAccept;
+  final VoidCallback onReject;
+
+  @override
+  Widget build(BuildContext context) => AppCard(
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: const <Widget>[
+            _SectionLabel('New Assignment'),
+            AppStatusBadge(
+              label: 'Action Required',
+              tone: AppBadgeTone.warning,
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.md),
+        Text(
+          'You have been assigned to process this order. Please accept to begin work or reject if unavailable.',
+          style: AppTextStyles.bodySmall,
+        ),
+        const SizedBox(height: AppSpacing.lg),
+        Row(
+          children: <Widget>[
+            Expanded(
+              child: SizedBox(
+                height: AppSizes.buttonLargeHeight,
+                child: OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: Colors.black,
+                    side: const BorderSide(color: AppColors.border),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.sm),
+                    ),
+                  ),
+                  onPressed: isUpdatingStatus ? null : onReject,
+                  child: Text(
+                    'Reject Assignment',
+                    style: AppTextStyles.buttonMedium.copyWith(
+                      color: Colors.black,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: SizedBox(
+                height: AppSizes.buttonLargeHeight,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.sm),
+                    ),
+                  ),
+                  onPressed: isUpdatingStatus ? null : onAccept,
+                  child: Text(
+                    'Accept Assignment',
+                    style: AppTextStyles.buttonMedium.copyWith(
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    ),
+  );
+}
+
+class _StaffAcceptedAssignmentCard extends StatelessWidget {
+  const _StaffAcceptedAssignmentCard({required this.order});
+
+  final Order order;
+
+  @override
+  Widget build(BuildContext context) {
+    final OrderAssignment? assignment = order.assignment;
+    final String assignedTo =
+        assignment?.assignedTo ?? order.assignedTo ?? 'You';
+
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          const _SectionLabel('Assignment'),
+          const SizedBox(height: AppSpacing.lg),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: <Widget>[
+              CircleAvatar(
+                radius: 20,
+                backgroundColor: const Color(0xFF6C38CC),
+                foregroundColor: Colors.white,
+                child: Text(
+                  _getInitials(assignedTo),
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.lg),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      assignedTo,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF0F172A),
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Staff · Assigned',
+                      style: AppTextStyles.caption.copyWith(
+                        color: AppColors.textSubtle,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.xs),
+                    Wrap(
+                      spacing: AppSpacing.sm,
+                      runSpacing: AppSpacing.xs,
+                      children: <Widget>[
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF5F3FF),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: const Color(0xFFDDD6FE)),
+                          ),
+                          child: const Text(
+                            'Accepted',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF7C3AED),
+                            ),
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFEFF6FF),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            order.status == OrderStatus.inProgress
+                                ? 'Processing'
+                                : order.status.label,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF2563EB),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
@@ -247,10 +615,34 @@ class _OrderHeaderCard extends StatelessWidget {
               ),
             ),
             const SizedBox(width: AppSpacing.lg),
-            AppStatusBadge(
-              label: order.status.label,
-              tone: orderStatusTone(order.status),
-            ),
+            if (order.status == OrderStatus.assigned ||
+                order.status == OrderStatus.accepted)
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 3,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF5F3FF),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFDDD6FE)),
+                ),
+                child: Text(
+                  order.status == OrderStatus.accepted
+                      ? 'Accepted'
+                      : 'Assigned',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF7C3AED),
+                  ),
+                ),
+              )
+            else
+              AppStatusBadge(
+                label: order.status.label,
+                tone: orderStatusTone(order.status),
+              ),
           ],
         ),
         const SizedBox(height: AppSpacing.lgPlus),
@@ -550,77 +942,218 @@ class _PaymentCard extends StatelessWidget {
 }
 
 class _AssignmentCard extends StatelessWidget {
-  const _AssignmentCard({required this.order});
+  const _AssignmentCard({
+    required this.order,
+    required this.canManage,
+    required this.onAssignOrReassign,
+    this.assignedWorkerName,
+  });
 
   final Order order;
+  final bool canManage;
+  final VoidCallback onAssignOrReassign;
+  final String? assignedWorkerName;
 
   @override
   Widget build(BuildContext context) {
     final OrderAssignment? assignment = order.assignment;
     final String? assignedTo = assignment?.assignedTo ?? order.assignedTo;
+    final String displayName = assignedWorkerName ?? assignedTo ?? 'Worker';
+    final bool isRejected =
+        assignment?.status == 'Rejected' ||
+        order.status == OrderStatus.rejected;
+    final bool isAccepted =
+        assignment?.status == 'Accepted' ||
+        order.status == OrderStatus.accepted;
+    final String assignmentStatus = isRejected
+        ? 'Rejected'
+        : isAccepted
+        ? 'Accepted'
+        : (assignedTo != null ? 'Assignment Pending' : 'Unassigned');
+    final Color statusBg = isRejected
+        ? const Color(0xFFFEF2F2)
+        : isAccepted
+        ? const Color(0xFFECFDF5)
+        : const Color(0xFFF5F3FF);
+    final Color statusFg = isRejected
+        ? const Color(0xFFEF4444)
+        : isAccepted
+        ? const Color(0xFF10B981)
+        : const Color(0xFF7C3AED);
+
     return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          const _SectionLabel('Worker Assignment'),
+          const _SectionLabel('Assignment'),
           const SizedBox(height: AppSpacing.lg),
-          if (assignedTo == null)
-            Text('No worker assigned', style: AppTextStyles.bodySmall)
-          else ...<Widget>[
+          if (assignedTo == null) ...<Widget>[
+            Text('No worker assigned', style: AppTextStyles.bodySmall),
+            if (canManage) ...<Widget>[
+              const SizedBox(height: AppSpacing.lg),
+              SizedBox(
+                width: double.infinity,
+                height: AppSizes.buttonLargeHeight,
+                child: ElevatedButton.icon(
+                  icon: const Icon(AppIcons.addUser, size: AppIconSizes.sm),
+                  label: const Text('Assign Worker'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.sm),
+                    ),
+                  ),
+                  onPressed: onAssignOrReassign,
+                ),
+              ),
+            ],
+          ] else ...<Widget>[
             Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: <Widget>[
-                const CircleAvatar(
-                  radius: AppSizes.avatar / 2,
-                  backgroundColor: AppColors.secondary,
-                  foregroundColor: AppColors.surface,
-                  child: Icon(AppIcons.userAssigned, size: AppIconSizes.md),
+                CircleAvatar(
+                  radius: 20,
+                  backgroundColor: const Color(0xFF6C38CC),
+                  foregroundColor: Colors.white,
+                  child: Text(
+                    _getInitials(displayName),
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
                 ),
                 const SizedBox(width: AppSpacing.lg),
                 Expanded(
-                  child: Text(
-                    assignedTo,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppTextStyles.bodyMedium.copyWith(
-                      fontWeight: AppFontWeights.bold,
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(
+                        displayName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF0F172A),
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Manager · Main Branch',
+                        style: AppTextStyles.caption.copyWith(
+                          color: AppColors.textSubtle,
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.xs),
+                      Wrap(
+                        spacing: AppSpacing.sm,
+                        runSpacing: AppSpacing.xs,
+                        children: <Widget>[
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: statusBg,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              assignmentStatus,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: statusFg,
+                              ),
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFEFF6FF),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              order.status == OrderStatus.inProgress
+                                  ? 'Processing'
+                                  : order.status.label,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF2563EB),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
-            if (assignment != null) ...<Widget>[
-              const SizedBox(height: AppSpacing.sm),
-              _DetailLine('Status', assignment.status),
+            if (canManage) ...<Widget>[
+              const SizedBox(height: AppSpacing.lg),
+              Row(
+                children: <Widget>[
+                  Expanded(
+                    child: SizedBox(
+                      height: AppSizes.buttonLargeHeight,
+                      child: OutlinedButton.icon(
+                        icon: const Icon(
+                          AppIcons.refresh,
+                          size: AppIconSizes.sm,
+                          color: Colors.black87,
+                        ),
+                        label: const Text(
+                          'Reassign',
+                          style: TextStyle(color: Colors.black87),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          side: const BorderSide(color: AppColors.border),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(AppRadius.sm),
+                          ),
+                        ),
+                        onPressed: onAssignOrReassign,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    child: SizedBox(
+                      height: AppSizes.buttonLargeHeight,
+                      child: ElevatedButton.icon(
+                        icon: const Icon(
+                          AppIcons.addUser,
+                          size: AppIconSizes.sm,
+                          color: Colors.white,
+                        ),
+                        label: const Text(
+                          'Assign Worker',
+                          style: TextStyle(color: Colors.white),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(AppRadius.sm),
+                          ),
+                        ),
+                        onPressed: onAssignOrReassign,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ],
           ],
-          const SizedBox(height: AppSpacing.lg),
-          Row(
-            children: <Widget>[
-              Expanded(
-                child: Tooltip(
-                  message:
-                      'Worker selection is not available in the current app.',
-                  child: SecondaryButton(
-                    label: 'Reassign',
-                    icon: AppIcons.refresh,
-                    onPressed: null,
-                  ),
-                ),
-              ),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: Tooltip(
-                  message:
-                      'Worker selection is not available in the current app.',
-                  child: PrimaryButton(
-                    label: 'Assign Worker',
-                    icon: AppIcons.addUser,
-                    onPressed: null,
-                  ),
-                ),
-              ),
-            ],
-          ),
         ],
       ),
     );
@@ -628,35 +1161,57 @@ class _AssignmentCard extends StatelessWidget {
 }
 
 class _TimelineCard extends StatelessWidget {
-  const _TimelineCard({required this.history, required this.currentStatus});
+  const _TimelineCard({
+    required this.history,
+    required this.order,
+    required this.currentStatus,
+    this.assignedWorkerName,
+    this.isStaff = false,
+  });
 
   final List<OrderStatusHistory> history;
+  final Order order;
   final OrderStatus currentStatus;
+  final String? assignedWorkerName;
+  final bool isStaff;
 
   @override
-  Widget build(BuildContext context) => AppCard(
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        const _SectionLabel('Order Timeline'),
-        const SizedBox(height: AppSpacing.xl),
-        if (history.isEmpty)
-          Text(
-            'No status history is available for this order.',
-            style: AppTextStyles.bodySmall,
-          )
-        else
-          ...List<Widget>.generate(history.length, (int index) {
-            final OrderStatusHistory entry = history[index];
-            return _TimelineEntry(
-              entry: entry,
-              isLast: index == history.length - 1,
-              isCurrent: entry.newStatus == currentStatus,
-            );
-          }),
-      ],
-    ),
-  );
+  Widget build(BuildContext context) {
+    final List<OrderStatusHistory> displayHistory = isStaff
+        ? history
+              .where(
+                (OrderStatusHistory entry) =>
+                    entry.newStatus != OrderStatus.assigned,
+              )
+              .toList(growable: false)
+        : history;
+
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          const _SectionLabel('Order Timeline'),
+          const SizedBox(height: AppSpacing.xl),
+          if (displayHistory.isEmpty)
+            Text(
+              'No status history is available for this order.',
+              style: AppTextStyles.bodySmall,
+            )
+          else
+            ...List<Widget>.generate(displayHistory.length, (int index) {
+              final OrderStatusHistory entry = displayHistory[index];
+              return _TimelineEntry(
+                entry: entry,
+                isLast: index == displayHistory.length - 1,
+                isCurrent: entry.newStatus == currentStatus,
+                assignedWorkerName: assignedWorkerName,
+                isStaff: isStaff,
+              );
+            }),
+        ],
+      ),
+    );
+  }
 }
 
 class _TimelineEntry extends StatelessWidget {
@@ -664,15 +1219,24 @@ class _TimelineEntry extends StatelessWidget {
     required this.entry,
     required this.isLast,
     required this.isCurrent,
+    this.assignedWorkerName,
+    this.isStaff = false,
   });
 
   final OrderStatusHistory entry;
   final bool isLast;
   final bool isCurrent;
+  final String? assignedWorkerName;
+  final bool isStaff;
 
   @override
   Widget build(BuildContext context) {
     final _TimelineVisual visual = _timelineVisual(entry.newStatus);
+    final String subtitle = _subtitleText(
+      entry,
+      assignedWorkerName,
+      isStaff: isStaff,
+    );
     return IntrinsicHeight(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -747,14 +1311,15 @@ class _TimelineEntry extends StatelessWidget {
                     style: AppTextStyles.caption,
                   ),
                   Text(
-                    'Changed by ${entry.changedBy}',
+                    subtitle,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: AppTextStyles.caption.copyWith(
                       color: AppColors.textSubtle,
                     ),
                   ),
-                  if (entry.note != null) ...<Widget>[
+                  if (entry.note != null &&
+                      entry.note!.trim().isNotEmpty) ...<Widget>[
                     const SizedBox(height: AppSpacing.sm),
                     Container(
                       width: double.infinity,
@@ -763,13 +1328,34 @@ class _TimelineEntry extends StatelessWidget {
                         vertical: AppSpacing.sm,
                       ),
                       decoration: BoxDecoration(
-                        color: AppColors.background,
-                        borderRadius: AppRadius.inputRadius,
+                        color:
+                            entry.newStatus == OrderStatus.assigned ||
+                                entry.newStatus == OrderStatus.accepted
+                            ? const Color(0xFFF5F3FF)
+                            : const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(10),
                         border: Border(
-                          left: AppBorders.timelineAccent(visual.color),
+                          left: BorderSide(
+                            color:
+                                entry.newStatus == OrderStatus.assigned ||
+                                    entry.newStatus == OrderStatus.accepted
+                                ? const Color(0xFF7C3AED)
+                                : visual.color,
+                            width: 3,
+                          ),
                         ),
                       ),
-                      child: Text(entry.note!, style: AppTextStyles.caption),
+                      child: Text(
+                        entry.note!.trim(),
+                        style: TextStyle(
+                          fontSize: 13,
+                          color:
+                              entry.newStatus == OrderStatus.assigned ||
+                                  entry.newStatus == OrderStatus.accepted
+                              ? const Color(0xFF6B21A8)
+                              : const Color(0xFF475569),
+                        ),
+                      ),
                     ),
                   ],
                 ],
@@ -779,6 +1365,33 @@ class _TimelineEntry extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  String _subtitleText(
+    OrderStatusHistory entry,
+    String? workerName, {
+    bool isStaff = false,
+  }) {
+    final String resolvedWorker =
+        (workerName != null && workerName.trim().isNotEmpty)
+        ? workerName
+        : 'Worker';
+    if (entry.newStatus == OrderStatus.assigned) {
+      return 'Assigned to $resolvedWorker';
+    }
+    if (entry.newStatus == OrderStatus.accepted) {
+      return isStaff
+          ? 'Assignment accepted'
+          : 'Assignment accepted by $resolvedWorker';
+    }
+    if (entry.newStatus == OrderStatus.rejected) {
+      return isStaff ? 'Assignment rejected' : 'Rejected by $resolvedWorker';
+    }
+    if (entry.newStatus == OrderStatus.received ||
+        entry.newStatus == OrderStatus.draft) {
+      return 'Created by ${entry.changedBy}';
+    }
+    return 'Changed by ${entry.changedBy}';
   }
 }
 
@@ -814,22 +1427,100 @@ class _BottomActions extends StatelessWidget {
   const _BottomActions({
     required this.order,
     required this.isUpdatingStatus,
+    required this.accessPolicy,
     required this.onWhatsApp,
     required this.onMarkDelivered,
     required this.onPrint,
+    required this.onInProgress,
+    required this.onReady,
   });
 
   final Order order;
   final bool isUpdatingStatus;
+  final AccessPolicy accessPolicy;
   final VoidCallback onWhatsApp;
   final VoidCallback onMarkDelivered;
   final VoidCallback onPrint;
+  final VoidCallback onInProgress;
+  final VoidCallback onReady;
 
   @override
   Widget build(BuildContext context) {
-    final bool canDeliver =
-        order.status == OrderStatus.ready ||
-        order.status == OrderStatus.outForDelivery;
+    if (accessPolicy.isStaff) {
+      if (order.status == OrderStatus.accepted) {
+        return SizedBox(
+          width: double.infinity,
+          height: AppSizes.buttonLargeHeight,
+          child: ElevatedButton.icon(
+            icon: const Icon(AppIcons.clock, size: AppIconSizes.md),
+            label: Text(
+              isUpdatingStatus ? 'Updating...' : 'In Progress',
+              style: AppTextStyles.buttonMedium,
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              shape: const RoundedRectangleBorder(
+                borderRadius: AppRadius.buttonRadius,
+              ),
+            ),
+            onPressed: isUpdatingStatus ? null : onInProgress,
+          ),
+        );
+      } else if (order.status == OrderStatus.inProgress) {
+        return SizedBox(
+          width: double.infinity,
+          height: AppSizes.buttonLargeHeight,
+          child: ElevatedButton.icon(
+            icon: const Icon(AppIcons.package, size: AppIconSizes.md),
+            label: Text(
+              isUpdatingStatus ? 'Updating...' : 'Ready',
+              style: AppTextStyles.buttonMedium,
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.success,
+              foregroundColor: Colors.white,
+              shape: const RoundedRectangleBorder(
+                borderRadius: AppRadius.buttonRadius,
+              ),
+            ),
+            onPressed: isUpdatingStatus ? null : onReady,
+          ),
+        );
+      } else {
+        return const SizedBox.shrink();
+      }
+    }
+
+    final bool isDeliveredOrCancelled =
+        order.status == OrderStatus.delivered ||
+        order.status == OrderStatus.cancelled;
+    final bool isReady = order.status == OrderStatus.ready;
+
+    if (isDeliveredOrCancelled) {
+      return Row(
+        children: <Widget>[
+          Expanded(
+            child: _CompactActionButton(
+              label: 'Print',
+              icon: AppIcons.print,
+              onPressed: onPrint,
+              primary: false,
+            ),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: _CompactActionButton(
+              label: 'WhatsApp',
+              icon: AppIcons.share,
+              onPressed: onWhatsApp,
+              primary: false,
+            ),
+          ),
+        ],
+      );
+    }
+
     return Row(
       children: <Widget>[
         Expanded(
@@ -856,7 +1547,7 @@ class _BottomActions extends StatelessWidget {
           flex: 4,
           child: _CompactActionButton(
             label: isUpdatingStatus ? 'Updating...' : 'Mark Delivered',
-            onPressed: canDeliver && !isUpdatingStatus ? onMarkDelivered : null,
+            onPressed: isReady && !isUpdatingStatus ? onMarkDelivered : null,
             primary: true,
           ),
         ),
@@ -971,6 +1662,21 @@ _TimelineVisual _timelineVisual(OrderStatus status) => switch (status) {
     color: AppColors.primary,
     background: AppColors.primarySurface,
   ),
+  OrderStatus.assigned => const _TimelineVisual(
+    icon: Icons.person_add_alt_1,
+    color: Color(0xFF7C3AED),
+    background: Color(0xFFF5F3FF),
+  ),
+  OrderStatus.accepted => const _TimelineVisual(
+    icon: Icons.how_to_reg,
+    color: Color(0xFF7C3AED),
+    background: Color(0xFFF5F3FF),
+  ),
+  OrderStatus.rejected => const _TimelineVisual(
+    icon: Icons.cancel_outlined,
+    color: Color(0xFFEF4444),
+    background: Color(0xFFFEF2F2),
+  ),
   OrderStatus.inProgress => const _TimelineVisual(
     icon: AppIcons.clock,
     color: AppColors.warning,
@@ -1012,4 +1718,14 @@ String _orderServicesSummary(Order order) {
       .map((OrderItem item) => item.serviceName)
       .toSet()
       .join(', ');
+}
+
+String _getInitials(String name) {
+  final List<String> parts = name.trim().split(RegExp(r'\s+'));
+  if (parts.isEmpty || parts[0].isEmpty) return 'W';
+  if (parts.length == 1) {
+    final s = parts[0];
+    return s.length >= 2 ? s.substring(0, 2).toUpperCase() : s.toUpperCase();
+  }
+  return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
 }

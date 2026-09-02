@@ -24,6 +24,7 @@
     "@nestjs/swagger": "^11.4.6",
     "@nexoraa/config": "workspace:*",
     "@nexoraa/database": "workspace:*",
+    "@nexoraa/shared": "workspace:*",
     "@nexoraa/swagger": "workspace:*",
     "@nexoraa/utils": "workspace:*",
     "bullmq": "5.53.1",
@@ -33,5 +34,8 @@
     "mongoose": "8.15.0",
     "reflect-metadata": "0.2.2",
     "rxjs": "7.8.2"
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0"
   }
 }

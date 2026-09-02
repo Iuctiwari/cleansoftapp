@@ -40,6 +40,10 @@ class Branch {
     this.openingTime,
     this.closingTime,
     this.managerId,
+    this.managerName,
+    this.totalStaff = 0,
+    this.totalOrders = 0,
+    this.ordersToday = 0,
   });
 
   factory Branch.fromJson(Map<String, dynamic> json) {
@@ -58,6 +62,10 @@ class Branch {
       openingTime: _optionalString(json, 'openingTime'),
       closingTime: _optionalString(json, 'closingTime'),
       managerId: _optionalString(json, 'managerId'),
+      managerName: _optionalString(json, 'managerName'),
+      totalStaff: _nonNegativeInt(json['totalStaff']),
+      totalOrders: _nonNegativeInt(json['totalOrders']),
+      ordersToday: _nonNegativeInt(json['ordersToday']),
       isHeadOffice: json['isHeadOffice'] as bool? ?? false,
       status: branchStatusFromJson(json['status'] as String? ?? 'active'),
       createdAt: _requiredString(json, 'createdAt'),
@@ -79,6 +87,10 @@ class Branch {
   final String? openingTime;
   final String? closingTime;
   final String? managerId;
+  final String? managerName;
+  final int totalStaff;
+  final int totalOrders;
+  final int ordersToday;
   final bool isHeadOffice;
   final BranchStatus status;
   final String createdAt;
@@ -97,6 +109,31 @@ class Branch {
     if (value is String && value.isNotEmpty) return value;
     return null;
   }
+
+  static int _nonNegativeInt(Object? value) =>
+      value is num && value >= 0 ? value.toInt() : 0;
+}
+
+class BranchStatistics {
+  const BranchStatistics({
+    required this.totalBranches,
+    required this.totalStaff,
+    required this.totalOrders,
+    required this.ordersToday,
+  });
+
+  factory BranchStatistics.fromJson(Map<String, dynamic> json) =>
+      BranchStatistics(
+        totalBranches: Branch._nonNegativeInt(json['totalBranches']),
+        totalStaff: Branch._nonNegativeInt(json['totalStaff']),
+        totalOrders: Branch._nonNegativeInt(json['totalOrders']),
+        ordersToday: Branch._nonNegativeInt(json['ordersToday']),
+      );
+
+  final int totalBranches;
+  final int totalStaff;
+  final int totalOrders;
+  final int ordersToday;
 }
 
 class BranchListResult {

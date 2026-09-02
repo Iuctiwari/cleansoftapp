@@ -30,6 +30,8 @@ describe('ExpenseController', () => {
     actorId: 'user_123',
     tenantId: '64f0c18f7c4d2f0012ab34aa',
     branchId: 'branch_01',
+    roleCode: 'Owner',
+    permissions: [],
   };
 
   const mockRequest: ExpenseRequest = {

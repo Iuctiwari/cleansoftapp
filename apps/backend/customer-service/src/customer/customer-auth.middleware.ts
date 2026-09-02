@@ -21,6 +21,15 @@ interface AuthContextEnvelope {
   };
 }
 
+interface AccessTokenEnvelope {
+  readonly claims?: {
+    readonly userId?: string;
+    readonly tenantId?: string;
+    readonly roleCode?: string;
+    readonly permissions?: readonly string[];
+  };
+}
+
 type NextFunction = () => void;
 
 @Injectable()
@@ -64,7 +73,16 @@ export class CustomerAuthenticationMiddleware implements NestMiddleware {
 
     const envelope = (await response.json()) as AuthContextEnvelope;
     const context = envelope.data;
-    if (!context?.actorId || !context.tenantId || !context.branchId || context.kind !== 'tenant') {
+    const claims = this.readClaims(authorization.slice('Bearer '.length));
+    if (
+      !context?.actorId ||
+      !context.tenantId ||
+      !context.branchId ||
+      context.kind !== 'tenant' ||
+      claims.userId !== context.actorId ||
+      claims.tenantId !== context.tenantId ||
+      !claims.roleCode
+    ) {
       throw new UnauthorizedException('Invalid authenticated context');
     }
     request.trustedContext = {
@@ -72,6 +90,8 @@ export class CustomerAuthenticationMiddleware implements NestMiddleware {
       kind: context.kind,
       tenantId: context.tenantId,
       branchId: context.branchId,
+      roleCode: claims.roleCode,
+      permissions: Object.freeze([...(claims.permissions ?? [])]),
     };
     next();
   }
@@ -79,5 +99,17 @@ export class CustomerAuthenticationMiddleware implements NestMiddleware {
   private header(request: CustomerAuthenticationRequest, name: string): string | undefined {
     const value = request.headers[name];
     return Array.isArray(value) ? value[0] : value;
+  }
+
+  private readClaims(token: string): NonNullable<AccessTokenEnvelope['claims']> {
+    try {
+      const envelope = JSON.parse(
+        Buffer.from(token.split('.')[1], 'base64url').toString('utf8'),
+      ) as AccessTokenEnvelope;
+      if (envelope.claims) return envelope.claims;
+    } catch {
+      // Auth service already validates the signature; reject malformed local claims.
+    }
+    throw new UnauthorizedException('Invalid access token claims');
   }
 }

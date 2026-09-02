@@ -121,7 +121,13 @@ class InMemoryCustomerRepository implements CustomerRepository {
 const actorId = new Types.ObjectId().toHexString();
 const tenantOne = new Types.ObjectId().toHexString();
 const tenantTwo = new Types.ObjectId().toHexString();
-const scope: CustomerScope = { actorId, tenantId: tenantOne, branchId: 'branch-one' };
+const scope: CustomerScope = {
+  actorId,
+  tenantId: tenantOne,
+  branchId: 'branch-one',
+  roleCode: 'Owner',
+  permissions: [],
+};
 
 function createDto(name: string, mobile: string): CreateCustomerDto {
   return plainToInstance(CreateCustomerDto, {
@@ -234,15 +240,52 @@ describe('CustomerService', () => {
   it('does not reveal a customer from another tenant', async () => {
     const created = await service.create(scope, createDto('Asha', '+919876543208'));
     await expect(
-      service.getById({ actorId, tenantId: tenantTwo, branchId: scope.branchId }, created.id),
+      service.getById({ ...scope, tenantId: tenantTwo }, created.id),
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 
   it('does not reveal a customer from another branch', async () => {
     const created = await service.create(scope, createDto('Asha', '+919876543209'));
     await expect(
-      service.getById({ actorId, tenantId: scope.tenantId, branchId: 'branch-two' }, created.id),
+      service.getById({ ...scope, branchId: 'branch-two' }, created.id),
     ).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  it('allows Staff to read/create but rejects update and delete', async () => {
+    const staffScope: CustomerScope = {
+      ...scope,
+      roleCode: 'Staff',
+      permissions: ['customers:read', 'customers:write'],
+    };
+    const created = await service.create(staffScope, createDto('Staff Customer', '+919876543210'));
+    await expect(service.getById(staffScope, created.id)).resolves.toEqual(created);
+    await expect(
+      service.update(
+        staffScope,
+        created.id,
+        plainToInstance(UpdateCustomerDto, { name: 'Forbidden Update' }),
+      ),
+    ).rejects.toThrow('Customer management permission is required');
+    await expect(service.delete(staffScope, created.id)).rejects.toThrow(
+      'Customer delete permission is required',
+    );
+  });
+
+  it('allows Branch Manager customer management in the authenticated branch', async () => {
+    const managerScope: CustomerScope = {
+      ...scope,
+      roleCode: 'Branch Manager',
+      permissions: ['customers:read', 'customers:write', 'customers:delete'],
+    };
+    const created = await service.create(managerScope, createDto('Managed', '+919876543211'));
+    await expect(
+      service.update(
+        managerScope,
+        created.id,
+        plainToInstance(UpdateCustomerDto, { name: 'Updated' }),
+      ),
+    ).resolves.toEqual(expect.objectContaining({ name: 'Updated' }));
+    await expect(service.delete(managerScope, created.id)).resolves.toBeUndefined();
   });
 
   it('rejects invalid customer data', async () => {
@@ -306,10 +349,10 @@ describe('CustomerService', () => {
     const created = await service.create(scope, createDto('Scoped', '+919876543298'));
 
     await expect(
-      service.delete({ actorId, tenantId: tenantTwo, branchId: scope.branchId }, created.id),
+      service.delete({ ...scope, tenantId: tenantTwo }, created.id),
     ).rejects.toBeInstanceOf(NotFoundException);
     await expect(
-      service.delete({ actorId, tenantId: tenantOne, branchId: 'branch-two' }, created.id),
+      service.delete({ ...scope, branchId: 'branch-two' }, created.id),
     ).rejects.toBeInstanceOf(NotFoundException);
     await expect(service.getById(scope, created.id)).resolves.toEqual(created);
   });

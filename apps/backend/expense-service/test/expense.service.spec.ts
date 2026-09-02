@@ -203,11 +203,35 @@ describe('ExpenseService', () => {
     actorId: 'user_123',
     tenantId: '64f0c18f7c4d2f0012ab34aa',
     branchId: 'branch_main',
+    roleCode: 'Owner',
+    permissions: [],
   };
 
   beforeEach(() => {
     repository = new InMemoryExpenseRepository();
     service = new ExpenseService(repository);
+  });
+
+  it('rejects Staff expense access', async () => {
+    await expect(
+      service.listExpenses(
+        { ...scope, roleCode: 'Staff', permissions: [] },
+        { page: 1, limit: 10 },
+      ),
+    ).rejects.toThrow('Expense read permission is required');
+  });
+
+  it('allows Branch Manager to read branch expenses', async () => {
+    await expect(
+      service.listExpenses(
+        {
+          ...scope,
+          roleCode: 'Branch Manager',
+          permissions: ['expenses:read', 'expenses:write'],
+        },
+        { page: 1, limit: 10 },
+      ),
+    ).resolves.toBeDefined();
   });
 
   describe('Categories', () => {

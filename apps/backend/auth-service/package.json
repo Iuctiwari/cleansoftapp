@@ -28,6 +28,7 @@
     "@nestjs/swagger": "^11.4.6",
     "@nexoraa/config": "workspace:*",
     "@nexoraa/database": "workspace:*",
+    "@nexoraa/shared": "workspace:*",
     "@nexoraa/swagger": "workspace:*",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",

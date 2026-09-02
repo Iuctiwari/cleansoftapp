@@ -30,6 +30,20 @@ export interface BranchRecord {
   readonly updatedAt: string;
 }
 
+export interface BranchMetrics {
+  readonly totalStaff: number;
+  readonly totalOrders: number;
+  readonly ordersToday: number;
+}
+
+export interface BranchView extends BranchRecord, BranchMetrics {
+  readonly managerName?: string;
+}
+
+export interface BranchStatistics extends BranchMetrics {
+  readonly totalBranches: number;
+}
+
 // Deliberately has no tenantId field — the service always derives tenantId
 // from the trusted context, never from caller input, so there is nothing
 // here to accidentally trust from the request body.
@@ -65,6 +79,7 @@ export interface UpdateBranchInput {
 }
 
 export interface BranchQueryFilters {
+  readonly branchId?: string;
   readonly status?: BranchStatus;
   readonly managerId?: string;
 }
@@ -122,18 +137,31 @@ export interface BranchLimitProvider {
 
 export const BRANCH_LIMIT_PROVIDER = Symbol('BRANCH_LIMIT_PROVIDER');
 
-/**
- * Unresolved-order lookup for branch deactivation. order-service has no
- * implementation yet (skeleton app only, no `orders` collection exists), so
- * there is nothing real to integrate with. This interface is the seam a real
- * order-service call plugs into later; the current implementation always
- * reports zero non-terminal orders, i.e. it never blocks deactivation.
- */
+/** Read-only unresolved-order lookup used by branch deactivation checks. */
 export interface OrdersGateway {
   countNonTerminalByBranch(tenantId: string, branchId: string): Promise<number>;
 }
 
 export const ORDERS_GATEWAY = Symbol('ORDERS_GATEWAY');
+
+/**
+ * Read-only operational projection used by Branch Management. It aggregates
+ * the existing users/orders collections through the shared Mongoose
+ * connection; it does not register schemas, create collections, or write
+ * data owned by another service.
+ */
+export interface BranchMetricsGateway {
+  getMetrics(
+    tenantId: string,
+    branchIds: readonly string[],
+  ): Promise<ReadonlyMap<string, BranchMetrics>>;
+  getManagerNames(
+    tenantId: string,
+    managerIds: readonly string[],
+  ): Promise<ReadonlyMap<string, string>>;
+}
+
+export const BRANCH_METRICS_GATEWAY = Symbol('BRANCH_METRICS_GATEWAY');
 
 export interface BranchAuthorizationContext {
   readonly trustedContext: TrustedContext;

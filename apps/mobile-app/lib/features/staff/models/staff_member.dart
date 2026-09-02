@@ -57,3 +57,21 @@ class StaffMember {
   String get mobileNumber => phone;
   String get department => departmentValue ?? '';
 }
+
+class StaffStatistics {
+  const StaffStatistics({
+    required this.totalStaff,
+    required this.activeStaff,
+    required this.inactiveStaff,
+  });
+
+  final int totalStaff;
+  final int activeStaff;
+  final int inactiveStaff;
+
+  factory StaffStatistics.fromJson(Map<String, dynamic> json) => StaffStatistics(
+    totalStaff: json['totalStaff'] as int? ?? 0,
+    activeStaff: json['activeStaff'] as int? ?? 0,
+    inactiveStaff: json['inactiveStaff'] as int? ?? 0,
+  );
+}

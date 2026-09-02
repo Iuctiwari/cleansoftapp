@@ -1,4 +1,11 @@
-import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { Permissions, hasPermission, isBranchManagerRole, isOwnerRole } from '@nexoraa/shared';
 
 import type {
   CreateExpenseCategoryDto,
@@ -28,6 +35,7 @@ export class ExpenseService {
     scope: ExpenseScope,
     dto: CreateExpenseCategoryDto,
   ): Promise<ExpenseCategoryRecord> {
+    this.assertOwner(scope);
     return this.expenseRepository.createCategory(scope, {
       categoryName: dto.categoryName,
       description: dto.description,
@@ -36,16 +44,19 @@ export class ExpenseService {
   }
 
   async listCategories(scope: ExpenseScope): Promise<ExpenseCategoryRecord[]> {
+    this.assertRead(scope);
     return this.expenseRepository.seedDefaultCategoriesIfEmpty(scope);
   }
 
   async getCategoryById(scope: ExpenseScope, id: string): Promise<ExpenseCategoryRecord> {
+    this.assertRead(scope);
     const category = await this.expenseRepository.findCategoryById(scope, id);
     if (!category) throw new NotFoundException('Expense category not found');
     return category;
   }
 
   async createExpense(scope: ExpenseScope, dto: CreateExpenseDto): Promise<ExpenseRecord> {
+    this.assertCreate(scope);
     if (dto.amount <= 0) {
       throw new BadRequestException('Expense amount must be greater than zero');
     }
@@ -67,6 +78,7 @@ export class ExpenseService {
   }
 
   async listExpenses(scope: ExpenseScope, query: ListExpensesQueryDto): Promise<ExpensePage> {
+    this.assertRead(scope);
     const listQuery: ExpenseListQuery = {
       page: query.page,
       limit: query.limit,
@@ -81,6 +93,7 @@ export class ExpenseService {
   }
 
   async getExpenseById(scope: ExpenseScope, id: string): Promise<ExpenseRecord> {
+    this.assertRead(scope);
     const expense = await this.expenseRepository.findById(scope, id);
     if (!expense) throw new NotFoundException('Expense not found');
     return expense;
@@ -91,6 +104,7 @@ export class ExpenseService {
     id: string,
     dto: UpdateExpenseDto,
   ): Promise<ExpenseRecord> {
+    this.assertOwner(scope);
     if (dto.amount !== undefined && dto.amount <= 0) {
       throw new BadRequestException('Expense amount must be greater than zero');
     }
@@ -117,6 +131,31 @@ export class ExpenseService {
   }
 
   async statistics(scope: ExpenseScope): Promise<ExpenseStatistics> {
+    this.assertRead(scope);
     return this.expenseRepository.statistics(scope);
+  }
+
+  private assertRead(scope: ExpenseScope): void {
+    if (
+      !(isOwnerRole(scope.roleCode) || isBranchManagerRole(scope.roleCode)) ||
+      !hasPermission(scope.roleCode, scope.permissions, Permissions.expensesRead)
+    ) {
+      throw new ForbiddenException('Expense read permission is required');
+    }
+  }
+
+  private assertCreate(scope: ExpenseScope): void {
+    if (
+      !(isOwnerRole(scope.roleCode) || isBranchManagerRole(scope.roleCode)) ||
+      !hasPermission(scope.roleCode, scope.permissions, Permissions.expensesWrite)
+    ) {
+      throw new ForbiddenException('Expense create permission is required');
+    }
+  }
+
+  private assertOwner(scope: ExpenseScope): void {
+    if (!isOwnerRole(scope.roleCode)) {
+      throw new ForbiddenException('Owner permission is required');
+    }
   }
 }

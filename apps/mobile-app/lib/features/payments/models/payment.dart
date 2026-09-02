@@ -85,6 +85,32 @@ class PaymentPage {
   final int totalPages;
 }
 
+class PaymentStatistics {
+  const PaymentStatistics({
+    required this.todayCollected,
+    required this.yesterdayCollected,
+    required this.todayCollectedCount,
+    required this.totalBills,
+    required this.successfulBills,
+  });
+
+  factory PaymentStatistics.fromJson(Map<String, dynamic> json) =>
+      PaymentStatistics(
+        todayCollected: _requiredNumber(json, 'todayCollectedMinor') / 100,
+        yesterdayCollected:
+            _requiredNumber(json, 'yesterdayCollectedMinor') / 100,
+        todayCollectedCount: _requiredInt(json, 'todayCollectedCount'),
+        totalBills: _requiredInt(json, 'totalBills'),
+        successfulBills: _requiredInt(json, 'successfulBills'),
+      );
+
+  final double todayCollected;
+  final double yesterdayCollected;
+  final int todayCollectedCount;
+  final int totalBills;
+  final int successfulBills;
+}
+
 Map<String, dynamic> _map(Object? value) {
   if (value is Map<String, dynamic>) return value;
   if (value is Map) return Map<String, dynamic>.from(value);

@@ -60,11 +60,13 @@ describe('Order Swagger contract', () => {
       operation(document, '/api/v1/orders/{id}', 'patch'),
       operation(document, '/api/v1/orders/{id}/status', 'patch'),
       operation(document, '/api/v1/orders/{id}/assign', 'post'),
+      operation(document, '/api/v1/orders/{id}/assignment/accept', 'post'),
+      operation(document, '/api/v1/orders/{id}/assignment/reject', 'post'),
       operation(document, '/api/v1/orders/{id}/cancel', 'post'),
       operation(document, '/api/v1/orders/{id}/history', 'get'),
       operation(document, '/api/v1/orders/{id}/payment-projection', 'post'),
     ];
-    expect(operations).toHaveLength(9);
+    expect(operations).toHaveLength(11);
     for (const route of operations) {
       expect(route.security).toContainEqual({ [JWT_AUTH_NAME]: [] });
       expect(route.responses?.['401']).toBeDefined();
@@ -79,6 +81,7 @@ describe('Order Swagger contract', () => {
       ['/api/v1/orders/{id}', 'patch'],
       ['/api/v1/orders/{id}/status', 'patch'],
       ['/api/v1/orders/{id}/assign', 'post'],
+      ['/api/v1/orders/{id}/assignment/reject', 'post'],
       ['/api/v1/orders/{id}/cancel', 'post'],
     ]) {
       expect(operation(document, path, method).requestBody).toBeDefined();
@@ -105,6 +108,8 @@ describe('Order Swagger contract', () => {
       '/api/v1/orders/{id}',
       '/api/v1/orders/{id}/status',
       '/api/v1/orders/{id}/assign',
+      '/api/v1/orders/{id}/assignment/accept',
+      '/api/v1/orders/{id}/assignment/reject',
       '/api/v1/orders/{id}/cancel',
       '/api/v1/orders/{id}/history',
     ]) {

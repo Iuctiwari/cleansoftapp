@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:nexoraa_mobile/design_system/design_system.dart';
 import 'package:nexoraa_mobile/features/authentication/authentication_dependencies.dart';
+import 'package:nexoraa_mobile/features/authentication/access_policy.dart';
 import 'package:nexoraa_mobile/features/authentication/screens/login_screen.dart';
 import 'package:nexoraa_mobile/features/authentication/screens/forgot_password_screen.dart';
 import 'package:nexoraa_mobile/features/authentication/screens/splash_screen.dart';
@@ -13,7 +14,6 @@ import 'package:nexoraa_mobile/features/staff/screens/staff_management_screen.da
 import 'package:nexoraa_mobile/features/staff/screens/register_staff_screen.dart';
 import 'package:nexoraa_mobile/features/staff/screens/view_staff_profile_screen.dart';
 import 'package:nexoraa_mobile/features/staff/screens/edit_staff_screen.dart';
-import 'package:nexoraa_mobile/features/staff/screens/staff_dummy_screen.dart';
 import 'package:nexoraa_mobile/features/staff/models/staff_member.dart';
 
 import '../features/tenant/models/registration_form.dart';
@@ -77,6 +77,25 @@ abstract final class AppRouteNames {
 }
 
 abstract final class AppRouter {
+  static String dashboardLocationForRole(
+    String? roleCode,
+  ) => switch (roleCode) {
+    'Staff' || 'staff' => AppRoutes.staffDashboard,
+    'Branch Manager' || 'branch_manager' => AppRoutes.staffDashboard,
+    'Owner' => AppRoutes.dashboard,
+    // No Cashier dashboard is currently implemented, so preserve its existing
+    // destination instead of assigning it another role's dashboard.
+    'Cashier' => AppRoutes.dashboard,
+    _ => AppRoutes.dashboard,
+  };
+
+  static RoleDashboardKind? roleDashboardKindForRole(String? roleCode) =>
+      switch (roleCode) {
+        'Staff' || 'staff' => RoleDashboardKind.staff,
+        'Branch Manager' || 'branch_manager' => RoleDashboardKind.branchManager,
+        _ => null,
+      };
+
   static final GoRouter router = GoRouter(
     initialLocation: AppRoutes.splash,
     refreshListenable: AuthenticationDependencies.controller,
@@ -85,32 +104,63 @@ abstract final class AppRouter {
           AuthenticationDependencies.controller.isAuthenticated;
       final String? role =
           AuthenticationDependencies.controller.session?.roleCode;
-      
+      final AccessPolicy accessPolicy = AccessPolicy.fromSession(
+        AuthenticationDependencies.controller.session,
+      );
+
       final bool openingDashboard =
           state.matchedLocation == AppRoutes.dashboard;
       final bool openingLogin = state.matchedLocation == AppRoutes.login;
-      final bool openingStaffDashboard = state.matchedLocation == AppRoutes.staffDashboard;
+      final bool openingStaffDashboard =
+          state.matchedLocation == AppRoutes.staffDashboard;
+      final bool openingProtectedArea =
+          state.matchedLocation.startsWith('/dashboard') ||
+          openingStaffDashboard;
 
-      if (!authenticated && (openingDashboard || openingStaffDashboard)) {
+      if (!authenticated && openingProtectedArea) {
         return AppRoutes.login;
       }
-      
+
       if (authenticated) {
-        final bool isStaff = role != 'tenant_owner' && role != 'platform_admin';
-        
+        final bool isRoleDashboard =
+            dashboardLocationForRole(role) == AppRoutes.staffDashboard;
+
         if (openingLogin) {
-          return isStaff ? AppRoutes.staffDashboard : AppRoutes.dashboard;
+          return isRoleDashboard
+              ? AppRoutes.staffDashboard
+              : AppRoutes.dashboard;
         }
-        
-        if (openingDashboard && isStaff) {
+
+        if (openingDashboard && isRoleDashboard) {
           return AppRoutes.staffDashboard;
         }
-        
-        if (openingStaffDashboard && !isStaff) {
+
+        if (openingStaffDashboard && !isRoleDashboard) {
           return AppRoutes.dashboard;
         }
+
+        final bool permitted = switch (state.name) {
+          AppRouteNames.branchList || AppRouteNames.branchDetails =>
+            accessPolicy.allows(AppCapability.branchesView),
+          AppRouteNames.branchEdit => accessPolicy.allows(
+            AppCapability.branchesEdit,
+          ),
+          AppRouteNames.branchAdd => accessPolicy.isOwner,
+          AppRouteNames.staffList || AppRouteNames.staffViewProfile =>
+            accessPolicy.allows(AppCapability.staffView),
+          AppRouteNames.staffRegister || AppRouteNames.staffEdit =>
+            accessPolicy.allows(AppCapability.staffManage),
+          AppRouteNames.notifications => accessPolicy.allows(
+            AppCapability.notificationsView,
+          ),
+          AppRouteNames.profile => accessPolicy.allows(
+            AppCapability.ownProfile,
+          ),
+          _ => true,
+        };
+        if (!permitted) return dashboardLocationForRole(role);
       }
-      
+
       return null;
     },
     routes: <RouteBase>[
@@ -159,9 +209,13 @@ abstract final class AppRouter {
         name: AppRouteNames.staffDashboard,
         path: AppRoutes.staffDashboard,
         pageBuilder: (BuildContext context, GoRouterState state) {
+          final String? role =
+              AuthenticationDependencies.controller.session?.roleCode;
           return _fadePage<void>(
             state: state,
-            child: const StaffDummyScreen(),
+            child: RoleDashboardScreen(
+              kind: roleDashboardKindForRole(role) ?? RoleDashboardKind.staff,
+            ),
           );
         },
       ),
@@ -240,10 +294,16 @@ abstract final class AppRouter {
         path: AppRoutes.notifications,
         pageBuilder: (BuildContext context, GoRouterState state) {
           final Object? extra = state.extra;
+          final session = AuthenticationDependencies.controller.session;
+          final AccessPolicy accessPolicy = AccessPolicy.fromSession(session);
           return _fadePage<void>(
             state: state,
             child: NotificationScreen(
-              branchId: extra is String ? extra : null,
+              branchId: extra is String
+                  ? extra
+                  : accessPolicy.isBranchManager
+                  ? session?.branchId
+                  : null,
               // Dashboard passes its app-wide, already-connected controller
               // here so the panel shows live data instead of opening a
               // second, screen-scoped WebSocket connection.

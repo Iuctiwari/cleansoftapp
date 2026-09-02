@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 
 import {
@@ -18,6 +18,7 @@ import { InMemoryTenantRepository } from './tenant.repository';
 import { TenantService } from './tenant.service';
 import { TENANT_REPOSITORY } from './tenant.types';
 import { TENANT_CATALOG_PROVISIONER } from './tenant.types';
+import { TenantAuthenticationMiddleware } from './tenant-auth.middleware';
 
 @Module({
   imports: [
@@ -44,7 +45,12 @@ import { TENANT_CATALOG_PROVISIONER } from './tenant.types';
     },
     // In-memory repository kept available for unit tests.
     InMemoryTenantRepository,
+    TenantAuthenticationMiddleware,
   ],
   exports: [TenantService],
 })
-export class TenantModule {}
+export class TenantModule implements NestModule {
+  configure(consumer: MiddlewareConsumer): void {
+    consumer.apply(TenantAuthenticationMiddleware).forRoutes(TenantController);
+  }
+}

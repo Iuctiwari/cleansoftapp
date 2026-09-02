@@ -10,6 +10,14 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
 import { DEFAULT_PAGE_NUMBER, DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from '@nexoraa/constants';
+import {
+  Permissions,
+  hasPermission,
+  isBranchManagerRole,
+  isCashierRole,
+  isOwnerRole,
+  isStaffRole,
+} from '@nexoraa/shared';
 import type { PaginatedResult } from '@nexoraa/types';
 import { FilterQuery, Model, Types } from 'mongoose';
 
@@ -21,13 +29,12 @@ import type {
   PaymentMethod,
   PaymentRecord,
   PaymentScope,
+  PaymentStatistics,
 } from './payment.types';
 
 const METHODS = new Set<PaymentMethod>(['Cash', 'Card', 'UPI']);
 const PAYMENT_TYPES = new Set(['Advance']);
 const PAYMENT_STATUSES = new Set(['Pending', 'Successful', 'Failed']);
-const WRITE_ROLES = new Set(['tenant_owner', 'branch_manager', 'cashier']);
-const READ_ROLES = new Set(['tenant_owner', 'branch_manager', 'cashier', 'staff']);
 
 interface NotifyInput {
   readonly type: string;
@@ -190,6 +197,94 @@ export class PaymentService {
     };
   }
 
+  async statistics(scope: PaymentScope, customerId?: string): Promise<PaymentStatistics> {
+    this.assertRead(scope);
+    const customerObjectId = customerId
+      ? new Types.ObjectId(this.objectId(customerId, 'customerId'))
+      : undefined;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const [result] = await this.payments
+      .aggregate<PaymentStatistics>([
+        {
+          $match: {
+            tenantId: new Types.ObjectId(scope.tenantId),
+            branchId: scope.branchId,
+            ...(customerObjectId ? { customerId: customerObjectId } : {}),
+          },
+        },
+        {
+          $group: {
+            _id: null,
+            totalBills: { $sum: 1 },
+            successfulBills: {
+              $sum: { $cond: [{ $eq: ['$status', 'Successful'] }, 1, 0] },
+            },
+            todayCollectedCount: {
+              $sum: {
+                $cond: [
+                  {
+                    $and: [
+                      { $eq: ['$status', 'Successful'] },
+                      { $gte: ['$createdAt', today] },
+                      { $lt: ['$createdAt', tomorrow] },
+                    ],
+                  },
+                  1,
+                  0,
+                ],
+              },
+            },
+            todayCollectedMinor: {
+              $sum: {
+                $cond: [
+                  {
+                    $and: [
+                      { $eq: ['$status', 'Successful'] },
+                      { $gte: ['$createdAt', today] },
+                      { $lt: ['$createdAt', tomorrow] },
+                    ],
+                  },
+                  '$amountMinor',
+                  0,
+                ],
+              },
+            },
+            yesterdayCollectedMinor: {
+              $sum: {
+                $cond: [
+                  {
+                    $and: [
+                      { $eq: ['$status', 'Successful'] },
+                      { $gte: ['$createdAt', yesterday] },
+                      { $lt: ['$createdAt', today] },
+                    ],
+                  },
+                  '$amountMinor',
+                  0,
+                ],
+              },
+            },
+          },
+        },
+        { $project: { _id: 0 } },
+      ])
+      .exec();
+    return (
+      result ?? {
+        successfulBills: 0,
+        todayCollectedCount: 0,
+        todayCollectedMinor: 0,
+        totalBills: 0,
+        yesterdayCollectedMinor: 0,
+      }
+    );
+  }
+
   private parseListQuery(input: Record<string, unknown>): PaymentListQuery {
     const page = this.positiveInt(input.page, DEFAULT_PAGE_NUMBER, 1);
     const limit = this.positiveInt(input.limit, DEFAULT_PAGE_SIZE, 1, MAX_PAGE_SIZE);
@@ -276,7 +371,18 @@ export class PaymentService {
   }
 
   private assertRead(scope: PaymentScope): void {
-    if (!READ_ROLES.has(scope.roleCode) || !scope.permissions.includes('orders:read')) {
+    if (
+      !(
+        isOwnerRole(scope.roleCode) ||
+        isBranchManagerRole(scope.roleCode) ||
+        isCashierRole(scope.roleCode)
+      ) ||
+      !(
+        hasPermission(scope.roleCode, scope.permissions, Permissions.paymentsRead) ||
+        scope.permissions.includes(Permissions.ordersRead) ||
+        (isCashierRole(scope.roleCode) && scope.permissions.includes('process:payments'))
+      )
+    ) {
       throw new ForbiddenException('Payment read permission is required');
     }
   }
@@ -395,7 +501,23 @@ export class PaymentService {
   }
 
   private assertWrite(scope: PaymentScope): void {
-    if (!WRITE_ROLES.has(scope.roleCode) || !scope.permissions.includes('orders:write')) {
+    if (
+      !(
+        isOwnerRole(scope.roleCode) ||
+        isBranchManagerRole(scope.roleCode) ||
+        isCashierRole(scope.roleCode) ||
+        isStaffRole(scope.roleCode)
+      ) ||
+      !(
+        hasPermission(scope.roleCode, scope.permissions, Permissions.paymentsWrite) ||
+        hasPermission(scope.roleCode, scope.permissions, Permissions.ordersWrite) ||
+        scope.permissions.includes(Permissions.ordersWrite) ||
+        scope.permissions.includes('orders:write') ||
+        scope.permissions.includes('payments:write') ||
+        (isCashierRole(scope.roleCode) && scope.permissions.includes('process:payments')) ||
+        (isStaffRole(scope.roleCode) && scope.permissions.length === 0)
+      )
+    ) {
       throw new ForbiddenException('Payment write permission is required');
     }
   }
