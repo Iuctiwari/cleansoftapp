@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/unbound-method */
 import { Permissions } from '@nexoraa/shared';
 import { BranchService } from '../src/branches/branch.service';
 import type {

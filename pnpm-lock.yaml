@@ -254,6 +254,10 @@ importers:
       rxjs:
         specifier: 7.8.2
         version: 7.8.2
+    devDependencies:
+      '@types/jest':
+        specifier: ^30.0.0
+        version: 30.0.0
 
   apps/backend/customer-service:
     dependencies:
