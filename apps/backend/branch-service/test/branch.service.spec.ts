@@ -119,11 +119,9 @@ describe('BranchService', () => {
         }
         return Promise.resolve(metricsMap);
       }),
-      getManagerNames: jest.fn().mockResolvedValue(
-        new Map([
-          ['60d5ecb8b392a71500000088', 'Alice Manager'],
-        ]),
-      ),
+      getManagerNames: jest
+        .fn()
+        .mockResolvedValue(new Map([['60d5ecb8b392a71500000088', 'Alice Manager']])),
     };
 
     service = new BranchService(

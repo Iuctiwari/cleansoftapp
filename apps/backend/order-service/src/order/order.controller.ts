@@ -224,7 +224,10 @@ export class OrderController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Accept the authenticated worker assignment' })
   @ApiParam(ID_PARAMETER)
-  @ApiOkResponse({ description: 'Assignment accepted and order lifecycle updated.', type: OrderResponseDto })
+  @ApiOkResponse({
+    description: 'Assignment accepted and order lifecycle updated.',
+    type: OrderResponseDto,
+  })
   @ApiUnauthorizedResponse({ description: 'A valid JWT is required.' })
   @ApiForbiddenResponse({ description: 'Only the assigned worker may accept the assignment.' })
   @ApiNotFoundResponse({ description: 'Order was not found in the authenticated scope.' })
@@ -242,7 +245,10 @@ export class OrderController {
   @ApiOperation({ summary: 'Reject the authenticated worker assignment' })
   @ApiParam(ID_PARAMETER)
   @ApiBody({ type: RejectAssignmentDto })
-  @ApiOkResponse({ description: 'Assignment rejected and order lifecycle updated.', type: OrderResponseDto })
+  @ApiOkResponse({
+    description: 'Assignment rejected and order lifecycle updated.',
+    type: OrderResponseDto,
+  })
   @ApiBadRequestResponse({ description: 'Rejection reason validation failed.' })
   @ApiUnauthorizedResponse({ description: 'A valid JWT is required.' })
   @ApiForbiddenResponse({ description: 'Only the assigned worker may reject the assignment.' })
