@@ -237,14 +237,20 @@ export class MongoTenantRepository implements TenantRepository {
           branchUpdate.city = input.location;
         }
 
-        if (Object.keys(tenantUpdate).length > 1) { // More than just updatedAt
-          await this.tenantModel.updateOne({ tenantId }, { $set: tenantUpdate }, { session }).exec();
+        if (Object.keys(tenantUpdate).length > 1) {
+          // More than just updatedAt
+          await this.tenantModel
+            .updateOne({ tenantId }, { $set: tenantUpdate }, { session })
+            .exec();
         }
         if (Object.keys(ownerUpdate).length > 0) {
           await this.ownerModel.updateOne({ tenantId }, { $set: ownerUpdate }, { session }).exec();
         }
-        if (Object.keys(branchUpdate).length > 1) { // More than just updatedAt
-          await this.branchModel.updateOne({ tenantId, isHeadOffice: true }, { $set: branchUpdate }, { session }).exec();
+        if (Object.keys(branchUpdate).length > 1) {
+          // More than just updatedAt
+          await this.branchModel
+            .updateOne({ tenantId, isHeadOffice: true }, { $set: branchUpdate }, { session })
+            .exec();
         }
       });
     } finally {

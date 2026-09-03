@@ -182,7 +182,9 @@ export class InMemoryTenantRepository implements TenantRepository {
   updateProfile(tenantId: string, input: UpdateTenantProfileInput): Promise<void> {
     const tenant = this.tenants.get(tenantId);
     const owner = [...this.owners.values()].find((item) => item.tenantId === tenantId);
-    const branch = [...this.branches.values()].find((item) => item.tenantId === tenantId && item.isHeadOffice);
+    const branch = [...this.branches.values()].find(
+      (item) => item.tenantId === tenantId && item.isHeadOffice,
+    );
     if (!tenant || !owner || !branch) return Promise.reject(new Error('Tenant not found'));
 
     const now = new Date().toISOString();
