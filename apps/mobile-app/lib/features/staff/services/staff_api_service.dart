@@ -27,6 +27,9 @@ class StaffApiException implements Exception {
     }
     return 'Staff Service Error';
   }
+
+  @override
+  String toString() => userMessage;
 }
 
 class StaffApiService {
@@ -45,9 +48,11 @@ class StaffApiService {
   static String _configuredBaseUrl() {
     if (dotenv.isInitialized) {
       final configured = dotenv.env[_environmentKey]?.trim();
+      print('StaffApiService._configuredBaseUrl: Loaded $configured from dotenv');
       if (configured != null && configured.isNotEmpty) return configured;
     }
-    return 'http://10.0.2.2:3002';
+    print('StaffApiService._configuredBaseUrl: Falling back to http://localhost:3002');
+    return 'http://localhost:3002';
   }
 
   static String _normalizeBaseUrl(String value) {
@@ -76,33 +81,17 @@ class StaffApiService {
   // ── Read ─────────────────────────────────────────────────────────────────
 
   Future<List<StaffMember>> getStaffMembers(String tenantId) async {
-    // MOCK data to bypass failed backend
-    return [
-      StaffMember(
-        id: 'mock_staff_1',
-        tenantId: tenantId,
-        email: 'mock@example.com',
-        phone: '1234567890',
-        status: 'Active',
-        role: 'Manager',
-        branches: ['mock_branch'],
-        firstName: 'Mock',
-        lastName: 'Staff',
-        loginId: 'mock123',
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-      )
-    ];
-  }
-  
-  Future<List<StaffMember>> _originalGetStaffMembers(String tenantId) async {
     final uri = Uri.parse('$_baseUrl/api/v1/users/tenant/$tenantId');
     final headers = await _authHeaders();
 
     late http.Response response;
     try {
+      print('StaffApiService.getStaffMembers: Calling GET $uri');
       response = await _client.get(uri, headers: headers).timeout(_requestTimeout);
-    } catch (e) {
+      print('StaffApiService.getStaffMembers: Response status ${response.statusCode}');
+    } catch (e, stack) {
+      print('StaffApiService.getStaffMembers: Error $e');
+      print('StaffApiService.getStaffMembers: StackTrace $stack');
       throw const StaffApiException(
         code: 'network_error',
         messageKey: 'network_error',
@@ -154,16 +143,132 @@ class StaffApiService {
     }
   }
 
-  Future<List<SystemRole>> getSystemRoles() async {
-    // MOCK data to bypass failed backend
-    return const [
-      SystemRole(role: 'Admin', description: 'Admin role', permissions: []),
-      SystemRole(role: 'Manager', description: 'Manager role', permissions: []),
-      SystemRole(role: 'Staff', description: 'Staff role', permissions: []),
-    ];
+  Future<StaffMember> getStaffMember(String userId) async {
+    final uri = Uri.parse('$_baseUrl/api/v1/users/$userId');
+    final headers = await _authHeaders();
+    late http.Response response;
+    try {
+      response = await _client.get(uri, headers: headers).timeout(_requestTimeout);
+    } catch (e) {
+      throw StaffApiException(
+        code: 'network_error',
+        messageKey: 'network_error',
+        statusCode: 0,
+        backendMessage: 'Unable to reach the staff service. Details: $e',
+      );
+    }
+
+    if (response.statusCode == 200) {
+      final Map<String, dynamic> decoded = jsonDecode(response.body);
+      return StaffMember.fromJson(decoded);
+    } else {
+      throw StaffApiException(
+        code: 'error',
+        messageKey: 'error',
+        statusCode: response.statusCode,
+        backendMessage: 'Failed to load staff profile.',
+      );
+    }
   }
 
-  Future<List<SystemRole>> _originalGetSystemRoles() async {
+  Future<Map<String, dynamic>> getTenantProfile(String tenantId) async {
+    final gatewayUrl = dotenv.env['API_BASE_URL']?.trim() ?? 'http://127.0.0.1:3000/api';
+    final uri = Uri.parse('$gatewayUrl/v1/tenants/$tenantId');
+    final headers = await _authHeaders();
+    late http.Response response;
+    try {
+      response = await _client.get(uri, headers: headers).timeout(_requestTimeout);
+    } catch (e) {
+      throw StaffApiException(
+        code: 'network_error',
+        messageKey: 'network_error',
+        statusCode: 0,
+        backendMessage: 'Unable to reach the tenant service. Details: $e',
+      );
+    }
+
+    if (response.statusCode == 200) {
+      final tenantData = jsonDecode(response.body) as Map<String, dynamic>;
+      
+      try {
+        final branchesUri = Uri.parse('$gatewayUrl/v1/tenants/$tenantId/branches');
+        final branchesRes = await _client.get(branchesUri, headers: headers).timeout(_requestTimeout);
+        if (branchesRes.statusCode == 200) {
+          final List branches = jsonDecode(branchesRes.body);
+          final headOffice = branches.cast<Map<String, dynamic>>().firstWhere(
+            (b) => b['isHeadOffice'] == true, 
+            orElse: () => <String, dynamic>{},
+          );
+          if (headOffice.isNotEmpty && headOffice['city'] != null) {
+            tenantData['location'] = headOffice['city'];
+          }
+        }
+      } catch (_) {
+        // Fallback silently if branches fail
+      }
+
+      return tenantData;
+    } else {
+      throw StaffApiException(
+        code: 'error',
+        messageKey: 'error',
+        statusCode: response.statusCode,
+        backendMessage: 'Failed to load tenant profile.',
+      );
+    }
+  }
+
+  Future<void> updateTenantProfile({
+    required String tenantId,
+    String? ownerName,
+    String? mobileNumber,
+    String? businessName,
+    String? location,
+  }) async {
+    final gatewayUrl = dotenv.env['API_BASE_URL']?.trim() ?? 'http://127.0.0.1:3000/api';
+    final uri = Uri.parse('$gatewayUrl/v1/tenants/$tenantId/profile');
+    final headers = await _authHeaders();
+    final body = <String, dynamic>{};
+    if (ownerName != null && ownerName.isNotEmpty) body['ownerName'] = ownerName;
+    if (mobileNumber != null && mobileNumber.isNotEmpty) body['mobileNumber'] = mobileNumber;
+    if (businessName != null && businessName.isNotEmpty) body['businessName'] = businessName;
+    if (location != null && location.isNotEmpty) body['location'] = location;
+
+    late http.Response response;
+    try {
+      response = await _client
+          .patch(uri, headers: headers, body: jsonEncode(body))
+          .timeout(_requestTimeout);
+    } catch (e) {
+      throw StaffApiException(
+        code: 'network_error',
+        messageKey: 'network_error',
+        statusCode: 0,
+        backendMessage: 'Unable to reach the tenant service. Details: $e',
+      );
+    }
+
+    if (response.statusCode != 200) {
+      String backendMessage = 'Failed to update profile.';
+      try {
+        final decoded = jsonDecode(response.body);
+        final msg = decoded['message'];
+        if (msg is List) {
+          backendMessage = msg.join('\n');
+        } else if (msg != null) {
+          backendMessage = msg.toString();
+        }
+      } catch (_) {}
+      throw StaffApiException(
+        code: 'error',
+        messageKey: 'error',
+        statusCode: response.statusCode,
+        backendMessage: backendMessage,
+      );
+    }
+  }
+
+  Future<List<SystemRole>> getSystemRoles() async {
     final uri = Uri.parse('$_baseUrl/api/v1/users/roles');
     final headers = await _authHeaders();
     late http.Response response;
@@ -239,11 +344,21 @@ class StaffApiService {
       return StaffMember.fromJson(decoded);
     } else {
       final decoded = jsonDecode(response.body);
+      String backendMessage = 'Failed to register staff.';
+      final msg = decoded['message'];
+      if (msg is List) {
+        backendMessage = msg.join('\n');
+      } else if (msg != null) {
+        backendMessage = msg.toString();
+      } else if (decoded['error'] is Map) {
+        backendMessage = decoded['error']['messageKey'] ?? decoded['error']['code'] ?? backendMessage;
+      }
+
       throw StaffApiException(
         code: 'error',
         messageKey: 'error',
         statusCode: response.statusCode,
-        backendMessage: decoded['message']?.toString() ?? 'Failed to register staff.',
+        backendMessage: backendMessage,
       );
     }
   }
@@ -276,13 +391,23 @@ class StaffApiService {
         body: jsonEncode(body),
       ).timeout(_requestTimeout);
 
-      if (response.statusCode != 200 && response.statusCode != 204) {
+      if (response.statusCode != 200) {
         final decoded = jsonDecode(response.body);
+        String backendMessage = 'Failed to update staff member.';
+        final msg = decoded['message'];
+        if (msg is List) {
+          backendMessage = msg.join('\n');
+        } else if (msg != null) {
+          backendMessage = msg.toString();
+        } else if (decoded['error'] is Map) {
+          backendMessage = decoded['error']['messageKey'] ?? decoded['error']['code'] ?? backendMessage;
+        }
+
         throw StaffApiException(
           code: 'error',
           messageKey: 'error',
           statusCode: response.statusCode,
-          backendMessage: decoded['message']?.toString() ?? 'Failed to update staff.',
+          backendMessage: backendMessage,
         );
       }
     } on StaffApiException {
@@ -313,11 +438,23 @@ class StaffApiService {
     try {
       final response = await _client.delete(uri, headers: headers).timeout(_requestTimeout);
       if (response.statusCode != 200 && response.statusCode != 204) {
+        String backendMessage = 'Failed to remove staff.';
+        try {
+          final decoded = jsonDecode(response.body);
+          final msg = decoded['message'];
+          if (msg is List) {
+            backendMessage = msg.join('\n');
+          } else if (msg != null) {
+            backendMessage = msg.toString();
+          } else if (decoded['error'] is Map) {
+            backendMessage = decoded['error']['messageKey'] ?? decoded['error']['code'] ?? backendMessage;
+          }
+        } catch (_) {}
         throw StaffApiException(
           code: 'error',
           messageKey: 'error',
           statusCode: response.statusCode,
-          backendMessage: 'Failed to remove staff.',
+          backendMessage: backendMessage,
         );
       }
     } on StaffApiException {
@@ -338,14 +475,33 @@ class StaffApiService {
     try {
       final response = await _client.patch(uri, headers: headers).timeout(_requestTimeout);
       if (response.statusCode != 204 && response.statusCode != 200) {
-        throw Exception();
+        String backendMessage = errorMessage;
+        try {
+          final decoded = jsonDecode(response.body);
+          final msg = decoded['message'];
+          if (msg is List) {
+            backendMessage = msg.join('\n');
+          } else if (msg != null) {
+            backendMessage = msg.toString();
+          } else if (decoded['error'] is Map) {
+            backendMessage = decoded['error']['messageKey'] ?? decoded['error']['code'] ?? backendMessage;
+          }
+        } catch (_) {}
+        throw StaffApiException(
+          code: 'error',
+          messageKey: 'error',
+          statusCode: response.statusCode,
+          backendMessage: backendMessage,
+        );
       }
+    } on StaffApiException {
+      rethrow;
     } catch (e) {
-      throw StaffApiException(
-        code: 'error',
-        messageKey: 'error',
+      throw const StaffApiException(
+        code: 'network_error',
+        messageKey: 'network_error',
         statusCode: 0,
-        backendMessage: errorMessage,
+        backendMessage: 'Unable to reach the staff service.',
       );
     }
   }

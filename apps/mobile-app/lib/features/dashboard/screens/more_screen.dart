@@ -396,7 +396,11 @@ class MoreProfileCard extends StatelessWidget {
                     ),
                     const SizedBox(height: AppSpacing.xxs),
                     Text(
-                      '$role · $businessName',
+                      businessName.length >= 24 && RegExp(r'^[a-fA-F0-9\-]+$').hasMatch(businessName)
+                          ? role
+                          : (businessName.trim().isEmpty || businessName == '—' 
+                              ? role 
+                              : '$role · $businessName'),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: AppTextStyles.captionBold.copyWith(

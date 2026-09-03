@@ -242,6 +242,36 @@ class _ViewStaffProfileScreenState extends State<ViewStaffProfileScreen> {
     );
   }
 
+  Widget _buildInfoRow(IconData icon, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.lg,
+        vertical: AppSpacing.md,
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: AppColors.textSubtle),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: AppTextStyles.caption.copyWith(
+                    color: AppColors.textSubtle,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(value, style: AppTextStyles.bodyMedium),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   String _getMonthYear(DateTime date) {
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     return '${months[date.month - 1]} ${date.year}';

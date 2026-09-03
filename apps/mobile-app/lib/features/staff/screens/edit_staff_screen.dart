@@ -120,7 +120,7 @@ class _EditStaffScreenState extends State<EditStaffScreen> {
       }
     } catch (e) {
       setState(() {
-        _errorMessage = e.toString();
+        _errorMessage = e is StaffApiException ? e.userMessage : e.toString();
         _isSubmitting = false;
       });
     }
@@ -164,16 +164,7 @@ class _EditStaffScreenState extends State<EditStaffScreen> {
                                   : null,
                             ),
                             const SizedBox(height: AppSpacing.lg),
-                            TextFormField(
-                              decoration: const InputDecoration(
-                                labelText: 'Login ID (Read-only)',
-                                prefixIcon: Icon(Icons.account_circle_outlined),
-                              ),
-                              controller: TextEditingController(
-                                text: widget.staff.loginId,
-                              ),
-                              readOnly: true,
-                            ),
+
                             const SizedBox(height: AppSpacing.lg),
                             AppTextField(
                               label: 'Email',

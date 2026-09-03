@@ -108,7 +108,7 @@ class _RegisterStaffScreenState extends State<RegisterStaffScreen> {
         name: _nameController.text.trim(),
         loginId: _emailController.text.trim().toLowerCase(),
         password: _passwordController.text,
-        email: _emailController.text.trim().toLowerCase(),
+        email: _emailController.text.trim().isEmpty ? null : _emailController.text.trim().toLowerCase(),
         mobileNumber: _mobileController.text.trim().isEmpty
             ? null
             : _mobileController.text.trim(),

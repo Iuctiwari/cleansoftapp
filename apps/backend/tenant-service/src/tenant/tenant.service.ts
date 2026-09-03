@@ -11,10 +11,11 @@ import {
   type CompleteTenantOnboardingOutput,
   type RegisterTenantInput,
   type RegisterTenantOutput,
-  type TenantOwnerRecord,
   type TenantCatalogProvisioner,
+  type TenantOwnerRecord,
   type TenantRecord,
   type TenantRepository,
+  type UpdateTenantProfileInput,
 } from './tenant.types';
 
 // Permissions granted to every new tenant owner by default.
@@ -257,6 +258,13 @@ export class TenantService {
     // Ensure tenant exists before listing branches.
     await this.getTenantById(tenantId);
     return this.tenantRepository.listBranches(tenantId);
+  }
+
+  async updateProfile(tenantId: string, input: UpdateTenantProfileInput): Promise<TenantRecord> {
+    // Verify tenant exists first
+    await this.getTenantById(tenantId);
+    await this.tenantRepository.updateProfile(tenantId, input);
+    return this.getTenantById(tenantId);
   }
 
   // ─── Lifecycle ─────────────────────────────────────────────────────────────

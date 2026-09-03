@@ -20,6 +20,7 @@ import type {
   TenantRepository,
   TenantServiceRecord,
   TenantStatus,
+  UpdateTenantProfileInput,
 } from './tenant.types';
 
 @Injectable()
@@ -205,6 +206,47 @@ export class MongoTenantRepository implements TenantRepository {
         tenantId,
         message: 'Onboarding completed successfully',
       };
+    } finally {
+      await session.endSession();
+    }
+  }
+
+  async updateProfile(tenantId: string, input: UpdateTenantProfileInput): Promise<void> {
+    const session = await this.connection.startSession();
+    const now = new Date().toISOString();
+
+    try {
+      await session.withTransaction(async () => {
+        const tenantUpdate: Record<string, string> = { updatedAt: now };
+        const ownerUpdate: Record<string, string> = {};
+        const branchUpdate: Record<string, string> = { updatedAt: now };
+
+        if (input.ownerName) {
+          tenantUpdate.ownerName = input.ownerName;
+          ownerUpdate.displayName = input.ownerName;
+        }
+        if (input.mobileNumber) {
+          tenantUpdate.ownerPhone = input.mobileNumber;
+          ownerUpdate.mobileNumber = input.mobileNumber;
+        }
+        if (input.businessName) {
+          tenantUpdate.businessName = input.businessName;
+          ownerUpdate.tenantName = input.businessName;
+        }
+        if (input.location) {
+          branchUpdate.city = input.location;
+        }
+
+        if (Object.keys(tenantUpdate).length > 1) { // More than just updatedAt
+          await this.tenantModel.updateOne({ tenantId }, { $set: tenantUpdate }, { session }).exec();
+        }
+        if (Object.keys(ownerUpdate).length > 0) {
+          await this.ownerModel.updateOne({ tenantId }, { $set: ownerUpdate }, { session }).exec();
+        }
+        if (Object.keys(branchUpdate).length > 1) { // More than just updatedAt
+          await this.branchModel.updateOne({ tenantId, isHeadOffice: true }, { $set: branchUpdate }, { session }).exec();
+        }
+      });
     } finally {
       await session.endSession();
     }

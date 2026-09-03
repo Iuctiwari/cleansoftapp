@@ -13,7 +13,7 @@ class NexoraaApp extends StatelessWidget {
       routerConfig: AppRouter.router,
       scrollBehavior: const _ClampedScrollBehavior(),
       theme: AppTheme.light,
-      themeMode: ThemeMode.system,
+      themeMode: ThemeMode.light,
       title: 'Nexoraa CleanSoft',
     );
   }

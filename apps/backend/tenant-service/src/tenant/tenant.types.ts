@@ -128,6 +128,13 @@ export interface TenantCatalogProvisioner {
 
 export const TENANT_CATALOG_PROVISIONER = Symbol('TENANT_CATALOG_PROVISIONER');
 
+export interface UpdateTenantProfileInput {
+  readonly ownerName?: string;
+  readonly mobileNumber?: string;
+  readonly businessName?: string;
+  readonly location?: string;
+}
+
 export interface TenantRepository {
   /** Find a tenant owner by normalised email (for uniqueness checks and login). */
   findByEmail(email: string): Promise<TenantOwnerRecord | null>;
@@ -160,6 +167,9 @@ export interface TenantRepository {
     tenantId: string,
     input: CompleteTenantOnboardingInput,
   ): Promise<CompleteTenantOnboardingOutput>;
+
+  /** Update tenant owner profile information. */
+  updateProfile(tenantId: string, input: UpdateTenantProfileInput): Promise<void>;
 }
 
 export const TENANT_REPOSITORY = Symbol('TENANT_REPOSITORY');

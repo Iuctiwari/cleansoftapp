@@ -12,6 +12,7 @@ import type {
   TenantRepository,
   TenantServiceRecord,
   TenantStatus,
+  UpdateTenantProfileInput,
 } from './tenant.types';
 
 /**
@@ -176,5 +177,34 @@ export class InMemoryTenantRepository implements TenantRepository {
       tenantId,
       message: 'Onboarding completed successfully',
     });
+  }
+
+  updateProfile(tenantId: string, input: UpdateTenantProfileInput): Promise<void> {
+    const tenant = this.tenants.get(tenantId);
+    const owner = [...this.owners.values()].find((item) => item.tenantId === tenantId);
+    const branch = [...this.branches.values()].find((item) => item.tenantId === tenantId && item.isHeadOffice);
+    if (!tenant || !owner || !branch) return Promise.reject(new Error('Tenant not found'));
+
+    const now = new Date().toISOString();
+    this.tenants.set(tenantId, {
+      ...tenant,
+      ownerName: input.ownerName ?? tenant.ownerName,
+      ownerPhone: input.mobileNumber ?? tenant.ownerPhone,
+      businessName: input.businessName ?? tenant.businessName,
+      updatedAt: now,
+    });
+    this.owners.set(owner.userId, {
+      ...owner,
+      displayName: input.ownerName ?? owner.displayName,
+      mobileNumber: input.mobileNumber ?? owner.mobileNumber,
+      tenantName: input.businessName ?? owner.tenantName,
+    });
+    this.branches.set(branch.branchId, {
+      ...branch,
+      city: input.location ?? branch.city,
+      updatedAt: input.location ? now : branch.updatedAt,
+    });
+
+    return Promise.resolve();
   }
 }
