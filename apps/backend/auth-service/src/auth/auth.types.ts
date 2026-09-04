@@ -1,6 +1,6 @@
+import { defaultPermissionsForRole } from '@nexoraa/shared';
 import type { RequestWithPlatformContext } from '../platform/platform.request';
 import type { ContractVersion, TrustedContext } from '../platform/platform.types';
-import { defaultPermissionsForRole } from '@nexoraa/shared';
 
 export type AuthLoginContext = 'platform' | 'tenant';
 export type AuthTokenKind = 'access' | 'refresh';
@@ -273,11 +273,7 @@ export interface AuthenticatedBranchContext {
 }
 
 export interface AuthRepository {
-  findIdentity(
-    context: AuthLoginContext,
-    identifier: string,
-    tenantSlug?: string,
-  ): Promise<AuthIdentityRecord | null>;
+  findIdentity(context: AuthLoginContext, identifier: string): Promise<AuthIdentityRecord | null>;
   findIdentityByUserId(userId: string): Promise<AuthIdentityRecord | null>;
   resetLoginTracker(trackerKey: string): Promise<void>;
   getLoginTracker(trackerKey: string): Promise<AuthLoginTracker | null>;

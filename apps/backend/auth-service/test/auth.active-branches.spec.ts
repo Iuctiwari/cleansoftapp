@@ -42,7 +42,7 @@ describe('MongoAuthRepository active branch identity', () => {
       undefined as never,
     );
 
-    const identity = await repository.findIdentity('tenant', owner.email, tenant.slug);
+    const identity = await repository.findIdentity('tenant', owner.email);
 
     expect(branchModel.find).toHaveBeenCalledWith({
       tenantId: tenant.tenantId,
@@ -95,7 +95,7 @@ describe('MongoAuthRepository active branch identity', () => {
       undefined as never,
     );
 
-    const identity = await repository.findIdentity('tenant', owner.email, 'nexoraa-admin');
+    const identity = await repository.findIdentity('tenant', owner.email);
 
     expect(ownerModel.findOne).toHaveBeenCalledWith({
       $or: [{ email: owner.email }, { mobileNumber: owner.email }],

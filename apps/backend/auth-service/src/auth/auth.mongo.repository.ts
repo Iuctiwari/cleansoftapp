@@ -84,7 +84,6 @@ export class MongoAuthRepository implements AuthRepository, OnModuleInit {
   async findIdentity(
     context: AuthLoginContext,
     identifier: string,
-    tenantSlug?: string,
   ): Promise<AuthIdentityRecord | null> {
     const normalized = normalizeIdentifier(identifier);
 
@@ -232,7 +231,7 @@ export class MongoAuthRepository implements AuthRepository, OnModuleInit {
 
     const tenantOwner = await this.tenantOwnerModel.findOne({ userId }).lean().exec();
     if (tenantOwner) {
-      return this.findIdentity('tenant', tenantOwner.email, tenantOwner.slug);
+      return this.findIdentity('tenant', tenantOwner.email);
     }
 
     // Check staff identities
@@ -400,9 +399,8 @@ export class MongoAuthRepository implements AuthRepository, OnModuleInit {
   async findActivePasswordResetByLocator(
     context: AuthLoginContext,
     identifier: string,
-    tenantSlug?: string,
   ): Promise<PasswordResetRecord | null> {
-    const identity = await this.findIdentity(context, identifier, tenantSlug);
+    const identity = await this.findIdentity(context, identifier);
     if (!identity) return null;
     return this.findActivePasswordResetByUser(identity.userId);
   }
