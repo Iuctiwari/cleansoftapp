@@ -1,7 +1,7 @@
 import { Prop, SchemaFactory } from '@nestjs/mongoose';
-import { Schema as MongooseSchema, Types, HydratedDocument } from 'mongoose';
 import { BaseSchema, DatabaseSchema } from '@nexoraa/database';
-import { UserRole, UserStatus } from './user.types';
+import { HydratedDocument, Schema as MongooseSchema, Types } from 'mongoose';
+import { StaffAvailability, UserRole, UserStatus } from './user.types';
 
 export type UserDocument = HydratedDocument<UserMongoose>;
 
@@ -36,6 +36,14 @@ export class UserMongoose extends BaseSchema {
     default: 'Pending',
   })
   status!: UserStatus;
+
+  @Prop({
+    required: true,
+    type: String,
+    enum: ['Available', 'Busy', 'On Break', 'Offline'],
+    default: 'Available',
+  })
+  availability!: StaffAvailability;
 
   @Prop({ type: Date })
   invitedAt?: Date;

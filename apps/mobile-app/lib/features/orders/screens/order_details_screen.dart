@@ -45,13 +45,20 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
   Future<_OrderDetailsData> _fetchDetails() async {
     final session = AuthenticationDependencies.controller.session;
     final tenantId = session?.tenantId ?? '';
+    final branchId = session?.branchId;
+    final staffService = StaffApiService(
+      tokenStorage: AuthenticationDependencies.tokenStorage,
+    );
+    if (branchId != null && branchId.isNotEmpty) {
+      staffService.selectBranch(branchId);
+    }
     final List<Object> results = await Future.wait<Object>(<Future<Object>>[
       widget.controller.details(widget.orderId),
       widget.controller.history(widget.orderId),
       if (tenantId.isNotEmpty)
-        StaffApiService(
-          tokenStorage: AuthenticationDependencies.tokenStorage,
-        ).getStaffMembers(tenantId).catchError((_) => <StaffMember>[])
+        staffService
+            .getStaffMembers(tenantId)
+            .catchError((_) => <StaffMember>[])
       else
         Future.value(<StaffMember>[]),
     ]);
@@ -111,13 +118,14 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
   }
 
   Future<void> _openAssignWorkerScreen(Order order) async {
-    final bool? assigned = await Navigator.of(context).push<bool>(
-      MaterialPageRoute<bool>(
+    final Object? result = await Navigator.of(context).push<Object?>(
+      MaterialPageRoute<Object?>(
         builder: (_) =>
             AssignWorkerScreen(order: order, controller: widget.controller),
       ),
     );
-    if (assigned == true && mounted) {
+    if (!mounted) return;
+    if (result is Order || result == true) {
       setState(_load);
     }
   }
@@ -238,13 +246,20 @@ class _OrderDetailsData {
   final List<OrderStatusHistory> history;
   final List<StaffMember> staffMembers;
 
-  String resolveStaffName(String? idOrName) {
-    if (idOrName == null || idOrName.trim().isEmpty) return 'Worker';
+  StaffMember? findStaff(String? idOrName) {
+    if (idOrName == null || idOrName.trim().isEmpty) return null;
     for (final StaffMember staff in staffMembers) {
       if (staff.id == idOrName || staff.loginId == idOrName) {
-        return staff.displayName;
+        return staff;
       }
     }
+    return null;
+  }
+
+  String resolveStaffName(String? idOrName) {
+    if (idOrName == null || idOrName.trim().isEmpty) return 'Worker';
+    final StaffMember? staff = findStaff(idOrName);
+    if (staff != null) return staff.displayName;
     return idOrName;
   }
 }
@@ -282,12 +297,15 @@ class _OrderDetailsContent extends StatelessWidget {
   Widget build(BuildContext context) {
     final Order order = data.order;
     final bool isStaff = accessPolicy.isStaff;
-    final String? assignedWorkerName =
-        order.assignedTo != null || order.assignment?.assignedTo != null
-        ? data.resolveStaffName(
-            order.assignment?.assignedTo ?? order.assignedTo,
-          )
+    final String? assignedStaffId =
+        order.assignment?.assignedTo ?? order.assignedTo;
+    final StaffMember? assignedStaff = data.findStaff(assignedStaffId);
+    final String? assignedWorkerName = assignedStaffId != null
+        ? (assignedStaff?.displayName ?? data.resolveStaffName(assignedStaffId))
         : null;
+    final String? assignedWorkerSubtitle = assignedStaff != null
+        ? (assignedStaff.role.isNotEmpty ? assignedStaff.role : 'Staff')
+        : (assignedStaffId != null ? 'Staff' : null);
     final bool isPendingStaffAcceptance =
         isStaff &&
         order.assignedTo != null &&
@@ -334,6 +352,7 @@ class _OrderDetailsContent extends StatelessWidget {
                 canManage: accessPolicy.allows(AppCapability.ordersAssign),
                 onAssignOrReassign: onAssignWorker,
                 assignedWorkerName: assignedWorkerName,
+                assignedWorkerSubtitle: assignedWorkerSubtitle,
               ),
             ],
             const SizedBox(height: AppSpacing.lgPlus),
@@ -947,12 +966,14 @@ class _AssignmentCard extends StatelessWidget {
     required this.canManage,
     required this.onAssignOrReassign,
     this.assignedWorkerName,
+    this.assignedWorkerSubtitle,
   });
 
   final Order order;
   final bool canManage;
   final VoidCallback onAssignOrReassign;
   final String? assignedWorkerName;
+  final String? assignedWorkerSubtitle;
 
   @override
   Widget build(BuildContext context) {
@@ -1040,13 +1061,16 @@ class _AssignmentCard extends StatelessWidget {
                           color: Color(0xFF0F172A),
                         ),
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Manager · Main Branch',
-                        style: AppTextStyles.caption.copyWith(
-                          color: AppColors.textSubtle,
+                      if (assignedWorkerSubtitle != null &&
+                          assignedWorkerSubtitle!.isNotEmpty) ...<Widget>[
+                        const SizedBox(height: 2),
+                        Text(
+                          assignedWorkerSubtitle!,
+                          style: AppTextStyles.caption.copyWith(
+                            color: AppColors.textSubtle,
+                          ),
                         ),
-                      ),
+                      ],
                       const SizedBox(height: AppSpacing.xs),
                       Wrap(
                         spacing: AppSpacing.sm,

@@ -326,12 +326,14 @@ class _StaffManagementScreenState extends State<StaffManagementScreen>
 
   Widget _buildSummaryCards() {
     final total = _staffStats?.totalStaff ?? _staff.length;
-    final active = _staffStats?.activeStaff ??
+    final active =
+        _staffStats?.activeStaff ??
         _staff.where((s) => s.status.toLowerCase() == 'active').length;
     final pending = _staff
         .where((s) => s.status.toLowerCase() == 'pending')
         .length;
-    final suspended = _staffStats?.inactiveStaff ??
+    final suspended =
+        _staffStats?.inactiveStaff ??
         _staff.where((s) => s.status.toLowerCase() == 'suspended').length;
 
     return Row(
@@ -513,6 +515,19 @@ class _StaffCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final status = staff.status.toLowerCase();
+    final String availability = staff.availability.isNotEmpty
+        ? staff.availability
+        : (status == 'active' ? 'Available' : 'Offline');
+    final (Color availColor, Color availBg) = switch (availability
+        .toLowerCase()) {
+      'busy' => (const Color(0xFFD97706), const Color(0xFFFEF3C7)),
+      'on break' ||
+      'break' => (const Color(0xFFEA580C), const Color(0xFFFFEDD5)),
+      'offline' ||
+      'suspended' ||
+      'inactive' => (const Color(0xFF94A3B8), const Color(0xFFF1F5F9)),
+      _ => (const Color(0xFF10B981), const Color(0xFFECFDF5)),
+    };
 
     return Container(
       decoration: BoxDecoration(
@@ -548,9 +563,7 @@ class _StaffCard extends StatelessWidget {
                       width: 12,
                       height: 12,
                       decoration: BoxDecoration(
-                        color: status == 'active'
-                            ? AppColors.success
-                            : AppColors.error,
+                        color: availColor,
                         shape: BoxShape.circle,
                         border: Border.all(color: Colors.white, width: 2),
                       ),
@@ -590,17 +603,14 @@ class _StaffCard extends StatelessWidget {
                             vertical: 2,
                           ),
                           decoration: BoxDecoration(
-                            color: status == 'active'
-                                ? AppColors.success.withValues(alpha: 0.1)
-                                : AppColors.error.withValues(alpha: 0.1),
+                            color: availBg,
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
-                            status.toUpperCase(),
+                            availability.toUpperCase(),
                             style: AppTextStyles.caption.copyWith(
-                              color: status == 'active'
-                                  ? AppColors.success
-                                  : AppColors.error,
+                              color: availColor,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ),

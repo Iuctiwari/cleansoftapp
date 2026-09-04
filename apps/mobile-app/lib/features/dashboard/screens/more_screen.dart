@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:nexoraa_mobile/app/router.dart';
 import 'package:nexoraa_mobile/design_system/design_system.dart';
-import 'package:nexoraa_mobile/features/authentication/authentication_dependencies.dart';
 import 'package:nexoraa_mobile/features/authentication/access_policy.dart';
+import 'package:nexoraa_mobile/features/authentication/authentication_dependencies.dart';
 import 'package:nexoraa_mobile/features/orders/controllers/order_controller.dart';
 import 'package:nexoraa_mobile/features/orders/services/payment_api_service.dart';
 import 'package:nexoraa_mobile/features/payments/controllers/payments_controller.dart';
@@ -73,7 +73,6 @@ class MoreScreen extends StatelessWidget {
     'Cash Register' => accessPolicy.allows(AppCapability.cashRegister),
     'Reports' => accessPolicy.allows(AppCapability.reportsView),
     'Staff Management' => accessPolicy.allows(AppCapability.staffView),
-    'Worker Availability' => accessPolicy.allows(AppCapability.staffView),
     'Branch Management' => accessPolicy.allows(AppCapability.branchesView),
     'Business Settings' => accessPolicy.allows(AppCapability.businessSettings),
     'My Profile' => accessPolicy.allows(AppCapability.ownProfile),
@@ -123,12 +122,6 @@ class MoreScreen extends StatelessWidget {
           icon: AppIcons.users,
           iconColor: AppColors.info,
           title: 'Staff Management',
-        ),
-        MoreMenuItemData(
-          backgroundColor: AppColors.successSurface,
-          icon: AppIcons.activity,
-          iconColor: AppColors.successLight,
-          title: 'Worker Availability',
         ),
         MoreMenuItemData(
           backgroundColor: AppColors.indigoSurface,
@@ -182,6 +175,10 @@ class MoreScreen extends StatelessWidget {
     }
     if (item.title == 'My Profile') {
       context.pushNamed(AppRouteNames.profile);
+      return;
+    }
+    if (item.title == 'Business Settings') {
+      context.pushNamed(AppRouteNames.businessSettings);
       return;
     }
     if (item.title == 'Payments') {

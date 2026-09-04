@@ -22,10 +22,10 @@ import { normalizeIdentifier } from './auth.normalization';
 import {
   AUTH_REPOSITORY,
   type AccessTokenResolution,
-  type AuthenticatedBranchContext,
   type AuthAccessTokenClaims,
   type AuthAcknowledgement,
   type AuthChangePasswordInput,
+  type AuthenticatedBranchContext,
   type AuthForgotPasswordInput,
   type AuthIdentityRecord,
   type AuthLoginInput,
@@ -34,13 +34,13 @@ import {
   type AuthLogoutInput,
   type AuthRefreshInput,
   type AuthRefreshResponse,
+  type AuthRefreshTokenClaims,
   type AuthRepository,
   type AuthRequestMetadata,
   type AuthResetPasswordInput,
   type AuthResetRequestAcknowledgement,
   type AuthSessionRecord,
   type AuthTokens,
-  type AuthRefreshTokenClaims,
   type PasswordResetRecord,
   type SignedTokenEnvelope,
 } from './auth.types';
@@ -154,7 +154,6 @@ export class AuthService {
     const identity = await this.authRepository.findIdentity(
       input.context,
       normalizeIdentifier(input.identifier),
-      input.tenantSlug,
     );
 
     const passwordMatchesScrypt =
@@ -441,7 +440,6 @@ export class AuthService {
     const identity = await this.authRepository.findIdentity(
       input.context,
       normalizeIdentifier(input.identifier),
-      input.tenantSlug,
     );
 
     if (!identity || !this.isLoginAllowed(identity)) {
@@ -496,7 +494,6 @@ export class AuthService {
     const identity = await this.authRepository.findIdentity(
       input.context,
       normalizeIdentifier(input.identifier),
-      input.tenantSlug,
     );
     const reset = await this.authRepository.findActivePasswordResetByLocator(
       input.context,
