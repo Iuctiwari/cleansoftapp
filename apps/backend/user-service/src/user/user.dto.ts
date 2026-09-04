@@ -8,6 +8,7 @@ import {
   Matches,
   MaxLength,
   MinLength,
+  ValidateIf,
 } from 'class-validator';
 import { StaffAvailability, UserRole, UserStatus } from './user.types';
 
@@ -43,12 +44,14 @@ export class RegisterStaffDto {
 
   @ApiPropertyOptional({ example: 'john@example.com', maxLength: 160 })
   @IsOptional()
+  @ValidateIf((o, value) => value !== '')
   @IsEmail()
   @MaxLength(160)
   email?: string;
 
   @ApiPropertyOptional({ example: '+971501234567' })
   @IsOptional()
+  @ValidateIf((o, value) => value !== '')
   @IsString()
   @Matches(/^\+?[0-9]{7,15}$/)
   mobileNumber?: string;
@@ -81,12 +84,14 @@ export class UpdateStaffDto {
 
   @ApiPropertyOptional({ example: 'john@example.com', maxLength: 160 })
   @IsOptional()
+  @ValidateIf((o, value) => value !== '')
   @IsEmail()
   @MaxLength(160)
   email?: string;
 
   @ApiPropertyOptional({ example: '+971501234567' })
   @IsOptional()
+  @ValidateIf((o, value) => value !== '')
   @IsString()
   @Matches(/^\+?[0-9]{7,15}$/)
   mobileNumber?: string;

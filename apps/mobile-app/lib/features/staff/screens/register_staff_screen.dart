@@ -108,7 +108,7 @@ class _RegisterStaffScreenState extends State<RegisterStaffScreen> {
         name: _nameController.text.trim(),
         loginId: _emailController.text.trim().toLowerCase(),
         password: _passwordController.text,
-        email: _emailController.text.trim().toLowerCase(),
+        email: _emailController.text.trim().isEmpty ? null : _emailController.text.trim().toLowerCase(),
         mobileNumber: _mobileController.text.trim().isEmpty
             ? null
             : _mobileController.text.trim(),
@@ -130,16 +130,21 @@ class _RegisterStaffScreenState extends State<RegisterStaffScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Add Staff Member')),
+      appBar: AppBar(title: const Text('Add Staff Member'), centerTitle: true),
       body: SafeArea(
         child: _isLoading
             ? const AppLoadingView()
             : Form(
                 key: _formKey,
-                child: ListView(
-                  padding: const EdgeInsets.all(AppSpacing.pageHorizontal),
+                child: Column(
                   children: [
-                    if (_errorMessage != null)
+                    Expanded(
+                      child: ListView(
+                        padding: const EdgeInsets.all(AppSpacing.pageHorizontal),
+                        children: [
+                          Text('Enter details to create a new staff account', style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSubtle)),
+                          const SizedBox(height: AppSpacing.xl),
+                          if (_errorMessage != null)
                       Container(
                         margin: const EdgeInsets.only(bottom: AppSpacing.lg),
                         padding: const EdgeInsets.all(AppSpacing.md),
@@ -159,8 +164,7 @@ class _RegisterStaffScreenState extends State<RegisterStaffScreen> {
                       ),
 
                     // ── Personal Info ───────────────────────────────────────
-                    _sectionTitle('Personal Information'),
-                    const SizedBox(height: AppSpacing.md),
+                    _sectionTitle('STAFF INFORMATION'),
                     TextFormField(
                       controller: _nameController,
                       decoration: const InputDecoration(
@@ -299,27 +303,50 @@ class _RegisterStaffScreenState extends State<RegisterStaffScreen> {
                     const SizedBox(height: AppSpacing.xxl),
 
                     // ── Branches ────────────────────────────────────────────
-                    _sectionTitle('Branches'),
-                    const SizedBox(height: AppSpacing.md),
+                    _sectionTitle('BRANCH ASSIGNMENT'),
                     _buildBranchList(),
 
                     const SizedBox(height: AppSpacing.xxxl),
-
-                    // ── Submit ──────────────────────────────────────────────
-                    ElevatedButton(
-                      onPressed: _isSubmitting ? null : _submit,
-                      child: _isSubmitting
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Text('Create Staff Account'),
-                    ),
-                    const SizedBox(height: AppSpacing.xl),
                   ],
                 ),
               ),
+              Container(
+                padding: const EdgeInsets.all(AppSpacing.pageHorizontal),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  boxShadow: [
+                    BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -4)),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => context.pop(),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
+                        ),
+                        child: const Text('Cancel'),
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.md),
+                    Expanded(
+                      flex: 2,
+                      child: ElevatedButton.icon(
+                        onPressed: _isSubmitting ? null : _submit,
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
+                        ),
+                        icon: _isSubmitting ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : const Icon(Icons.send, size: 18),
+                        label: Text(_isSubmitting ? 'Creating...' : 'Create Account'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -395,23 +422,50 @@ class _RegisterStaffScreenState extends State<RegisterStaffScreen> {
     return Column(
       children: _availableBranches.map((branch) {
         final selected = _selectedBranchIds.contains(branch.branchId);
-        return CheckboxListTile(
-          value: selected,
-          title: Text(branch.branchName, style: AppTextStyles.bodyMedium),
-          subtitle: branch.isHeadOffice
-              ? Text('Head Office', style: AppTextStyles.caption)
-              : null,
-          onChanged: (val) {
+        return GestureDetector(
+          onTap: () {
             setState(() {
-              if (val == true) {
-                _selectedBranchIds.add(branch.branchId);
-              } else {
+              if (selected) {
                 _selectedBranchIds.remove(branch.branchId);
+              } else {
+                _selectedBranchIds.add(branch.branchId);
               }
             });
           },
-          controlAffinity: ListTileControlAffinity.leading,
-          dense: true,
+          child: Container(
+            margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+            padding: const EdgeInsets.all(AppSpacing.md),
+            decoration: BoxDecoration(
+              color: selected ? AppColors.primary.withOpacity(0.05) : Colors.white,
+              borderRadius: BorderRadius.circular(AppRadius.lg),
+              border: Border.all(color: selected ? AppColors.primary : AppColors.border, width: selected ? 2 : 1),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: selected ? AppColors.primary : AppColors.border, width: 2),
+                    color: selected ? AppColors.primary : Colors.transparent,
+                  ),
+                  child: selected ? const Icon(Icons.check, size: 16, color: Colors.white) : null,
+                ),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(branch.branchName, style: AppTextStyles.bodyMedium.copyWith(fontWeight: selected ? FontWeight.bold : FontWeight.normal)),
+                      if (branch.isHeadOffice)
+                        Text('Head Office', style: AppTextStyles.caption.copyWith(color: AppColors.primary)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
         );
       }).toList(),
     );

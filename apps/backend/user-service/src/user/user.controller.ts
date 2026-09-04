@@ -57,6 +57,17 @@ export class UserController {
     return this.userService.getSystemRoles(scopeOf(request));
   }
 
+  @Get(':userId')
+  @ApiOperation({ summary: 'Get a single staff profile by user ID' })
+  @ApiParam({ name: 'userId', description: 'User ID' })
+  @ApiResponse({ status: 200, type: StaffResponseDto })
+  getStaff(
+    @Req() request: UserAccessRequest,
+    @Param('userId') userId: string,
+  ): Promise<StaffResponseDto> {
+    return this.userService.getStaff(scopeOf(request), userId);
+  }
+
   @Get('tenant/:tenantId')
   @ApiOperation({ summary: 'List all staff for a tenant' })
   @ApiParam({ name: 'tenantId', description: 'Tenant ID' })

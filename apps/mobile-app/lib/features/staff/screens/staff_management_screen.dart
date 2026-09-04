@@ -7,6 +7,8 @@ import 'package:nexoraa_mobile/features/authentication/access_policy.dart';
 import 'package:nexoraa_mobile/features/staff/models/staff_member.dart';
 import 'package:nexoraa_mobile/features/staff/models/system_role.dart';
 import 'package:nexoraa_mobile/features/staff/services/staff_api_service.dart';
+import 'package:nexoraa_mobile/features/branch/branch_dependencies.dart';
+import 'package:nexoraa_mobile/features/branch/branch_models.dart';
 
 class StaffManagementScreen extends StatefulWidget {
   const StaffManagementScreen({super.key});
@@ -23,6 +25,7 @@ class _StaffManagementScreenState extends State<StaffManagementScreen>
   List<StaffMember> _staff = [];
   List<SystemRole> _systemRoles = [];
   StaffStatistics? _staffStats;
+  Map<String, String> _branchNames = {};
   bool _isLoading = true;
   String? _errorMessage;
 
@@ -35,10 +38,14 @@ class _StaffManagementScreenState extends State<StaffManagementScreen>
   @override
   void initState() {
     super.initState();
+    // In the design there are 3 tabs: Staff, Invitations, Roles
     _tabController = TabController(
-      length: _accessPolicy.isOwner ? 2 : 1,
+      length: _accessPolicy.isOwner ? 3 : 2,
       vsync: this,
     );
+    _tabController.addListener(() {
+      if (!_tabController.indexIsChanging) setState(() {});
+    });
     _loadData();
   }
 
@@ -65,6 +72,7 @@ class _StaffManagementScreenState extends State<StaffManagementScreen>
       final futures = await Future.wait(<Future<Object>>[
         _staffApiService.getStaffMembers(session.tenantId!),
         if (_accessPolicy.isOwner) _staffApiService.getSystemRoles(),
+        BranchManagementDependencies.service.listBranches(pageSize: 100),
       ]);
 
       StaffStatistics? stats;
@@ -83,11 +91,17 @@ class _StaffManagementScreenState extends State<StaffManagementScreen>
             ? futures[1] as List<SystemRole>
             : const <SystemRole>[];
         _staffStats = stats;
+        final branchResult = futures.length > (_accessPolicy.isOwner ? 2 : 1)
+            ? futures.last as BranchListResult
+            : null;
+        if (branchResult != null) {
+          _branchNames = {for (var b in branchResult.items) b.branchId: b.branchName};
+        }
         _isLoading = false;
       });
     } catch (e) {
       setState(() {
-        _errorMessage = e.toString();
+        _errorMessage = e is StaffApiException ? e.userMessage : e.toString();
         _isLoading = false;
       });
     }
@@ -108,50 +122,110 @@ class _StaffManagementScreenState extends State<StaffManagementScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
-        title: const Text('Staff Management'),
+        backgroundColor: const Color(0xFFF8F9FA),
+        elevation: 0,
+        centerTitle: false,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.goNamed(AppRouteNames.dashboard);
+            }
+          },
+        ),
+        title: Text(
+          'Staff Management',
+          style: AppTextStyles.headingMedium.copyWith(fontWeight: FontWeight.bold),
+        ),
         actions: <Widget>[
           Padding(
-            padding: const EdgeInsets.only(right: AppSpacing.xl),
+            padding: const EdgeInsets.only(right: AppSpacing.md),
             child: Center(
               child: ElevatedButton.icon(
                 onPressed: _openRegisterStaff,
                 style: ElevatedButton.styleFrom(
-                  minimumSize: const Size(0, AppSizes.controlMediumLarge),
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  minimumSize: const Size(0, 36),
                   padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.xl,
-                    vertical: AppSpacing.sm,
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
                   ),
                 ),
-                icon: const Icon(AppIcons.add, size: AppIconSizes.sm),
-                label: const Text('Add Staff'),
+                icon: const Icon(Icons.add, size: 16),
+                label: const Text('Invite', style: TextStyle(fontWeight: FontWeight.w600)),
               ),
             ),
           ),
         ],
-        bottom: TabBar(
-          controller: _tabController,
-          labelColor: AppColors.primary,
-          unselectedLabelColor: AppColors.textSubtle,
-          indicatorColor: AppColors.primary,
-          tabs: <Widget>[
-            const Tab(text: 'Staff'),
-            if (_accessPolicy.isOwner) const Tab(text: 'Roles'),
-          ],
-        ),
       ),
       body: SafeArea(
         child: _isLoading
             ? const AppLoadingView()
             : _errorMessage != null
             ? AppErrorView(message: _errorMessage!, onRetry: _loadData)
-            : TabBarView(
-                controller: _tabController,
-                children: <Widget>[
-                  _buildStaffTab(),
-                  if (_accessPolicy.isOwner) _buildRolesTab(),
+            : Column(
+                children: [
+                  _buildCustomTabBar(),
+                  Expanded(
+                    child: TabBarView(
+                      controller: _tabController,
+                      children: <Widget>[
+                        _buildStaffTab(),
+                        const Center(child: Text('Invitations (Coming soon)')),
+                        if (_accessPolicy.isOwner) _buildRolesTab(),
+                      ],
+                    ),
+                  ),
                 ],
               ),
+      ),
+    );
+  }
+
+  Widget _buildCustomTabBar() {
+    final tabs = [
+      'Staff',
+      'Invitations',
+      if (_accessPolicy.isOwner) 'Roles',
+    ];
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pageHorizontal, vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: List.generate(tabs.length, (index) {
+          final isSelected = _tabController.index == index;
+          return Expanded(
+            child: GestureDetector(
+              onTap: () => _tabController.animateTo(index),
+              child: Container(
+                margin: EdgeInsets.only(right: index < tabs.length - 1 ? 8 : 0),
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  color: isSelected ? AppColors.primary : Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                  border: isSelected ? null : Border.all(color: Colors.grey.withOpacity(0.2)),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  tabs[index],
+                  style: TextStyle(
+                    color: isSelected ? Colors.white : Colors.grey[600],
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                  ),
+                ),
+              ),
+            ),
+          );
+        }),
       ),
     );
   }
@@ -181,15 +255,39 @@ class _StaffManagementScreenState extends State<StaffManagementScreen>
           const SizedBox(height: AppSpacing.md),
           _buildRoleFilters(),
           const SizedBox(height: AppSpacing.xl),
-          OutlinedButton.icon(
-            onPressed: _openRegisterStaff,
-            icon: const Icon(AppIcons.add),
-            label: const Text('Add Staff Member'),
-            style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
-              side: const BorderSide(
-                color: AppColors.primary,
-                style: BorderStyle.solid,
+          GestureDetector(
+            onTap: _openRegisterStaff,
+            child: CustomPaint(
+              painter: _DashedPainter(color: AppColors.primary.withOpacity(0.4), radius: 12),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.5),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: const Icon(Icons.add, color: Colors.white, size: 16),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Invite Staff Member',
+                      style: TextStyle(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -203,9 +301,10 @@ class _StaffManagementScreenState extends State<StaffManagementScreen>
           else
             ...filteredStaff.map(
               (member) => Padding(
-                padding: const EdgeInsets.only(bottom: AppSpacing.lg),
+                padding: const EdgeInsets.only(bottom: AppSpacing.md),
                 child: _StaffCard(
                   staff: member,
+                  branchNames: _branchNames,
                   apiService: _staffApiService,
                   onRefresh: _loadData,
                   canRemove: _accessPolicy.isOwner,
@@ -374,34 +473,52 @@ class _StaffManagementScreenState extends State<StaffManagementScreen>
   }
 
   Widget _buildSearchBar() {
-    return TextFormField(
-      decoration: InputDecoration(
-        hintText: 'Search by name or phone...',
-        prefixIcon: const Icon(AppIcons.search, color: AppColors.textSubtle),
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.withOpacity(0.2)),
       ),
-      onChanged: (val) => setState(() => _searchQuery = val),
+      child: TextFormField(
+        decoration: InputDecoration(
+          hintText: 'Search by name or phone...',
+          hintStyle: TextStyle(color: Colors.grey[400]),
+          prefixIcon: const Icon(Icons.search, color: Colors.grey),
+          border: InputBorder.none,
+          enabledBorder: InputBorder.none,
+          focusedBorder: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        ),
+        onChanged: (val) => setState(() => _searchQuery = val),
+      ),
     );
   }
 
   Widget _buildRoleFilters() {
-    final roles = ['All', 'Owner', 'Branch Manager', 'Staff', 'Cashier'];
+    final roles = ['All', 'Owner', 'Manager', 'Staff', 'Cashier'];
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
         children: roles.map((role) {
           final isSelected = _selectedRoleFilter == role;
           return Padding(
-            padding: const EdgeInsets.only(right: AppSpacing.sm),
-            child: FilterChip(
-              label: Text(role),
-              selected: isSelected,
-              onSelected: (selected) {
-                if (selected) setState(() => _selectedRoleFilter = role);
-              },
-              backgroundColor: AppColors.surfaceMuted,
-              selectedColor: AppColors.primary,
-              labelStyle: TextStyle(
-                color: isSelected ? Colors.white : AppColors.textPrimary,
+            padding: const EdgeInsets.only(right: 8),
+            child: GestureDetector(
+              onTap: () => setState(() => _selectedRoleFilter = role),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: isSelected ? AppColors.primary : Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  border: isSelected ? null : Border.all(color: Colors.grey.withOpacity(0.2)),
+                ),
+                child: Text(
+                  role,
+                  style: TextStyle(
+                    color: isSelected ? Colors.white : Colors.grey[600],
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                  ),
+                ),
               ),
             ),
           );
@@ -426,23 +543,31 @@ class _SummaryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(
-        vertical: AppSpacing.md,
-        horizontal: AppSpacing.sm,
+        vertical: 16,
+        horizontal: 4,
       ),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(AppRadius.md),
+        color: color.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
         children: [
           Text(
             count.toString(),
-            style: AppTextStyles.headingMedium.copyWith(color: color),
+            style: TextStyle(
+              color: color,
+              fontSize: 24,
+              fontWeight: FontWeight.w900,
+            ),
           ),
-          const SizedBox(height: AppSpacing.xs),
+          const SizedBox(height: 4),
           Text(
             title,
-            style: AppTextStyles.caption.copyWith(color: color),
+            style: TextStyle(
+              color: color.withOpacity(0.8),
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+            ),
             textAlign: TextAlign.center,
           ),
         ],
@@ -454,6 +579,7 @@ class _SummaryCard extends StatelessWidget {
 class _StaffCard extends StatelessWidget {
   const _StaffCard({
     required this.staff,
+    required this.branchNames,
     required this.apiService,
     required this.onRefresh,
     required this.canRemove,
@@ -461,6 +587,7 @@ class _StaffCard extends StatelessWidget {
   });
 
   final StaffMember staff;
+  final Map<String, String> branchNames;
   final StaffApiService apiService;
   final VoidCallback onRefresh;
   final bool canRemove;
@@ -529,13 +656,27 @@ class _StaffCard extends StatelessWidget {
       _ => (const Color(0xFF10B981), const Color(0xFFECFDF5)),
     };
 
+    String branchDisplay = 'No Branch';
+    if (staff.branches.isNotEmpty) {
+      final firstBranchId = staff.branches.first;
+      branchDisplay = branchNames[firstBranchId] ?? firstBranchId;
+      if (branchDisplay.length > 20) branchDisplay = 'Main Branch';
+    }
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(color: AppColors.border),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.withOpacity(0.1)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
-      padding: const EdgeInsets.all(AppSpacing.lg),
+      padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
@@ -545,24 +686,33 @@ class _StaffCard extends StatelessWidget {
               // Avatar
               Stack(
                 children: [
-                  CircleAvatar(
-                    radius: 24,
-                    backgroundColor: AppColors.warning,
+                  Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      color: _getAvatarColor(staff.displayName),
+                      shape: BoxShape.circle,
+                    ),
+                    alignment: Alignment.center,
                     child: Text(
                       _getInitials(staff.displayName),
                       style: const TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
+                        fontSize: 20,
                       ),
                     ),
                   ),
                   Positioned(
                     right: 0,
-                    bottom: 0,
+                    bottom: 2,
                     child: Container(
-                      width: 12,
-                      height: 12,
+                      width: 14,
+                      height: 14,
                       decoration: BoxDecoration(
+                        color: status == 'active'
+                            ? const Color(0xFF00C853)
+                            : Colors.red,
                         color: availColor,
                         shape: BoxShape.circle,
                         border: Border.all(color: Colors.white, width: 2),
@@ -571,38 +721,130 @@ class _StaffCard extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(width: AppSpacing.md),
+              const SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    Text(staff.displayName, style: AppTextStyles.headingSmall),
-                    const SizedBox(height: AppSpacing.xs),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Row(
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  staff.displayName,
+                                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              if (staff.role.toLowerCase() == 'owner') ...[
+                                const SizedBox(width: 4),
+                                const Icon(Icons.star, color: Colors.deepOrange, size: 16),
+                              ],
+                            ],
+                          ),
+                        ),
+                        PopupMenuButton<String>(
+                          icon: Icon(Icons.more_vert, color: Colors.grey[400]),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          onSelected: (action) => _handleAction(context, action),
+                          itemBuilder: (context) {
+                            final items = <PopupMenuEntry<String>>[];
+                            items.add(
+                              const PopupMenuItem(
+                                value: 'view_profile',
+                                child: Text('View Profile'),
+                              ),
+                            );
+                            if (canManage) {
+                              items.add(
+                                const PopupMenuItem(
+                                  value: 'edit_details',
+                                  child: Text('Edit Details'),
+                                ),
+                              );
+                            }
+                            if (canManage && status == 'active') {
+                              items.add(
+                                const PopupMenuItem(
+                                  value: 'suspend',
+                                  child: Text(
+                                    'Suspend',
+                                    style: TextStyle(color: AppColors.error),
+                                  ),
+                                ),
+                              );
+                            }
+                            if (canManage && status == 'suspended') {
+                              items.add(
+                                const PopupMenuItem(
+                                  value: 'reactivate',
+                                  child: Text(
+                                    'Reactivate',
+                                    style: TextStyle(color: AppColors.success),
+                                  ),
+                                ),
+                              );
+                            }
+                            if (canRemove) {
+                              items.add(
+                                const PopupMenuItem(
+                                  value: 'remove',
+                                  child: Text(
+                                    'Remove Employee',
+                                    style: TextStyle(color: AppColors.error),
+                                  ),
+                                ),
+                              );
+                            }
+                            return items;
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
                     Wrap(
-                      spacing: AppSpacing.sm,
+                      spacing: 8,
                       children: [
                         Container(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 2,
+                            horizontal: 10,
+                            vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: AppColors.warning.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(4),
+                            color: staff.role.toLowerCase() == 'owner' ? Colors.orange.withOpacity(0.1) : Colors.purple.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
                             staff.role,
-                            style: AppTextStyles.caption.copyWith(
-                              color: AppColors.warning,
+                            style: TextStyle(
+                              color: staff.role.toLowerCase() == 'owner' ? Colors.orange : Colors.purple,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 10,
                             ),
                           ),
                         ),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 2,
+                            horizontal: 10,
+                            vertical: 4,
                           ),
                           decoration: BoxDecoration(
+                            color: status == 'active'
+                                ? Colors.green.withOpacity(0.1)
+                                : Colors.red.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            status == 'active' ? 'Active' : status.substring(0, 1).toUpperCase() + status.substring(1),
+                            style: TextStyle(
+                              color: status == 'active'
+                                  ? Colors.green
+                                  : Colors.red,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 10,
                             color: availBg,
                             borderRadius: BorderRadius.circular(4),
                           ),
@@ -616,94 +858,108 @@ class _StaffCard extends StatelessWidget {
                         ),
                       ],
                     ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        const Icon(Icons.storefront, size: 14, color: Colors.grey),
+                        const SizedBox(width: 4),
+                        Text(branchDisplay, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                        const SizedBox(width: 12),
+                        const Icon(Icons.phone_outlined, size: 14, color: Colors.grey),
+                        const SizedBox(width: 4),
+                        Text(staff.mobileNumber.isNotEmpty ? staff.mobileNumber : 'No Phone', style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                      ],
+                    ),
                   ],
                 ),
               ),
-              PopupMenuButton<String>(
-                icon: const Icon(AppIcons.more),
-                onSelected: (action) => _handleAction(context, action),
-                itemBuilder: (context) {
-                  final items = <PopupMenuEntry<String>>[];
-                  items.add(
-                    const PopupMenuItem(
-                      value: 'view_profile',
-                      child: Text('View Profile'),
-                    ),
-                  );
-                  if (canManage) {
-                    items.add(
-                      const PopupMenuItem(
-                        value: 'edit_details',
-                        child: Text('Edit Details'),
-                      ),
-                    );
-                  }
-                  if (canManage && status == 'active') {
-                    items.add(
-                      const PopupMenuItem(
-                        value: 'suspend',
-                        child: Text(
-                          'Suspend',
-                          style: TextStyle(color: AppColors.error),
-                        ),
-                      ),
-                    );
-                  }
-                  if (canManage && status == 'suspended') {
-                    items.add(
-                      const PopupMenuItem(
-                        value: 'reactivate',
-                        child: Text(
-                          'Reactivate',
-                          style: TextStyle(color: AppColors.success),
-                        ),
-                      ),
-                    );
-                  }
-                  if (canRemove) {
-                    items.add(
-                      const PopupMenuItem(
-                        value: 'remove',
-                        child: Text(
-                          'Remove Employee',
-                          style: TextStyle(color: AppColors.error),
-                        ),
-                      ),
-                    );
-                  }
-                  return items;
-                },
-              ),
             ],
           ),
-          const SizedBox(height: AppSpacing.md),
+          const SizedBox(height: 16),
           Row(
             children: [
-              const Icon(
-                AppIcons.branch,
-                size: AppIconSizes.xs,
-                color: AppColors.textSubtle,
+              Expanded(
+                child: TextButton(
+                  onPressed: () => _handleAction(context, 'view_profile'),
+                  style: TextButton.styleFrom(
+                    backgroundColor: AppColors.primary.withOpacity(0.05),
+                    foregroundColor: AppColors.primary,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  child: const Text('View Profile', style: TextStyle(fontWeight: FontWeight.bold)),
+                ),
               ),
-              const SizedBox(width: 4),
-              if (staff.branches.isNotEmpty)
-                Text(staff.branches.first, style: AppTextStyles.caption)
-              else
-                const Text('No Branch', style: AppTextStyles.caption),
-              const SizedBox(width: AppSpacing.md),
-              const Icon(
-                AppIcons.phone,
-                size: AppIconSizes.xs,
-                color: AppColors.textSubtle,
-              ),
-              const SizedBox(width: 4),
-              Text(
-                staff.mobileNumber.isNotEmpty ? staff.mobileNumber : 'No Phone',
-                style: AppTextStyles.caption,
-              ),
+              if (canManage && status == 'active' && staff.id != AuthenticationDependencies.controller.session?.ownerUserId) ...[
+                const SizedBox(width: 12),
+                Expanded(
+                  child: TextButton(
+                    onPressed: () => _handleAction(context, 'suspend'),
+                    style: TextButton.styleFrom(
+                      backgroundColor: Colors.red.withOpacity(0.05),
+                      foregroundColor: Colors.red,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    child: const Text('Suspend', style: TextStyle(fontWeight: FontWeight.bold)),
+                  ),
+                ),
+              ]
             ],
           ),
         ],
       ),
     );
   }
+
+  Color _getAvatarColor(String name) {
+    final colors = [
+      Colors.orange,
+      Colors.purple,
+      Colors.green,
+      Colors.blue,
+      Colors.redAccent,
+      Colors.teal,
+    ];
+    int hash = 0;
+    for (int i = 0; i < name.length; i++) {
+      hash = name.codeUnitAt(i) + ((hash << 5) - hash);
+    }
+    return colors[hash.abs() % colors.length];
+  }
+}
+
+class _DashedPainter extends CustomPainter {
+  final Color color;
+  final double radius;
+  _DashedPainter({required this.color, required this.radius});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    var paint = Paint()
+      ..color = color
+      ..strokeWidth = 1.5
+      ..style = PaintingStyle.stroke;
+
+    var path = Path()
+      ..addRRect(RRect.fromRectAndRadius(Rect.fromLTWH(0, 0, size.width, size.height), Radius.circular(radius)));
+
+    final dashWidth = 8.0;
+    final dashSpace = 4.0;
+    var distance = 0.0;
+    
+    for (var pathMetric in path.computeMetrics()) {
+      while (distance < pathMetric.length) {
+        canvas.drawPath(
+          pathMetric.extractPath(distance, distance + dashWidth),
+          paint,
+        );
+        distance += dashWidth + dashSpace;
+      }
+      distance = 0.0;
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

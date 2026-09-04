@@ -164,6 +164,9 @@ class TenantApiException implements Exception {
                   error['code'] == 'duplicate'),
         );
   }
+
+  @override
+  String toString() => userMessage;
 }
 
 /// HTTP client for the existing tenant-service registration API.

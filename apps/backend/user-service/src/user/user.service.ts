@@ -53,6 +53,16 @@ export class UserService {
     return users.map((user) => this.mapToDto(user));
   }
 
+  async getStaff(scope: UserAccessScope, userId: string): Promise<StaffResponseDto> {
+    if (scope.actorId !== userId) {
+      this.assertStaffRead(scope);
+    }
+    const user = await this.userModel.findById(userId);
+    if (!user || user.isDeleted) throw new NotFoundException('User not found');
+    this.assertTarget(scope, user);
+    return this.mapToDto(user);
+  }
+
   // ── Register ─────────────────────────────────────────────────────────────
 
   /**
@@ -176,11 +186,27 @@ export class UserService {
     userId: string,
     dto: UpdateStaffDto,
   ): Promise<StaffResponseDto> {
-    this.assertStaffWrite(scope);
+    const isSelfUpdate = scope.actorId === userId;
+    let hasStaffWrite = false;
+    try {
+      this.assertStaffWrite(scope);
+      hasStaffWrite = true;
+    } catch {
+      if (!isSelfUpdate) {
+        throw new ForbiddenException('Staff management permission is required');
+      }
+    }
+
     const user = await this.userModel.findById(userId);
     if (!user || user.isDeleted) throw new NotFoundException('User not found');
     this.assertTarget(scope, user);
+
+    if (!hasStaffWrite && (dto.role !== undefined || dto.branchIds !== undefined)) {
+      throw new ForbiddenException('You do not have permission to change roles or branches');
+    }
+
     if (
+      hasStaffWrite &&
       isBranchManagerRole(scope.roleCode) &&
       ((dto.role !== undefined && dto.role !== 'Staff') ||
         (dto.branchIds !== undefined && dto.branchIds.some((id) => id !== scope.branchId)))

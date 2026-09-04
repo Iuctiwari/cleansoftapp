@@ -215,6 +215,53 @@ export class CompleteTenantOnboardingDto {
 
 // ─── Response DTOs ────────────────────────────────────────────────────────────
 
+export class UpdateTenantProfileDto {
+  @ApiPropertyOptional({
+    description: 'Updated owner full name',
+    example: 'Priya Sharma',
+    maxLength: 120,
+  })
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(120)
+  ownerName?: string;
+
+  @ApiPropertyOptional({
+    description: 'Updated owner mobile number (7–15 digits, optional leading +)',
+    example: '+919876543210',
+    maxLength: 15,
+  })
+  @IsOptional()
+  @IsString()
+  @Matches(/^\+?[0-9]{7,15}$/, {
+    message: 'mobileNumber must be a valid phone number (7–15 digits, optional leading +)',
+  })
+  mobileNumber?: string;
+
+  @ApiPropertyOptional({
+    description: 'Updated business name',
+    example: 'Priya Cleaners',
+    maxLength: 120,
+  })
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(120)
+  businessName?: string;
+
+  @ApiPropertyOptional({
+    description: 'Updated location (mapped to head office city)',
+    example: 'Mumbai',
+    maxLength: 120,
+  })
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(120)
+  location?: string;
+}
+
 export class RegisterTenantResponseDto {
   @ApiProperty({ description: 'Unique tenant identifier', example: 'a1b2c3d4e5f6a1b2c3d4e5f6' })
   tenantId!: string;
@@ -257,6 +304,7 @@ export class TenantProfileDto {
   status!: TenantStatus;
   @ApiProperty() createdAt!: string;
   @ApiProperty() updatedAt!: string;
+  @ApiPropertyOptional() location?: string;
 }
 
 export class BranchDto {
