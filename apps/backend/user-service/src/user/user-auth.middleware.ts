@@ -5,6 +5,7 @@ import {
   type NestMiddleware,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { isOwnerRole } from '@nexoraa/shared';
 
 export interface UserAccessScope {
   readonly actorId: string;
@@ -56,11 +57,12 @@ export class UserAuthenticationMiddleware implements NestMiddleware {
       data?: { actorId?: string; tenantId?: string; branchId?: string; kind?: string };
     };
     const claims = this.readClaims(authorization.slice('Bearer '.length));
+    const isOwner = isOwnerRole(claims.roleCode);
     if (
       context.data?.kind !== 'tenant' ||
       !context.data.actorId ||
       !context.data.tenantId ||
-      !context.data.branchId ||
+      (!isOwner && !context.data.branchId) ||
       claims.userId !== context.data.actorId ||
       claims.tenantId !== context.data.tenantId ||
       !claims.roleCode
@@ -70,7 +72,7 @@ export class UserAuthenticationMiddleware implements NestMiddleware {
     request.userAccessScope = {
       actorId: context.data.actorId,
       tenantId: context.data.tenantId,
-      branchId: context.data.branchId,
+      branchId: context.data.branchId ?? '',
       roleCode: claims.roleCode,
       permissions: Object.freeze([...(claims.permissions ?? [])]),
     };

@@ -1,9 +1,14 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Req } from '@nestjs/common';
 import { ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 
-import { RegisterStaffDto, StaffResponseDto, UpdateStaffDto } from './user.dto';
-import { UserService } from './user.service';
 import type { UserAccessRequest, UserAccessScope } from './user-auth.middleware';
+import {
+  RegisterStaffDto,
+  StaffResponseDto,
+  UpdateAvailabilityDto,
+  UpdateStaffDto,
+} from './user.dto';
+import { UserService } from './user.service';
 
 function scopeOf(request: UserAccessRequest): UserAccessScope {
   if (!request.userAccessScope) throw new Error('User authentication middleware was not applied');
@@ -14,6 +19,36 @@ function scopeOf(request: UserAccessRequest): UserAccessScope {
 @Controller({ path: 'users', version: '1' })
 export class UserController {
   constructor(private readonly userService: UserService) {}
+
+  @Get('me')
+  @ApiOperation({ summary: 'Get current authenticated user profile' })
+  @ApiResponse({ status: 200, type: StaffResponseDto })
+  async getMe(@Req() request: UserAccessRequest): Promise<StaffResponseDto> {
+    return this.userService.getMe(scopeOf(request));
+  }
+
+  @Patch('me/availability')
+  @ApiOperation({ summary: 'Update current user availability' })
+  @ApiResponse({ status: 200, type: StaffResponseDto })
+  async updateMyAvailability(
+    @Body() dto: UpdateAvailabilityDto,
+    @Req() request: UserAccessRequest,
+  ): Promise<StaffResponseDto> {
+    const scope = scopeOf(request);
+    return this.userService.updateAvailability(scope, scope.actorId, dto.availability);
+  }
+
+  @Patch(':userId/availability')
+  @ApiOperation({ summary: 'Update user availability' })
+  @ApiParam({ name: 'userId', description: 'User ID' })
+  @ApiResponse({ status: 200, type: StaffResponseDto })
+  async updateAvailability(
+    @Param('userId') userId: string,
+    @Body() dto: UpdateAvailabilityDto,
+    @Req() request: UserAccessRequest,
+  ): Promise<StaffResponseDto> {
+    return this.userService.updateAvailability(scopeOf(request), userId, dto.availability);
+  }
 
   @Get('roles')
   @ApiOperation({ summary: 'Get static system roles and permissions' })

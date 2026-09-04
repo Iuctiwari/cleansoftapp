@@ -79,7 +79,7 @@ class _AssignWorkerScreenState extends State<AssignWorkerScreen> {
         : null;
 
     try {
-      await widget.controller.assignWorker(
+      final Order updatedOrder = await widget.controller.assignWorker(
         widget.order.id,
         _selectedStaff!.id,
         note: note,
@@ -90,7 +90,7 @@ class _AssignWorkerScreenState extends State<AssignWorkerScreen> {
           content: Text('Order assigned to ${_selectedStaff!.displayName}.'),
         ),
       );
-      Navigator.of(context).pop(true);
+      Navigator.of(context).pop(updatedOrder);
     } on OrderApiException catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(
@@ -264,8 +264,23 @@ class _AssignWorkerScreenState extends State<AssignWorkerScreen> {
                       ...List<Widget>.generate(staffList.length, (int index) {
                         final StaffMember staff = staffList[index];
                         final bool isSelected = _selectedStaff?.id == staff.id;
+                        final String availability =
+                            staff.availability.isNotEmpty
+                            ? staff.availability
+                            : (staff.status.toLowerCase() == 'active'
+                                  ? 'Available'
+                                  : 'Offline');
                         final bool isOffline =
-                            staff.status.toLowerCase() == 'inactive';
+                            availability.toLowerCase() == 'offline' ||
+                            staff.status.toLowerCase() == 'inactive' ||
+                            staff.status.toLowerCase() == 'suspended';
+                        final Color statusDotColor = switch (availability
+                            .toLowerCase()) {
+                          'busy' => const Color(0xFFF59E0B),
+                          'on break' || 'break' => const Color(0xFFEA580C),
+                          'offline' => const Color(0xFF94A3B8),
+                          _ => const Color(0xFF10B981),
+                        };
                         final Color avatarBg = _getAvatarColor(index);
                         final String initials = _getInitials(staff.displayName);
 
@@ -330,9 +345,7 @@ class _AssignWorkerScreenState extends State<AssignWorkerScreen> {
                                           width: 12,
                                           height: 12,
                                           decoration: BoxDecoration(
-                                            color: isOffline
-                                                ? const Color(0xFF94A3B8)
-                                                : const Color(0xFF10B981),
+                                            color: statusDotColor,
                                             shape: BoxShape.circle,
                                             border: Border.all(
                                               color: Colors.white,
@@ -368,7 +381,7 @@ class _AssignWorkerScreenState extends State<AssignWorkerScreen> {
                                               ),
                                             ),
                                             const SizedBox(width: 8),
-                                            _buildStatusBadge(staff.status),
+                                            _buildStatusBadge(availability),
                                           ],
                                         ),
                                         const SizedBox(height: 2),
@@ -614,7 +627,7 @@ class _AssignWorkerScreenState extends State<AssignWorkerScreen> {
       bg = const Color(0xFFFEF3C7);
       fg = const Color(0xFFD97706);
       label = 'Busy';
-    } else if (lower == 'break') {
+    } else if (lower == 'on break' || lower == 'break') {
       bg = const Color(0xFFFFEDD5);
       fg = const Color(0xFFEA580C);
       label = 'On Break';

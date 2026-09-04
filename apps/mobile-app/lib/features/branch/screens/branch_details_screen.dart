@@ -1,19 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:nexoraa_mobile/design_system/design_system.dart';
+import 'package:nexoraa_mobile/features/authentication/access_policy.dart';
+import 'package:nexoraa_mobile/features/authentication/authentication_dependencies.dart';
 import 'package:nexoraa_mobile/features/branch/branch_dependencies.dart';
 import 'package:nexoraa_mobile/features/branch/branch_models.dart';
+import 'package:nexoraa_mobile/features/branch/screens/assign_branch_manager_screen.dart';
 import 'package:nexoraa_mobile/features/branch/screens/branch_form_screen.dart';
 import 'package:nexoraa_mobile/features/branch/services/branch_api_service.dart';
 import 'package:nexoraa_mobile/features/branch/widgets/branch_stat_tile.dart';
-import 'package:nexoraa_mobile/features/authentication/access_policy.dart';
-import 'package:nexoraa_mobile/features/authentication/authentication_dependencies.dart';
 import 'package:nexoraa_mobile/features/staff/models/staff_member.dart';
+import 'package:nexoraa_mobile/features/staff/screens/staff_management_screen.dart';
 import 'package:nexoraa_mobile/features/staff/services/staff_api_service.dart';
 
 class BranchDetailsScreen extends StatefulWidget {
-  const BranchDetailsScreen({required this.branch, super.key});
+  const BranchDetailsScreen({
+    required this.branch,
+    this.staffApiService,
+    super.key,
+  });
 
   final Branch branch;
+  final StaffApiService? staffApiService;
 
   @override
   State<BranchDetailsScreen> createState() => _BranchDetailsScreenState();
@@ -23,7 +30,9 @@ class _BranchDetailsScreenState extends State<BranchDetailsScreen> {
   AccessPolicy get _accessPolicy =>
       AccessPolicy.fromSession(AuthenticationDependencies.controller.session);
   late Branch _branch = widget.branch;
-  final StaffApiService _staffApiService = StaffApiService();
+  late final StaffApiService _staffApiService =
+      widget.staffApiService ?? StaffApiService();
+  List<StaffMember> _tenantStaff = const <StaffMember>[];
   List<StaffMember> _staff = const <StaffMember>[];
   bool _isLoadingStaff = true;
   String? _staffError;
@@ -33,6 +42,30 @@ class _BranchDetailsScreenState extends State<BranchDetailsScreen> {
   /// True if this screen ever replaced the branch it was opened with —
   /// signals the caller (branch list) to refresh its copy on pop.
   bool _changed = false;
+
+  bool get _canManage =>
+      _accessPolicy.isOwner ||
+      _accessPolicy.isBranchManager ||
+      _accessPolicy.allows(AppCapability.branchesEdit);
+
+  StaffMember? get _assignedManager {
+    if (_branch.managerId == null || _branch.managerId!.isEmpty) return null;
+    return _tenantStaff.cast<StaffMember?>().firstWhere(
+      (m) => m?.id == _branch.managerId,
+      orElse: () => null,
+    );
+  }
+
+  String? get _managerDisplayName {
+    final StaffMember? manager = _assignedManager;
+    if (manager != null && manager.displayName.isNotEmpty) {
+      return manager.displayName;
+    }
+    if (_branch.managerName != null && _branch.managerName!.isNotEmpty) {
+      return _branch.managerName;
+    }
+    return null;
+  }
 
   @override
   void initState() {
@@ -48,8 +81,10 @@ class _BranchDetailsScreenState extends State<BranchDetailsScreen> {
     try {
       final List<StaffMember> tenantStaff = await _staffApiService
           .getStaffMembers(_branch.tenantId);
+
       if (!mounted) return;
       setState(() {
+        _tenantStaff = tenantStaff;
         _staff = tenantStaff
             .where((member) => member.branches.contains(_branch.branchId))
             .toList(growable: false);
@@ -82,6 +117,31 @@ class _BranchDetailsScreenState extends State<BranchDetailsScreen> {
         _branch = updated;
         _changed = true;
       });
+      await _loadStaff();
+    }
+  }
+
+  Future<void> _openAssignManager() async {
+    final Branch? updated = await Navigator.of(context).push<Branch>(
+      MaterialPageRoute<Branch>(
+        builder: (_) => AssignBranchManagerScreen(branch: _branch),
+      ),
+    );
+    if (updated != null && mounted) {
+      setState(() {
+        _branch = updated;
+        _changed = true;
+      });
+      await _loadStaff();
+    }
+  }
+
+  Future<void> _openAssignStaff() async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(builder: (_) => const StaffManagementScreen()),
+    );
+    if (mounted) {
+      await _loadStaff();
     }
   }
 
@@ -130,6 +190,9 @@ class _BranchDetailsScreenState extends State<BranchDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final String? managerName = _managerDisplayName;
+    final String managerStatus = _assignedManager?.status ?? 'Active';
+
     return PopScope<Branch>(
       canPop: false,
       onPopInvokedWithResult: (bool didPop, Branch? _) {
@@ -180,6 +243,12 @@ class _BranchDetailsScreenState extends State<BranchDetailsScreen> {
                       ],
                     ),
                     const SizedBox(height: AppSpacing.xl),
+                    if (managerName != null && managerName.isNotEmpty)
+                      _InfoRow(
+                        icon: AppIcons.user,
+                        label: 'Manager',
+                        value: managerName,
+                      ),
                     if (_branch.code != null)
                       _InfoRow(
                         icon: AppIcons.branch,
@@ -225,7 +294,7 @@ class _BranchDetailsScreenState extends State<BranchDetailsScreen> {
               BranchStatRow(
                 tiles: <BranchStatTile>[
                   BranchStatTile(
-                    value: '${_branch.totalStaff}',
+                    value: '${_staff.length}',
                     label: 'Total Staff',
                     color: AppColors.success,
                     background: AppColors.successSurface,
@@ -249,12 +318,86 @@ class _BranchDetailsScreenState extends State<BranchDetailsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    Text('Manager', style: AppTextStyles.subtitle),
-                    const SizedBox(height: AppSpacing.md),
-                    Text(
-                      _branch.managerName ?? _branch.managerId ?? 'Unassigned',
-                      style: AppTextStyles.bodyMedium,
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: <Widget>[
+                        const Text(
+                          'Branch Manager',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF0F172A),
+                          ),
+                        ),
+                        if (_canManage)
+                          _PillButton(
+                            label: 'Assign Manager',
+                            onPressed: _openAssignManager,
+                          ),
+                      ],
                     ),
+                    const SizedBox(height: AppSpacing.lg),
+                    if (managerName != null && managerName.isNotEmpty)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 12,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: const Color(0xFFF1F5F9)),
+                        ),
+                        child: Row(
+                          children: <Widget>[
+                            CircleAvatar(
+                              radius: 22,
+                              backgroundColor: const Color(0xFF2563EB),
+                              child: Text(
+                                _initials(managerName),
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: AppSpacing.md),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: <Widget>[
+                                  Text(
+                                    managerName,
+                                    style: const TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w700,
+                                      color: Color(0xFF0F172A),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  const Text(
+                                    'Branch Manager',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Color(0xFF64748B),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            _buildStatusDot(managerStatus),
+                          ],
+                        ),
+                      )
+                    else
+                      const Text(
+                        'No branch manager assigned.',
+                        style: TextStyle(
+                          color: Color(0xFF64748B),
+                          fontSize: 13,
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -263,8 +406,25 @@ class _BranchDetailsScreenState extends State<BranchDetailsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    Text('Staff', style: AppTextStyles.subtitle),
-                    const SizedBox(height: AppSpacing.md),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: <Widget>[
+                        Text(
+                          'Staff (${_staff.length})',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF0F172A),
+                          ),
+                        ),
+                        if (_canManage)
+                          _PillButton(
+                            label: 'Assign Staff',
+                            onPressed: _openAssignStaff,
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: AppSpacing.lg),
                     _buildStaffContent(),
                   ],
                 ),
@@ -346,25 +506,44 @@ class _BranchDetailsScreenState extends State<BranchDetailsScreen> {
     if (_staff.isEmpty) {
       return const Text(
         'No staff are assigned to this branch.',
-        style: AppTextStyles.caption,
+        style: TextStyle(color: Color(0xFF64748B), fontSize: 13),
       );
     }
     return Column(
       children: _staff.indexed
           .map(((int, StaffMember) entry) {
+            final int index = entry.$1;
             final StaffMember member = entry.$2;
-            final bool active = member.status.toLowerCase() == 'active';
-            return Column(
-              children: <Widget>[
-                if (entry.$1 > 0) const Divider(height: AppSpacing.xxl),
-                Row(
+            final Color avatarBg = _getAvatarColor(index);
+            final String roleLabel = member.department.isNotEmpty
+                ? member.department
+                : member.role;
+
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: index < _staff.length - 1 ? AppSpacing.md : 0,
+              ),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFF1F5F9)),
+                ),
+                child: Row(
                   children: <Widget>[
                     CircleAvatar(
-                      backgroundColor: AppColors.primarySurface,
+                      radius: 22,
+                      backgroundColor: avatarBg,
                       child: Text(
                         _initials(member.displayName),
-                        style: AppTextStyles.captionBold.copyWith(
-                          color: AppColors.primary,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
                         ),
                       ),
                     ),
@@ -375,26 +554,87 @@ class _BranchDetailsScreenState extends State<BranchDetailsScreen> {
                         children: <Widget>[
                           Text(
                             member.displayName,
-                            style: AppTextStyles.bodyMedium,
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF0F172A),
+                            ),
                           ),
-                          const SizedBox(height: AppSpacing.xxs),
-                          Text(member.role, style: AppTextStyles.caption),
+                          const SizedBox(height: 2),
+                          Text(
+                            roleLabel,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Color(0xFF64748B),
+                            ),
+                          ),
                         ],
                       ),
                     ),
-                    AppStatusBadge(
-                      label: active ? 'Active' : 'Inactive',
-                      tone: active
-                          ? AppBadgeTone.success
-                          : AppBadgeTone.neutral,
+                    _buildStatusDot(
+                      member.availability.isNotEmpty
+                          ? member.availability
+                          : member.status,
                     ),
                   ],
                 ),
-              ],
+              ),
             );
           })
           .toList(growable: false),
     );
+  }
+
+  Widget _buildStatusDot(String status) {
+    final String lower = status.toLowerCase();
+    final Color color;
+    final String label;
+
+    if (lower == 'active' || lower == 'available') {
+      color = const Color(0xFF10B981);
+      label = 'Available';
+    } else if (lower == 'busy') {
+      color = const Color(0xFFF59E0B);
+      label = 'Busy';
+    } else if (lower == 'on break' || lower == 'break') {
+      color = const Color(0xFFEA580C);
+      label = 'On Break';
+    } else {
+      color = const Color(0xFF94A3B8);
+      label = 'Offline';
+    }
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        Container(
+          width: 8,
+          height: 8,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: color,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Color _getAvatarColor(int index) {
+    const colors = <Color>[
+      Color(0xFF2563EB), // Blue
+      Color(0xFF7C3AED), // Purple
+      Color(0xFF10B981), // Emerald
+      Color(0xFFF59E0B), // Amber
+      Color(0xFFEC4899), // Pink
+      Color(0xFF06B6D4), // Cyan
+    ];
+    return colors[index % colors.length];
   }
 
   String _initials(String name) {
@@ -406,6 +646,36 @@ class _BranchDetailsScreenState extends State<BranchDetailsScreen> {
     if (parts.isEmpty) return '?';
     if (parts.length == 1) return parts.first[0].toUpperCase();
     return '${parts.first[0]}${parts.last[0]}'.toUpperCase();
+  }
+}
+
+class _PillButton extends StatelessWidget {
+  const _PillButton({required this.label, required this.onPressed});
+
+  final String label;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: const Color(0xFFEFF6FF),
+      borderRadius: BorderRadius.circular(8),
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          child: Text(
+            label,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF2563EB),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 

@@ -33,10 +33,13 @@ class StaffApiException implements Exception {
 }
 
 class StaffApiService {
-  StaffApiService({http.Client? client, String? baseUrl, AuthTokenStorage? tokenStorage})
-    : _client = client ?? http.Client(),
-      _baseUrl = _normalizeBaseUrl(baseUrl ?? _configuredBaseUrl()),
-      _tokenStorage = tokenStorage ?? SecureAuthTokenStorage();
+  StaffApiService({
+    http.Client? client,
+    String? baseUrl,
+    AuthTokenStorage? tokenStorage,
+  }) : _client = client ?? http.Client(),
+       _baseUrl = _normalizeBaseUrl(baseUrl ?? _configuredBaseUrl()),
+       _tokenStorage = tokenStorage ?? SecureAuthTokenStorage();
 
   static const Duration _requestTimeout = Duration(seconds: 15);
   static const String _environmentKey = 'USER_API_BASE_URL';
@@ -44,6 +47,12 @@ class StaffApiService {
   final http.Client _client;
   final String _baseUrl;
   final AuthTokenStorage _tokenStorage;
+  String? _branchId;
+
+  void selectBranch(String? branchId) {
+    final String value = branchId?.trim() ?? '';
+    _branchId = value.isEmpty || value == 'unavailable' ? null : value;
+  }
 
   static String _configuredBaseUrl() {
     if (dotenv.isInitialized) {
@@ -68,7 +77,7 @@ class StaffApiService {
       if (token != null && token.isNotEmpty) {
         headers['Authorization'] = 'Bearer $token';
       }
-      final branchId = session?.branchId;
+      final branchId = _branchId ?? session?.branchId;
       if (branchId != null && branchId.isNotEmpty) {
         headers['x-branch-id'] = branchId;
       }
@@ -92,6 +101,10 @@ class StaffApiService {
     } catch (e, stack) {
       print('StaffApiService.getStaffMembers: Error $e');
       print('StaffApiService.getStaffMembers: StackTrace $stack');
+      response = await _client
+          .get(uri, headers: headers)
+          .timeout(_requestTimeout);
+    } catch (e) {
       throw const StaffApiException(
         code: 'network_error',
         messageKey: 'network_error',
@@ -113,14 +126,91 @@ class StaffApiService {
     }
   }
 
-  Future<StaffStatistics> getStaffStatistics(String tenantId, {String? branchId}) async {
-    final queryParams = branchId != null && branchId.isNotEmpty ? '?branchId=$branchId' : '';
-    final uri = Uri.parse('$_baseUrl/api/v1/users/tenant/$tenantId/statistics$queryParams');
+  Future<StaffMember> getMyProfile() async {
+    final uri = Uri.parse('$_baseUrl/api/v1/users/me');
+    final headers = await _authHeaders();
+    late http.Response response;
+    try {
+      response = await _client
+          .get(uri, headers: headers)
+          .timeout(_requestTimeout);
+    } catch (_) {
+      throw const StaffApiException(
+        code: 'network_error',
+        messageKey: 'network_error',
+        statusCode: 0,
+        backendMessage: 'Unable to reach the staff service.',
+      );
+    }
+
+    if (response.statusCode == 200) {
+      final Map<String, dynamic> decoded = jsonDecode(response.body);
+      return StaffMember.fromJson(decoded);
+    } else {
+      final decoded = jsonDecode(response.body);
+      throw StaffApiException(
+        code: 'error',
+        messageKey: 'error',
+        statusCode: response.statusCode,
+        backendMessage:
+            decoded['message']?.toString() ?? 'Failed to load user profile.',
+      );
+    }
+  }
+
+  Future<StaffMember> updateMyAvailability(String availability) async {
+    final uri = Uri.parse('$_baseUrl/api/v1/users/me/availability');
+    final headers = await _authHeaders();
+    late http.Response response;
+    try {
+      response = await _client
+          .patch(
+            uri,
+            headers: headers,
+            body: jsonEncode({'availability': availability}),
+          )
+          .timeout(_requestTimeout);
+    } catch (_) {
+      throw const StaffApiException(
+        code: 'network_error',
+        messageKey: 'network_error',
+        statusCode: 0,
+        backendMessage: 'Unable to reach the staff service.',
+      );
+    }
+
+    if (response.statusCode == 200 || response.statusCode == 204) {
+      final Map<String, dynamic> decoded = jsonDecode(response.body);
+      return StaffMember.fromJson(decoded);
+    } else {
+      final decoded = jsonDecode(response.body);
+      throw StaffApiException(
+        code: 'error',
+        messageKey: 'error',
+        statusCode: response.statusCode,
+        backendMessage:
+            decoded['message']?.toString() ?? 'Failed to update availability.',
+      );
+    }
+  }
+
+  Future<StaffStatistics> getStaffStatistics(
+    String tenantId, {
+    String? branchId,
+  }) async {
+    final queryParams = branchId != null && branchId.isNotEmpty
+        ? '?branchId=$branchId'
+        : '';
+    final uri = Uri.parse(
+      '$_baseUrl/api/v1/users/tenant/$tenantId/statistics$queryParams',
+    );
     final headers = await _authHeaders();
 
     late http.Response response;
     try {
-      response = await _client.get(uri, headers: headers).timeout(_requestTimeout);
+      response = await _client
+          .get(uri, headers: headers)
+          .timeout(_requestTimeout);
     } catch (_) {
       throw const StaffApiException(
         code: 'network_error',
@@ -273,7 +363,9 @@ class StaffApiService {
     final headers = await _authHeaders();
     late http.Response response;
     try {
-      response = await _client.get(uri, headers: headers).timeout(_requestTimeout);
+      response = await _client
+          .get(uri, headers: headers)
+          .timeout(_requestTimeout);
     } catch (e) {
       throw StaffApiException(
         code: 'network_error',
@@ -316,20 +408,24 @@ class StaffApiService {
 
     late http.Response response;
     try {
-      response = await _client.post(
-        uri,
-        headers: headers,
-        body: jsonEncode({
-          'name': name,
-          'loginId': loginId,
-          'password': password,
-          if (email != null && email.isNotEmpty) 'email': email,
-          if (mobileNumber != null && mobileNumber.isNotEmpty) 'mobileNumber': mobileNumber,
-          if (department != null && department.isNotEmpty) 'department': department,
-          'role': role,
-          'branchIds': branches,
-        }),
-      ).timeout(_requestTimeout);
+      response = await _client
+          .post(
+            uri,
+            headers: headers,
+            body: jsonEncode({
+              'name': name,
+              'loginId': loginId,
+              'password': password,
+              if (email != null && email.isNotEmpty) 'email': email,
+              if (mobileNumber != null && mobileNumber.isNotEmpty)
+                'mobileNumber': mobileNumber,
+              if (department != null && department.isNotEmpty)
+                'department': department,
+              'role': role,
+              'branchIds': branches,
+            }),
+          )
+          .timeout(_requestTimeout);
     } catch (e) {
       throw const StaffApiException(
         code: 'network_error',
@@ -359,6 +455,8 @@ class StaffApiService {
         messageKey: 'error',
         statusCode: response.statusCode,
         backendMessage: backendMessage,
+        backendMessage:
+            decoded['message']?.toString() ?? 'Failed to register staff.',
       );
     }
   }
@@ -385,11 +483,9 @@ class StaffApiService {
       if (role != null) body['role'] = role;
       if (branchIds != null) body['branchIds'] = branchIds;
 
-      final response = await _client.patch(
-        uri,
-        headers: headers,
-        body: jsonEncode(body),
-      ).timeout(_requestTimeout);
+      final response = await _client
+          .patch(uri, headers: headers, body: jsonEncode(body))
+          .timeout(_requestTimeout);
 
       if (response.statusCode != 200) {
         final decoded = jsonDecode(response.body);
@@ -408,6 +504,8 @@ class StaffApiService {
           messageKey: 'error',
           statusCode: response.statusCode,
           backendMessage: backendMessage,
+          backendMessage:
+              decoded['message']?.toString() ?? 'Failed to update staff.',
         );
       }
     } on StaffApiException {
@@ -425,18 +523,26 @@ class StaffApiService {
   // ── Status actions ────────────────────────────────────────────────────────
 
   Future<void> suspendStaff(String userId) async {
-    await _patchAction('/api/v1/users/$userId/suspend', 'Failed to suspend staff.');
+    await _patchAction(
+      '/api/v1/users/$userId/suspend',
+      'Failed to suspend staff.',
+    );
   }
 
   Future<void> reactivateStaff(String userId) async {
-    await _patchAction('/api/v1/users/$userId/reactivate', 'Failed to reactivate staff.');
+    await _patchAction(
+      '/api/v1/users/$userId/reactivate',
+      'Failed to reactivate staff.',
+    );
   }
 
   Future<void> removeStaff(String userId) async {
     final uri = Uri.parse('$_baseUrl/api/v1/users/$userId');
     final headers = await _authHeaders();
     try {
-      final response = await _client.delete(uri, headers: headers).timeout(_requestTimeout);
+      final response = await _client
+          .delete(uri, headers: headers)
+          .timeout(_requestTimeout);
       if (response.statusCode != 200 && response.statusCode != 204) {
         String backendMessage = 'Failed to remove staff.';
         try {
@@ -473,7 +579,9 @@ class StaffApiService {
     final uri = Uri.parse('$_baseUrl$path');
     final headers = await _authHeaders();
     try {
-      final response = await _client.patch(uri, headers: headers).timeout(_requestTimeout);
+      final response = await _client
+          .patch(uri, headers: headers)
+          .timeout(_requestTimeout);
       if (response.statusCode != 204 && response.statusCode != 200) {
         String backendMessage = errorMessage;
         try {
