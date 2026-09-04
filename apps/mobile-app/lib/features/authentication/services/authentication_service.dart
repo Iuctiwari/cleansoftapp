@@ -9,4 +9,14 @@ abstract interface class AuthenticationService {
   });
 
   Future<void> signOut();
+
+  Future<void> requestPasswordReset({
+    required String identifier,
+  });
+
+  Future<void> confirmPasswordReset({
+    required String identifier,
+    required String otp,
+    required String newPassword,
+  });
 }

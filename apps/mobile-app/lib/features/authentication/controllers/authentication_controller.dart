@@ -69,4 +69,38 @@ final class AuthenticationController extends ChangeNotifier {
     _status = AuthenticationStatus.unauthenticated;
     notifyListeners();
   }
+
+  Future<bool> requestPasswordReset({required String identifier}) async {
+    _errorMessage = null;
+    try {
+      await _service.requestPasswordReset(identifier: identifier);
+      return true;
+    } on AuthenticationException catch (error) {
+      _errorMessage = error.message;
+    } on Exception {
+      _errorMessage = 'Something went wrong. Please try again.';
+    }
+    return false;
+  }
+
+  Future<bool> confirmPasswordReset({
+    required String identifier,
+    required String otp,
+    required String newPassword,
+  }) async {
+    _errorMessage = null;
+    try {
+      await _service.confirmPasswordReset(
+        identifier: identifier,
+        otp: otp,
+        newPassword: newPassword,
+      );
+      return true;
+    } on AuthenticationException catch (error) {
+      _errorMessage = error.message;
+    } on Exception {
+      _errorMessage = 'Something went wrong. Please try again.';
+    }
+    return false;
+  }
 }

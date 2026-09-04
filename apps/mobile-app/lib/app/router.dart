@@ -5,6 +5,7 @@ import 'package:nexoraa_mobile/features/authentication/authentication_dependenci
 import 'package:nexoraa_mobile/features/authentication/access_policy.dart';
 import 'package:nexoraa_mobile/features/authentication/screens/login_screen.dart';
 import 'package:nexoraa_mobile/features/authentication/screens/forgot_password_screen.dart';
+import 'package:nexoraa_mobile/features/authentication/screens/reset_password_screen.dart';
 import 'package:nexoraa_mobile/features/authentication/screens/splash_screen.dart';
 import 'package:nexoraa_mobile/features/branch/branch.dart';
 import 'package:nexoraa_mobile/features/dashboard/dashboard.dart';
@@ -38,6 +39,7 @@ abstract final class AppRoutes {
   static const String onboardingInviteStaff = '/onboarding/invite-staff';
   static const String onboardingAllSet = '/onboarding/all-set';
   static const String forgotPassword = '/forgot-password';
+  static const String resetPassword = '/reset-password';
   static const String notifications = '/dashboard/notifications';
   static const String branchList = '/dashboard/branches';
   static const String branchAdd = '/dashboard/branches/add';
@@ -63,6 +65,7 @@ abstract final class AppRouteNames {
   static const String onboardingInviteStaff = 'onboardingInviteStaff';
   static const String onboardingAllSet = 'onboardingAllSet';
   static const String forgotPassword = 'forgot-password';
+  static const String resetPassword = 'resetPassword';
   static const String notifications = 'notifications';
   static const String branchList = 'branchList';
   static const String branchAdd = 'branchAdd';
@@ -185,6 +188,18 @@ abstract final class AppRouter {
           return _fadePage<void>(
             state: state,
             child: const ForgotPasswordScreen(),
+          );
+        },
+      ),
+      GoRoute(
+        name: AppRouteNames.resetPassword,
+        path: AppRoutes.resetPassword,
+        pageBuilder: (BuildContext context, GoRouterState state) {
+          final extra = state.extra;
+          final identifier = extra is String ? extra : '';
+          return _fadePage<void>(
+            state: state,
+            child: ResetPasswordScreen(initialIdentifier: identifier),
           );
         },
       ),
