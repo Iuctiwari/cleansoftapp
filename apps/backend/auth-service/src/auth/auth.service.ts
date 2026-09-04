@@ -453,7 +453,9 @@ export class AuthService {
       };
     }
 
-    this.logger.log(`Password reset requested for valid account (${identity.kind}), initiating delivery`);
+    this.logger.log(
+      `Password reset requested for valid account (${identity.kind}), initiating delivery`,
+    );
 
     const now = new Date();
     const otp = generateOtp();

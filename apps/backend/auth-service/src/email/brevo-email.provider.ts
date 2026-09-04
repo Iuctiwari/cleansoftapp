@@ -68,7 +68,9 @@ export class BrevoEmailProvider implements EmailProvider {
           // Ignore body read failures
         }
         // Log status code and non-sensitive error summary without exposing recipient or secrets
-        this.logger.error(`Brevo API responded with status ${status}: ${responseBody.slice(0, 200)}`);
+        this.logger.error(
+          `Brevo API responded with status ${status}: ${responseBody.slice(0, 200)}`,
+        );
         return {
           success: false,
           statusCode: status,
@@ -77,7 +79,9 @@ export class BrevoEmailProvider implements EmailProvider {
       }
 
       const result = (await response.json()) as { messageId?: string };
-      this.logger.log(`Brevo transactional email sent successfully (messageId: ${result.messageId ?? 'ok'})`);
+      this.logger.log(
+        `Brevo transactional email sent successfully (messageId: ${result.messageId ?? 'ok'})`,
+      );
       return {
         success: true,
         messageId: result.messageId,

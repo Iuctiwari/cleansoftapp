@@ -1,5 +1,10 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { EMAIL_PROVIDER, type EmailProvider, type SendEmailOptions, type SendEmailResult } from './email.types';
+import {
+  EMAIL_PROVIDER,
+  type EmailProvider,
+  type SendEmailOptions,
+  type SendEmailResult,
+} from './email.types';
 
 @Injectable()
 export class EmailService {
@@ -14,7 +19,11 @@ export class EmailService {
     return this.provider.send(options);
   }
 
-  async sendPasswordResetOtp(email: string, otp: string, recipientName?: string): Promise<SendEmailResult> {
+  async sendPasswordResetOtp(
+    email: string,
+    otp: string,
+    recipientName?: string,
+  ): Promise<SendEmailResult> {
     const subject = 'Your Nexoraa CleanSoft Password Reset Code';
     const htmlContent = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">

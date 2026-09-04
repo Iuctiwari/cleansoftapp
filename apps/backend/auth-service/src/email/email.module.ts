@@ -13,7 +13,11 @@ import { NoopEmailProvider } from './noop-email.provider';
     NoopEmailProvider,
     {
       provide: EMAIL_PROVIDER,
-      useFactory: (configService: ConfigService, brevo: BrevoEmailProvider, noop: NoopEmailProvider) => {
+      useFactory: (
+        configService: ConfigService,
+        brevo: BrevoEmailProvider,
+        noop: NoopEmailProvider,
+      ) => {
         const apiKey = configService.get<string>('BREVO_API_KEY')?.trim();
         const nodeEnv = configService.get<string>('NODE_ENV')?.trim();
         if (!apiKey && nodeEnv !== 'production') {
