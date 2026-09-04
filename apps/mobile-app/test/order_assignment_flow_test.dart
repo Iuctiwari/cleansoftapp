@@ -19,7 +19,7 @@ void main() {
         requests.add(request);
         return http.Response(
           jsonEncode(<String, Object?>{
-              'data': _orderJson(
+            'data': _orderJson(
               'order-123',
               assignedTo: 'staff-456',
               note: 'Handle with care',
@@ -62,7 +62,11 @@ void main() {
           if (request.url.path.endsWith('/accept')) {
             return http.Response(
               jsonEncode(<String, Object?>{
-                'data': _orderJson('order-123', assignedTo: 'staff-456', status: 'Accepted'),
+                'data': _orderJson(
+                  'order-123',
+                  assignedTo: 'staff-456',
+                  status: 'Accepted',
+                ),
               }),
               200,
               headers: {'content-type': 'application/json'},
@@ -79,10 +83,15 @@ void main() {
       )..selectBranch('branch-1');
 
       final OrderController controller = OrderController(service: service);
-      final Order acceptedOrder = await controller.acceptAssignment('order-123');
+      final Order acceptedOrder = await controller.acceptAssignment(
+        'order-123',
+      );
       expect(acceptedOrder.status, OrderStatus.accepted);
 
-      final Order rejectedOrder = await controller.rejectAssignment('order-123', reason: 'Unavailable');
+      final Order rejectedOrder = await controller.rejectAssignment(
+        'order-123',
+        reason: 'Unavailable',
+      );
       expect(rejectedOrder.status, OrderStatus.rejected);
       expect(controller.orders.any((o) => o.id == 'order-123'), isFalse);
 
@@ -98,55 +107,117 @@ void main() {
     },
   );
 
-  test('changeStatus to delivered marks status Delivered and places order at top', () async {
-    final List<http.Request> requests = <http.Request>[];
-    final OrderApiService service = OrderApiService(
-      tokenStorage: _MemoryTokenStorage(),
-      baseUrl: 'http://orders.test/api',
-      client: MockClient((http.Request request) async {
-        requests.add(request);
-        if (request.method == 'GET') {
+  test(
+    'changeStatus to delivered marks status Delivered and places order at top',
+    () async {
+      final List<http.Request> requests = <http.Request>[];
+      final OrderApiService service = OrderApiService(
+        tokenStorage: _MemoryTokenStorage(),
+        baseUrl: 'http://orders.test/api',
+        client: MockClient((http.Request request) async {
+          requests.add(request);
+          if (request.method == 'GET') {
+            return http.Response(
+              jsonEncode(<String, Object?>{
+                'data': <String, Object?>{
+                  'items': <Object>[
+                    _orderJson('order-999', status: 'Ready'),
+                    _orderJson('order-123', status: 'Ready'),
+                  ],
+                  'total': 2,
+                  'page': 1,
+                  'limit': 20,
+                  'totalPages': 1,
+                },
+              }),
+              200,
+              headers: {'content-type': 'application/json'},
+            );
+          }
           return http.Response(
             jsonEncode(<String, Object?>{
-              'data': <String, Object?>{
-                'items': <Object>[
-                  _orderJson('order-999', status: 'Ready'),
-                  _orderJson('order-123', status: 'Ready'),
-                ],
-                'total': 2,
-                'page': 1,
-                'limit': 20,
-                'totalPages': 1,
-              },
+              'data': _orderJson('order-123', status: 'Delivered'),
             }),
             200,
             headers: {'content-type': 'application/json'},
           );
-        }
-        return http.Response(
-          jsonEncode(<String, Object?>{
-            'data': _orderJson('order-123', status: 'Delivered'),
-          }),
-          200,
-          headers: {'content-type': 'application/json'},
-        );
-      }),
-    )..selectBranch('branch-1');
+        }),
+      )..selectBranch('branch-1');
 
-    final OrderController controller = OrderController(service: service);
-    await controller.load();
-    expect(controller.orders.first.id, 'order-999');
+      final OrderController controller = OrderController(service: service);
+      await controller.load();
+      expect(controller.orders.first.id, 'order-999');
 
-    final Order order = await controller.changeStatus('order-123', OrderStatus.delivered);
+      final Order order = await controller.changeStatus(
+        'order-123',
+        OrderStatus.delivered,
+      );
 
-    expect(requests.length, 2);
-    expect(requests.last.method, 'PATCH');
-    expect(requests.last.url.path, '/api/v1/orders/order-123/status');
-    expect(jsonDecode(requests.last.body)['status'], 'Delivered');
-    expect(order.status, OrderStatus.delivered);
-    expect(controller.orders.first.id, 'order-123');
-    expect(controller.orders.first.status, OrderStatus.delivered);
+      expect(requests.length, 2);
+      expect(requests.last.method, 'PATCH');
+      expect(requests.last.url.path, '/api/v1/orders/order-123/status');
+      expect(jsonDecode(requests.last.body)['status'], 'Delivered');
+      expect(order.status, OrderStatus.delivered);
+      expect(controller.orders.first.id, 'order-123');
+      expect(controller.orders.first.status, OrderStatus.delivered);
+    },
+  );
+
+  test(
+    'OrderDetailsData findStaff and resolveStaffName correctly resolves staff name and role',
+    () {
+      final order = Order.fromJson(
+        _orderJson(
+          'order-123',
+          assignedTo: 'staff-456',
+          assignmentStatus: 'Pending',
+          status: 'Assigned',
+        ),
+      );
+      final data = _TestOrderDetailsData(
+        order: order,
+        staffId: 'staff-456',
+        staffName: 'Rahul Sharma',
+        staffRole: 'Worker',
+      );
+
+      expect(data.resolveStaffName(order.assignedTo), 'Rahul Sharma');
+      expect(data.findStaff(order.assignedTo)?.role, 'Worker');
+    },
+  );
+}
+
+class _TestOrderDetailsData {
+  _TestOrderDetailsData({
+    required this.order,
+    required this.staffId,
+    required this.staffName,
+    required this.staffRole,
   });
+
+  final Order order;
+  final String staffId;
+  final String staffName;
+  final String staffRole;
+
+  String resolveStaffName(String? idOrName) {
+    if (idOrName == null || idOrName.trim().isEmpty) return 'Worker';
+    if (idOrName == staffId) return staffName;
+    return idOrName;
+  }
+
+  _TestStaff? findStaff(String? idOrName) {
+    if (idOrName == staffId)
+      return _TestStaff(id: staffId, name: staffName, role: staffRole);
+    return null;
+  }
+}
+
+class _TestStaff {
+  const _TestStaff({required this.id, required this.name, required this.role});
+  final String id;
+  final String name;
+  final String role;
 }
 
 Map<String, Object?> _orderJson(

@@ -1,7 +1,7 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, FilterQuery } from 'mongoose';
 import { effectivePermissions } from '@nexoraa/shared';
+import { FilterQuery, Model } from 'mongoose';
 import { hashPassword } from './auth.crypto';
 import { normalizeIdentifier } from './auth.normalization';
 
@@ -17,22 +17,22 @@ import type {
 } from './auth.types';
 
 import {
-  AuthSessionDocument,
-  AuthSessionMongoose,
   AuthLoginTrackerDocument,
   AuthLoginTrackerMongoose,
-  PasswordResetDocument,
-  PasswordResetMongoose,
   AuthNotificationIntentDocument,
   AuthNotificationIntentMongoose,
-  PlatformUserDocument,
-  PlatformUserMongoose,
-  TenantOwnerAuthDocument,
-  TenantOwnerAuthMongoose,
-  TenantAuthDocument,
-  TenantAuthMongoose,
+  AuthSessionDocument,
+  AuthSessionMongoose,
   BranchAuthDocument,
   BranchAuthMongoose,
+  PasswordResetDocument,
+  PasswordResetMongoose,
+  PlatformUserDocument,
+  PlatformUserMongoose,
+  TenantAuthDocument,
+  TenantAuthMongoose,
+  TenantOwnerAuthDocument,
+  TenantOwnerAuthMongoose,
   TenantStaffAuthDocument,
   TenantStaffAuthMongoose,
   UserBranchAssignmentDocument,
@@ -114,12 +114,8 @@ export class MongoAuthRepository implements AuthRepository, OnModuleInit {
     }
 
     if (context === 'tenant') {
-      const tenant = tenantSlug
-        ? await this.tenantModel.findOne({ slug: tenantSlug }).lean().exec()
-        : null;
       const owner = await this.tenantOwnerModel
         .findOne({
-          ...(tenant ? { tenantId: tenant.tenantId } : {}),
           $or: [{ email: normalized }, { mobileNumber: normalized }],
         })
         .lean()
@@ -129,12 +125,14 @@ export class MongoAuthRepository implements AuthRepository, OnModuleInit {
         // Owner not found — try staff lookup by loginId
         return this.findStaffIdentityByLoginId(normalized);
       }
-      const resolvedTenant =
-        tenant ?? (await this.tenantModel.findOne({ tenantId: owner.tenantId }).lean().exec());
+      const resolvedTenant = await this.tenantModel
+        .findOne({ tenantId: owner.tenantId })
+        .lean()
+        .exec();
       if (!resolvedTenant) return null;
 
       const branches = await this.branchModel
-        .find({ tenantId: resolvedTenant.tenantId, status: 'active' })
+        .find({ tenantId: resolvedTenant.tenantId, status: { $in: ['active', 'Active'] } })
         .lean()
         .exec();
       const mappedBranches = branches.map((b) => ({

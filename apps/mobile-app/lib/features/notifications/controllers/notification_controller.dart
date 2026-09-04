@@ -24,7 +24,8 @@ class NotificationController extends ChangeNotifier {
   bool _hasLoaded = false;
   bool _disposed = false;
 
-  List<AppNotification> get notifications => _category == NotificationCategory.all
+  List<AppNotification> get notifications =>
+      _category == NotificationCategory.all
       ? List<AppNotification>.unmodifiable(_notifications)
       : List<AppNotification>.unmodifiable(
           _notifications.where(
@@ -60,11 +61,12 @@ class NotificationController extends ChangeNotifier {
     notifyListeners();
     try {
       final AppNotificationPage result = await _service.list(
+        isRead: false,
         sortDirection: 'desc',
       );
       _notifications
         ..clear()
-        ..addAll(result.items);
+        ..addAll(result.items.where((AppNotification item) => !item.isRead));
       _page = result.page;
       _total = result.total;
       _totalPages = result.totalPages;
@@ -89,9 +91,12 @@ class NotificationController extends ChangeNotifier {
     try {
       final AppNotificationPage result = await _service.list(
         page: _page + 1,
+        isRead: false,
         sortDirection: 'desc',
       );
-      _notifications.addAll(result.items);
+      _notifications.addAll(
+        result.items.where((AppNotification item) => !item.isRead),
+      );
       _page = result.page;
       _total = result.total;
       _totalPages = result.totalPages;
@@ -127,38 +132,35 @@ class NotificationController extends ChangeNotifier {
     final int index = _notifications.indexWhere(
       (AppNotification item) => item.id == id,
     );
-    if (index == -1 || _notifications[index].isRead) return;
+    if (index == -1) return;
     final AppNotification previous = _notifications[index];
-    _notifications[index] = previous.copyWith(isRead: true);
+    _notifications.removeAt(index);
     if (_unreadCount > 0) _unreadCount -= 1;
+    if (_total > 0) _total -= 1;
     notifyListeners();
     try {
-      final AppNotification updated = await _service.markRead(id);
-      final int current = _notifications.indexWhere(
-        (AppNotification item) => item.id == id,
-      );
-      if (current != -1) _notifications[current] = updated;
+      await _service.markRead(id);
     } on NotificationApiException {
-      final int current = _notifications.indexWhere(
-        (AppNotification item) => item.id == id,
-      );
-      if (current != -1) _notifications[current] = previous;
-      _unreadCount += 1;
+      if (!_notifications.any((AppNotification item) => item.id == id)) {
+        _notifications.insert(index.clamp(0, _notifications.length), previous);
+        _unreadCount += 1;
+        _total += 1;
+      }
     } finally {
       notifyListeners();
     }
   }
 
   Future<void> markAllRead() async {
-    if (_unreadCount == 0 && _notifications.every((n) => n.isRead)) return;
+    if (_notifications.isEmpty && _unreadCount == 0) return;
     final List<AppNotification> previous = List<AppNotification>.of(
       _notifications,
     );
     final int previousUnread = _unreadCount;
-    for (int i = 0; i < _notifications.length; i++) {
-      _notifications[i] = _notifications[i].copyWith(isRead: true);
-    }
+    final int previousTotal = _total;
+    _notifications.clear();
     _unreadCount = 0;
+    _total = 0;
     notifyListeners();
     try {
       await _service.markAllRead();
@@ -167,6 +169,7 @@ class NotificationController extends ChangeNotifier {
         ..clear()
         ..addAll(previous);
       _unreadCount = previousUnread;
+      _total = previousTotal;
     } finally {
       notifyListeners();
     }
@@ -195,12 +198,15 @@ class NotificationController extends ChangeNotifier {
   void _handleSocketNew(Map<String, dynamic> payload) {
     try {
       final AppNotification notification = AppNotification.fromJson(payload);
-      if (_notifications.any((AppNotification item) => item.id == notification.id)) {
+      if (notification.isRead) return;
+      if (_notifications.any(
+        (AppNotification item) => item.id == notification.id,
+      )) {
         return;
       }
       _notifications.insert(0, notification);
       _total += 1;
-      if (!notification.isRead) _unreadCount += 1;
+      _unreadCount += 1;
       notifyListeners();
     } on FormatException {
       // Ignore malformed real-time payloads; GET /notifications remains
@@ -214,9 +220,10 @@ class NotificationController extends ChangeNotifier {
       final int index = _notifications.indexWhere(
         (AppNotification item) => item.id == notification.id,
       );
-      if (index != -1 && !_notifications[index].isRead) {
-        _notifications[index] = notification;
+      if (index != -1) {
+        _notifications.removeAt(index);
         if (_unreadCount > 0) _unreadCount -= 1;
+        if (_total > 0) _total -= 1;
         notifyListeners();
       }
     } on FormatException {
@@ -225,14 +232,9 @@ class NotificationController extends ChangeNotifier {
   }
 
   void _handleSocketReadAll(Map<String, dynamic> payload) {
-    if (_notifications.every((AppNotification item) => item.isRead) &&
-        _unreadCount == 0) {
-      return;
-    }
-    for (int i = 0; i < _notifications.length; i++) {
-      _notifications[i] = _notifications[i].copyWith(isRead: true);
-    }
+    _notifications.clear();
     _unreadCount = 0;
+    _total = 0;
     notifyListeners();
   }
 

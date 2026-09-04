@@ -71,6 +71,7 @@ class _RoleDashboardScreenState extends State<RoleDashboardScreen> {
   String _selectedBranchId = 'unavailable';
   String _branchName = 'Branch unavailable';
   String _businessName = '';
+  String _staffAvailability = 'Available';
 
   bool get _isStaff => widget.kind == RoleDashboardKind.staff;
 
@@ -231,6 +232,7 @@ class _RoleDashboardScreenState extends State<RoleDashboardScreen> {
     List<Order> recent = const <Order>[];
     List<StaffMember> staff = const <StaffMember>[];
     OrderStatistics? statistics;
+    String? currentAvailability;
     await Future.wait<void>(<Future<void>>[
       () async {
         try {
@@ -255,9 +257,21 @@ class _RoleDashboardScreenState extends State<RoleDashboardScreen> {
             staff = const <StaffMember>[];
           }
         }(),
+      if (_isStaff)
+        () async {
+          try {
+            final StaffMember me = await _staffApiService.getMyProfile();
+            currentAvailability = me.availability;
+          } on Object {
+            // Preserve current state
+          }
+        }(),
     ]);
     if (!mounted || requestedBranchId != _selectedBranchId) return;
     setState(() {
+      if (currentAvailability != null && currentAvailability!.isNotEmpty) {
+        _staffAvailability = currentAvailability!;
+      }
       _recentBranchOrders = recent;
       _branchStaff = staff;
       _todayOrders = statistics?.todayOrders;
@@ -268,6 +282,59 @@ class _RoleDashboardScreenState extends State<RoleDashboardScreen> {
       _completedOrders = statistics?.count(OrderStatus.delivered);
       _branchManagerDashboardLoading = false;
     });
+  }
+
+  Future<void> _changeStaffAvailability(String newStatus) async {
+    final String previousStatus = _staffAvailability;
+    setState(() => _staffAvailability = newStatus);
+    try {
+      final StaffMember updated = await _staffApiService.updateMyAvailability(
+        newStatus,
+      );
+      if (mounted) {
+        setState(() => _staffAvailability = updated.availability);
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(
+              content: Text('Availability updated to $newStatus'),
+              backgroundColor: const Color(0xFF10B981),
+            ),
+          );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _staffAvailability = previousStatus);
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(
+              content: Text('Failed to update availability: $e'),
+              backgroundColor: AppColors.error,
+            ),
+          );
+      }
+    }
+  }
+
+  void _openSetAvailabilityBottomSheet() {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (BuildContext sheetContext) {
+        return _SetAvailabilityBottomSheet(
+          currentAvailability: _staffAvailability,
+          onSelect: (String newStatus) {
+            Navigator.of(sheetContext).pop();
+            unawaited(_changeStaffAvailability(newStatus));
+          },
+        );
+      },
+    );
   }
 
   void _showUiOnlyMessage(String message) {
@@ -402,6 +469,8 @@ class _RoleDashboardScreenState extends State<RoleDashboardScreen> {
                 child: _isStaff
                     ? _StaffDashboardBody(
                         isLoading: _branchManagerDashboardLoading,
+                        availability: _staffAvailability,
+                        onChangeAvailability: _openSetAvailabilityBottomSheet,
                         assigned: _assignedOrders,
                         tasksToday: _todayOrders,
                         inProgress: _inProgressOrders,
@@ -917,6 +986,8 @@ class _BranchManagerDashboardBody extends StatelessWidget {
 class _StaffDashboardBody extends StatelessWidget {
   const _StaffDashboardBody({
     required this.isLoading,
+    required this.availability,
+    required this.onChangeAvailability,
     required this.assigned,
     required this.tasksToday,
     required this.inProgress,
@@ -928,6 +999,8 @@ class _StaffDashboardBody extends StatelessWidget {
   });
 
   final bool isLoading;
+  final String availability;
+  final VoidCallback onChangeAvailability;
   final int? assigned;
   final int? tasksToday;
   final int? inProgress;
@@ -955,6 +1028,12 @@ class _StaffDashboardBody extends StatelessWidget {
             assigned: _count(tasksToday),
             inProgress: _count(inProgress),
             completed: _count(completed),
+            availability: availability,
+          ),
+          const SizedBox(height: AppSpacing.md),
+          _StaffAvailabilityCard(
+            availability: availability,
+            onChange: onChangeAvailability,
           ),
           const SizedBox(height: AppSpacing.md),
           _MetricGrid(
@@ -1162,14 +1241,35 @@ class _TaskHeroCard extends StatelessWidget {
     required this.assigned,
     required this.inProgress,
     required this.completed,
+    this.availability = 'Available',
   });
 
   final String assigned;
   final String inProgress;
   final String completed;
+  final String availability;
+
+  (Color, String) _getAvailabilityBadgeInfo(String status) {
+    switch (status.toLowerCase()) {
+      case 'busy':
+        return (const Color(0xFFF59E0B), 'Busy');
+      case 'on break':
+      case 'break':
+        return (const Color(0xFFEA580C), 'On Break');
+      case 'offline':
+        return (const Color(0xFF94A3B8), 'Offline');
+      case 'available':
+      default:
+        return (const Color(0xFF10B981), 'Available');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final (Color badgeDotColor, String badgeStatus) = _getAvailabilityBadgeInfo(
+      availability,
+    );
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(AppSpacing.xl),
@@ -1185,11 +1285,51 @@ class _TaskHeroCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Text(
-            'MY TASKS TODAY',
-            style: AppTextStyles.labelBold.copyWith(
-              color: AppColors.whiteOverlay80,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: <Widget>[
+              Text(
+                'MY TASKS TODAY',
+                style: AppTextStyles.labelBold.copyWith(
+                  color: AppColors.whiteOverlay80,
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.25),
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: badgeDotColor,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      badgeStatus,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: AppSpacing.sm),
           Text(
@@ -1671,6 +1811,328 @@ class _StatusPill extends StatelessWidget {
             color: color,
             fontWeight: FontWeight.w700,
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _StaffAvailabilityCard extends StatelessWidget {
+  const _StaffAvailabilityCard({
+    required this.availability,
+    required this.onChange,
+  });
+
+  final String availability;
+  final VoidCallback onChange;
+
+  ({
+    Color bg,
+    Color border,
+    Color text,
+    Color dot,
+    Color buttonBg,
+    Color buttonText,
+    String description,
+  })
+  _getAvailabilityTheme(String status) {
+    switch (status.toLowerCase()) {
+      case 'busy':
+        return (
+          bg: const Color(0xFFFFFBEB),
+          border: const Color(0xFFFDE68A),
+          text: const Color(0xFFB45309),
+          dot: const Color(0xFFF59E0B),
+          buttonBg: const Color(0xFFFEF3C7),
+          buttonText: const Color(0xFF92400E),
+          description: 'Tap to update your availability',
+        );
+      case 'on break':
+      case 'break':
+        return (
+          bg: const Color(0xFFFFF7ED),
+          border: const Color(0xFFFED7AA),
+          text: const Color(0xFFC2410C),
+          dot: const Color(0xFFEA580C),
+          buttonBg: const Color(0xFFFFEDD5),
+          buttonText: const Color(0xFF9A3412),
+          description: 'Tap to update your availability',
+        );
+      case 'offline':
+        return (
+          bg: const Color(0xFFF8FAFC),
+          border: const Color(0xFFE2E8F0),
+          text: const Color(0xFF475569),
+          dot: const Color(0xFF94A3B8),
+          buttonBg: const Color(0xFFF1F5F9),
+          buttonText: const Color(0xFF334155),
+          description: 'Tap to update your availability',
+        );
+      case 'available':
+      default:
+        return (
+          bg: const Color(0xFFF0FDF4),
+          border: const Color(0xFFBBF7D0),
+          text: const Color(0xFF15803D),
+          dot: const Color(0xFF16A34A),
+          buttonBg: const Color(0xFFDCFCE7),
+          buttonText: const Color(0xFF166534),
+          description: 'Tap to update your availability',
+        );
+    }
+  }
+
+  String _formatStatus(String status) {
+    final lower = status.toLowerCase();
+    if (lower == 'busy') return 'Busy';
+    if (lower == 'on break' || lower == 'break') return 'On Break';
+    if (lower == 'offline') return 'Offline';
+    return 'Available';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = _getAvailabilityTheme(availability);
+    final String statusLabel = _formatStatus(availability);
+
+    return InkWell(
+      onTap: onChange,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: theme.bg,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: theme.border),
+          boxShadow: const <BoxShadow>[
+            BoxShadow(
+              color: Color(0x06000000),
+              blurRadius: 4,
+              offset: Offset(0, 1),
+            ),
+          ],
+        ),
+        child: Row(
+          children: <Widget>[
+            Container(
+              width: 10,
+              height: 10,
+              decoration: BoxDecoration(
+                color: theme.dot,
+                shape: BoxShape.circle,
+                boxShadow: <BoxShadow>[
+                  BoxShadow(
+                    color: theme.dot.withValues(alpha: 0.35),
+                    blurRadius: 4,
+                    offset: const Offset(0, 1),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text(
+                    statusLabel,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: theme.text,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    theme.description,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF64748B),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: theme.buttonBg,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  Text(
+                    'Change',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: theme.buttonText,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Icon(
+                    Icons.keyboard_arrow_down,
+                    size: 16,
+                    color: theme.buttonText,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SetAvailabilityBottomSheet extends StatelessWidget {
+  const _SetAvailabilityBottomSheet({
+    required this.currentAvailability,
+    required this.onSelect,
+  });
+
+  final String currentAvailability;
+  final ValueChanged<String> onSelect;
+
+  static const List<({String status, String description, Color dotColor})>
+  _options = <({String status, String description, Color dotColor})>[
+    (
+      status: 'Available',
+      description: 'Ready to receive and work on assigned tasks',
+      dotColor: Color(0xFF10B981),
+    ),
+    (
+      status: 'Busy',
+      description: 'Currently working — no new tasks please',
+      dotColor: Color(0xFFF59E0B),
+    ),
+    (
+      status: 'On Break',
+      description: 'Taking a short break, back soon',
+      dotColor: Color(0xFFEA580C),
+    ),
+    (
+      status: 'Offline',
+      description: 'Not available for work right now',
+      dotColor: Color(0xFF94A3B8),
+    ),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: <Widget>[
+                const Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      'Set Availability',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF0F172A),
+                      ),
+                    ),
+                    SizedBox(height: 2),
+                    Text(
+                      'Let your team know your status',
+                      style: TextStyle(fontSize: 13, color: Color(0xFF64748B)),
+                    ),
+                  ],
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close, color: Color(0xFF64748B)),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            ..._options.map((option) {
+              final bool isSelected =
+                  currentAvailability.toLowerCase() ==
+                      option.status.toLowerCase() ||
+                  (currentAvailability.isEmpty && option.status == 'Available');
+
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: InkWell(
+                  onTap: () => onSelect(option.status),
+                  borderRadius: BorderRadius.circular(14),
+                  child: Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? const Color(0xFFF0F7FF)
+                          : Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: isSelected
+                            ? const Color(0xFF2563EB)
+                            : const Color(0xFFE2E8F0),
+                        width: isSelected ? 1.5 : 1.0,
+                      ),
+                    ),
+                    child: Row(
+                      children: <Widget>[
+                        Container(
+                          width: 10,
+                          height: 10,
+                          decoration: BoxDecoration(
+                            color: option.dotColor,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: <Widget>[
+                              Text(
+                                option.status,
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w700,
+                                  color: isSelected
+                                      ? const Color(0xFF2563EB)
+                                      : const Color(0xFF0F172A),
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                option.description,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Color(0xFF64748B),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (isSelected)
+                          const Icon(
+                            Icons.check_circle,
+                            color: Color(0xFF2563EB),
+                            size: 20,
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }),
+          ],
         ),
       ),
     );
