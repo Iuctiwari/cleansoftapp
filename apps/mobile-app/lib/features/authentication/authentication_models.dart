@@ -42,7 +42,7 @@ class AuthenticationException implements Exception {
 }
 
 class AuthenticationNetworkException extends AuthenticationException {
-  const AuthenticationNetworkException() : super('Enable internet connection');
+  const AuthenticationNetworkException() : super('Unable to connect to the authentication server. Please ensure it is running and try again.');
 }
 
 class AuthenticationConfigurationException extends AuthenticationException {

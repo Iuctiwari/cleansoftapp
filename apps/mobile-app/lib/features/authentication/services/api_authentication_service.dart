@@ -111,6 +111,14 @@ final class ApiAuthenticationService implements AuthenticationService {
       throw const AuthenticationException(
         'The server returned an invalid authentication response.',
       );
+    } catch (e) {
+      if (e.toString().contains('XMLHttpRequest') || 
+          e.toString().contains('Failed to fetch') ||
+          e.toString().contains('NetworkError') ||
+          e.toString().contains('ClientException')) {
+        throw const AuthenticationNetworkException();
+      }
+      rethrow;
     }
   }
 

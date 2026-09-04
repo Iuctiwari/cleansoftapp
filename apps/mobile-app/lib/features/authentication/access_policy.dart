@@ -55,7 +55,7 @@ final class AccessPolicy {
       return true;
     }
     if (isBranchManager) {
-      return capability != AppCapability.businessSettings;
+      return true;
     }
     if (isStaff) {
       if (const <AppCapability>{

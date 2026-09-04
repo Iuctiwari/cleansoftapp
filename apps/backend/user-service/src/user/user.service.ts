@@ -2,9 +2,11 @@ import {
   ConflictException,
   ForbiddenException,
   Injectable,
-  NotFoundException,
   Logger,
+  NotFoundException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { InjectModel } from '@nestjs/mongoose';
 import {
   Permissions,
   defaultPermissionsForRole,
@@ -12,14 +14,12 @@ import {
   isBranchManagerRole,
   isOwnerRole,
 } from '@nexoraa/shared';
-import { ConfigService } from '@nestjs/config';
-import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 
+import type { UserAccessScope } from './user-auth.middleware';
 import { RegisterStaffDto, StaffResponseDto, UpdateStaffDto } from './user.dto';
 import { UserMongoose } from './user.schema';
-import { UserStatus } from './user.types';
-import type { UserAccessScope } from './user-auth.middleware';
+import { StaffAvailability, UserStatus } from './user.types';
 
 @Injectable()
 export class UserService {
@@ -51,6 +51,16 @@ export class UserService {
       })
       .exec();
     return users.map((user) => this.mapToDto(user));
+  }
+
+  async getStaff(scope: UserAccessScope, userId: string): Promise<StaffResponseDto> {
+    if (scope.actorId !== userId) {
+      this.assertStaffRead(scope);
+    }
+    const user = await this.userModel.findById(userId);
+    if (!user || user.isDeleted) throw new NotFoundException('User not found');
+    this.assertTarget(scope, user);
+    return this.mapToDto(user);
   }
 
   // ── Register ─────────────────────────────────────────────────────────────
@@ -176,11 +186,27 @@ export class UserService {
     userId: string,
     dto: UpdateStaffDto,
   ): Promise<StaffResponseDto> {
-    this.assertStaffWrite(scope);
+    const isSelfUpdate = scope.actorId === userId;
+    let hasStaffWrite = false;
+    try {
+      this.assertStaffWrite(scope);
+      hasStaffWrite = true;
+    } catch {
+      if (!isSelfUpdate) {
+        throw new ForbiddenException('Staff management permission is required');
+      }
+    }
+
     const user = await this.userModel.findById(userId);
     if (!user || user.isDeleted) throw new NotFoundException('User not found');
     this.assertTarget(scope, user);
+
+    if (!hasStaffWrite && (dto.role !== undefined || dto.branchIds !== undefined)) {
+      throw new ForbiddenException('You do not have permission to change roles or branches');
+    }
+
     if (
+      hasStaffWrite &&
       isBranchManagerRole(scope.roleCode) &&
       ((dto.role !== undefined && dto.role !== 'Staff') ||
         (dto.branchIds !== undefined && dto.branchIds.some((id) => id !== scope.branchId)))
@@ -261,6 +287,43 @@ export class UserService {
     ];
   }
 
+  // ── Availability ──────────────────────────────────────────────────────────
+
+  async getMe(scope: UserAccessScope): Promise<StaffResponseDto> {
+    const user = await this.userModel.findOne({
+      _id: new Types.ObjectId(scope.actorId),
+      tenantId: new Types.ObjectId(scope.tenantId),
+      isDeleted: false,
+    });
+    if (!user) throw new NotFoundException('User not found');
+    return this.mapToDto(user);
+  }
+
+  async updateAvailability(
+    scope: UserAccessScope,
+    userId: string,
+    availability: StaffAvailability,
+  ): Promise<StaffResponseDto> {
+    if (
+      scope.actorId !== userId &&
+      !isOwnerRole(scope.roleCode) &&
+      !isBranchManagerRole(scope.roleCode)
+    ) {
+      throw new ForbiddenException('Staff can only update their own availability');
+    }
+    const user = await this.userModel.findOne({
+      _id: new Types.ObjectId(userId),
+      tenantId: new Types.ObjectId(scope.tenantId),
+      isDeleted: false,
+    });
+    if (!user) throw new NotFoundException('User not found');
+    this.assertTarget(scope, user);
+
+    user.availability = availability;
+    await user.save();
+    return this.mapToDto(user);
+  }
+
   private assertTenant(scope: UserAccessScope, tenantId: string): void {
     if (scope.tenantId !== tenantId) throw new ForbiddenException('Tenant access is forbidden');
   }
@@ -284,6 +347,8 @@ export class UserService {
   }
 
   private assertTarget(scope: UserAccessScope, user: UserMongoose): void {
+    const docId = (user as unknown as { _id: Types.ObjectId })._id?.toString() ?? '';
+    if (scope.actorId === docId) return;
     const target = user as unknown as {
       tenantId: Types.ObjectId;
       branchIds: Types.ObjectId[];
@@ -414,6 +479,7 @@ export class UserService {
       role: string;
       branchIds: Types.ObjectId[];
       status: string;
+      availability?: string;
       createdAt: Date;
       updatedAt: Date;
     };
@@ -428,6 +494,7 @@ export class UserService {
       role: doc.role as StaffResponseDto['role'],
       branchIds: doc.branchIds.map((id) => id.toString()),
       status: doc.status as StaffResponseDto['status'],
+      availability: (doc.availability as StaffResponseDto['availability']) || 'Available',
       createdAt: doc.createdAt?.toISOString?.() ?? new Date().toISOString(),
       updatedAt: doc.updatedAt?.toISOString?.() ?? new Date().toISOString(),
     };

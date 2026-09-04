@@ -20,6 +20,7 @@ import {
   RegisterTenantDto,
   RegisterTenantResponseDto,
   TenantProfileDto,
+  UpdateTenantProfileDto,
 } from './tenant.dto';
 import { TenantExceptionFilter } from './tenant.filter';
 import { TenantService } from './tenant.service';
@@ -187,5 +188,28 @@ export class TenantController {
   ): Promise<void> {
     assertOwnTenant(request, tenantId);
     await this.tenantService.reactivateTenant(tenantId);
+  }
+
+  /**
+   * PATCH /api/v1/tenants/:tenantId/profile
+   *
+   * Updates the tenant owner's name and/or phone number.
+   */
+  @Patch(':tenantId/profile')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Update tenant owner profile',
+    description: 'Updates ownerName and/or mobileNumber on the tenant record.',
+  })
+  @ApiParam({ name: 'tenantId', description: 'Unique tenant identifier' })
+  @ApiResponse({ status: 200, description: 'Profile updated', type: TenantProfileDto })
+  @ApiResponse({ status: 404, description: 'Tenant not found' })
+  async updateProfile(
+    @Req() request: TenantAccessRequest,
+    @Param('tenantId') tenantId: string,
+    @Body() body: UpdateTenantProfileDto,
+  ): Promise<TenantProfileDto> {
+    assertOwnTenant(request, tenantId);
+    return this.tenantService.updateProfile(tenantId, body);
   }
 }
