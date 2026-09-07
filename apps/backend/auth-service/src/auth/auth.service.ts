@@ -462,6 +462,7 @@ export class AuthService {
     const deliveryChannel: 'email' | 'sms' = identity.email ? 'email' : 'sms';
     const destination =
       deliveryChannel === 'email' ? identity.email! : identity.mobileNumber || identity.userId;
+      deliveryChannel === 'email' ? identity.email : identity.mobileNumber || identity.userId;
     const record: PasswordResetRecord = {
       resetId: randomUUID(),
       userId: identity.userId,
