@@ -3,7 +3,6 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 
 import { BrevoEmailProvider } from './brevo-email.provider';
 import { EmailService } from './email.service';
-import { EMAIL_PROVIDER } from './email.types';
 import { EMAIL_PROVIDER, type EmailProvider } from './email.types';
 import { NoopEmailProvider } from './noop-email.provider';
 
@@ -18,7 +17,6 @@ import { NoopEmailProvider } from './noop-email.provider';
         configService: ConfigService,
         brevo: BrevoEmailProvider,
         noop: NoopEmailProvider,
-      ) => {
       ): EmailProvider => {
         const apiKey = configService.get<string>('BREVO_API_KEY')?.trim();
         const nodeEnv = configService.get<string>('NODE_ENV')?.trim();
