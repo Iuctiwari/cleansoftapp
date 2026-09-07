@@ -50,12 +50,14 @@ class TenantProfile {
   final String businessName;
   final String ownerName;
   final String ownerEmail;
+  final String? businessType;
 
   const TenantProfile({
     required this.tenantId,
     required this.businessName,
     required this.ownerName,
     required this.ownerEmail,
+    this.businessType,
   });
 
   factory TenantProfile.fromJson(Map<String, dynamic> json) {
@@ -67,6 +69,7 @@ class TenantProfile {
       ),
       ownerName: TenantRegistrationResult._requiredString(json, 'ownerName'),
       ownerEmail: TenantRegistrationResult._requiredString(json, 'ownerEmail'),
+      businessType: json['businessType'] as String?,
     );
   }
 }

@@ -9,6 +9,7 @@ import 'package:nexoraa_mobile/features/authentication/screens/splash_screen.dar
 import 'package:nexoraa_mobile/features/branch/branch.dart';
 import 'package:nexoraa_mobile/features/dashboard/dashboard.dart';
 import 'package:nexoraa_mobile/features/notifications/notifications.dart';
+import 'package:nexoraa_mobile/features/profile/screens/edit_profile_screen.dart';
 import 'package:nexoraa_mobile/features/profile/screens/profile_screen.dart';
 import 'package:nexoraa_mobile/features/settings/settings.dart';
 import 'package:nexoraa_mobile/features/staff/models/staff_member.dart';
@@ -16,9 +17,6 @@ import 'package:nexoraa_mobile/features/staff/screens/edit_staff_screen.dart';
 import 'package:nexoraa_mobile/features/staff/screens/register_staff_screen.dart';
 import 'package:nexoraa_mobile/features/staff/screens/staff_management_screen.dart';
 import 'package:nexoraa_mobile/features/staff/screens/view_staff_profile_screen.dart';
-import 'package:nexoraa_mobile/features/staff/screens/edit_staff_screen.dart';
-import 'package:nexoraa_mobile/features/staff/models/staff_member.dart';
-import 'package:nexoraa_mobile/features/profile/screens/edit_profile_screen.dart';
 
 import '../features/tenant/models/registration_form.dart';
 import '../features/tenant/models/tenant_onboarding_data.dart';
@@ -54,6 +52,10 @@ abstract final class AppRoutes {
   static const String profile = '/dashboard/profile';
   static const String profileEdit = '/dashboard/profile/edit';
   static const String businessSettings = '/dashboard/business-settings';
+  static const String settingsServices =
+      '/dashboard/business-settings/services';
+  static const String settingsItems = '/dashboard/business-settings/items';
+  static const String settingsPricing = '/dashboard/business-settings/pricing';
   static const String rolesAndStaff = '/dashboard/roles-and-staff';
   static const String staffDashboard = '/staff-dashboard';
 }
@@ -77,6 +79,9 @@ abstract final class AppRouteNames {
   static const String branchDetails = 'branchDetails';
   static const String profile = 'profile';
   static const String businessSettings = 'businessSettings';
+  static const String settingsServices = 'settingsServices';
+  static const String settingsItems = 'settingsItems';
+  static const String settingsPricing = 'settingsPricing';
   static const String rolesAndStaff = 'rolesAndStaff';
   static const String staffList = 'staffList';
   static const String staffRegister = 'staffRegister';
@@ -404,12 +409,46 @@ abstract final class AppRouter {
             isOwner: isOwner,
             initialBusinessName: businessName,
             initialLocation: location,
+          );
+        },
+      ),
+      GoRoute(
         name: AppRouteNames.businessSettings,
         path: AppRoutes.businessSettings,
         pageBuilder: (BuildContext context, GoRouterState state) {
           return _fadePage<void>(
             state: state,
             child: const BusinessSettingsScreen(),
+          );
+        },
+      ),
+      GoRoute(
+        name: AppRouteNames.settingsServices,
+        path: AppRoutes.settingsServices,
+        pageBuilder: (BuildContext context, GoRouterState state) {
+          return _fadePage<void>(
+            state: state,
+            child: const ServicesSettingsScreen(),
+          );
+        },
+      ),
+      GoRoute(
+        name: AppRouteNames.settingsItems,
+        path: AppRoutes.settingsItems,
+        pageBuilder: (BuildContext context, GoRouterState state) {
+          return _fadePage<void>(
+            state: state,
+            child: const ItemsSettingsScreen(),
+          );
+        },
+      ),
+      GoRoute(
+        name: AppRouteNames.settingsPricing,
+        path: AppRoutes.settingsPricing,
+        pageBuilder: (BuildContext context, GoRouterState state) {
+          return _fadePage<void>(
+            state: state,
+            child: const PricingSettingsScreen(),
           );
         },
       ),

@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:nexoraa_mobile/app/router.dart';
 import 'package:nexoraa_mobile/design_system/design_system.dart';
-import 'package:nexoraa_mobile/features/authentication/authentication_dependencies.dart';
 import 'package:nexoraa_mobile/features/authentication/access_policy.dart';
+import 'package:nexoraa_mobile/features/authentication/authentication_dependencies.dart';
+import 'package:nexoraa_mobile/features/branch/branch_dependencies.dart';
+import 'package:nexoraa_mobile/features/branch/branch_models.dart';
 import 'package:nexoraa_mobile/features/staff/models/staff_member.dart';
 import 'package:nexoraa_mobile/features/staff/models/system_role.dart';
 import 'package:nexoraa_mobile/features/staff/services/staff_api_service.dart';
-import 'package:nexoraa_mobile/features/branch/branch_dependencies.dart';
-import 'package:nexoraa_mobile/features/branch/branch_models.dart';
 
 class StaffManagementScreen extends StatefulWidget {
   const StaffManagementScreen({super.key});
@@ -95,7 +95,9 @@ class _StaffManagementScreenState extends State<StaffManagementScreen>
             ? futures.last as BranchListResult
             : null;
         if (branchResult != null) {
-          _branchNames = {for (var b in branchResult.items) b.branchId: b.branchName};
+          _branchNames = {
+            for (var b in branchResult.items) b.branchId: b.branchName,
+          };
         }
         _isLoading = false;
       });
@@ -139,7 +141,9 @@ class _StaffManagementScreenState extends State<StaffManagementScreen>
         ),
         title: Text(
           'Staff Management',
-          style: AppTextStyles.headingMedium.copyWith(fontWeight: FontWeight.bold),
+          style: AppTextStyles.headingMedium.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
         ),
         actions: <Widget>[
           Padding(
@@ -161,7 +165,10 @@ class _StaffManagementScreenState extends State<StaffManagementScreen>
                   ),
                 ),
                 icon: const Icon(Icons.add, size: 16),
-                label: const Text('Invite', style: TextStyle(fontWeight: FontWeight.w600)),
+                label: const Text(
+                  'Invite',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
               ),
             ),
           ),
@@ -192,13 +199,12 @@ class _StaffManagementScreenState extends State<StaffManagementScreen>
   }
 
   Widget _buildCustomTabBar() {
-    final tabs = [
-      'Staff',
-      'Invitations',
-      if (_accessPolicy.isOwner) 'Roles',
-    ];
+    final tabs = ['Staff', 'Invitations', if (_accessPolicy.isOwner) 'Roles'];
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pageHorizontal, vertical: 8),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.pageHorizontal,
+        vertical: 8,
+      ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: List.generate(tabs.length, (index) {
@@ -212,7 +218,9 @@ class _StaffManagementScreenState extends State<StaffManagementScreen>
                 decoration: BoxDecoration(
                   color: isSelected ? AppColors.primary : Colors.white,
                   borderRadius: BorderRadius.circular(24),
-                  border: isSelected ? null : Border.all(color: Colors.grey.withOpacity(0.2)),
+                  border: isSelected
+                      ? null
+                      : Border.all(color: Colors.grey.withOpacity(0.2)),
                 ),
                 alignment: Alignment.center,
                 child: Text(
@@ -254,43 +262,6 @@ class _StaffManagementScreenState extends State<StaffManagementScreen>
           _buildSearchBar(),
           const SizedBox(height: AppSpacing.md),
           _buildRoleFilters(),
-          const SizedBox(height: AppSpacing.xl),
-          GestureDetector(
-            onTap: _openRegisterStaff,
-            child: CustomPaint(
-              painter: _DashedPainter(color: AppColors.primary.withOpacity(0.4), radius: 12),
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.5),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary,
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: const Icon(Icons.add, color: Colors.white, size: 16),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Invite Staff Member',
-                      style: TextStyle(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
           const SizedBox(height: AppSpacing.xl),
           if (filteredStaff.isEmpty)
             const AppEmptyState(
@@ -487,7 +458,10 @@ class _StaffManagementScreenState extends State<StaffManagementScreen>
           border: InputBorder.none,
           enabledBorder: InputBorder.none,
           focusedBorder: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 14,
+          ),
         ),
         onChanged: (val) => setState(() => _searchQuery = val),
       ),
@@ -506,11 +480,16 @@ class _StaffManagementScreenState extends State<StaffManagementScreen>
             child: GestureDetector(
               onTap: () => setState(() => _selectedRoleFilter = role),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: isSelected ? AppColors.primary : Colors.white,
                   borderRadius: BorderRadius.circular(20),
-                  border: isSelected ? null : Border.all(color: Colors.grey.withOpacity(0.2)),
+                  border: isSelected
+                      ? null
+                      : Border.all(color: Colors.grey.withOpacity(0.2)),
                 ),
                 child: Text(
                   role,
@@ -542,10 +521,7 @@ class _SummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(
-        vertical: 16,
-        horizontal: 4,
-      ),
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 4),
       decoration: BoxDecoration(
         color: color.withOpacity(0.05),
         borderRadius: BorderRadius.circular(12),
@@ -710,9 +686,6 @@ class _StaffCard extends StatelessWidget {
                       width: 14,
                       height: 14,
                       decoration: BoxDecoration(
-                        color: status == 'active'
-                            ? const Color(0xFF00C853)
-                            : Colors.red,
                         color: availColor,
                         shape: BoxShape.circle,
                         border: Border.all(color: Colors.white, width: 2),
@@ -734,13 +707,20 @@ class _StaffCard extends StatelessWidget {
                               Flexible(
                                 child: Text(
                                   staff.displayName,
-                                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ),
                               if (staff.role.toLowerCase() == 'owner') ...[
                                 const SizedBox(width: 4),
-                                const Icon(Icons.star, color: Colors.deepOrange, size: 16),
+                                const Icon(
+                                  Icons.star,
+                                  color: Colors.deepOrange,
+                                  size: 16,
+                                ),
                               ],
                             ],
                           ),
@@ -749,7 +729,8 @@ class _StaffCard extends StatelessWidget {
                           icon: Icon(Icons.more_vert, color: Colors.grey[400]),
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),
-                          onSelected: (action) => _handleAction(context, action),
+                          onSelected: (action) =>
+                              _handleAction(context, action),
                           itemBuilder: (context) {
                             final items = <PopupMenuEntry<String>>[];
                             items.add(
@@ -814,13 +795,17 @@ class _StaffCard extends StatelessWidget {
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: staff.role.toLowerCase() == 'owner' ? Colors.orange.withOpacity(0.1) : Colors.purple.withOpacity(0.1),
+                            color: staff.role.toLowerCase() == 'owner'
+                                ? Colors.orange.withOpacity(0.1)
+                                : Colors.purple.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
                             staff.role,
                             style: TextStyle(
-                              color: staff.role.toLowerCase() == 'owner' ? Colors.orange : Colors.purple,
+                              color: staff.role.toLowerCase() == 'owner'
+                                  ? Colors.orange
+                                  : Colors.purple,
                               fontWeight: FontWeight.bold,
                               fontSize: 10,
                             ),
@@ -833,18 +818,30 @@ class _StaffCard extends StatelessWidget {
                           ),
                           decoration: BoxDecoration(
                             color: status == 'active'
-                                ? Colors.green.withOpacity(0.1)
-                                : Colors.red.withOpacity(0.1),
+                                ? Colors.green.withValues(alpha: 0.1)
+                                : Colors.red.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
-                            status == 'active' ? 'Active' : status.substring(0, 1).toUpperCase() + status.substring(1),
+                            status == 'active'
+                                ? 'Active'
+                                : status.substring(0, 1).toUpperCase() +
+                                      status.substring(1),
                             style: TextStyle(
                               color: status == 'active'
                                   ? Colors.green
                                   : Colors.red,
                               fontWeight: FontWeight.bold,
                               fontSize: 10,
+                            ),
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
                             color: availBg,
                             borderRadius: BorderRadius.circular(4),
                           ),
@@ -861,13 +858,35 @@ class _StaffCard extends StatelessWidget {
                     const SizedBox(height: 12),
                     Row(
                       children: [
-                        const Icon(Icons.storefront, size: 14, color: Colors.grey),
+                        const Icon(
+                          Icons.storefront,
+                          size: 14,
+                          color: Colors.grey,
+                        ),
                         const SizedBox(width: 4),
-                        Text(branchDisplay, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                        Text(
+                          branchDisplay,
+                          style: const TextStyle(
+                            color: Colors.grey,
+                            fontSize: 12,
+                          ),
+                        ),
                         const SizedBox(width: 12),
-                        const Icon(Icons.phone_outlined, size: 14, color: Colors.grey),
+                        const Icon(
+                          Icons.phone_outlined,
+                          size: 14,
+                          color: Colors.grey,
+                        ),
                         const SizedBox(width: 4),
-                        Text(staff.mobileNumber.isNotEmpty ? staff.mobileNumber : 'No Phone', style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                        Text(
+                          staff.mobileNumber.isNotEmpty
+                              ? staff.mobileNumber
+                              : 'No Phone',
+                          style: const TextStyle(
+                            color: Colors.grey,
+                            fontSize: 12,
+                          ),
+                        ),
                       ],
                     ),
                   ],
@@ -884,13 +903,24 @@ class _StaffCard extends StatelessWidget {
                   style: TextButton.styleFrom(
                     backgroundColor: AppColors.primary.withOpacity(0.05),
                     foregroundColor: AppColors.primary,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                     padding: const EdgeInsets.symmetric(vertical: 12),
                   ),
-                  child: const Text('View Profile', style: TextStyle(fontWeight: FontWeight.bold)),
+                  child: const Text(
+                    'View Profile',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
                 ),
               ),
-              if (canManage && status == 'active' && staff.id != AuthenticationDependencies.controller.session?.ownerUserId) ...[
+              if (canManage &&
+                  status == 'active' &&
+                  staff.id !=
+                      AuthenticationDependencies
+                          .controller
+                          .session
+                          ?.ownerUserId) ...[
                 const SizedBox(width: 12),
                 Expanded(
                   child: TextButton(
@@ -898,13 +928,18 @@ class _StaffCard extends StatelessWidget {
                     style: TextButton.styleFrom(
                       backgroundColor: Colors.red.withOpacity(0.05),
                       foregroundColor: Colors.red,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                       padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
-                    child: const Text('Suspend', style: TextStyle(fontWeight: FontWeight.bold)),
+                    child: const Text(
+                      'Suspend',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
                   ),
                 ),
-              ]
+              ],
             ],
           ),
         ],
@@ -927,39 +962,4 @@ class _StaffCard extends StatelessWidget {
     }
     return colors[hash.abs() % colors.length];
   }
-}
-
-class _DashedPainter extends CustomPainter {
-  final Color color;
-  final double radius;
-  _DashedPainter({required this.color, required this.radius});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    var paint = Paint()
-      ..color = color
-      ..strokeWidth = 1.5
-      ..style = PaintingStyle.stroke;
-
-    var path = Path()
-      ..addRRect(RRect.fromRectAndRadius(Rect.fromLTWH(0, 0, size.width, size.height), Radius.circular(radius)));
-
-    final dashWidth = 8.0;
-    final dashSpace = 4.0;
-    var distance = 0.0;
-    
-    for (var pathMetric in path.computeMetrics()) {
-      while (distance < pathMetric.length) {
-        canvas.drawPath(
-          pathMetric.extractPath(distance, distance + dashWidth),
-          paint,
-        );
-        distance += dashWidth + dashSpace;
-      }
-      distance = 0.0;
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

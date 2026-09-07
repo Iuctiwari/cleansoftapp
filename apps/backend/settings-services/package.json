@@ -1,0 +1,48 @@
+{
+  "name": "@nexoraa/settings-services",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Tenant-Owned Business Settings Catalog Configuration Service.",
+  "scripts": {
+    "build": "node ../../../scripts/run-typescript-project.mjs build",
+    "clean": "rimraf dist",
+    "dev": "node ../../../scripts/run-typescript-project.mjs dev",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "start": "node ../../../scripts/run-typescript-project.mjs start",
+    "start:prod": "node ../../../scripts/run-typescript-project.mjs start:prod",
+    "test": "jest --passWithNoTests",
+    "lint": "eslint \"src/**/*.ts\" \"test/**/*.ts\" --no-error-on-unmatched-pattern",
+    "typecheck": "node ../../../scripts/run-typescript-project.mjs typecheck"
+  },
+  "dependencies": {
+    "@nestjs/common": "11.1.28",
+    "@nestjs/config": "^4.0.4",
+    "@nestjs/core": "11.1.28",
+    "@nestjs/microservices": "11.1.28",
+    "@nestjs/mongoose": "^11.0.4",
+    "@nestjs/platform-express": "^11.1.28",
+    "@nestjs/swagger": "^11.4.6",
+    "@nexoraa/common": "workspace:*",
+    "@nexoraa/config": "workspace:*",
+    "@nexoraa/constants": "workspace:*",
+    "@nexoraa/database": "workspace:*",
+    "@nexoraa/shared": "workspace:*",
+    "@nexoraa/swagger": "workspace:*",
+    "@nexoraa/types": "workspace:*",
+    "bullmq": "5.53.1",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.15.1",
+    "ioredis": "5.6.1",
+    "mongoose": "8.15.0",
+    "reflect-metadata": "0.2.2",
+    "rxjs": "7.8.2"
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "jest": "^30.4.2",
+    "ts-jest": "^29.4.12",
+    "typescript": "^5.8.3"
+  }
+}
+

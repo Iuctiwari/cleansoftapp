@@ -131,7 +131,10 @@ void main() {
         );
         fail('Expected a network failure');
       } on AuthenticationNetworkException catch (error) {
-        expect(error.message, 'Enable internet connection');
+        expect(
+          error.message,
+          'Unable to connect to the authentication server. Please ensure it is running and try again.',
+        );
       }
     });
 

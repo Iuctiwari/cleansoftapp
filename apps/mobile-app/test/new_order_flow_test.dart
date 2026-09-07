@@ -83,6 +83,10 @@ void main() {
       dependencies.newOrder.changeAmount(selectedHair, 1);
 
       expect(
+        dependencies.newOrder.uniqueItems.map((item) => item.name),
+        <String>['Hair', 'Shirt', 'Trouser'],
+      );
+      expect(
         dependencies.newOrder.selections.map(
           (selection) => selection.category.id,
         ),
@@ -168,6 +172,19 @@ void main() {
           if (request.url.path.endsWith('/$_orderId/history')) {
             return http.Response(jsonEncode(<Object>[]), 200);
           }
+          if (request.url.path.endsWith('/statistics')) {
+            return http.Response(
+              jsonEncode(<String, Object>{
+                'totalOrders': 12,
+                'todayOrders': 0,
+                'yesterdayOrders': 0,
+                'outstandingTotal': 0,
+                'outstandingCustomerCount': 0,
+                'statusBreakdown': <String, int>{},
+              }),
+              200,
+            );
+          }
           if (request.method == 'POST') {
             createBody = jsonDecode(request.body) as Map<String, dynamic>;
           }
@@ -209,6 +226,7 @@ void main() {
       expect(find.byType(NewOrderProgressIndicator), findsOneWidget);
       expect(find.text('1/6'), findsOneWidget);
       expect(find.textContaining('+91 3001234567'), findsOneWidget);
+      expect(find.textContaining('12 orders'), findsOneWidget);
       await tester.tap(find.text('Hassan Ali'));
       await tester.tap(find.text('Next'));
       await tester.pumpAndSettle();
@@ -289,6 +307,67 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Order Detail'), findsOneWidget);
       expect(find.text('ORD-MAIN-000123'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'displays unique items only once without category or service grouping headers',
+    (WidgetTester tester) async {
+      const String trouserCategoryId = '64f0c18f7c4d2f0012ab351';
+      final Map<String, Object> trouser = <String, Object>{
+        ..._categoryJson(),
+        'id': trouserCategoryId,
+        'name': 'Trouser',
+        'code': 'ITEM_TROUSER',
+        'catalogGroupCodes': <String>['LAUNDRY'],
+      };
+      final _FlowDependencies dependencies = await _dependencies(
+        (_) async => http.Response('{}', 500),
+        catalogCategories: <Object>[_categoryJson(), trouser],
+        catalogServices: <Object>[
+          _serviceJson(),
+          _serviceJson(serviceId: _secondServiceId, name: 'Ironing'),
+        ],
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: NewOrderScreen(
+            controller: dependencies.newOrder,
+            orderController: dependencies.orders,
+            customerController: dependencies.customers,
+            businessName: 'Database Laundry',
+            branchName: 'Main Branch',
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Hassan Ali'));
+      await tester.tap(find.text('Next'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('2/6'), findsOneWidget);
+      // Group headers should NOT be shown
+      expect(find.text('LAUNDRY'), findsNothing);
+      expect(find.text('OTHER'), findsNothing);
+
+      // Unique items appear only once
+      expect(find.byType(NewOrderItemCard), findsNWidgets(2));
+      expect(find.text('Shirt'), findsOneWidget);
+      expect(find.text('Trouser'), findsOneWidget);
+
+      // Select shirt amount
+      await tester.tap(find.byIcon(AppIcons.add).first);
+      await tester.pump();
+      await tester.tap(find.text('Next'));
+      await tester.pumpAndSettle();
+
+      // Step 3 shows both associated services for the selected Shirt
+      expect(find.text('3/6'), findsOneWidget);
+      expect(find.text('Wash & Fold'), findsOneWidget);
+      expect(find.text('Ironing'), findsOneWidget);
     },
   );
 }

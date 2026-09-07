@@ -159,12 +159,14 @@ class NewOrderCustomerCard extends StatelessWidget {
     required this.customer,
     required this.selected,
     required this.onTap,
+    this.orderCount,
     super.key,
   });
 
   final Customer customer;
   final bool selected;
   final VoidCallback onTap;
+  final int? orderCount;
 
   @override
   Widget build(BuildContext context) => AppCard(
@@ -193,7 +195,7 @@ class NewOrderCustomerCard extends StatelessWidget {
                 <String>[
                   if (customer.mobile != null)
                     formatIndianPhone(customer.mobile!),
-                  '${customer.totalOrders} orders',
+                  '${orderCount ?? customer.totalOrders} orders',
                 ].join(' · '),
                 style: AppTextStyles.caption,
               ),

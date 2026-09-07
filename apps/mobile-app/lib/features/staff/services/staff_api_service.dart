@@ -57,10 +57,14 @@ class StaffApiService {
   static String _configuredBaseUrl() {
     if (dotenv.isInitialized) {
       final configured = dotenv.env[_environmentKey]?.trim();
-      print('StaffApiService._configuredBaseUrl: Loaded $configured from dotenv');
+      print(
+        'StaffApiService._configuredBaseUrl: Loaded $configured from dotenv',
+      );
       if (configured != null && configured.isNotEmpty) return configured;
     }
-    print('StaffApiService._configuredBaseUrl: Falling back to http://localhost:3002');
+    print(
+      'StaffApiService._configuredBaseUrl: Falling back to http://localhost:3002',
+    );
     return 'http://localhost:3002';
   }
 
@@ -96,8 +100,12 @@ class StaffApiService {
     late http.Response response;
     try {
       print('StaffApiService.getStaffMembers: Calling GET $uri');
-      response = await _client.get(uri, headers: headers).timeout(_requestTimeout);
-      print('StaffApiService.getStaffMembers: Response status ${response.statusCode}');
+      response = await _client
+          .get(uri, headers: headers)
+          .timeout(_requestTimeout);
+      print(
+        'StaffApiService.getStaffMembers: Response status ${response.statusCode}',
+      );
     } catch (e, stack) {
       print('StaffApiService.getStaffMembers: Error $e');
       print('StaffApiService.getStaffMembers: StackTrace $stack');
@@ -238,7 +246,9 @@ class StaffApiService {
     final headers = await _authHeaders();
     late http.Response response;
     try {
-      response = await _client.get(uri, headers: headers).timeout(_requestTimeout);
+      response = await _client
+          .get(uri, headers: headers)
+          .timeout(_requestTimeout);
     } catch (e) {
       throw StaffApiException(
         code: 'network_error',
@@ -262,12 +272,15 @@ class StaffApiService {
   }
 
   Future<Map<String, dynamic>> getTenantProfile(String tenantId) async {
-    final gatewayUrl = dotenv.env['API_BASE_URL']?.trim() ?? 'http://127.0.0.1:3000/api';
+    final gatewayUrl =
+        dotenv.env['API_BASE_URL']?.trim() ?? 'http://127.0.0.1:3000/api';
     final uri = Uri.parse('$gatewayUrl/v1/tenants/$tenantId');
     final headers = await _authHeaders();
     late http.Response response;
     try {
-      response = await _client.get(uri, headers: headers).timeout(_requestTimeout);
+      response = await _client
+          .get(uri, headers: headers)
+          .timeout(_requestTimeout);
     } catch (e) {
       throw StaffApiException(
         code: 'network_error',
@@ -279,14 +292,18 @@ class StaffApiService {
 
     if (response.statusCode == 200) {
       final tenantData = jsonDecode(response.body) as Map<String, dynamic>;
-      
+
       try {
-        final branchesUri = Uri.parse('$gatewayUrl/v1/tenants/$tenantId/branches');
-        final branchesRes = await _client.get(branchesUri, headers: headers).timeout(_requestTimeout);
+        final branchesUri = Uri.parse(
+          '$gatewayUrl/v1/tenants/$tenantId/branches',
+        );
+        final branchesRes = await _client
+            .get(branchesUri, headers: headers)
+            .timeout(_requestTimeout);
         if (branchesRes.statusCode == 200) {
           final List branches = jsonDecode(branchesRes.body);
           final headOffice = branches.cast<Map<String, dynamic>>().firstWhere(
-            (b) => b['isHeadOffice'] == true, 
+            (b) => b['isHeadOffice'] == true,
             orElse: () => <String, dynamic>{},
           );
           if (headOffice.isNotEmpty && headOffice['city'] != null) {
@@ -315,13 +332,17 @@ class StaffApiService {
     String? businessName,
     String? location,
   }) async {
-    final gatewayUrl = dotenv.env['API_BASE_URL']?.trim() ?? 'http://127.0.0.1:3000/api';
+    final gatewayUrl =
+        dotenv.env['API_BASE_URL']?.trim() ?? 'http://127.0.0.1:3000/api';
     final uri = Uri.parse('$gatewayUrl/v1/tenants/$tenantId/profile');
     final headers = await _authHeaders();
     final body = <String, dynamic>{};
-    if (ownerName != null && ownerName.isNotEmpty) body['ownerName'] = ownerName;
-    if (mobileNumber != null && mobileNumber.isNotEmpty) body['mobileNumber'] = mobileNumber;
-    if (businessName != null && businessName.isNotEmpty) body['businessName'] = businessName;
+    if (ownerName != null && ownerName.isNotEmpty)
+      body['ownerName'] = ownerName;
+    if (mobileNumber != null && mobileNumber.isNotEmpty)
+      body['mobileNumber'] = mobileNumber;
+    if (businessName != null && businessName.isNotEmpty)
+      body['businessName'] = businessName;
     if (location != null && location.isNotEmpty) body['location'] = location;
 
     late http.Response response;
@@ -447,7 +468,10 @@ class StaffApiService {
       } else if (msg != null) {
         backendMessage = msg.toString();
       } else if (decoded['error'] is Map) {
-        backendMessage = decoded['error']['messageKey'] ?? decoded['error']['code'] ?? backendMessage;
+        backendMessage =
+            decoded['error']['messageKey'] ??
+            decoded['error']['code'] ??
+            backendMessage;
       }
 
       throw StaffApiException(
@@ -455,8 +479,6 @@ class StaffApiService {
         messageKey: 'error',
         statusCode: response.statusCode,
         backendMessage: backendMessage,
-        backendMessage:
-            decoded['message']?.toString() ?? 'Failed to register staff.',
       );
     }
   }
@@ -496,7 +518,10 @@ class StaffApiService {
         } else if (msg != null) {
           backendMessage = msg.toString();
         } else if (decoded['error'] is Map) {
-          backendMessage = decoded['error']['messageKey'] ?? decoded['error']['code'] ?? backendMessage;
+          backendMessage =
+              decoded['error']['messageKey'] ??
+              decoded['error']['code'] ??
+              backendMessage;
         }
 
         throw StaffApiException(
@@ -504,8 +529,6 @@ class StaffApiService {
           messageKey: 'error',
           statusCode: response.statusCode,
           backendMessage: backendMessage,
-          backendMessage:
-              decoded['message']?.toString() ?? 'Failed to update staff.',
         );
       }
     } on StaffApiException {
@@ -553,7 +576,10 @@ class StaffApiService {
           } else if (msg != null) {
             backendMessage = msg.toString();
           } else if (decoded['error'] is Map) {
-            backendMessage = decoded['error']['messageKey'] ?? decoded['error']['code'] ?? backendMessage;
+            backendMessage =
+                decoded['error']['messageKey'] ??
+                decoded['error']['code'] ??
+                backendMessage;
           }
         } catch (_) {}
         throw StaffApiException(
@@ -592,7 +618,10 @@ class StaffApiService {
           } else if (msg != null) {
             backendMessage = msg.toString();
           } else if (decoded['error'] is Map) {
-            backendMessage = decoded['error']['messageKey'] ?? decoded['error']['code'] ?? backendMessage;
+            backendMessage =
+                decoded['error']['messageKey'] ??
+                decoded['error']['code'] ??
+                backendMessage;
           }
         } catch (_) {}
         throw StaffApiException(
