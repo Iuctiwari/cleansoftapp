@@ -94,6 +94,19 @@ class NewOrderController extends ChangeNotifier {
   Customer? get customer => _customer;
   Order? get createdOrder => _createdOrder;
   List<OrderItemCategory> get categories => _categories;
+  List<OrderItemCategory> get uniqueItems {
+    final Map<String, OrderItemCategory> unique = <String, OrderItemCategory>{};
+    for (final OrderItemCategory item in _categories) {
+      final String key = item.code.trim().isNotEmpty
+          ? item.code.trim().toLowerCase()
+          : item.id;
+      unique.putIfAbsent(key, () => item);
+    }
+    final List<OrderItemCategory> result = unique.values.toList()
+      ..sort(_compareItemCategories);
+    return List<OrderItemCategory>.unmodifiable(result);
+  }
+
   List<NewOrderItemGroup> get itemGroups {
     final Map<String, List<OrderItemCategory>> grouped =
         <String, List<OrderItemCategory>>{};
@@ -269,8 +282,8 @@ class NewOrderController extends ChangeNotifier {
       .where(
         (OrderCatalogService service) =>
             service.tenantId == category.tenantId &&
-            category.serviceIds.contains(service.id) &&
-            service.itemCategoryIds.contains(category.id),
+            (category.serviceIds.contains(service.id) ||
+                service.itemCategoryIds.contains(category.id)),
       )
       .toList(growable: false);
 

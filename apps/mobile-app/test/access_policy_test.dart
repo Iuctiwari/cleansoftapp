@@ -9,18 +9,15 @@ void main() {
     }
   });
 
-  test(
-    'Branch Manager receives operational access but no Business Settings',
-    () {
-      const policy = AccessPolicy(roleCode: 'Branch Manager');
-      expect(policy.allows(AppCapability.ordersAssign), isTrue);
-      expect(policy.allows(AppCapability.paymentsRecord), isTrue);
-      expect(policy.allows(AppCapability.staffManage), isTrue);
-      expect(policy.allows(AppCapability.branchesEdit), isTrue);
-      expect(policy.allows(AppCapability.cashRegister), isTrue);
-      expect(policy.allows(AppCapability.businessSettings), isFalse);
-    },
-  );
+  test('Branch Manager receives operational access and Business Settings', () {
+    const policy = AccessPolicy(roleCode: 'Branch Manager');
+    expect(policy.allows(AppCapability.ordersAssign), isTrue);
+    expect(policy.allows(AppCapability.paymentsRecord), isTrue);
+    expect(policy.allows(AppCapability.staffManage), isTrue);
+    expect(policy.allows(AppCapability.branchesEdit), isTrue);
+    expect(policy.allows(AppCapability.cashRegister), isTrue);
+    expect(policy.allows(AppCapability.businessSettings), isTrue);
+  });
 
   test(
     'Staff receives only assigned-work customer and account capabilities',

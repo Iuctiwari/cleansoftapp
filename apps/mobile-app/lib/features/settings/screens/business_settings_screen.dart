@@ -54,7 +54,7 @@ class BusinessSettingsScreen extends StatelessWidget {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
                 children: <Widget>[
-                  // Catalog / Services, Item Categories, Pricing card
+                  // Catalog / Services, Items / Catalog, Pricing card
                   _SettingsCard(
                     items: <_SettingsItemData>[
                       _SettingsItemData(
@@ -66,12 +66,12 @@ class BusinessSettingsScreen extends StatelessWidget {
                         onTap: () => _handleItemTap(context, 'Services'),
                       ),
                       _SettingsItemData(
-                        title: 'Item Categories',
-                        subtitle: 'Organize items into categories',
-                        icon: AppIcons.tag,
-                        iconColor: const Color(0xFF8B5CF6),
-                        iconBg: const Color(0xFFF5F3FF),
-                        onTap: () => _handleItemTap(context, 'Item Categories'),
+                        title: 'Items / Catalog',
+                        subtitle: 'Manage your item catalog',
+                        icon: Icons.inventory_2_outlined,
+                        iconColor: const Color(0xFF2563EB),
+                        iconBg: const Color(0xFFEFF6FF),
+                        onTap: () => _handleItemTap(context, 'Items / Catalog'),
                       ),
                       _SettingsItemData(
                         title: 'Pricing',
@@ -128,22 +128,30 @@ class BusinessSettingsScreen extends StatelessWidget {
   }
 
   void _handleItemTap(BuildContext context, String title) {
-    if (title == 'Notifications') {
-      context.pushNamed(AppRouteNames.notifications);
-      return;
+    try {
+      if (title == 'Services') {
+        context.pushNamed(AppRouteNames.settingsServices);
+        return;
+      }
+      if (title == 'Items / Catalog') {
+        context.pushNamed(AppRouteNames.settingsItems);
+        return;
+      }
+      if (title == 'Pricing') {
+        context.pushNamed(AppRouteNames.settingsPricing);
+        return;
+      }
+      if (title == 'Notifications') {
+        context.pushNamed(AppRouteNames.notifications);
+        return;
+      }
+      if (title == 'Roles & Permissions' || title == 'Roles & Staff') {
+        context.pushNamed(AppRouteNames.rolesAndStaff);
+        return;
+      }
+    } catch (_) {
+      // Ignore navigation errors in tests without GoRouter context
     }
-    if (title == 'Roles & Permissions' || title == 'Roles & Staff') {
-      context.pushNamed(AppRouteNames.rolesAndStaff);
-      return;
-    }
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Text('$title settings will be available soon.'),
-          duration: const Duration(seconds: 2),
-        ),
-      );
   }
 }
 

@@ -1,4 +1,5 @@
 import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -129,13 +130,17 @@ void main() {
         expect(find.text('Services'), findsOneWidget);
         expect(find.text('Manage your service offerings'), findsOneWidget);
 
-        // Section 2: Item Categories
-        expect(find.text('Item Categories'), findsOneWidget);
-        expect(find.text('Organize items into categories'), findsOneWidget);
+        // Section 2: Items / Catalog
+        expect(find.text('Items / Catalog'), findsOneWidget);
+        expect(find.text('Manage your item catalog'), findsOneWidget);
 
         // Section 3: Pricing
         expect(find.text('Pricing'), findsOneWidget);
         expect(find.text('Set prices per item / service'), findsOneWidget);
+
+        // Item Categories must NOT be rendered
+        expect(find.text('Item Categories'), findsNothing);
+        expect(find.text('Organize items into categories'), findsNothing);
 
         // Section 4: Preferences Section
         expect(find.text('PREFERENCES'), findsOneWidget);
@@ -152,10 +157,6 @@ void main() {
         // Tap Services to test interaction
         await tester.tap(find.text('Services'));
         await tester.pumpAndSettle();
-        expect(
-          find.text('Services settings will be available soon.'),
-          findsOneWidget,
-        );
       },
     );
   });
@@ -312,6 +313,609 @@ void main() {
         expect(find.text('14 permissions enabled'), findsOneWidget);
         expect(find.text('4 permissions enabled'), findsOneWidget);
         expect(find.text('6 permissions enabled'), findsOneWidget);
+      },
+    );
+  });
+
+  group('ServicesSettingsScreen UI', () {
+    testWidgets(
+      'Renders services grouped by category and supports category dropdown in Add Custom Service',
+      (WidgetTester tester) async {
+        final client = MockClient((http.Request request) async {
+          if (request.url.path.endsWith('/templates')) {
+            return http.Response(
+              jsonEncode([
+                {
+                  'code': 'LAUNDRY_DRY_CLEANING',
+                  'businessType': 'dry_cleaning',
+                  'name': 'Laundry / Dry Cleaning',
+                  'services': [
+                    {
+                      'code': 'SERVICE_WASH_FOLD',
+                      'name': 'Wash & Fold',
+                      'pricingType': 'per_item',
+                    },
+                    {
+                      'code': 'SERVICE_DRY_CLEANING',
+                      'name': 'Dry Cleaning',
+                      'pricingType': 'per_item',
+                    },
+                    {
+                      'code': 'SERVICE_IRONING',
+                      'name': 'Ironing',
+                      'pricingType': 'per_item',
+                    },
+                  ],
+                },
+                {
+                  'code': 'SALON',
+                  'businessType': 'salon',
+                  'name': 'Salon',
+                  'services': [
+                    {
+                      'code': 'SALON_HAIRCUT',
+                      'name': 'Haircut',
+                      'pricingType': 'per_item',
+                    },
+                    {
+                      'code': 'SALON_FACIAL',
+                      'name': 'Facial',
+                      'pricingType': 'per_item',
+                    },
+                  ],
+                },
+                {
+                  'code': 'CAR_WASH',
+                  'businessType': 'vehicle_wash',
+                  'name': 'Car Washing',
+                  'services': [
+                    {
+                      'code': 'CAR_INTERIOR',
+                      'name': 'Interior Cleaning',
+                      'pricingType': 'per_item',
+                    },
+                  ],
+                },
+              ]),
+              200,
+              headers: {'content-type': 'application/json'},
+            );
+          }
+          if (request.method == 'POST' &&
+              request.url.path.endsWith('/services')) {
+            final body = jsonDecode(request.body) as Map<String, dynamic>;
+            return http.Response(
+              jsonEncode({
+                'id': 'srv-new',
+                'tenantId': 'tenant-123',
+                'serviceName': body['serviceName'],
+                'code': body['code'],
+                'pricingType': body['pricingType'],
+                'description': body['description'],
+                'status': 'Active',
+              }),
+              201,
+              headers: {'content-type': 'application/json'},
+            );
+          }
+          if (request.method == 'PATCH' &&
+              request.url.path.contains('/services/')) {
+            final body = jsonDecode(request.body) as Map<String, dynamic>;
+            return http.Response(
+              jsonEncode({
+                'id': 'srv-1',
+                'tenantId': 'tenant-123',
+                'serviceName': 'Wash & Fold',
+                'code': 'SERVICE_WASH_FOLD',
+                'category': 'Laundry / Dry Cleaning',
+                'pricingType': 'PerItem',
+                'status': body['status'] ?? 'Active',
+              }),
+              200,
+              headers: {'content-type': 'application/json'},
+            );
+          }
+          return http.Response(
+            jsonEncode({
+              'tenantId': 'tenant-123',
+              'totalServices': 1,
+              'totalActiveServices': 1,
+              'totalItems': 1,
+              'totalActiveItems': 1,
+              'totalCategories': 1,
+              'totalActiveCategories': 1,
+              'totalActivePricing': 0,
+              'services': [
+                {
+                  'id': 'srv-1',
+                  'tenantId': 'tenant-123',
+                  'serviceName': 'Wash & Fold',
+                  'code': 'SERVICE_WASH_FOLD',
+                  'category': 'Laundry / Dry Cleaning',
+                  'pricingType': 'PerItem',
+                  'status': 'Active',
+                },
+              ],
+              'items': [
+                {
+                  'id': 'item-1',
+                  'tenantId': 'tenant-123',
+                  'name': 'Shirt',
+                  'code': 'ITEM_SHIRT',
+                  'category': 'Laundry / Dry Cleaning',
+                  'catalogGroupCodes': ['LAUNDRY_DRY_CLEANING'],
+                  'status': 'Active',
+                },
+              ],
+              'categories': [
+                {
+                  'id': 'cat-1',
+                  'tenantId': 'tenant-123',
+                  'name': 'Laundry / Dry Cleaning',
+                  'code': 'LAUNDRY_DRY_CLEANING',
+                  'status': 'Active',
+                },
+              ],
+              'pricing': [],
+            }),
+            200,
+            headers: {'content-type': 'application/json'},
+          );
+        });
+
+        final settingsApiService = SettingsApiService(
+          client: client,
+          tokenStorage: _FakeTokenStorage(
+            AuthenticationSession(
+              accessToken: 'tok',
+              accessTokenExpiresAt: DateTime.now().add(const Duration(days: 1)),
+              refreshToken: 'ref',
+              refreshTokenExpiresAt: DateTime.now().add(
+                const Duration(days: 30),
+              ),
+              roleCode: 'Owner',
+            ),
+          ),
+        );
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: ServicesSettingsScreen(apiService: settingsApiService),
+          ),
+        );
+
+        await tester.pump();
+        await tester.pumpAndSettle();
+
+        // 1. Active Services section has the initial active service
+        expect(find.text('CURRENT SERVICES (1)'), findsOneWidget);
+        expect(find.text('Wash & Fold'), findsOneWidget);
+
+        // 2. Available Services shows only tenant business services (Laundry)
+        expect(find.text('AVAILABLE SERVICES'), findsOneWidget);
+        expect(find.text('Dry Cleaning'), findsOneWidget);
+        expect(find.text('Ironing'), findsOneWidget);
+
+        // Unrelated business types (Salon, Car Washing) are NOT shown
+        expect(find.text('Haircut'), findsNothing);
+        expect(find.text('Facial'), findsNothing);
+        expect(find.text('Interior Cleaning'), findsNothing);
+
+        // 3. Removing (crossing) a service moves it to Available Services
+        final removeButtonFinder = find.byIcon(Icons.close).first;
+        await tester.tap(removeButtonFinder);
+        await tester.pumpAndSettle();
+
+        expect(find.text('CURRENT SERVICES (0)'), findsOneWidget);
+        expect(find.text('AVAILABLE SERVICES'), findsOneWidget);
+
+        // 4. Adding it back via Add button moves it back to Current Services
+        final addAvailableFinder = find.byIcon(Icons.add).first;
+        await tester.tap(addAvailableFinder);
+        await tester.pumpAndSettle();
+
+        expect(find.text('CURRENT SERVICES (1)'), findsOneWidget);
+
+        // 5. Category Dropdown in Add Custom Service
+        await tester.scrollUntilVisible(
+          find.text('ADD CUSTOM SERVICE'),
+          200.0,
+          scrollable: find.byType(Scrollable).first,
+        );
+        expect(find.text('ADD CUSTOM SERVICE'), findsOneWidget);
+
+        // 6. Enter custom service name and click Add
+        final nameInputFinder = find.byType(TextField).last;
+        await tester.enterText(nameInputFinder, 'Custom Steam Clean');
+        await tester.pumpAndSettle();
+
+        final addButtonFinder = find.text('Add');
+        await tester.scrollUntilVisible(
+          addButtonFinder,
+          100.0,
+          scrollable: find.byType(Scrollable).first,
+        );
+        await tester.tap(addButtonFinder);
+        await tester.pumpAndSettle();
+
+        // 7. Verify custom service immediately appears in CURRENT SERVICES (2)
+        await tester.scrollUntilVisible(
+          find.text('CURRENT SERVICES (2)'),
+          -200.0,
+          scrollable: find.byType(Scrollable).first,
+        );
+        expect(find.text('CURRENT SERVICES (2)'), findsOneWidget);
+        expect(find.text('Custom Steam Clean'), findsOneWidget);
+      },
+    );
+
+    testWidgets('Strictly filters Available Services for Salon business type', (
+      WidgetTester tester,
+    ) async {
+      final client = MockClient((http.Request request) async {
+        if (request.url.path.endsWith('/templates')) {
+          return http.Response(
+            jsonEncode([
+              {
+                'code': 'LAUNDRY_DRY_CLEANING',
+                'businessType': 'dry_cleaning',
+                'name': 'Laundry / Dry Cleaning',
+                'services': [
+                  {
+                    'code': 'SERVICE_WASH_FOLD',
+                    'name': 'Wash & Fold',
+                    'pricingType': 'per_item',
+                  },
+                ],
+              },
+              {
+                'code': 'SALON',
+                'businessType': 'salon',
+                'name': 'Salon',
+                'services': [
+                  {
+                    'code': 'SALON_HAIRCUT',
+                    'name': 'Haircut',
+                    'pricingType': 'per_item',
+                  },
+                  {
+                    'code': 'SALON_FACIAL',
+                    'name': 'Facial',
+                    'pricingType': 'per_item',
+                  },
+                  {
+                    'code': 'SALON_MANICURE',
+                    'name': 'Manicure',
+                    'pricingType': 'per_item',
+                  },
+                ],
+              },
+              {
+                'code': 'CAR_WASH',
+                'businessType': 'vehicle_wash',
+                'name': 'Car Washing',
+                'services': [
+                  {
+                    'code': 'CAR_INTERIOR',
+                    'name': 'Interior Cleaning',
+                    'pricingType': 'per_item',
+                  },
+                ],
+              },
+            ]),
+            200,
+            headers: {'content-type': 'application/json'},
+          );
+        }
+        return http.Response(
+          jsonEncode({
+            'tenantId': 'tenant-salon',
+            'totalServices': 1,
+            'totalActiveServices': 1,
+            'totalItems': 1,
+            'totalActiveItems': 1,
+            'totalCategories': 1,
+            'totalActiveCategories': 1,
+            'totalActivePricing': 0,
+            'services': [
+              {
+                'id': 'srv-salon-1',
+                'tenantId': 'tenant-salon',
+                'serviceName': 'Haircut',
+                'code': 'SALON_HAIRCUT',
+                'pricingType': 'PerItem',
+                'status': 'Active',
+              },
+            ],
+            'items': [
+              {
+                'id': 'item-salon-1',
+                'tenantId': 'tenant-salon',
+                'name': 'Shampoo Wash',
+                'code': 'ITEM_SHAMPOO',
+                'category': 'Salon',
+                'catalogGroupCodes': ['SALON'],
+                'status': 'Active',
+              },
+            ],
+            'categories': [],
+            'pricing': [],
+          }),
+          200,
+          headers: {'content-type': 'application/json'},
+        );
+      });
+
+      final settingsApiService = SettingsApiService(
+        client: client,
+        tokenStorage: _FakeTokenStorage(
+          AuthenticationSession(
+            accessToken: 'tok',
+            accessTokenExpiresAt: DateTime.now().add(const Duration(days: 1)),
+            refreshToken: 'ref',
+            refreshTokenExpiresAt: DateTime.now().add(const Duration(days: 30)),
+            roleCode: 'Owner',
+          ),
+        ),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ServicesSettingsScreen(apiService: settingsApiService),
+        ),
+      );
+
+      await tester.pump();
+      await tester.pumpAndSettle();
+
+      // Current service is Haircut
+      expect(find.text('CURRENT SERVICES (1)'), findsOneWidget);
+      expect(find.text('Haircut'), findsOneWidget);
+
+      // Available Services only shows Salon services
+      expect(find.text('AVAILABLE SERVICES'), findsOneWidget);
+      expect(find.text('Facial'), findsOneWidget);
+      expect(find.text('Manicure'), findsOneWidget);
+
+      // Laundry and Car Wash services are completely hidden
+      expect(find.text('Wash & Fold'), findsNothing);
+      expect(find.text('Interior Cleaning'), findsNothing);
+    });
+
+    testWidgets(
+      'Strictly filters Available Services for Car Washing business type',
+      (WidgetTester tester) async {
+        final client = MockClient((http.Request request) async {
+          if (request.url.path.endsWith('/templates')) {
+            return http.Response(
+              jsonEncode([
+                {
+                  'code': 'LAUNDRY_DRY_CLEANING',
+                  'businessType': 'dry_cleaning',
+                  'name': 'Laundry / Dry Cleaning',
+                  'services': [
+                    {
+                      'code': 'SERVICE_WASH_FOLD',
+                      'name': 'Wash & Fold',
+                      'pricingType': 'per_item',
+                    },
+                  ],
+                },
+                {
+                  'code': 'SALON',
+                  'businessType': 'salon',
+                  'name': 'Salon',
+                  'services': [
+                    {
+                      'code': 'SALON_HAIRCUT',
+                      'name': 'Haircut',
+                      'pricingType': 'per_item',
+                    },
+                  ],
+                },
+                {
+                  'code': 'CAR_WASH',
+                  'businessType': 'vehicle_wash',
+                  'name': 'Car Washing',
+                  'services': [
+                    {
+                      'code': 'CAR_INTERIOR',
+                      'name': 'Interior Cleaning',
+                      'pricingType': 'per_item',
+                    },
+                    {
+                      'code': 'CAR_EXTERIOR',
+                      'name': 'Exterior Cleaning',
+                      'pricingType': 'per_item',
+                    },
+                  ],
+                },
+              ]),
+              200,
+              headers: {'content-type': 'application/json'},
+            );
+          }
+          return http.Response(
+            jsonEncode({
+              'tenantId': 'tenant-carwash',
+              'totalServices': 1,
+              'totalActiveServices': 1,
+              'totalItems': 1,
+              'totalActiveItems': 1,
+              'totalCategories': 1,
+              'totalActiveCategories': 1,
+              'totalActivePricing': 0,
+              'services': [
+                {
+                  'id': 'srv-cw-1',
+                  'tenantId': 'tenant-carwash',
+                  'serviceName': 'Interior Cleaning',
+                  'code': 'CAR_INTERIOR',
+                  'pricingType': 'PerItem',
+                  'status': 'Active',
+                },
+              ],
+              'items': [
+                {
+                  'id': 'item-cw-1',
+                  'tenantId': 'tenant-carwash',
+                  'name': 'Sedan Cleaning',
+                  'code': 'ITEM_SEDAN',
+                  'category': 'Car Washing',
+                  'catalogGroupCodes': ['CAR_WASH'],
+                  'status': 'Active',
+                },
+              ],
+              'categories': [],
+              'pricing': [],
+            }),
+            200,
+            headers: {'content-type': 'application/json'},
+          );
+        });
+
+        final settingsApiService = SettingsApiService(
+          client: client,
+          tokenStorage: _FakeTokenStorage(
+            AuthenticationSession(
+              accessToken: 'tok',
+              accessTokenExpiresAt: DateTime.now().add(const Duration(days: 1)),
+              refreshToken: 'ref',
+              refreshTokenExpiresAt: DateTime.now().add(
+                const Duration(days: 30),
+              ),
+              roleCode: 'Owner',
+            ),
+          ),
+        );
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: ServicesSettingsScreen(apiService: settingsApiService),
+          ),
+        );
+
+        await tester.pump();
+        await tester.pumpAndSettle();
+
+        // Current service is Interior Cleaning
+        expect(find.text('CURRENT SERVICES (1)'), findsOneWidget);
+        expect(find.text('Interior Cleaning'), findsOneWidget);
+
+        // Available Services only shows Car Washing services
+        expect(find.text('AVAILABLE SERVICES'), findsOneWidget);
+        expect(find.text('Exterior Cleaning'), findsOneWidget);
+
+        // Laundry and Salon services are completely hidden
+        expect(find.text('Wash & Fold'), findsNothing);
+        expect(find.text('Haircut'), findsNothing);
+      },
+    );
+  });
+
+  group('PricingSettingsScreen UI & Sync', () {
+    testWidgets(
+      'Displays pricing for active items only and hides pricing for disabled/removed items',
+      (WidgetTester tester) async {
+        final client = MockClient((http.Request request) async {
+          return http.Response(
+            jsonEncode({
+              'tenantId': 'tenant-123',
+              'totalServices': 1,
+              'totalActiveServices': 1,
+              'totalItems': 2,
+              'totalActiveItems': 1,
+              'totalCategories': 1,
+              'totalActiveCategories': 1,
+              'totalActivePricing': 1,
+              'services': [
+                {
+                  'id': 'srv-1',
+                  'tenantId': 'tenant-123',
+                  'serviceName': 'Dry Cleaning',
+                  'code': 'DRY_CLEAN',
+                  'status': 'Active',
+                },
+              ],
+              'items': [
+                {
+                  'id': 'item-active',
+                  'tenantId': 'tenant-123',
+                  'name': 'Silk Shirt',
+                  'code': 'SILK_SHIRT',
+                  'status': 'Active',
+                },
+                {
+                  'id': 'item-inactive',
+                  'tenantId': 'tenant-123',
+                  'name': 'Wool Blanket',
+                  'code': 'WOOL_BLANKET',
+                  'status': 'Inactive',
+                },
+              ],
+              'categories': [],
+              'pricing': [
+                {
+                  'id': 'prc-active',
+                  'tenantId': 'tenant-123',
+                  'serviceId': 'srv-1',
+                  'itemCategoryId': 'item-active',
+                  'pricingType': 'per_item',
+                  'basePrice': 25.0,
+                  'taxPct': 0,
+                  'status': 'Active',
+                },
+                {
+                  'id': 'prc-inactive-item',
+                  'tenantId': 'tenant-123',
+                  'serviceId': 'srv-1',
+                  'itemCategoryId': 'item-inactive',
+                  'pricingType': 'per_item',
+                  'basePrice': 40.0,
+                  'taxPct': 0,
+                  'status': 'Active',
+                },
+              ],
+            }),
+            200,
+            headers: {'content-type': 'application/json'},
+          );
+        });
+
+        final settingsApiService = SettingsApiService(
+          client: client,
+          tokenStorage: _FakeTokenStorage(
+            AuthenticationSession(
+              accessToken: 'tok',
+              accessTokenExpiresAt: DateTime.now().add(const Duration(days: 1)),
+              refreshToken: 'ref',
+              refreshTokenExpiresAt: DateTime.now().add(
+                const Duration(days: 30),
+              ),
+              roleCode: 'Owner',
+            ),
+          ),
+        );
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: PricingSettingsScreen(apiService: settingsApiService),
+          ),
+        );
+
+        await tester.pump();
+        await tester.pumpAndSettle();
+
+        // 1. Pricing screen header
+        expect(find.text('Pricing'), findsOneWidget);
+        expect(find.text('Set prices per item / service'), findsOneWidget);
+
+        // 2. Active item "Silk Shirt" is displayed in pricing list
+        expect(find.text('Silk Shirt'), findsOneWidget);
+        expect(find.text('Dry Cleaning'), findsOneWidget);
+
+        // 3. Inactive/Disabled item "Wool Blanket" must NOT appear in pricing list
+        expect(find.text('Wool Blanket'), findsNothing);
       },
     );
   });

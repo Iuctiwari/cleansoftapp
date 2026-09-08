@@ -51,6 +51,7 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
         !widget.customerController.isLoading) {
       unawaited(widget.customerController.load());
     }
+    unawaited(widget.controller.loadCatalog());
   }
 
   @override
@@ -326,10 +327,15 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
       ...controller.customers.map(
         (Customer customer) => Padding(
           padding: const EdgeInsets.only(bottom: AppSpacing.md),
-          child: NewOrderCustomerCard(
-            customer: customer,
-            selected: widget.controller.customer?.id == customer.id,
-            onTap: () => widget.controller.selectCustomer(customer),
+          child: FutureBuilder<int>(
+            future: widget.customerController.orderCountFor(customer.id),
+            builder: (BuildContext context, AsyncSnapshot<int> snapshot) =>
+                NewOrderCustomerCard(
+                  customer: customer,
+                  orderCount: snapshot.data,
+                  selected: widget.controller.customer?.id == customer.id,
+                  onTap: () => widget.controller.selectCustomer(customer),
+                ),
           ),
         ),
       ),
@@ -350,7 +356,7 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
         onRetry: widget.controller.loadCatalog,
       );
     }
-    if (widget.controller.categories.isEmpty) {
+    if (widget.controller.uniqueItems.isEmpty) {
       return const AppEmptyState(
         icon: AppIcons.package,
         title: 'No item categories available',
@@ -367,48 +373,30 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
       children: <Widget>[
         Text('Items', style: AppTextStyles.headingSmall),
         const SizedBox(height: AppSpacing.xl),
-        ...widget.controller.itemGroups.expand(
-          (NewOrderItemGroup group) => <Widget>[
-            Padding(
-              padding: const EdgeInsets.only(
-                top: AppSpacing.lg,
-                bottom: AppSpacing.md,
-              ),
-              child: Text(
-                group.label.toUpperCase(),
-                style: AppTextStyles.labelUppercase.copyWith(
-                  color: AppColors.textMuted,
-                ),
-              ),
+        ...widget.controller.uniqueItems.map((OrderItemCategory category) {
+          final double amount =
+              widget.controller.selectionFor(category.id)?.amount ?? 0;
+          final double increment = category.unitType == CatalogUnitType.kg
+              ? 0.5
+              : 1;
+          return Padding(
+            padding: const EdgeInsets.only(bottom: AppSpacing.md),
+            child: NewOrderItemCard(
+              category: category,
+              prices: widget.controller.pricesFor(category),
+              amount: amount,
+              onDecrease: amount <= 0
+                  ? null
+                  : () => widget.controller.changeAmount(
+                      category,
+                      (amount - increment).clamp(0, double.infinity),
+                    ),
+              onIncrease: () =>
+                  widget.controller.changeAmount(category, amount + increment),
+              onEdit: () => _editAmount(category, amount),
             ),
-            ...group.items.map((OrderItemCategory category) {
-              final double amount =
-                  widget.controller.selectionFor(category.id)?.amount ?? 0;
-              final double increment = category.unitType == CatalogUnitType.kg
-                  ? 0.5
-                  : 1;
-              return Padding(
-                padding: const EdgeInsets.only(bottom: AppSpacing.md),
-                child: NewOrderItemCard(
-                  category: category,
-                  prices: widget.controller.pricesFor(category),
-                  amount: amount,
-                  onDecrease: amount <= 0
-                      ? null
-                      : () => widget.controller.changeAmount(
-                          category,
-                          (amount - increment).clamp(0, double.infinity),
-                        ),
-                  onIncrease: () => widget.controller.changeAmount(
-                    category,
-                    amount + increment,
-                  ),
-                  onEdit: () => _editAmount(category, amount),
-                ),
-              );
-            }),
-          ],
-        ),
+          );
+        }),
       ],
     );
   }
