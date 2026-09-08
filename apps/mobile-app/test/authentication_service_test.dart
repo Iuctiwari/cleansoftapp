@@ -313,4 +313,14 @@ final class _DeferredAuthenticationService implements AuthenticationService {
 
   @override
   Future<void> signOut() async {}
+
+  @override
+  Future<void> requestPasswordReset({required String identifier}) async {}
+
+  @override
+  Future<void> confirmPasswordReset({
+    required String identifier,
+    required String otp,
+    required String newPassword,
+  }) async {}
 }

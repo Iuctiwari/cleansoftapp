@@ -5,10 +5,12 @@ import 'package:nexoraa_mobile/features/authentication/access_policy.dart';
 import 'package:nexoraa_mobile/features/authentication/authentication_dependencies.dart';
 import 'package:nexoraa_mobile/features/authentication/screens/forgot_password_screen.dart';
 import 'package:nexoraa_mobile/features/authentication/screens/login_screen.dart';
+import 'package:nexoraa_mobile/features/authentication/screens/reset_password_screen.dart';
 import 'package:nexoraa_mobile/features/authentication/screens/splash_screen.dart';
 import 'package:nexoraa_mobile/features/branch/branch.dart';
 import 'package:nexoraa_mobile/features/dashboard/dashboard.dart';
 import 'package:nexoraa_mobile/features/notifications/notifications.dart';
+import 'package:nexoraa_mobile/features/profile/screens/edit_profile_screen.dart';
 import 'package:nexoraa_mobile/features/profile/screens/profile_screen.dart';
 import 'package:nexoraa_mobile/features/settings/settings.dart';
 import 'package:nexoraa_mobile/features/staff/models/staff_member.dart';
@@ -16,9 +18,6 @@ import 'package:nexoraa_mobile/features/staff/screens/edit_staff_screen.dart';
 import 'package:nexoraa_mobile/features/staff/screens/register_staff_screen.dart';
 import 'package:nexoraa_mobile/features/staff/screens/staff_management_screen.dart';
 import 'package:nexoraa_mobile/features/staff/screens/view_staff_profile_screen.dart';
-import 'package:nexoraa_mobile/features/staff/screens/edit_staff_screen.dart';
-import 'package:nexoraa_mobile/features/staff/models/staff_member.dart';
-import 'package:nexoraa_mobile/features/profile/screens/edit_profile_screen.dart';
 
 import '../features/tenant/models/registration_form.dart';
 import '../features/tenant/models/tenant_onboarding_data.dart';
@@ -42,6 +41,7 @@ abstract final class AppRoutes {
   static const String onboardingInviteStaff = '/onboarding/invite-staff';
   static const String onboardingAllSet = '/onboarding/all-set';
   static const String forgotPassword = '/forgot-password';
+  static const String resetPassword = '/reset-password';
   static const String notifications = '/dashboard/notifications';
   static const String branchList = '/dashboard/branches';
   static const String branchAdd = '/dashboard/branches/add';
@@ -70,6 +70,7 @@ abstract final class AppRouteNames {
   static const String onboardingInviteStaff = 'onboardingInviteStaff';
   static const String onboardingAllSet = 'onboardingAllSet';
   static const String forgotPassword = 'forgot-password';
+  static const String resetPassword = 'resetPassword';
   static const String notifications = 'notifications';
   static const String branchList = 'branchList';
   static const String branchAdd = 'branchAdd';
@@ -197,6 +198,18 @@ abstract final class AppRouter {
           return _fadePage<void>(
             state: state,
             child: const ForgotPasswordScreen(),
+          );
+        },
+      ),
+      GoRoute(
+        name: AppRouteNames.resetPassword,
+        path: AppRoutes.resetPassword,
+        pageBuilder: (BuildContext context, GoRouterState state) {
+          final extra = state.extra;
+          final identifier = extra is String ? extra : '';
+          return _fadePage<void>(
+            state: state,
+            child: ResetPasswordScreen(initialIdentifier: identifier),
           );
         },
       ),

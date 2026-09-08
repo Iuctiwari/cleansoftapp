@@ -291,6 +291,18 @@ export class MongoAuthRepository implements AuthRepository, OnModuleInit {
           },
         )
         .exec();
+    } else if (identity.kind === 'tenant_staff') {
+      await this.tenantStaffModel
+        .updateOne(
+          { userId: identity.userId },
+          {
+            $set: {
+              passwordHash: identity.passwordHash,
+              accessVersion: identity.accessVersion,
+            },
+          },
+        )
+        .exec();
     }
     return identity;
   }
@@ -385,13 +397,20 @@ export class MongoAuthRepository implements AuthRepository, OnModuleInit {
 
   async upsertPasswordReset(record: PasswordResetRecord): Promise<PasswordResetRecord> {
     await this.resetModel
+      .updateMany({ userId: record.userId, consumed: false }, { $set: { consumed: true } })
+      .exec();
+    await this.resetModel
       .updateOne({ userId: record.userId }, { $set: record }, { upsert: true })
       .exec();
     return record;
   }
 
   async findActivePasswordResetByUser(userId: string): Promise<PasswordResetRecord | null> {
-    const doc = await this.resetModel.findOne({ userId }).lean().exec();
+    const doc = await this.resetModel
+      .findOne({ userId, consumed: false })
+      .sort({ createdAtUtc: -1 })
+      .lean()
+      .exec();
     if (!doc) return null;
     return doc as unknown as PasswordResetRecord;
   }

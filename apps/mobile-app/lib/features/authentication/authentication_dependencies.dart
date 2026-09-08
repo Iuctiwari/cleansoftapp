@@ -5,9 +5,9 @@ import 'package:nexoraa_mobile/features/authentication/services/auth_token_stora
 import 'package:nexoraa_mobile/features/authentication/services/authentication_service.dart';
 
 abstract final class AuthenticationDependencies {
-  static final AuthTokenStorage tokenStorage = SecureAuthTokenStorage();
+  static AuthTokenStorage tokenStorage = SecureAuthTokenStorage();
 
-  static final AuthenticationService service = ApiAuthenticationService(
+  static AuthenticationService service = ApiAuthenticationService(
     apiBaseUri: Uri.parse(
       _environment('API_BASE_URL', 'http://127.0.0.1:3000/api'),
     ),
@@ -16,7 +16,7 @@ abstract final class AuthenticationDependencies {
     tokenStorage: tokenStorage,
   );
 
-  static final AuthenticationController controller = AuthenticationController(
+  static AuthenticationController controller = AuthenticationController(
     service: service,
   );
 

@@ -1,8 +1,9 @@
 import { randomUUID } from 'node:crypto';
 
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AuditService } from '../audit/audit.service';
+import { EmailService } from '../email/email.service';
 import { TrustedContextFactory } from '../platform/platform.context';
 import { PlatformError } from '../platform/platform.errors';
 import type { PlatformContext, TenantContext, TrustedContext } from '../platform/platform.types';
@@ -116,6 +117,7 @@ function toSessionSummary(session: AuthSessionRecord): AuthLoginResponse['sessio
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
   private readonly configuration: AuthConfiguration;
 
   constructor(
@@ -123,6 +125,7 @@ export class AuthService {
     private readonly auditService: AuditService,
     private readonly configService: ConfigService,
     private readonly trustedContextFactory: TrustedContextFactory,
+    @Optional() private readonly emailService?: EmailService,
   ) {
     this.configuration = {
       issuer: this.configService.getOrThrow<string>('APP_NAME'),
@@ -443,15 +446,22 @@ export class AuthService {
     );
 
     if (!identity || !this.isLoginAllowed(identity)) {
+      this.logger.log('Password reset requested for unrecognized or disallowed identifier');
       return {
         ...toAcknowledgement(),
-        deliveryHint: 'If the account is eligible, a reset code will be sent.',
+        deliveryHint: 'If the account is eligible, a verification code will be sent.',
       };
     }
 
+    this.logger.log(
+      `Password reset requested for valid account (${identity.kind}), initiating delivery`,
+    );
+
     const now = new Date();
     const otp = generateOtp();
-    const destination = identity.email || identity.mobileNumber || identity.userId;
+    const deliveryChannel: 'email' | 'sms' = identity.email ? 'email' : 'sms';
+    const destination =
+      deliveryChannel === 'email' ? identity.email : identity.mobileNumber || identity.userId;
     const record: PasswordResetRecord = {
       resetId: randomUUID(),
       userId: identity.userId,
@@ -463,7 +473,7 @@ export class AuthService {
       attempts: 0,
       consumed: false,
       createdAtUtc: now.toISOString(),
-      deliveryChannel: identity.mobileNumber ? 'sms' : 'email',
+      deliveryChannel,
       destinationMasked: maskDestination(destination),
     };
     await this.authRepository.upsertPasswordReset(record);
@@ -475,6 +485,24 @@ export class AuthService {
       payload: { otp, tenantSlug: identity.tenantSlug ?? 'platform' },
       createdAtUtc: now.toISOString(),
     });
+
+    if (record.deliveryChannel === 'email' && identity.email && this.emailService) {
+      const emailResult = await this.emailService.sendPasswordResetOtp(
+        identity.email,
+        otp,
+        identity.displayName,
+      );
+      if (!emailResult.success) {
+        await this.authRepository.consumePasswordReset(record);
+        throw new PlatformError({
+          code: 'auth.email_delivery_failed',
+          category: 'dependency_unavailable',
+          messageKey: 'errors.auth.email_delivery_failed',
+          retryable: true,
+        });
+      }
+    }
+
     await this.recordSecurityEvent(
       'forgot_password_requested',
       this.toSyntheticSession(identity),
@@ -483,7 +511,7 @@ export class AuthService {
 
     return {
       ...toAcknowledgement(),
-      deliveryHint: record.destinationMasked,
+      deliveryHint: 'If the account is eligible, a verification code will be sent.',
     };
   }
 

@@ -125,6 +125,112 @@ final class ApiAuthenticationService implements AuthenticationService {
   @override
   Future<void> signOut() => _tokenStorage.clear();
 
+  @override
+  Future<void> requestPasswordReset({
+    required String identifier,
+  }) async {
+    final Uri normalizedBaseUri = _apiBaseUri.replace(
+      path: _apiBaseUri.path.endsWith('/')
+          ? _apiBaseUri.path
+          : '${_apiBaseUri.path}/',
+    );
+    final Uri endpoint = normalizedBaseUri.resolve('v1/auth/forgot-password');
+    final Map<String, Object> body = <String, Object>{
+      'context': _loginContext,
+      'identifier': identifier.trim(),
+      if (_tenantSlug != null && _tenantSlug.trim().isNotEmpty)
+        'tenantSlug': _tenantSlug.trim(),
+    };
+
+    try {
+      final http.Response response = await _client
+          .post(
+            endpoint,
+            headers: const <String, String>{
+              HttpHeaders.acceptHeader: 'application/json',
+              HttpHeaders.contentTypeHeader: 'application/json',
+            },
+            body: jsonEncode(body),
+          )
+          .timeout(_requestTimeout);
+
+      final Object? decoded = _decodeJson(response.body);
+      if (response.statusCode < HttpStatus.ok ||
+          response.statusCode >= HttpStatus.multipleChoices) {
+        throw AuthenticationException(
+          _errorMessage(decoded, response.statusCode),
+        );
+      }
+    } on AuthenticationException {
+      rethrow;
+    } on TimeoutException {
+      throw const AuthenticationNetworkException();
+    } on SocketException {
+      throw const AuthenticationNetworkException();
+    } on http.ClientException {
+      throw const AuthenticationNetworkException();
+    } on FormatException {
+      throw const AuthenticationException(
+        'The server returned an invalid authentication response.',
+      );
+    }
+  }
+
+  @override
+  Future<void> confirmPasswordReset({
+    required String identifier,
+    required String otp,
+    required String newPassword,
+  }) async {
+    final Uri normalizedBaseUri = _apiBaseUri.replace(
+      path: _apiBaseUri.path.endsWith('/')
+          ? _apiBaseUri.path
+          : '${_apiBaseUri.path}/',
+    );
+    final Uri endpoint = normalizedBaseUri.resolve('v1/auth/reset-password');
+    final Map<String, Object> body = <String, Object>{
+      'context': _loginContext,
+      'identifier': identifier.trim(),
+      'otp': otp.trim(),
+      'newPassword': newPassword,
+      if (_tenantSlug != null && _tenantSlug.trim().isNotEmpty)
+        'tenantSlug': _tenantSlug.trim(),
+    };
+
+    try {
+      final http.Response response = await _client
+          .post(
+            endpoint,
+            headers: const <String, String>{
+              HttpHeaders.acceptHeader: 'application/json',
+              HttpHeaders.contentTypeHeader: 'application/json',
+            },
+            body: jsonEncode(body),
+          )
+          .timeout(_requestTimeout);
+
+      final Object? decoded = _decodeJson(response.body);
+      if (response.statusCode < HttpStatus.ok ||
+          response.statusCode >= HttpStatus.multipleChoices) {
+        throw AuthenticationException(
+          _errorMessage(decoded, response.statusCode),
+        );
+      }
+    } on AuthenticationException {
+      rethrow;
+    } on TimeoutException {
+      throw const AuthenticationNetworkException();
+    } on SocketException {
+      throw const AuthenticationNetworkException();
+    } on http.ClientException {
+      throw const AuthenticationNetworkException();
+    } on FormatException {
+      throw const AuthenticationException(
+        'The server returned an invalid authentication response.',
+      );
+    }
+  }
+
   Future<void> _clearStoredSession() async {
     try {
       await _tokenStorage.clear();
