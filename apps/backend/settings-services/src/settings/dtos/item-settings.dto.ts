@@ -13,8 +13,8 @@ import {
 
 import { CatalogStatus, UnitType } from '../enums';
 
-function normalizeUnitType(val: unknown): UnitType | unknown {
-  if (typeof val !== 'string') return val;
+function normalizeUnitType(val: unknown): UnitType {
+  if (typeof val !== 'string') return val as UnitType;
   const clean = val.toLowerCase().replace(/[^a-z]/g, '');
   switch (clean) {
     case 'piece':
@@ -33,7 +33,7 @@ function normalizeUnitType(val: unknown): UnitType | unknown {
     case 'hrs':
       return UnitType.HOUR;
     default:
-      return val;
+      return val as UnitType;
   }
 }
 

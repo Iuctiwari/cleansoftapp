@@ -14,8 +14,8 @@ import {
 
 import { CatalogStatus, PricingType } from '../enums';
 
-function normalizePricingType(val: unknown): PricingType | unknown {
-  if (typeof val !== 'string') return val;
+function normalizePricingType(val: unknown): PricingType {
+  if (typeof val !== 'string') return val as PricingType;
   const clean = val.toLowerCase().replace(/[^a-z]/g, '');
   switch (clean) {
     case 'peritem':
@@ -35,7 +35,7 @@ function normalizePricingType(val: unknown): PricingType | unknown {
     case 'custom':
       return PricingType.CUSTOM;
     default:
-      return val;
+      return val as PricingType;
   }
 }
 
