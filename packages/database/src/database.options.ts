@@ -15,7 +15,6 @@ function configureConnectionLogging(connection: Connection): Connection {
 }
 
 export function createMongooseOptions(configService: ConfigService): MongooseModuleOptions {
-  const isProduction = configService.getOrThrow<string>('NODE_ENV') === 'production';
   const nodeEnv = configService.get<string>('NODE_ENV') ?? process.env.NODE_ENV ?? 'development';
   const isProduction = nodeEnv === 'production';
 
@@ -33,7 +32,6 @@ export function createMongooseOptions(configService: ConfigService): MongooseMod
     retryDelay: 3_000,
     serverSelectionTimeoutMS: 10_000,
     socketTimeoutMS: 45_000,
-    uri: configService.getOrThrow<string>('MONGODB_URI'),
     uri:
       configService.get<string>('MONGODB_URI') ??
       process.env.MONGODB_URI ??
