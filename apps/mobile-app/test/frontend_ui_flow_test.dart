@@ -12,7 +12,10 @@ import 'package:nexoraa_mobile/features/authentication/screens/forgot_password_s
 import 'package:nexoraa_mobile/features/dashboard/dashboard_widgets.dart';
 import 'package:nexoraa_mobile/features/dashboard/screens/dashboard_placeholder_screen.dart';
 import 'package:nexoraa_mobile/features/dashboard/screens/more_screen.dart';
+import 'package:nexoraa_mobile/features/authentication/authentication_dependencies.dart';
 import 'package:nexoraa_mobile/features/authentication/authentication_models.dart';
+import 'package:nexoraa_mobile/features/authentication/controllers/authentication_controller.dart';
+import 'package:nexoraa_mobile/features/authentication/services/authentication_service.dart';
 import 'package:nexoraa_mobile/features/authentication/services/auth_token_storage.dart';
 import 'package:nexoraa_mobile/features/notifications/notifications.dart';
 import 'package:nexoraa_mobile/features/tenant/services/tenant_api_service.dart';
@@ -34,6 +37,29 @@ class _FakeAuthTokenStorage implements AuthTokenStorage {
 
   @override
   Future<void> write(AuthenticationSession session) async {}
+}
+
+class _MockAuthService implements AuthenticationService {
+  @override
+  Future<AuthenticationSession?> restoreSession() async => null;
+
+  @override
+  Future<AuthenticationSession> signIn({required String identifier, required String password}) async {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> signOut() async {}
+
+  @override
+  Future<void> requestPasswordReset({required String identifier}) async {}
+
+  @override
+  Future<void> confirmPasswordReset({
+    required String identifier,
+    required String otp,
+    required String newPassword,
+  }) async {}
 }
 
 Map<String, dynamic> _notificationJson({
@@ -58,6 +84,9 @@ Map<String, dynamic> _notificationJson({
 void main() {
   setUp(() {
     FlutterSecureStorage.setMockInitialValues(<String, String>{});
+    final mockAuth = _MockAuthService();
+    AuthenticationDependencies.service = mockAuth;
+    AuthenticationDependencies.controller = AuthenticationController(service: mockAuth);
   });
   testWidgets('forgot password swaps to the local success state', (
     WidgetTester tester,
@@ -68,11 +97,15 @@ void main() {
 
     expect(find.text('Forgot your password?'), findsOneWidget);
     await tester.enterText(find.byType(TextFormField), 'owner@example.com');
-    await tester.tap(find.text('Send Reset Link'));
+    await tester.tap(find.text('Send verification code'));
     await tester.pumpAndSettle();
 
     expect(find.text('Check your email'), findsOneWidget);
     expect(find.textContaining('owner@example.com'), findsOneWidget);
+    expect(
+      find.textContaining('If the account is eligible, a verification code has been sent'),
+      findsAtLeast(1),
+    );
   });
 
   testWidgets('notification filters and read actions update immediately', (

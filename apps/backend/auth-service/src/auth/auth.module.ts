@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import { DatabaseModule } from '@nexoraa/database';
 import { AuditModule } from '../audit/audit.module';
+import { EmailModule } from '../email/email.module';
 import { PlatformModule } from '../platform/platform.module';
 import { AuthController } from './auth.controller';
 import { AuthenticationContextMiddleware } from './auth.middleware';
@@ -39,6 +40,7 @@ import {
     DatabaseModule,
     AuditModule,
     PlatformModule,
+    EmailModule,
     MongooseModule.forFeature([
       { name: AuthSessionMongoose.name, schema: AuthSessionMongooseSchema },
       { name: AuthLoginTrackerMongoose.name, schema: AuthLoginTrackerMongooseSchema },

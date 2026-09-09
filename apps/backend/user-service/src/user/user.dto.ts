@@ -8,8 +8,9 @@ import {
   Matches,
   MaxLength,
   MinLength,
+  ValidateIf,
 } from 'class-validator';
-import { UserRole, UserStatus } from './user.types';
+import { StaffAvailability, UserRole, UserStatus } from './user.types';
 
 export class RegisterStaffDto {
   @ApiProperty({ example: 'John Doe', maxLength: 120 })
@@ -43,12 +44,14 @@ export class RegisterStaffDto {
 
   @ApiPropertyOptional({ example: 'john@example.com', maxLength: 160 })
   @IsOptional()
+  @ValidateIf((o, value) => value !== '')
   @IsEmail()
   @MaxLength(160)
   email?: string;
 
   @ApiPropertyOptional({ example: '+971501234567' })
   @IsOptional()
+  @ValidateIf((o, value) => value !== '')
   @IsString()
   @Matches(/^\+?[0-9]{7,15}$/)
   mobileNumber?: string;
@@ -81,12 +84,14 @@ export class UpdateStaffDto {
 
   @ApiPropertyOptional({ example: 'john@example.com', maxLength: 160 })
   @IsOptional()
+  @ValidateIf((o, value) => value !== '')
   @IsEmail()
   @MaxLength(160)
   email?: string;
 
   @ApiPropertyOptional({ example: '+971501234567' })
   @IsOptional()
+  @ValidateIf((o, value) => value !== '')
   @IsString()
   @Matches(/^\+?[0-9]{7,15}$/)
   mobileNumber?: string;
@@ -108,6 +113,17 @@ export class UpdateStaffDto {
   branchIds?: string[];
 }
 
+export class UpdateAvailabilityDto {
+  @ApiProperty({
+    enum: ['Available', 'Busy', 'On Break', 'Offline'],
+    example: 'Available',
+  })
+  @IsString()
+  @IsNotEmpty()
+  @IsEnum(['Available', 'Busy', 'On Break', 'Offline'])
+  availability!: StaffAvailability;
+}
+
 export class StaffResponseDto {
   @ApiProperty() userId!: string;
   @ApiProperty() tenantId!: string;
@@ -119,6 +135,8 @@ export class StaffResponseDto {
   @ApiProperty({ enum: ['Owner', 'Branch Manager', 'Staff', 'Cashier'] }) role!: UserRole;
   @ApiProperty({ type: [String] }) branchIds!: string[];
   @ApiProperty({ enum: ['Active', 'Suspended'] }) status!: UserStatus;
+  @ApiProperty({ enum: ['Available', 'Busy', 'On Break', 'Offline'], example: 'Available' })
+  availability!: StaffAvailability;
   @ApiProperty() createdAt!: string;
   @ApiProperty() updatedAt!: string;
 }

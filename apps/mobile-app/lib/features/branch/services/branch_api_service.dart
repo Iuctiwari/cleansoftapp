@@ -13,6 +13,9 @@ class BranchApiNetworkException implements Exception {
   const BranchApiNetworkException(this.message);
 
   final String message;
+
+  @override
+  String toString() => message;
 }
 
 /// Structured API error returned from the branch service.
@@ -62,6 +65,9 @@ class BranchApiException implements Exception {
     }
     return 'Something went wrong. Please try again.';
   }
+
+  @override
+  String toString() => userMessage;
 }
 
 /// HTTP client for the branch-service `/v1/branches` API.
@@ -219,6 +225,14 @@ class BranchApiService {
       throw const BranchApiNetworkException('Branch Service unavailable');
     } on http.ClientException {
       throw const BranchApiNetworkException('Branch Service unavailable');
+    } catch (e) {
+      if (e.toString().contains('XMLHttpRequest') || 
+          e.toString().contains('Failed to fetch') ||
+          e.toString().contains('NetworkError') ||
+          e.toString().contains('ClientException')) {
+        throw const BranchApiNetworkException('Branch Service unavailable');
+      }
+      rethrow;
     }
   }
 

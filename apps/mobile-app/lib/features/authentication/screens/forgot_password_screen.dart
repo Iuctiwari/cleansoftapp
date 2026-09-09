@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:nexoraa_mobile/app/router.dart';
 import 'package:nexoraa_mobile/design_system/design_system.dart';
+import 'package:nexoraa_mobile/features/authentication/authentication_dependencies.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -12,7 +13,9 @@ class ForgotPasswordScreen extends StatefulWidget {
 
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   late final TextEditingController _emailController;
-  bool _linkSent = false;
+  bool _isLoading = false;
+  bool _codeSent = false;
+  String? _errorMessage;
 
   @override
   void initState() {
@@ -26,24 +29,58 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     super.dispose();
   }
 
-  void _sendResetLink() {
+  Future<void> _handleSendResetCode() async {
+    if (_isLoading) return;
+
     final String email = _emailController.text.trim();
     if (email.isEmpty) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          const SnackBar(
-            content: Text('Enter your email address to continue.'),
-          ),
-        );
+      _showMessage('Enter your email address to continue.');
       return;
     }
 
     FocusManager.instance.primaryFocus?.unfocus();
-    setState(() => _linkSent = true);
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    final bool success = await AuthenticationDependencies.controller
+        .requestPasswordReset(identifier: email);
+
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+
+    if (success) {
+      setState(() => _codeSent = true);
+      _showMessage('If the account is eligible, a verification code has been sent.');
+      try {
+        context.pushNamed(AppRouteNames.resetPassword, extra: email);
+      } catch (_) {
+        // Fallback when GoRouter is not in the widget tree (e.g. unit tests)
+      }
+      return;
+    }
+
+    final String error = AuthenticationDependencies.controller.errorMessage ??
+        'Unable to send verification code. Please try again.';
+    setState(() => _errorMessage = error);
+    _showMessage(error);
+  }
+
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
   }
 
   void _backToLogin() => context.goNamed(AppRouteNames.login);
+
+  void _goToResetPassword() {
+    context.pushNamed(
+      AppRouteNames.resetPassword,
+      extra: _emailController.text.trim(),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -72,17 +109,20 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   child: AnimatedSwitcher(
                     duration: AppDurations.medium,
                     switchInCurve: AppCurves.easeOut,
-                    child: _linkSent
+                    child: _codeSent
                         ? _SuccessState(
                             key: const ValueKey<String>('success'),
                             email: _emailController.text.trim(),
                             onBackToLogin: _backToLogin,
+                            onEnterCode: _goToResetPassword,
                           )
                         : _RequestState(
                             key: const ValueKey<String>('request'),
                             emailController: _emailController,
+                            isLoading: _isLoading,
+                            errorMessage: _errorMessage,
                             onBackToLogin: _backToLogin,
-                            onSendResetLink: _sendResetLink,
+                            onSendResetCode: _handleSendResetCode,
                           ),
                   ),
                 ),
@@ -98,14 +138,18 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 class _RequestState extends StatelessWidget {
   const _RequestState({
     required this.emailController,
+    required this.isLoading,
+    required this.errorMessage,
     required this.onBackToLogin,
-    required this.onSendResetLink,
+    required this.onSendResetCode,
     super.key,
   });
 
   final TextEditingController emailController;
+  final bool isLoading;
+  final String? errorMessage;
   final VoidCallback onBackToLogin;
-  final VoidCallback onSendResetLink;
+  final VoidCallback onSendResetCode;
 
   @override
   Widget build(BuildContext context) {
@@ -124,10 +168,24 @@ class _RequestState extends StatelessWidget {
         const Text('Forgot your password?', style: AppTextStyles.headingLarge),
         const SizedBox(height: AppSpacing.lg),
         const Text(
-          "Enter your email address and we'll send you a link to reset your password.",
+          "Enter your email address and we'll send you a 6-digit verification code to reset your password.",
           style: AppTextStyles.bodyMedium,
         ),
         const SizedBox(height: AppSpacing.section),
+        if (errorMessage != null) ...<Widget>[
+          Container(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            decoration: BoxDecoration(
+              color: AppColors.errorSurface,
+              borderRadius: AppRadius.cardRadius,
+            ),
+            child: Text(
+              errorMessage!,
+              style: AppTextStyles.bodyMedium.copyWith(color: AppColors.error),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.section),
+        ],
         AppTextField(
           autofillHints: const <String>[AutofillHints.email],
           controller: emailController,
@@ -138,7 +196,10 @@ class _RequestState extends StatelessWidget {
           textInputAction: TextInputAction.done,
         ),
         const SizedBox(height: AppSpacing.xxlPlus),
-        PrimaryButton(label: 'Send Reset Link', onPressed: onSendResetLink),
+        PrimaryButton(
+          label: isLoading ? 'Sending code...' : 'Send verification code',
+          onPressed: isLoading ? null : onSendResetCode,
+        ),
         const SizedBox(height: AppSpacing.xl),
         AppLinkButton(label: 'Back to Login', onPressed: onBackToLogin),
       ],
@@ -150,11 +211,13 @@ class _SuccessState extends StatelessWidget {
   const _SuccessState({
     required this.email,
     required this.onBackToLogin,
+    required this.onEnterCode,
     super.key,
   });
 
   final String email;
   final VoidCallback onBackToLogin;
+  final VoidCallback onEnterCode;
 
   @override
   Widget build(BuildContext context) {
@@ -164,20 +227,22 @@ class _SuccessState extends StatelessWidget {
         const Align(
           alignment: Alignment.centerLeft,
           child: _StateIcon(
-            backgroundColor: AppColors.successSurface,
-            color: AppColors.success,
-            icon: AppIcons.success,
+            backgroundColor: AppColors.primarySurface,
+            color: AppColors.primary,
+            icon: AppIcons.brandCheck,
           ),
         ),
         const SizedBox(height: AppSpacing.section),
         const Text('Check your email', style: AppTextStyles.headingLarge),
         const SizedBox(height: AppSpacing.lg),
         Text(
-          'We sent a password reset link to $email. Follow the instructions in the email to reset your password.',
+          'If the account is eligible, a verification code has been sent to $email. Follow the instructions to reset your password.',
           style: AppTextStyles.bodyMedium,
         ),
         const SizedBox(height: AppSpacing.section),
-        PrimaryButton(label: 'Back to Login', onPressed: onBackToLogin),
+        PrimaryButton(label: 'Enter Verification Code', onPressed: onEnterCode),
+        const SizedBox(height: AppSpacing.xl),
+        AppLinkButton(label: 'Back to Login', onPressed: onBackToLogin),
       ],
     );
   }

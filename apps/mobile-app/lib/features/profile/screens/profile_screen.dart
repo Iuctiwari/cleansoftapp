@@ -4,6 +4,8 @@ import 'package:nexoraa_mobile/app/router.dart';
 import 'package:nexoraa_mobile/design_system/design_system.dart';
 import 'package:nexoraa_mobile/features/authentication/authentication_dependencies.dart';
 import 'package:nexoraa_mobile/features/authentication/authentication_models.dart';
+import 'package:nexoraa_mobile/features/staff/services/staff_api_service.dart';
+import 'package:nexoraa_mobile/features/staff/models/staff_member.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Data models
@@ -18,7 +20,7 @@ class ProfileData {
     required this.businessName,
     required this.phone,
     required this.location,
-    required this.memberSince,
+    required this.accountCreated,
     required this.plan,
     required this.branch,
     required this.passwordLastChanged,
@@ -26,17 +28,31 @@ class ProfileData {
 
   /// Build from live authenticated session data. Fields not supplied by an
   /// existing backend contract are shown as unavailable, never fabricated.
-  factory ProfileData.fromSession(AuthenticationSession? session) {
+  factory ProfileData.fromSession(
+      AuthenticationSession? session, [
+      StaffMember? staff,
+      Map<String, dynamic>? tenantProfile,
+  ]) {
+    final isOwner = session?.roleCode == 'Owner' || session?.roleCode == 'tenant_owner';
+
     return ProfileData(
-      displayName: session?.ownerName ?? 'Unavailable',
-      email: session?.ownerEmail ?? '—',
-      role: session?.roleCode ?? 'User',
-      businessName: session?.businessName ?? '—',
-      phone:
-          '—', // not yet stored in session; extend when user-service returns it
-      location:
-          '—', // not yet stored in session; extend when user-service returns it
-      memberSince: '—',
+      displayName: staff?.displayName ?? session?.ownerName ?? 'Unavailable',
+      email: staff?.email ?? session?.ownerEmail ?? '—',
+      role: staff?.role ?? session?.roleCode ?? 'User',
+      businessName: isOwner 
+          ? ((tenantProfile?['businessName'] as String?) ?? session?.businessName ?? '—') 
+          : '—',
+      phone: staff?.mobileNumber?.isNotEmpty == true
+          ? staff!.mobileNumber!
+          : (isOwner ? (tenantProfile?['ownerPhone'] as String?) ?? '—' : '—'),
+      location: staff?.department?.isNotEmpty == true 
+          ? staff!.department! 
+          : (isOwner ? ((tenantProfile?['location'] as String?) ?? 'Head Office') : 'Not set'),
+      accountCreated: staff?.createdAt != null 
+          ? '${staff!.createdAt!.year}-${staff.createdAt!.month.toString().padLeft(2, '0')}-${staff.createdAt!.day.toString().padLeft(2, '0')}' 
+          : (tenantProfile != null && tenantProfile['createdAt'] != null)
+              ? DateTime.parse(tenantProfile['createdAt']).toString().split(' ').first
+              : '—',
       plan: '—',
       branch: session?.branchName ?? '—',
       passwordLastChanged: '—',
@@ -49,7 +65,7 @@ class ProfileData {
   final String businessName;
   final String phone;
   final String location;
-  final String memberSince;
+  final String accountCreated;
   final String plan;
   final String branch;
   final String passwordLastChanged;
@@ -101,6 +117,55 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   int _activeRoleIndex = 0;
+  StaffMember? _staffProfile;
+  Map<String, dynamic>? _tenantProfile;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfile();
+  }
+
+  Future<void> _loadProfile() async {
+    final session = AuthenticationDependencies.controller.session;
+    if (session?.ownerUserId == null) {
+      if (mounted) setState(() => _isLoading = false);
+      return;
+    }
+
+    try {
+      final api = StaffApiService();
+      StaffMember? profile;
+      Map<String, dynamic>? tenantProfile;
+      
+      try {
+        profile = await api.getStaffMember(session!.ownerUserId!);
+      } catch (e) {
+        print('ProfileScreen._loadProfile getStaffMember failed: $e');
+      }
+
+      if (session!.tenantId != null) {
+        try {
+          tenantProfile = await api.getTenantProfile(session.tenantId!);
+        } catch (e) {
+          print('ProfileScreen._loadProfile getTenantProfile failed: $e');
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          _staffProfile = profile;
+          _tenantProfile = tenantProfile;
+          _isLoading = false;
+        });
+      }
+    } catch (e, stack) {
+      print('ProfileScreen._loadProfile Error: $e');
+      print('ProfileScreen._loadProfile Stack: $stack');
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
 
   static const List<_RoleOption> _roles = <_RoleOption>[
     _RoleOption(
@@ -126,12 +191,49 @@ class _ProfileScreenState extends State<ProfileScreen> {
     context.goNamed(AppRouteNames.login);
   }
 
-  void _onEditPressed() {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        const SnackBar(content: Text('Edit profile coming soon.')),
-      );
+  Future<void> _onEditPressed() async {
+    if (_isLoading) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(const SnackBar(content: Text('Loading profile...')));
+      return;
+    }
+
+    final session = AuthenticationDependencies.controller.session;
+
+    // Build a StaffMember to pre-fill the edit form. Prefer the live profile;
+    // fall back to a synthetic record assembled from session + tenant data.
+    final StaffMember editableMember = _staffProfile ?? StaffMember(
+      id: session?.ownerUserId ?? '',
+      tenantId: session?.tenantId ?? '',
+      email: session?.ownerEmail ?? '',
+      phone: (_tenantProfile?['ownerPhone'] as String?) ?? '',
+      status: 'Active',
+      role: session?.roleCode ?? 'tenant_owner',
+      branches: const [],
+      firstName: session?.ownerName,
+      loginId: '',
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    );
+
+    final result = await context.pushNamed(
+      AppRouteNames.profileEdit,
+      extra: {
+        'staff': editableMember,
+        'tenantId': session?.tenantId,
+        'isOwner': session?.roleCode == 'tenant_owner' || session?.roleCode == 'Owner',
+        'businessName': (_tenantProfile?['businessName'] as String?) ?? session?.businessName,
+        'location': _staffProfile?.department?.isNotEmpty == true 
+            ? _staffProfile!.department 
+            : (_tenantProfile?['location'] as String?),
+      },
+    );
+
+    if (result == true) {
+      setState(() => _isLoading = true);
+      _loadProfile();
+    }
   }
 
   void _onChangePassword() {
@@ -145,7 +247,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final session = AuthenticationDependencies.controller.session;
-    final data = ProfileData.fromSession(session);
+    final data = ProfileData.fromSession(session, _staffProfile, _tenantProfile);
     final bool isOwner = const <String>{
       'Owner',
       'tenant_owner',
@@ -199,22 +301,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       _ProfileSection(
                         title: 'PERSONAL INFORMATION',
                         children: <Widget>[
+                          if (data.businessName != '—') ...[
+                            _InfoTile(
+                              icon: AppIcons.branch,
+                              label: 'Business',
+                              value: data.businessName,
+                            ),
+                            const _SectionDivider(),
+                          ],
                           _InfoTile(
-                            icon: AppIcons.branch,
-                            label: 'Business',
-                            value: data.businessName,
+                            icon: AppIcons.email,
+                            label: 'Email',
+                            value: data.email,
                           ),
                           const _SectionDivider(),
                           _InfoTile(
                             icon: AppIcons.phone,
                             label: 'Phone',
                             value: data.phone,
-                          ),
-                          const _SectionDivider(),
-                          _InfoTile(
-                            icon: AppIcons.email,
-                            label: 'Email',
-                            value: data.email,
                           ),
                           const _SectionDivider(),
                           _InfoTile(
@@ -531,7 +635,7 @@ class _StatsRow extends StatelessWidget {
     return Row(
       children: <Widget>[
         Expanded(
-          child: _StatChip(value: data.memberSince, label: 'Member Since'),
+          child: _StatChip(value: data.accountCreated, label: 'Account Created'),
         ),
         const SizedBox(width: AppSpacing.lg),
         Expanded(

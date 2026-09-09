@@ -118,8 +118,8 @@ RUN pnpm --filter @nexoraa/types       run build 2>&1
 RUN pnpm --filter @nexoraa/constants   run build 2>&1
 RUN pnpm --filter @nexoraa/utils       run build 2>&1
 RUN pnpm --filter @nexoraa/config      run build 2>&1
-RUN pnpm --filter @nexoraa/common      run build 2>&1
 RUN pnpm --filter @nexoraa/shared      run build 2>&1
+RUN pnpm --filter @nexoraa/common      run build 2>&1
 RUN pnpm --filter @nexoraa/database    run build 2>&1
 RUN pnpm --filter @nexoraa/logger      run build 2>&1
 RUN pnpm --filter @nexoraa/swagger     run build 2>&1
@@ -131,7 +131,7 @@ RUN pnpm --filter @nexoraa/${SERVICE} run build
 # - Production node_modules only (no devDependencies)
 # - Workspace package dependencies resolved and included
 # - Result is a self-contained deployable artefact at /deployment
-RUN pnpm --filter @nexoraa/${SERVICE} deploy /deployment
+RUN pnpm --filter @nexoraa/${SERVICE} deploy --legacy /deployment
 
 # Safety: ensure dist/ is present in the deployment directory.
 # pnpm deploy copies all non-ignored files; this explicit copy is a fallback

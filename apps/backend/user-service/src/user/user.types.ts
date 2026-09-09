@@ -1,5 +1,6 @@
 export type UserRole = 'Owner' | 'Branch Manager' | 'Staff' | 'Cashier';
 export type UserStatus = 'Active' | 'Suspended';
+export type StaffAvailability = 'Available' | 'Busy' | 'On Break' | 'Offline';
 
 export interface UserRecord {
   userId: string;
@@ -13,6 +14,7 @@ export interface UserRecord {
   role: UserRole;
   branchIds: string[];
   status: UserStatus;
+  availability?: StaffAvailability;
   createdAt: Date;
   updatedAt: Date;
 }

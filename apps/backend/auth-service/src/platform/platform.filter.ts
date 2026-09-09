@@ -20,7 +20,11 @@ export class PlatformExceptionFilter implements ExceptionFilter {
     const error = toPlatformError(exception);
     const correlationId = request.correlationId ?? 'missing-correlation-id';
 
-    this.logger.error(`${error.code} (${correlationId})`);
+    if (error.category === 'internal') {
+      this.logger.error(`Internal error ${correlationId}:`, exception);
+    } else {
+      this.logger.error(`${error.code} (${correlationId})`);
+    }
 
     response.status(error.statusCode).json({
       error: {
