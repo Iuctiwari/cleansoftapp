@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 
+import '../../../core/network/backend_environment.dart';
 import '../../../features/authentication/services/auth_token_storage.dart';
 import '../models/staff_member.dart';
 import '../models/system_role.dart';
@@ -32,7 +33,9 @@ class StaffApiException implements Exception {
 class StaffApiService {
   StaffApiService({http.Client? client, String? baseUrl, AuthTokenStorage? tokenStorage})
     : _client = client ?? http.Client(),
-      _baseUrl = _normalizeBaseUrl(baseUrl ?? _configuredBaseUrl()),
+      _baseUrl = _normalizeBaseUrl(
+        baseUrl ?? BackendEnvironment.resolveBase(_configuredBaseUrl()),
+      ),
       _tokenStorage = tokenStorage ?? SecureAuthTokenStorage();
 
   static const Duration _requestTimeout = Duration(seconds: 15);

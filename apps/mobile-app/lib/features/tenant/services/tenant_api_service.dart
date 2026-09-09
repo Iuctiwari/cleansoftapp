@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
+import 'package:nexoraa_mobile/core/network/backend_environment.dart';
 import 'package:nexoraa_mobile/features/authentication/authentication_dependencies.dart';
 import 'package:nexoraa_mobile/features/authentication/services/auth_token_storage.dart';
 
@@ -173,7 +174,9 @@ class TenantApiService {
     String? baseUrl,
     AuthTokenStorage? tokenStorage,
   }) : _client = client ?? http.Client(),
-       _baseUrl = _normalizeBaseUrl(baseUrl ?? _configuredBaseUrl()),
+       _baseUrl = _normalizeBaseUrl(
+         baseUrl ?? BackendEnvironment.resolveBase(_configuredBaseUrl()),
+       ),
        _tokenStorage = tokenStorage ?? AuthenticationDependencies.tokenStorage;
 
   static const Duration _requestTimeout = Duration(seconds: 15);

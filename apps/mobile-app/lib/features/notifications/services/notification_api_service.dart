@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
+import 'package:nexoraa_mobile/core/network/backend_environment.dart';
 import 'package:nexoraa_mobile/features/authentication/services/auth_token_storage.dart';
 import 'package:nexoraa_mobile/features/notifications/models/notification.dart';
 
@@ -25,9 +26,11 @@ class NotificationApiService {
        _client = client ?? http.Client(),
        _baseUri = _apiV1Uri(
          baseUrl ??
-             _environment(
-               'NOTIFICATION_API_BASE_URL',
-               'http://10.0.2.2:3015/api',
+             BackendEnvironment.resolveBase(
+               _environment(
+                 'NOTIFICATION_API_BASE_URL',
+                 'http://10.0.2.2:3015/api',
+               ),
              ),
        );
 

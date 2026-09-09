@@ -4,6 +4,7 @@ import 'dart:typed_data';
 
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
+import 'package:nexoraa_mobile/core/network/backend_environment.dart';
 import 'package:nexoraa_mobile/features/authentication/services/auth_token_storage.dart';
 
 /// Fetches the Order Service PDF receipt.
@@ -26,7 +27,10 @@ class ReceiptApiService {
     : _tokenStorage = tokenStorage,
       _client = client ?? http.Client(),
       _baseUri = _apiV1Uri(
-        baseUrl ?? _environment('ORDER_API_BASE_URL', 'http://10.0.2.2:3007/api'),
+        baseUrl ??
+            BackendEnvironment.resolveBase(
+              _environment('ORDER_API_BASE_URL', 'http://10.0.2.2:3007/api'),
+            ),
       );
 
   static const Duration _timeout = Duration(seconds: 30);

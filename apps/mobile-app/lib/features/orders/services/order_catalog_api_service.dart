@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
+import 'package:nexoraa_mobile/core/network/backend_environment.dart';
 import 'package:nexoraa_mobile/features/authentication/services/auth_token_storage.dart';
 import 'package:nexoraa_mobile/features/orders/models/order_catalog.dart';
 
@@ -25,7 +26,12 @@ class OrderCatalogApiService {
        _client = client ?? http.Client(),
        _baseUri = _apiV1Uri(
          baseUrl ??
-             _environment('SERVICE_API_BASE_URL', 'http://10.0.2.2:3010/api'),
+             BackendEnvironment.resolveBase(
+               _environment(
+                 'SERVICE_API_BASE_URL',
+                 'http://10.0.2.2:3010/api',
+               ),
+             ),
        );
 
   static const Duration _timeout = Duration(seconds: 20);

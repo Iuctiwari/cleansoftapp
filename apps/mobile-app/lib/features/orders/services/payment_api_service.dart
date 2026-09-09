@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
+import 'package:nexoraa_mobile/core/network/backend_environment.dart';
 import 'package:nexoraa_mobile/features/authentication/services/auth_token_storage.dart';
 import 'package:nexoraa_mobile/features/orders/models/order.dart';
 import 'package:nexoraa_mobile/features/orders/services/order_api_service.dart';
@@ -18,7 +19,9 @@ class PaymentApiService {
        _client = client ?? http.Client(),
        _baseUrl = _apiV1Url(
          baseUrl ??
-             _environment('PAYMENT_API_BASE_URL', 'http://10.0.2.2:3008'),
+             BackendEnvironment.resolveBase(
+               _environment('PAYMENT_API_BASE_URL', 'http://10.0.2.2:3008'),
+             ),
        );
 
   final AuthTokenStorage _tokenStorage;
