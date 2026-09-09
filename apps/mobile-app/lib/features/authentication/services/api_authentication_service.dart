@@ -55,31 +55,29 @@ final class ApiAuthenticationService implements AuthenticationService {
         'The authentication context is not configured correctly.',
       );
     }
-    final Uri normalizedBaseUri = _apiBaseUri.replace(
-      path: _apiBaseUri.path.endsWith('/')
-          ? _apiBaseUri.path
-          : '${_apiBaseUri.path}/',
-    );
-    final Uri endpoint = normalizedBaseUri.resolve('v1/auth/login');
-    final Map<String, Object> body = <String, Object>{
-      'context': _loginContext,
-      'identifier': identifier.trim(),
-      'password': password,
-      if (_tenantSlug != null && _tenantSlug.trim().isNotEmpty)
-        'tenantSlug': _tenantSlug.trim(),
-    };
 
     try {
-      final http.Response response = await _client
-          .post(
-            endpoint,
-            headers: const <String, String>{
-              HttpHeaders.acceptHeader: 'application/json',
-              HttpHeaders.contentTypeHeader: 'application/json',
-            },
-            body: jsonEncode(body),
-          )
-          .timeout(_requestTimeout);
+      http.Response response = await _postLoginRequest(
+        _loginContext,
+        identifier: identifier,
+        password: password,
+      ).timeout(_requestTimeout);
+
+      // The backend deliberately returns the same 401 for "wrong password"
+      // and "no account in this context" (to avoid leaking which one it
+      // was), so the only safe way to support both shop-owner and platform
+      // accounts on one login screen is to retry once with the other
+      // context when the first attempt is unauthorized.
+      if (response.statusCode == HttpStatus.unauthorized) {
+        final String otherContext = _loginContext == 'tenant'
+            ? 'platform'
+            : 'tenant';
+        response = await _postLoginRequest(
+          otherContext,
+          identifier: identifier,
+          password: password,
+        ).timeout(_requestTimeout);
+      }
 
       final Object? decoded = _decodeJson(response.body);
       if (response.statusCode < HttpStatus.ok ||
