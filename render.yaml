@@ -1,0 +1,432 @@
+# =============================================================================
+# Render Blueprint — remaining 14 backend services
+#
+# Does NOT include auth-service or platform-admin-service — both are already
+# deployed manually and must not be touched by this Blueprint:
+#   - auth-service            -> https://nexoraa-cleansoft-1.onrender.com
+#   - platform-admin-service  -> https://nexoraa-cleansoft-j8k6.onrender.com
+#
+# Every `sync: false` value is a secret (or a not-yet-known sibling URL) that
+# is intentionally left OUT of this file — fill it in via the Render
+# dashboard after the Blueprint creates the service. See the deploy summary
+# for exactly what to put in each one.
+#
+# Database-per-service convention: every MONGODB_URI below is its own
+# database on the SAME Atlas cluster the first 2 services already use, only
+# the database name in the URI path differs (see the comment above each one).
+#
+# ENFORCE_TENANT_GUARDS is deliberately NOT set anywhere in this file. Every
+# guard that reads it defaults to "false" (disabled) when the variable is
+# absent — leave it unset here. Do not add it as part of this deployment.
+# =============================================================================
+
+services:
+  # ---------------------------------------------------------------------------
+  # branch-service
+  # ---------------------------------------------------------------------------
+  - type: web
+    name: branch-service
+    runtime: node
+    plan: free
+    branch: iuc
+    buildCommand: npm install -g corepack@latest && corepack pnpm install --frozen-lockfile && corepack pnpm turbo run build --filter=@nexoraa/branch-service
+    startCommand: corepack pnpm --filter @nexoraa/branch-service start:prod
+    envVars:
+      - key: NODE_VERSION
+        value: 22.13.0
+      - key: NODE_ENV
+        value: production
+      - key: SERVICE_NAME
+        value: branch-service
+      # Database name: nexoraa_branch_prod (same Atlas cluster as the other services)
+      - key: MONGODB_URI
+        sync: false
+      # Must be the EXACT same value as auth-service's own AUTH_ACCESS_TOKEN_SECRET —
+      # branch-service verifies auth-service-issued JWTs locally with this, not
+      # over HTTP like every other service here.
+      - key: AUTH_ACCESS_TOKEN_SECRET
+        sync: false
+      # Must match platform-admin-service's own PLATFORM_ADMIN_INTERNAL_KEY —
+      # authenticates platform-admin-service's internal branch-count lookups.
+      - key: PLATFORM_ADMIN_INTERNAL_KEY
+        sync: false
+      - key: DEFAULT_BRANCH_LIMIT
+        value: "3"
+
+  # ---------------------------------------------------------------------------
+  # customer-service
+  # ---------------------------------------------------------------------------
+  - type: web
+    name: customer-service
+    runtime: node
+    plan: free
+    branch: iuc
+    buildCommand: npm install -g corepack@latest && corepack pnpm install --frozen-lockfile && corepack pnpm turbo run build --filter=@nexoraa/customer-service
+    startCommand: corepack pnpm --filter @nexoraa/customer-service start:prod
+    envVars:
+      - key: NODE_VERSION
+        value: 22.13.0
+      - key: NODE_ENV
+        value: production
+      - key: SERVICE_NAME
+        value: customer-service
+      # Database name: nexoraa_customer_prod
+      - key: MONGODB_URI
+        sync: false
+      # Already-deployed auth-service's real URL — verifies incoming tenant/staff tokens.
+      - key: AUTH_SERVICE_BASE_URL
+        value: https://nexoraa-cleansoft-1.onrender.com/api
+      # Must match platform-admin-service's own PLATFORM_ADMIN_INTERNAL_KEY.
+      - key: PLATFORM_ADMIN_INTERNAL_KEY
+        sync: false
+
+  # ---------------------------------------------------------------------------
+  # expense-service
+  # ---------------------------------------------------------------------------
+  - type: web
+    name: expense-service
+    runtime: node
+    plan: free
+    branch: iuc
+    buildCommand: npm install -g corepack@latest && corepack pnpm install --frozen-lockfile && corepack pnpm turbo run build --filter=@nexoraa/expense-service
+    startCommand: corepack pnpm --filter @nexoraa/expense-service start:prod
+    envVars:
+      - key: NODE_VERSION
+        value: 22.13.0
+      - key: NODE_ENV
+        value: production
+      - key: SERVICE_NAME
+        value: expense-service
+      # Database name: nexoraa_expense_prod
+      - key: MONGODB_URI
+        sync: false
+      - key: AUTH_SERVICE_BASE_URL
+        value: https://nexoraa-cleansoft-1.onrender.com/api
+
+  # ---------------------------------------------------------------------------
+  # notification-service
+  # ---------------------------------------------------------------------------
+  - type: web
+    name: notification-service
+    runtime: node
+    plan: free
+    branch: iuc
+    buildCommand: npm install -g corepack@latest && corepack pnpm install --frozen-lockfile && corepack pnpm turbo run build --filter=@nexoraa/notification-service
+    startCommand: corepack pnpm --filter @nexoraa/notification-service start:prod
+    envVars:
+      - key: NODE_VERSION
+        value: 22.13.0
+      - key: NODE_ENV
+        value: production
+      - key: SERVICE_NAME
+        value: notification-service
+      # Database name: nexoraa_notification_prod
+      - key: MONGODB_URI
+        sync: false
+      - key: AUTH_SERVICE_BASE_URL
+        value: https://nexoraa-cleansoft-1.onrender.com/api
+
+  # ---------------------------------------------------------------------------
+  # order-service
+  # ---------------------------------------------------------------------------
+  - type: web
+    name: order-service
+    runtime: node
+    plan: free
+    branch: iuc
+    buildCommand: npm install -g corepack@latest && corepack pnpm install --frozen-lockfile && corepack pnpm turbo run build --filter=@nexoraa/order-service
+    startCommand: corepack pnpm --filter @nexoraa/order-service start:prod
+    envVars:
+      - key: NODE_VERSION
+        value: 22.13.0
+      - key: NODE_ENV
+        value: production
+      - key: SERVICE_NAME
+        value: order-service
+      # Database name: nexoraa_order_prod
+      - key: MONGODB_URI
+        sync: false
+      - key: AUTH_SERVICE_BASE_URL
+        value: https://nexoraa-cleansoft-1.onrender.com/api
+      # Sibling in THIS same batch — fill in with customer-service's Render URL
+      # (…/api) once it's live.
+      - key: CUSTOMER_SERVICE_BASE_URL
+        sync: false
+      # Sibling in THIS same batch — fill in with branch-service's Render URL once live.
+      - key: BRANCH_SERVICE_BASE_URL
+        sync: false
+      # Sibling in THIS same batch — fill in with service-service's Render URL
+      # (…/api/v1) once live.
+      - key: SERVICE_SERVICE_BASE_URL
+        sync: false
+      # Sibling in THIS same batch — fill in with notification-service's Render URL once live.
+      - key: NOTIFICATION_SERVICE_BASE_URL
+        sync: false
+      # Must be the EXACT same value as payment-service's own PAYMENT_PROJECTION_KEY —
+      # authenticates payment-service's "apply payment to order" callback.
+      - key: PAYMENT_PROJECTION_KEY
+        sync: false
+      - key: PLATFORM_ADMIN_INTERNAL_KEY
+        sync: false
+
+  # ---------------------------------------------------------------------------
+  # payment-service
+  # ---------------------------------------------------------------------------
+  - type: web
+    name: payment-service
+    runtime: node
+    plan: free
+    branch: iuc
+    buildCommand: npm install -g corepack@latest && corepack pnpm install --frozen-lockfile && corepack pnpm turbo run build --filter=@nexoraa/payment-service
+    startCommand: corepack pnpm --filter @nexoraa/payment-service start:prod
+    envVars:
+      - key: NODE_VERSION
+        value: 22.13.0
+      - key: NODE_ENV
+        value: production
+      - key: SERVICE_NAME
+        value: payment-service
+      # Database name: nexoraa_payment_prod
+      - key: MONGODB_URI
+        sync: false
+      - key: AUTH_SERVICE_BASE_URL
+        value: https://nexoraa-cleansoft-1.onrender.com/api
+      # Sibling in THIS same batch — fill in with order-service's Render URL once live.
+      - key: ORDER_SERVICE_BASE_URL
+        sync: false
+      # Sibling in THIS same batch — fill in with notification-service's Render URL once live.
+      - key: NOTIFICATION_SERVICE_BASE_URL
+        sync: false
+      # Must be the EXACT same value as order-service's own PAYMENT_PROJECTION_KEY.
+      - key: PAYMENT_PROJECTION_KEY
+        sync: false
+      - key: PLATFORM_ADMIN_INTERNAL_KEY
+        sync: false
+
+  # ---------------------------------------------------------------------------
+  # report-service
+  # ---------------------------------------------------------------------------
+  - type: web
+    name: report-service
+    runtime: node
+    plan: free
+    branch: iuc
+    buildCommand: npm install -g corepack@latest && corepack pnpm install --frozen-lockfile && corepack pnpm turbo run build --filter=@nexoraa/report-service
+    startCommand: corepack pnpm --filter @nexoraa/report-service start:prod
+    envVars:
+      - key: NODE_VERSION
+        value: 22.13.0
+      - key: NODE_ENV
+        value: production
+      - key: SERVICE_NAME
+        value: report-service
+      # Database name: nexoraa_report_prod
+      - key: MONGODB_URI
+        sync: false
+      - key: AUTH_SERVICE_BASE_URL
+        value: https://nexoraa-cleansoft-1.onrender.com/api
+
+  # ---------------------------------------------------------------------------
+  # scheduler-service
+  # No service-specific env vars found beyond the baseline (PORT/SERVICE_NAME/
+  # NODE_ENV/MONGODB_URI) — see the deploy summary's flagged-services list,
+  # double check src/ manually before relying on this being complete.
+  # ---------------------------------------------------------------------------
+  - type: web
+    name: scheduler-service
+    runtime: node
+    plan: free
+    branch: iuc
+    buildCommand: npm install -g corepack@latest && corepack pnpm install --frozen-lockfile && corepack pnpm turbo run build --filter=@nexoraa/scheduler-service
+    startCommand: corepack pnpm --filter @nexoraa/scheduler-service start:prod
+    envVars:
+      - key: NODE_VERSION
+        value: 22.13.0
+      - key: NODE_ENV
+        value: production
+      - key: SERVICE_NAME
+        value: scheduler-service
+      # Database name: nexoraa_scheduler_prod
+      - key: MONGODB_URI
+        sync: false
+
+  # ---------------------------------------------------------------------------
+  # search-service
+  # No service-specific env vars found beyond the baseline — see the deploy
+  # summary's flagged-services list, double check src/ manually.
+  # ---------------------------------------------------------------------------
+  - type: web
+    name: search-service
+    runtime: node
+    plan: free
+    branch: iuc
+    buildCommand: npm install -g corepack@latest && corepack pnpm install --frozen-lockfile && corepack pnpm turbo run build --filter=@nexoraa/search-service
+    startCommand: corepack pnpm --filter @nexoraa/search-service start:prod
+    envVars:
+      - key: NODE_VERSION
+        value: 22.13.0
+      - key: NODE_ENV
+        value: production
+      - key: SERVICE_NAME
+        value: search-service
+      # Database name: nexoraa_search_prod
+      - key: MONGODB_URI
+        sync: false
+
+  # ---------------------------------------------------------------------------
+  # service-service (service/item catalog)
+  # ---------------------------------------------------------------------------
+  - type: web
+    name: service-service
+    runtime: node
+    plan: free
+    branch: iuc
+    buildCommand: npm install -g corepack@latest && corepack pnpm install --frozen-lockfile && corepack pnpm turbo run build --filter=@nexoraa/service-service
+    startCommand: corepack pnpm --filter @nexoraa/service-service start:prod
+    envVars:
+      - key: NODE_VERSION
+        value: 22.13.0
+      - key: NODE_ENV
+        value: production
+      - key: SERVICE_NAME
+        value: service-service
+      # Database name: nexoraa_service_prod
+      - key: MONGODB_URI
+        sync: false
+      - key: AUTH_SERVICE_BASE_URL
+        value: https://nexoraa-cleansoft-1.onrender.com/api
+      # Sibling in THIS same batch — fill in with branch-service's Render URL once live.
+      - key: BRANCH_SERVICE_BASE_URL
+        sync: false
+      # Must be the EXACT same value as tenant-service's own CATALOG_PROVISIONING_KEY —
+      # authenticates tenant-service's catalog-provisioning calls made during
+      # new-tenant onboarding.
+      - key: CATALOG_PROVISIONING_KEY
+        sync: false
+      # false on first deploy — avoids any index-creation side effect at boot;
+      # flip to "true" once, manually, if/when catalog search indexes need
+      # (re)building, per catalog-index.service.ts.
+      - key: CATALOG_CREATE_INDEXES
+        value: "false"
+
+  # ---------------------------------------------------------------------------
+  # settings-services (business settings/theme)
+  # ---------------------------------------------------------------------------
+  - type: web
+    name: settings-services
+    runtime: node
+    plan: free
+    branch: iuc
+    buildCommand: npm install -g corepack@latest && corepack pnpm install --frozen-lockfile && corepack pnpm turbo run build --filter=@nexoraa/settings-services
+    startCommand: corepack pnpm --filter @nexoraa/settings-services start:prod
+    envVars:
+      - key: NODE_VERSION
+        value: 22.13.0
+      - key: NODE_ENV
+        value: production
+      - key: SERVICE_NAME
+        value: settings-services
+      # Database name: nexoraa_settings_prod
+      - key: MONGODB_URI
+        sync: false
+      - key: AUTH_SERVICE_BASE_URL
+        value: https://nexoraa-cleansoft-1.onrender.com/api
+
+  # ---------------------------------------------------------------------------
+  # tenant-service
+  # IMPORTANT: unlike every other service here, tenant-service calls
+  # configService.getOrThrow('MONGODB_URI') directly in app.module.ts — a
+  # missing/blank value here crashes the process at boot (not just a broken
+  # DB connection at request time like the other 13 services).
+  # ---------------------------------------------------------------------------
+  - type: web
+    name: tenant-service
+    runtime: node
+    plan: free
+    branch: iuc
+    buildCommand: npm install -g corepack@latest && corepack pnpm install --frozen-lockfile && corepack pnpm turbo run build --filter=@nexoraa/tenant-service
+    startCommand: corepack pnpm --filter @nexoraa/tenant-service start:prod
+    envVars:
+      - key: NODE_VERSION
+        value: 22.13.0
+      - key: NODE_ENV
+        value: production
+      - key: SERVICE_NAME
+        value: tenant-service
+      # Database name: nexoraa_tenant_prod — REQUIRED, boot fails without it.
+      - key: MONGODB_URI
+        sync: false
+      - key: AUTH_SERVICE_BASE_URL
+        value: https://nexoraa-cleansoft-1.onrender.com/api
+      # Sibling in THIS same batch — fill in with service-service's Render URL
+      # (…/api) once live.
+      - key: SERVICE_MANAGEMENT_BASE_URL
+        sync: false
+      # Must be the EXACT same value as service-service's own CATALOG_PROVISIONING_KEY.
+      - key: CATALOG_PROVISIONING_KEY
+        sync: false
+      - key: PLATFORM_ADMIN_INTERNAL_KEY
+        sync: false
+
+  # ---------------------------------------------------------------------------
+  # user-service (staff accounts)
+  # IMPORTANT: AUTH_SERVICE_INTERNAL_URL and INTERNAL_SERVICE_SECRET are read
+  # via configService.getOrThrow — both are REQUIRED, boot fails without them
+  # (only AUTH_SERVICE_BASE_URL, a separate variable used for a different
+  # purpose — verifying incoming tokens — is soft/optional here).
+  # ---------------------------------------------------------------------------
+  - type: web
+    name: user-service
+    runtime: node
+    plan: free
+    branch: iuc
+    buildCommand: npm install -g corepack@latest && corepack pnpm install --frozen-lockfile && corepack pnpm turbo run build --filter=@nexoraa/user-service
+    startCommand: corepack pnpm --filter @nexoraa/user-service start:prod
+    envVars:
+      - key: NODE_VERSION
+        value: 22.13.0
+      - key: NODE_ENV
+        value: production
+      - key: SERVICE_NAME
+        value: user-service
+      # Database name: nexoraa_user_prod
+      - key: MONGODB_URI
+        sync: false
+      - key: AUTH_SERVICE_BASE_URL
+        value: https://nexoraa-cleansoft-1.onrender.com/api
+      # REQUIRED — same auth-service URL as above, used for staff-provisioning calls.
+      - key: AUTH_SERVICE_INTERNAL_URL
+        value: https://nexoraa-cleansoft-1.onrender.com
+      # REQUIRED — must be the EXACT same value as auth-service's own
+      # INTERNAL_SERVICE_SECRET (staff-provisioning.controller.ts checks it).
+      - key: INTERNAL_SERVICE_SECRET
+        sync: false
+      - key: API_VERSION
+        value: v1
+      - key: API_PREFIX
+        value: api
+      - key: PLATFORM_ADMIN_INTERNAL_KEY
+        sync: false
+
+  # ---------------------------------------------------------------------------
+  # audit-service
+  # No service-specific env vars found beyond the baseline — see the deploy
+  # summary's flagged-services list, double check src/ manually.
+  # ---------------------------------------------------------------------------
+  - type: web
+    name: audit-service
+    runtime: node
+    plan: free
+    branch: iuc
+    buildCommand: npm install -g corepack@latest && corepack pnpm install --frozen-lockfile && corepack pnpm turbo run build --filter=@nexoraa/audit-service
+    startCommand: corepack pnpm --filter @nexoraa/audit-service start:prod
+    envVars:
+      - key: NODE_VERSION
+        value: 22.13.0
+      - key: NODE_ENV
+        value: production
+      - key: SERVICE_NAME
+        value: audit-service
+      # Database name: nexoraa_audit_prod
+      - key: MONGODB_URI
+        sync: false
