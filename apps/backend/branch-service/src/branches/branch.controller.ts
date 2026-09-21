@@ -10,9 +10,12 @@ import {
   Post,
   Query,
   Req,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
+import { ModuleKey, RequireModule } from '@nexoraa/tenant-enforcement-client';
 
+import { BranchEnforcementGuard } from './branch-enforcement.guard';
 import { TrustedContextFactory } from '../platform/platform.context';
 import { PlatformError } from '../platform/platform.errors';
 import { ApiEnvelopeResponse } from '../platform/platform.swagger';
@@ -92,6 +95,8 @@ export class BranchController {
       'Enforces the subscription branchLimit and generates a unique tenant-scoped branch code when omitted.',
   })
   @ApiEnvelopeResponse(BranchDto, { description: 'The created branch.', status: 'created' })
+  @UseGuards(BranchEnforcementGuard)
+  @RequireModule(ModuleKey.MULTI_BRANCH)
   async createBranch(
     @Body() body: CreateBranchDto,
     @Req() request: RequestWithPlatformContext,
@@ -122,6 +127,8 @@ export class BranchController {
   })
   @ApiParam({ name: 'branchId', description: 'Unique branch identifier' })
   @ApiEnvelopeResponse(BranchDto, { description: 'The updated branch.' })
+  @UseGuards(BranchEnforcementGuard)
+  @RequireModule(ModuleKey.MULTI_BRANCH)
   async updateBranch(
     @Param('branchId') branchId: string,
     @Body() body: UpdateBranchDto,
@@ -153,6 +160,8 @@ export class BranchController {
   })
   @ApiParam({ name: 'branchId', description: 'Unique branch identifier' })
   @ApiEnvelopeResponse(BranchDto, { description: 'The deactivated branch.' })
+  @UseGuards(BranchEnforcementGuard)
+  @RequireModule(ModuleKey.MULTI_BRANCH)
   async deactivateBranch(
     @Param('branchId') branchId: string,
     @Req() request: RequestWithPlatformContext,

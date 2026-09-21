@@ -3,6 +3,8 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { DatabaseModule } from '@nexoraa/database';
 
 import { CustomerController } from './customer.controller';
+import { CustomerInternalController } from './customer-internal.controller';
+import { PlatformAdminInternalGuard } from './platform-admin-internal.guard';
 import { CustomerAuthenticationMiddleware } from './customer-auth.middleware';
 import { CustomerScopeGuard } from './customer.guard';
 import { CustomerMongoose, CustomerMongooseSchema } from './customer.mongoose.schema';
@@ -15,11 +17,12 @@ import { CUSTOMER_REPOSITORY } from './customer.types';
     DatabaseModule,
     MongooseModule.forFeature([{ name: CustomerMongoose.name, schema: CustomerMongooseSchema }]),
   ],
-  controllers: [CustomerController],
+  controllers: [CustomerController, CustomerInternalController],
   providers: [
     CustomerService,
     CustomerAuthenticationMiddleware,
     CustomerScopeGuard,
+    PlatformAdminInternalGuard,
     MongoCustomerRepository,
     { provide: CUSTOMER_REPOSITORY, useExisting: MongoCustomerRepository },
   ],

@@ -129,6 +129,11 @@ export class MongoCustomerRepository implements CustomerRepository {
     return customer ? this.mapCustomer(customer) : null;
   }
 
+  async countForTenant(tenantId: string): Promise<number> {
+    const filter = createActiveTenantFilter<CustomerMongoose>(new Types.ObjectId(tenantId));
+    return this.customerModel.countDocuments(filter).exec();
+  }
+
   async statistics(scope: CustomerScope): Promise<CustomerStatistics> {
     const filter = createActiveTenantFilter<CustomerMongoose>(new Types.ObjectId(scope.tenantId), {
       branchId: scope.branchId,

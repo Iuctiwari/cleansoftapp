@@ -44,6 +44,7 @@ import {
   type OrderTotals,
   type PersistedOrderItem,
   type StatusHistoryRecord,
+  type TenantOrderSummary,
 } from './order.types';
 
 const ADDITIONAL_SERVICE_SURCHARGE = 10;
@@ -100,6 +101,12 @@ export class OrderService {
     private readonly configService: ConfigService,
     private readonly ownerLookup: OrderOwnerLookupService,
   ) {}
+
+  /** No scope needed — internal/system-level query (see PlatformAdminInternalGuard),
+   *  used by platform-admin-service's Company Admin panel (tenant detail screen). */
+  getOrderSummaryForTenant(tenantId: string): Promise<TenantOrderSummary> {
+    return this.repository.getSummaryForTenant(tenantId);
+  }
 
   async create(scope: OrderScope, input: CreateOrderDto): Promise<OrderRecord> {
     this.assertWrite(scope);

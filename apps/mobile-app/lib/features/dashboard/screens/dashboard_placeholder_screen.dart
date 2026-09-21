@@ -37,6 +37,9 @@ import 'package:nexoraa_mobile/features/reports/models/report_data.dart';
 import 'package:nexoraa_mobile/features/reports/screens/reports_screen.dart';
 import 'package:nexoraa_mobile/features/reports/services/report_api_service.dart';
 import 'package:nexoraa_mobile/features/reports/services/report_data_source.dart';
+import 'package:nexoraa_mobile/features/subscription/models/subscription_models.dart';
+import 'package:nexoraa_mobile/features/subscription/services/subscription_api_service.dart';
+import 'package:nexoraa_mobile/features/subscription/widgets/subscription_status_card.dart';
 import 'package:nexoraa_mobile/features/tenant/services/tenant_api_service.dart';
 
 /// Owner dashboard UI served by the existing dashboard route.
@@ -72,6 +75,9 @@ class _DashboardPlaceholderScreenState
   late final DashboardSearchController _searchController;
   late final NotificationController _notificationController;
   late final ReportDataSource _reportDataSource;
+  final SubscriptionApiService _subscriptionApiService = SubscriptionApiService();
+  TenantSubscriptionStatus? _subscriptionStatus;
+  bool _subscriptionLoading = true;
   int _currentNavigationIndex = 0;
   String _selectedBranchId = 'unavailable';
   List<Order> _recentOrders = const <Order>[];
@@ -150,6 +156,25 @@ class _DashboardPlaceholderScreenState
         ReportApiService(tokenStorage: AuthenticationDependencies.tokenStorage);
     final tenantId = widget.tenantId?.trim() ?? '';
     if (tenantId.isNotEmpty) _loadTenantDashboard(tenantId);
+    unawaited(_loadSubscriptionStatus());
+  }
+
+  /// A subscription lookup failure must never break the dashboard — the card
+  /// just shows nothing/"Loading…" and the tenant can still tap into the
+  /// full Subscription screen to retry, same fail-open contract as every
+  /// other dashboard widget backed by a real API call.
+  Future<void> _loadSubscriptionStatus() async {
+    try {
+      final TenantSubscriptionStatus status = await _subscriptionApiService.getStatus();
+      if (!mounted) return;
+      setState(() {
+        _subscriptionStatus = status;
+        _subscriptionLoading = false;
+      });
+    } on Object {
+      if (!mounted) return;
+      setState(() => _subscriptionLoading = false);
+    }
   }
 
   @override
@@ -687,6 +712,13 @@ class _DashboardPlaceholderScreenState
                       branchPerformanceLoading: _branchPerformanceLoading,
                       onRetryBranchPerformance: _loadBranchPerformance,
                       onSeeOrders: _openOrdersTab,
+                      subscriptionStatus: _subscriptionStatus,
+                      subscriptionLoading: _subscriptionLoading,
+                      onOpenSubscription: () => unawaited(
+                        context
+                            .pushNamed(AppRouteNames.subscription)
+                            .then((_) => _loadSubscriptionStatus()),
+                      ),
                     ),
                   ),
                 ),
@@ -776,6 +808,9 @@ class _DashboardContent extends StatelessWidget {
     required this.onOpenReports,
     required this.onRetryBranchPerformance,
     required this.onSeeOrders,
+    required this.subscriptionStatus,
+    required this.subscriptionLoading,
+    required this.onOpenSubscription,
   });
 
   final DashboardData data;
@@ -787,6 +822,9 @@ class _DashboardContent extends StatelessWidget {
   final VoidCallback onOpenReports;
   final Future<void> Function() onRetryBranchPerformance;
   final VoidCallback onSeeOrders;
+  final TenantSubscriptionStatus? subscriptionStatus;
+  final bool subscriptionLoading;
+  final VoidCallback onOpenSubscription;
 
   @override
   Widget build(BuildContext context) {
@@ -806,6 +844,12 @@ class _DashboardContent extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
               RevenueCard(data: data),
+              const SizedBox(height: AppSpacing.lg),
+              SubscriptionStatusCard(
+                status: subscriptionStatus,
+                loading: subscriptionLoading,
+                onTap: onOpenSubscription,
+              ),
               const SizedBox(height: AppSpacing.lg),
               _KpiGrid(metrics: data.kpis),
               const SizedBox(height: AppSpacing.sectionGapLarge),

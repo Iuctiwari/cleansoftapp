@@ -16,6 +16,8 @@ import {
 import { OrderAuditService } from './order-audit.service';
 import { OrderAuthenticationMiddleware } from './order-auth.middleware';
 import { OrderController } from './order.controller';
+import { OrderInternalController } from './order-internal.controller';
+import { PlatformAdminInternalGuard } from './platform-admin-internal.guard';
 import { OrderScopeGuard } from './order.guard';
 import { OrderIdPipe } from './order-id.pipe';
 import { HttpOrderDependencies } from './order.integrations';
@@ -37,12 +39,13 @@ import { ORDER_DEPENDENCIES, ORDER_REPOSITORY } from './order.types';
       { name: TenantOwnerMongoose.name, schema: TenantOwnerMongooseSchema },
     ]),
   ],
-  controllers: [OrderController],
+  controllers: [OrderController, OrderInternalController],
   providers: [
     OrderService,
     OrderAuditService,
     OrderAuthenticationMiddleware,
     OrderScopeGuard,
+    PlatformAdminInternalGuard,
     OrderIdPipe,
     MongoOrderRepository,
     { provide: ORDER_REPOSITORY, useExisting: MongoOrderRepository },

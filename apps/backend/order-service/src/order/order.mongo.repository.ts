@@ -20,6 +20,7 @@ import type {
   OrderScope,
   OrderStatistics,
   StatusHistoryRecord,
+  TenantOrderSummary,
   UpdateOrderRecord,
 } from './order.types';
 
@@ -192,6 +193,39 @@ export class MongoOrderRepository implements OrderRepository {
       page: query.page,
       total,
       totalPages: Math.ceil(total / query.limit),
+    };
+  }
+
+  async getSummaryForTenant(tenantId: string): Promise<TenantOrderSummary> {
+    const tenantObjectId = new Types.ObjectId(tenantId);
+    const monthStart = new Date();
+    monthStart.setDate(1);
+    monthStart.setHours(0, 0, 0, 0);
+
+    const [totalOrders, ordersThisMonth, lastOrder, outstandingResult] = await Promise.all([
+      this.orderModel.countDocuments({ tenantId: tenantObjectId }).exec(),
+      this.orderModel
+        .countDocuments({ tenantId: tenantObjectId, createdAt: { $gte: monthStart } })
+        .exec(),
+      this.orderModel
+        .findOne({ tenantId: tenantObjectId })
+        .sort({ createdAt: -1 })
+        .select('createdAt')
+        .lean<{ createdAt: Date } | null>()
+        .exec(),
+      this.orderModel
+        .aggregate<{ outstandingTotal: number }>([
+          { $match: { tenantId: tenantObjectId } },
+          { $group: { _id: null, outstandingTotal: { $sum: '$outstandingAmount' } } },
+        ])
+        .exec(),
+    ]);
+
+    return {
+      lastOrderDate: lastOrder?.createdAt ? lastOrder.createdAt.toISOString() : null,
+      ordersThisMonth,
+      outstandingMinor: Math.round((outstandingResult[0]?.outstandingTotal ?? 0) * 100),
+      totalOrders,
     };
   }
 

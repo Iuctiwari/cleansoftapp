@@ -29,8 +29,9 @@ class NotificationApiService {
              BackendEnvironment.resolveBase(
                _environment(
                  'NOTIFICATION_API_BASE_URL',
-                 'http://10.0.2.2:3015/api',
+                 'http://10.0.2.2:3005/api',
                ),
+               'RENDER_NOTIFICATION_API_BASE_URL',
              ),
        );
 

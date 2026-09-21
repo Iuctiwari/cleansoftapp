@@ -5,6 +5,8 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { PlatformModule } from '../platform/platform.module';
 import { TrustedContextMiddleware } from '../platform/platform.auth.middleware';
 import { BranchController } from './branch.controller';
+import { BranchInternalController } from './branch-internal.controller';
+import { PlatformAdminInternalGuard } from './platform-admin-internal.guard';
 import {
   ConfiguredBranchLimitProvider,
   MongoManagerEligibilityService,
@@ -35,9 +37,10 @@ import {
       { name: ManagerCandidateMongoose.name, schema: ManagerCandidateMongooseSchema },
     ]),
   ],
-  controllers: [BranchController],
+  controllers: [BranchController, BranchInternalController],
   providers: [
     BranchService,
+    PlatformAdminInternalGuard,
     MongoBranchRepository,
     { provide: BRANCH_REPOSITORY, useExisting: MongoBranchRepository },
     MongoManagerEligibilityService,

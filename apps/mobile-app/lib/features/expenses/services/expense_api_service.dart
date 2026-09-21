@@ -25,7 +25,11 @@ class ExpenseApiService implements ExpenseDataSource {
   }) : _tokenStorage = tokenStorage,
        _client = client ?? http.Client(),
        _baseUrl = _normalizeBaseUrl(
-         baseUrl ?? BackendEnvironment.resolveBase(_configuredBaseUrl()),
+         baseUrl ??
+             BackendEnvironment.resolveBase(
+               _configuredBaseUrl(),
+               'RENDER_EXPENSE_API_BASE_URL',
+             ),
        );
 
   static const Duration _requestTimeout = Duration(seconds: 15);

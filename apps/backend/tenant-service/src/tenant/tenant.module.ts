@@ -12,6 +12,8 @@ import {
   TenantServiceMongooseSchema,
 } from './tenant.mongoose.schema';
 import { TenantController } from './tenant.controller';
+import { TenantInternalController } from './tenant-internal.controller';
+import { PlatformAdminInternalGuard } from './platform-admin-internal.guard';
 import { HttpTenantCatalogProvisioner } from './catalog-provisioning.client';
 import { MongoTenantRepository } from './tenant.mongo.repository';
 import { InMemoryTenantRepository } from './tenant.repository';
@@ -29,10 +31,11 @@ import { TenantAuthenticationMiddleware } from './tenant-auth.middleware';
       { name: TenantServiceMongoose.name, schema: TenantServiceMongooseSchema },
     ]),
   ],
-  controllers: [TenantController],
+  controllers: [TenantController, TenantInternalController],
   providers: [
     TenantService,
     HttpTenantCatalogProvisioner,
+    PlatformAdminInternalGuard,
     // MongoDB-backed repository — active by default.
     MongoTenantRepository,
     {

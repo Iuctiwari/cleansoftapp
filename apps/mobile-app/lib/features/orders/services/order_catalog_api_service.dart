@@ -29,8 +29,9 @@ class OrderCatalogApiService {
              BackendEnvironment.resolveBase(
                _environment(
                  'SERVICE_API_BASE_URL',
-                 'http://10.0.2.2:3010/api',
+                 'http://10.0.2.2:3012/api',
                ),
+               'RENDER_SERVICE_API_BASE_URL',
              ),
        );
 

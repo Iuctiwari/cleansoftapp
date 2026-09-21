@@ -28,6 +28,7 @@ import {
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { JWT_AUTH_NAME } from '@nexoraa/swagger';
+import { ModuleKey, RequireModule } from '@nexoraa/tenant-enforcement-client';
 
 import {
   CreateCustomerDto,
@@ -38,6 +39,7 @@ import {
   ListCustomersQueryDto,
   UpdateCustomerDto,
 } from './customer.dto';
+import { CustomerEnforcementGuard } from './customer-enforcement.guard';
 import { type CustomerRequest, CustomerScopeGuard } from './customer.guard';
 import { CustomerService } from './customer.service';
 import type {
@@ -75,6 +77,8 @@ export class CustomerController {
     description: 'Tenant or branch scope is unavailable.',
     type: CustomerErrorResponseDto,
   })
+  @UseGuards(CustomerEnforcementGuard)
+  @RequireModule(ModuleKey.CUSTOMER_CRM)
   create(
     @Req() request: CustomerRequest,
     @Body() body: CreateCustomerDto,
@@ -184,6 +188,8 @@ export class CustomerController {
     description: 'Customer not found within the current scope.',
     type: CustomerErrorResponseDto,
   })
+  @UseGuards(CustomerEnforcementGuard)
+  @RequireModule(ModuleKey.CUSTOMER_CRM)
   update(
     @Req() request: CustomerRequest,
     @Param('id') id: string,
@@ -214,6 +220,8 @@ export class CustomerController {
     description: 'Customer not found within the current scope.',
     type: CustomerErrorResponseDto,
   })
+  @UseGuards(CustomerEnforcementGuard)
+  @RequireModule(ModuleKey.CUSTOMER_CRM)
   delete(@Req() request: CustomerRequest, @Param('id') id: string): Promise<void> {
     return this.customerService.delete(getCustomerScope(request), id);
   }

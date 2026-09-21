@@ -27,6 +27,12 @@ class InMemoryCustomerRepository implements CustomerRepository {
   readonly records: CustomerRecord[] = [];
   readonly deletedIds = new Set<string>();
 
+  countForTenant(tenantId: string): Promise<number> {
+    return Promise.resolve(
+      this.records.filter((r) => r.tenantId === tenantId && !this.deletedIds.has(r.id)).length,
+    );
+  }
+
   create(scope: CustomerScope, input: CreateCustomerFields): Promise<CustomerRecord> {
     const now = new Date();
     const record: CustomerRecord = {

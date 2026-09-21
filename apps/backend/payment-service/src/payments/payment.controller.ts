@@ -1,7 +1,9 @@
-import { Body, Controller, Get, Headers, Post, Query, Req } from '@nestjs/common';
+import { Body, Controller, Get, Headers, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiProperty, ApiTags } from '@nestjs/swagger';
 import type { PaginatedResult } from '@nexoraa/types';
+import { ModuleKey, RequireModule } from '@nexoraa/tenant-enforcement-client';
 
+import { PaymentEnforcementGuard } from './payment-enforcement.guard';
 import { PaymentService } from './payment.service';
 import type {
   CreateAdvancePaymentInput,
@@ -39,6 +41,8 @@ export class PaymentController {
 
   @Post()
   @ApiOperation({ summary: 'Record an idempotent advance payment against an order' })
+  @UseGuards(PaymentEnforcementGuard)
+  @RequireModule(ModuleKey.PAYMENTS)
   create(
     @Req() request: PaymentRequest,
     @Headers('idempotency-key') idempotencyKey: string | undefined,

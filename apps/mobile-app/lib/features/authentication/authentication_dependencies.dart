@@ -11,7 +11,8 @@ abstract final class AuthenticationDependencies {
   static AuthenticationService service = ApiAuthenticationService(
     apiBaseUri: Uri.parse(
       BackendEnvironment.resolveBase(
-        _environment('API_BASE_URL', 'http://127.0.0.1:3000/api'),
+        _environment('API_BASE_URL', 'http://127.0.0.1:3001/api'),
+        'RENDER_AUTH_API_BASE_URL',
       ),
     ),
     loginContext: _environment('AUTH_LOGIN_CONTEXT', 'tenant'),

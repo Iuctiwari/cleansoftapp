@@ -120,6 +120,36 @@ final class ApiAuthenticationService implements AuthenticationService {
     }
   }
 
+  Future<http.Response> _postLoginRequest(
+    String context, {
+    required String identifier,
+    required String password,
+  }) {
+    final Uri normalizedBaseUri = _apiBaseUri.replace(
+      path: _apiBaseUri.path.endsWith('/')
+          ? _apiBaseUri.path
+          : '${_apiBaseUri.path}/',
+    );
+    final Uri endpoint = normalizedBaseUri.resolve('v1/auth/login');
+    final Map<String, Object> body = <String, Object>{
+      'context': context,
+      'identifier': identifier.trim(),
+      'password': password,
+      if (context == 'tenant' &&
+          _tenantSlug != null &&
+          _tenantSlug.trim().isNotEmpty)
+        'tenantSlug': _tenantSlug.trim(),
+    };
+    return _client.post(
+      endpoint,
+      headers: const <String, String>{
+        HttpHeaders.acceptHeader: 'application/json',
+        HttpHeaders.contentTypeHeader: 'application/json',
+      },
+      body: jsonEncode(body),
+    );
+  }
+
   @override
   Future<void> signOut() => _tokenStorage.clear();
 

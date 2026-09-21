@@ -156,10 +156,27 @@ export interface OrderStatistics {
   readonly statusBreakdown: Readonly<Record<string, number>>;
 }
 
+/**
+ * Tenant-wide (all branches), for the Company Admin panel — see TenantOrderSummaryController.
+ * "outstandingMinor" is the true accounts-receivable balance: the live sum of every one of
+ * this tenant's orders' own outstandingAmount (grandTotal - paidAmount, kept in sync by
+ * applyPaymentProjection whenever payment-service applies a payment) — this is the
+ * authoritative source, unlike payment-service's pendingPaymentsMinor which only reflects
+ * payments it has itself received or attempted.
+ */
+export interface TenantOrderSummary {
+  readonly totalOrders: number;
+  readonly ordersThisMonth: number;
+  readonly lastOrderDate: string | null;
+  readonly outstandingMinor: number;
+}
+
 export interface OrderRepository {
   create(scope: OrderScope, input: CreateOrderRecord): Promise<OrderRecord>;
   findById(scope: OrderScope, id: string, assignedTo?: string): Promise<OrderRecord | null>;
   list(scope: OrderScope, query: OrderListQuery): Promise<OrderPage>;
+  /** No scope needed — internal/system-level query (see PlatformAdminInternalGuard). */
+  getSummaryForTenant(tenantId: string): Promise<TenantOrderSummary>;
   statistics(
     scope: OrderScope,
     filters: { readonly assignedTo?: string; readonly customerId?: string },

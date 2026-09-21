@@ -15,6 +15,8 @@ import type {
   CompleteTenantOnboardingInput,
   CompleteTenantOnboardingOutput,
   RegisterTenantOutput,
+  TenantListPage,
+  TenantListQuery,
   TenantOwnerRecord,
   TenantRecord,
   TenantRepository,
@@ -22,6 +24,10 @@ import type {
   TenantStatus,
   UpdateTenantProfileInput,
 } from './tenant.types';
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
 
 @Injectable()
 export class MongoTenantRepository implements TenantRepository {
@@ -55,6 +61,45 @@ export class MongoTenantRepository implements TenantRepository {
     const doc = await this.tenantModel.findOne({ tenantId }).lean().exec();
     if (!doc) return null;
     return this.mapTenant(doc);
+  }
+
+  async listAll(query: TenantListQuery): Promise<TenantListPage> {
+    if (query.tenantIds) {
+      if (query.tenantIds.length === 0) return { items: [], page: 1, limit: 0, total: 0 };
+      const docs = await this.tenantModel
+        .find({ tenantId: { $in: query.tenantIds as string[] } })
+        .lean()
+        .exec();
+      const items = docs.map((doc) => this.mapTenant(doc));
+      return { items, page: 1, limit: items.length, total: items.length };
+    }
+
+    const page = Math.max(1, query.page ?? 1);
+    const limit = Math.min(100, Math.max(1, query.limit ?? 20));
+    const filter: Record<string, unknown> = {};
+    if (query.status) filter.status = query.status;
+    if (query.search) {
+      const pattern = new RegExp(escapeRegExp(query.search), 'i');
+      filter.$or = [
+        { businessName: pattern },
+        { ownerName: pattern },
+        { ownerEmail: pattern },
+        { slug: pattern },
+      ];
+    }
+
+    const [docs, total] = await Promise.all([
+      this.tenantModel
+        .find(filter)
+        .sort({ _id: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .lean()
+        .exec(),
+      this.tenantModel.countDocuments(filter).exec(),
+    ]);
+
+    return { items: docs.map((doc) => this.mapTenant(doc)), page, limit, total };
   }
 
   async listBranches(tenantId: string): Promise<BranchRecord[]> {

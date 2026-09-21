@@ -89,6 +89,10 @@ class _LoginScreenState extends State<LoginScreen>
     );
   }
 
+  void _handleCompanyAdmin() {
+    context.pushNamed(AppRouteNames.companyAdminLogin);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -163,6 +167,14 @@ class _LoginScreenState extends State<LoginScreen>
                             ),
                             const SizedBox(height: AppSpacing.xxlPlus),
                             const _TermsText(),
+                            const SizedBox(height: AppSpacing.xl),
+                            Align(
+                              alignment: Alignment.center,
+                              child: AppLinkButton(
+                                label: 'Company Admin',
+                                onPressed: _handleCompanyAdmin,
+                              ),
+                            ),
                           ],
                         ),
                       ),

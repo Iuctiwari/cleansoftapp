@@ -30,6 +30,7 @@ import type {
   PaymentRecord,
   PaymentScope,
   PaymentStatistics,
+  TenantPaymentSummary,
 } from './payment.types';
 
 const METHODS = new Set<PaymentMethod>(['Cash', 'Card', 'UPI']);
@@ -55,6 +56,48 @@ export class PaymentService {
     private readonly config: ConfigService,
     private readonly ownerLookup: PaymentOwnerLookupService,
   ) {}
+
+  /** No scope needed — internal/system-level query (see PlatformAdminInternalGuard),
+   *  used by platform-admin-service's Company Admin panel (tenant detail screen). */
+  async getSummaryForTenant(tenantId: string): Promise<TenantPaymentSummary> {
+    const monthStart = new Date();
+    monthStart.setDate(1);
+    monthStart.setHours(0, 0, 0, 0);
+    const tenantObjectId = new Types.ObjectId(tenantId);
+
+    const [result] = await this.payments.aggregate<{
+      totalRevenueMinor: number;
+      revenueThisMonthMinor: number;
+      pendingPaymentsMinor: number;
+    }>([
+      { $match: { tenantId: tenantObjectId } },
+      {
+        $group: {
+          _id: null,
+          totalRevenueMinor: {
+            $sum: { $cond: [{ $eq: ['$status', 'Successful'] }, '$amountMinor', 0] },
+          },
+          revenueThisMonthMinor: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [{ $eq: ['$status', 'Successful'] }, { $gte: ['$createdAt', monthStart] }],
+                },
+                '$amountMinor',
+                0,
+              ],
+            },
+          },
+          pendingPaymentsMinor: {
+            $sum: { $cond: [{ $eq: ['$status', 'Pending'] }, '$amountMinor', 0] },
+          },
+        },
+      },
+      { $project: { _id: 0 } },
+    ]);
+
+    return result ?? { pendingPaymentsMinor: 0, revenueThisMonthMinor: 0, totalRevenueMinor: 0 };
+  }
 
   async createAdvance(
     scope: PaymentScope,

@@ -1,0 +1,34 @@
+{
+  "name": "@nexoraa/tenant-enforcement-client",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Thin per-service guard that calls platform-admin-service's internal enforcement endpoint (Phase 6 of the Nexoraa Company Admin Panel) — never duplicates the enforcement decision itself, only the HTTP client + kill-switch + fail-open shim.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "node ../../scripts/run-typescript-project.mjs build",
+    "clean": "rimraf dist",
+    "format": "prettier --write \"src/**/*.ts\" \"*.{json,md}\"",
+    "format:check": "prettier --check \"src/**/*.ts\" \"*.{json,md}\"",
+    "lint": "eslint \"src/**/*.ts\" --no-error-on-unmatched-pattern",
+    "test": "jest --passWithNoTests",
+    "typecheck": "node ../../scripts/run-typescript-project.mjs typecheck"
+  },
+  "dependencies": {
+    "@nestjs/common": "^11.1.28",
+    "@nestjs/config": "^4.0.4",
+    "@nestjs/core": "^11.1.28"
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "jest": "^30.4.2",
+    "ts-jest": "^29.4.12",
+    "typescript": "^5.8.3"
+  }
+}

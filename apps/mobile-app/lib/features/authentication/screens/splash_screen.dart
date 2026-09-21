@@ -14,6 +14,13 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
+/// Taps on the logo needed to reach the Company Admin panel, which has no
+/// visible entry point in the tenant-facing app. Not a security boundary —
+/// the panel still requires a real admin login — just a way to reach it
+/// without a domain/deep-link set up yet.
+const int _kCompanyAdminGestureTapThreshold = 7;
+const Duration _kCompanyAdminGestureTapWindow = Duration(seconds: 2);
+
 class _SplashScreenState extends State<SplashScreen>
     with SingleTickerProviderStateMixin {
   late final AnimationController _animationController;
@@ -22,6 +29,10 @@ class _SplashScreenState extends State<SplashScreen>
   final SplashController _splashController = SplashController(
     authenticationController: AuthenticationDependencies.controller,
   );
+
+  int _secretTapCount = 0;
+  DateTime? _lastTapTime;
+  bool _navigated = false;
 
   @override
   void initState() {
@@ -54,7 +65,7 @@ class _SplashScreenState extends State<SplashScreen>
   Future<void> _resolveStartup() async {
     final StartupDestination destination = await _splashController
         .resolveDestination();
-    if (!mounted) {
+    if (!mounted || _navigated) {
       return;
     }
 
@@ -63,6 +74,25 @@ class _SplashScreenState extends State<SplashScreen>
         context.goNamed(AppRouteNames.dashboard);
       case StartupDestination.login:
         context.goNamed(AppRouteNames.login);
+      case StartupDestination.choosePlan:
+        context.goNamed(AppRouteNames.onboardingChoosePlan);
+    }
+  }
+
+  void _handleLogoTap() {
+    if (_navigated) {
+      return;
+    }
+    final DateTime now = DateTime.now();
+    final bool withinWindow =
+        _lastTapTime != null &&
+        now.difference(_lastTapTime!) <= _kCompanyAdminGestureTapWindow;
+    _secretTapCount = withinWindow ? _secretTapCount + 1 : 1;
+    _lastTapTime = now;
+
+    if (_secretTapCount >= _kCompanyAdminGestureTapThreshold) {
+      _navigated = true;
+      context.goNamed(AppRouteNames.companyAdminLogin);
     }
   }
 
@@ -102,14 +132,18 @@ class _SplashScreenState extends State<SplashScreen>
                   opacity: _fadeAnimation,
                   child: ScaleTransition(
                     scale: _scaleAnimation,
-                    child: const Column(
+                    child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: <Widget>[
-                        AppBrandLogo(size: AppBrandLogoSize.splash),
-                        SizedBox(height: AppSpacing.xxl),
-                        Text('Nexoraa', style: AppTextStyles.displaySmall),
-                        SizedBox(height: AppSpacing.xs),
-                        Text('CLEANSOFT', style: AppTextStyles.splashSubtitle),
+                        GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: _handleLogoTap,
+                          child: const AppBrandLogo(size: AppBrandLogoSize.splash),
+                        ),
+                        const SizedBox(height: AppSpacing.xxl),
+                        const Text('Nexoraa', style: AppTextStyles.displaySmall),
+                        const SizedBox(height: AppSpacing.xs),
+                        const Text('CLEANSOFT', style: AppTextStyles.splashSubtitle),
                       ],
                     ),
                   ),

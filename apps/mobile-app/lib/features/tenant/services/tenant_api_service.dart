@@ -181,7 +181,11 @@ class TenantApiService {
     AuthTokenStorage? tokenStorage,
   }) : _client = client ?? http.Client(),
        _baseUrl = _normalizeBaseUrl(
-         baseUrl ?? BackendEnvironment.resolveBase(_configuredBaseUrl()),
+         baseUrl ??
+             BackendEnvironment.resolveBase(
+               _configuredBaseUrl(),
+               'RENDER_TENANT_API_BASE_URL',
+             ),
        ),
        _tokenStorage = tokenStorage ?? AuthenticationDependencies.tokenStorage;
 

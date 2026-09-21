@@ -32,6 +32,12 @@ export class CustomerService {
     private readonly customerRepository: CustomerRepository,
   ) {}
 
+  /** No scope needed — internal/system-level query (see PlatformAdminInternalGuard),
+   *  used by platform-admin-service's Company Admin panel (tenant detail screen). */
+  countForTenant(tenantId: string): Promise<number> {
+    return this.customerRepository.countForTenant(tenantId);
+  }
+
   create(scope: CustomerScope, input: CreateCustomerDto): Promise<CustomerRecord> {
     this.assertCreate(scope);
     return this.customerRepository.create(scope, {

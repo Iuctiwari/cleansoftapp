@@ -29,6 +29,7 @@
     "@nexoraa/database": "workspace:*",
     "@nexoraa/shared": "workspace:*",
     "@nexoraa/swagger": "workspace:*",
+    "@nexoraa/tenant-enforcement-client": "workspace:*",
     "@nexoraa/types": "workspace:*",
     "bullmq": "5.53.1",
     "class-transformer": "^0.5.1",

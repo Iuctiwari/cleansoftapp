@@ -91,6 +91,13 @@ export class BranchService {
     private readonly branchMetricsGateway: BranchMetricsGateway,
   ) {}
 
+  /** No trusted context needed — internal/system-level query (see
+   *  PlatformAdminInternalGuard), used by platform-admin-service's Company
+   *  Admin panel to show a tenant's branch count. */
+  getActiveBranchCount(tenantId: string): Promise<number> {
+    return this.branchRepository.countActiveByTenant(tenantId);
+  }
+
   async listBranches(
     context: TrustedContext,
     filters: BranchQueryFilters,

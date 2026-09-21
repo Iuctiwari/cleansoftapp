@@ -12,6 +12,8 @@ import {
   type RegisterTenantInput,
   type RegisterTenantOutput,
   type TenantCatalogProvisioner,
+  type TenantListPage,
+  type TenantListQuery,
   type TenantOwnerRecord,
   type TenantRecord,
   type TenantRepository,
@@ -241,6 +243,11 @@ export class TenantService {
   }
 
   // ─── Queries ───────────────────────────────────────────────────────────────
+
+  /** Internal/system-level — no ownership check (see PlatformAdminInternalGuard). */
+  listAllForAdmin(query: TenantListQuery): Promise<TenantListPage> {
+    return this.tenantRepository.listAll(query);
+  }
 
   async getTenantById(tenantId: string): Promise<TenantRecord> {
     const tenant = await this.tenantRepository.findById(tenantId);

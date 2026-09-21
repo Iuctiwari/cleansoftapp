@@ -29,6 +29,7 @@ import {
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { JWT_AUTH_NAME } from '@nexoraa/swagger';
+import { ModuleKey, RequireModule } from '@nexoraa/tenant-enforcement-client';
 
 import { ConfigService } from '@nestjs/config';
 import { ApplyPaymentProjectionDto } from './dtos/apply-payment-projection.dto';
@@ -45,6 +46,7 @@ import {
 } from './dtos/order-response.dto';
 import { UpdateOrderStatusDto } from './dtos/update-order-status.dto';
 import { UpdateOrderDto } from './dtos/update-order.dto';
+import { OrderEnforcementGuard } from './order-enforcement.guard';
 import { OrderIdPipe } from './order-id.pipe';
 import { type OrderRequest, OrderScopeGuard } from './order.guard';
 import { OrderService } from './order.service';
@@ -95,6 +97,8 @@ export class OrderController {
   @ApiNotFoundResponse({ description: 'Customer or catalog reference was not found.' })
   @ApiConflictResponse({ description: 'Atomic order creation conflicted.' })
   @ApiInternalServerErrorResponse({ description: 'Order creation failed unexpectedly.' })
+  @UseGuards(OrderEnforcementGuard)
+  @RequireModule(ModuleKey.ORDER_MANAGEMENT)
   create(@Req() request: OrderRequest, @Body() body: CreateOrderDto): Promise<OrderRecord> {
     return this.orderService.create(scope(request), body);
   }
@@ -171,6 +175,8 @@ export class OrderController {
   @ApiNotFoundResponse({ description: 'Order not found in the authenticated scope.' })
   @ApiConflictResponse({ description: 'Order is no longer editable or changed concurrently.' })
   @ApiInternalServerErrorResponse({ description: 'Order update failed unexpectedly.' })
+  @UseGuards(OrderEnforcementGuard)
+  @RequireModule(ModuleKey.ORDER_MANAGEMENT)
   update(
     @Req() request: OrderRequest,
     @Param('id', OrderIdPipe) id: string,
@@ -192,6 +198,8 @@ export class OrderController {
   @ApiNotFoundResponse({ description: 'Order not found in the authenticated scope.' })
   @ApiConflictResponse({ description: 'Transition is invalid, out of sequence, or concurrent.' })
   @ApiInternalServerErrorResponse({ description: 'Status transition failed unexpectedly.' })
+  @UseGuards(OrderEnforcementGuard)
+  @RequireModule(ModuleKey.ORDER_MANAGEMENT)
   changeStatus(
     @Req() request: OrderRequest,
     @Param('id', OrderIdPipe) id: string,
@@ -212,6 +220,8 @@ export class OrderController {
   @ApiNotFoundResponse({ description: 'Order was not found in the authenticated scope.' })
   @ApiConflictResponse({ description: 'Assignment update conflicted.' })
   @ApiInternalServerErrorResponse({ description: 'Assignment failed unexpectedly.' })
+  @UseGuards(OrderEnforcementGuard)
+  @RequireModule(ModuleKey.ORDER_MANAGEMENT)
   assign(
     @Req() request: OrderRequest,
     @Param('id', OrderIdPipe) id: string,
@@ -233,6 +243,8 @@ export class OrderController {
   @ApiNotFoundResponse({ description: 'Order was not found in the authenticated scope.' })
   @ApiConflictResponse({ description: 'Assignment is no longer available to accept.' })
   @ApiInternalServerErrorResponse({ description: 'Assignment acceptance failed unexpectedly.' })
+  @UseGuards(OrderEnforcementGuard)
+  @RequireModule(ModuleKey.ORDER_MANAGEMENT)
   acceptAssignment(
     @Req() request: OrderRequest,
     @Param('id', OrderIdPipe) id: string,
@@ -255,6 +267,8 @@ export class OrderController {
   @ApiNotFoundResponse({ description: 'Order was not found in the authenticated scope.' })
   @ApiConflictResponse({ description: 'Assignment is no longer available to reject.' })
   @ApiInternalServerErrorResponse({ description: 'Assignment rejection failed unexpectedly.' })
+  @UseGuards(OrderEnforcementGuard)
+  @RequireModule(ModuleKey.ORDER_MANAGEMENT)
   rejectAssignment(
     @Req() request: OrderRequest,
     @Param('id', OrderIdPipe) id: string,
@@ -275,6 +289,8 @@ export class OrderController {
   @ApiNotFoundResponse({ description: 'Order not found in the authenticated scope.' })
   @ApiConflictResponse({ description: 'Order is terminal or changed concurrently.' })
   @ApiInternalServerErrorResponse({ description: 'Cancellation failed unexpectedly.' })
+  @UseGuards(OrderEnforcementGuard)
+  @RequireModule(ModuleKey.ORDER_MANAGEMENT)
   cancel(
     @Req() request: OrderRequest,
     @Param('id', OrderIdPipe) id: string,

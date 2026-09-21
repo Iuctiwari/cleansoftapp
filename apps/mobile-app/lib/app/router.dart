@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:nexoraa_mobile/design_system/design_system.dart';
 import 'package:nexoraa_mobile/features/authentication/access_policy.dart';
+import 'package:nexoraa_mobile/features/company_admin/company_admin.dart';
 import 'package:nexoraa_mobile/features/authentication/authentication_dependencies.dart';
 import 'package:nexoraa_mobile/features/authentication/screens/forgot_password_screen.dart';
 import 'package:nexoraa_mobile/features/authentication/screens/login_screen.dart';
@@ -19,12 +20,15 @@ import 'package:nexoraa_mobile/features/staff/screens/register_staff_screen.dart
 import 'package:nexoraa_mobile/features/staff/screens/staff_management_screen.dart';
 import 'package:nexoraa_mobile/features/staff/screens/view_staff_profile_screen.dart';
 
+import 'package:nexoraa_mobile/features/subscription/screens/subscription_screen.dart';
+
 import '../features/tenant/models/registration_form.dart';
 import '../features/tenant/models/tenant_onboarding_data.dart';
 import '../features/tenant/screens/account_created.screen.dart';
 import '../features/tenant/screens/account_details.screen.dart';
 import '../features/tenant/screens/all_set.screen.dart';
 import '../features/tenant/screens/business_info.screen.dart';
+import '../features/tenant/screens/choose_plan.screen.dart';
 import '../features/tenant/screens/first_branch.screen.dart';
 import '../features/tenant/screens/invite_staff.screen.dart';
 import '../features/tenant/screens/services.screen.dart';
@@ -40,6 +44,8 @@ abstract final class AppRoutes {
   static const String onboardingServices = '/onboarding/services';
   static const String onboardingInviteStaff = '/onboarding/invite-staff';
   static const String onboardingAllSet = '/onboarding/all-set';
+  static const String onboardingChoosePlan = '/onboarding/choose-plan';
+  static const String subscription = '/dashboard/subscription';
   static const String forgotPassword = '/forgot-password';
   static const String resetPassword = '/reset-password';
   static const String notifications = '/dashboard/notifications';
@@ -60,6 +66,22 @@ abstract final class AppRoutes {
   static const String settingsPricing = '/dashboard/business-settings/pricing';
   static const String rolesAndStaff = '/dashboard/roles-and-staff';
   static const String staffDashboard = '/staff-dashboard';
+
+  // Company Admin — reachable only by direct URL, never linked from any
+  // tenant-facing UI. Uses a completely separate auth system (Phase 1 of the
+  // Nexoraa Company Admin Panel); see the `redirect` callback below for how
+  // these paths bypass tenant-auth checks entirely.
+  static const String companyAdminLogin = '/company-admin';
+  static const String companyAdminDashboard = '/company-admin/dashboard';
+  static const String companyAdminTenantDetail = '/company-admin/tenants/:tenantId';
+  static const String companyAdminTenantModules =
+      '/company-admin/tenants/:tenantId/modules';
+  static const String companyAdminTenantTheme =
+      '/company-admin/tenants/:tenantId/theme';
+  static const String companyAdminPlanForm = '/company-admin/subscription-plans/new';
+  static const String companyAdminPlanTenants =
+      '/company-admin/subscription-plans/:planKey/tenants';
+  static const String companyAdminBusinessTypeForm = '/company-admin/business-types/new';
 }
 
 abstract final class AppRouteNames {
@@ -73,6 +95,8 @@ abstract final class AppRouteNames {
   static const String onboardingServices = 'onboardingServices';
   static const String onboardingInviteStaff = 'onboardingInviteStaff';
   static const String onboardingAllSet = 'onboardingAllSet';
+  static const String onboardingChoosePlan = 'onboardingChoosePlan';
+  static const String subscription = 'subscription';
   static const String forgotPassword = 'forgot-password';
   static const String resetPassword = 'resetPassword';
   static const String notifications = 'notifications';
@@ -92,6 +116,16 @@ abstract final class AppRouteNames {
   static const String staffEdit = 'staffEdit';
   static const String profileEdit = 'profileEdit';
   static const String staffDashboard = 'staffDashboard';
+
+  // Company Admin — see AppRoutes above for the isolation rationale.
+  static const String companyAdminLogin = 'companyAdminLogin';
+  static const String companyAdminDashboard = 'companyAdminDashboard';
+  static const String companyAdminTenantDetail = 'companyAdminTenantDetail';
+  static const String companyAdminTenantModules = 'companyAdminTenantModules';
+  static const String companyAdminTenantTheme = 'companyAdminTenantTheme';
+  static const String companyAdminPlanForm = 'companyAdminPlanForm';
+  static const String companyAdminPlanTenants = 'companyAdminPlanTenants';
+  static const String companyAdminBusinessTypeForm = 'companyAdminBusinessTypeForm';
 }
 
 abstract final class AppRouter {
@@ -118,6 +152,17 @@ abstract final class AppRouter {
     initialLocation: AppRoutes.splash,
     refreshListenable: AuthenticationDependencies.controller,
     redirect: (BuildContext context, GoRouterState state) {
+      // Company Admin is a completely separate identity/auth system (Phase 1
+      // of the Nexoraa Company Admin Panel) — it must never be subject to
+      // tenant/staff auth checks below, in either direction: an unauthenticated
+      // tenant visitor must still reach /company-admin (it has its own login
+      // screen), and a signed-in tenant owner must not be bounced away from it
+      // either. Admin-session verification is handled per-screen instead
+      // (AdminSessionGate), not here.
+      if (state.matchedLocation.startsWith('/company-admin')) {
+        return null;
+      }
+
       final bool authenticated =
           AuthenticationDependencies.controller.isAuthenticated;
       final String? role =
@@ -322,6 +367,23 @@ abstract final class AppRouter {
         },
       ),
       GoRoute(
+        name: AppRouteNames.onboardingChoosePlan,
+        path: AppRoutes.onboardingChoosePlan,
+        builder: (context, state) {
+          final extra = state.extra;
+          return ChoosePlanScreen(
+            onboardingData: extra is TenantOnboardingData ? extra : null,
+          );
+        },
+      ),
+      GoRoute(
+        name: AppRouteNames.subscription,
+        path: AppRoutes.subscription,
+        pageBuilder: (BuildContext context, GoRouterState state) {
+          return _fadePage<void>(state: state, child: const SubscriptionScreen());
+        },
+      ),
+      GoRoute(
         name: AppRouteNames.notifications,
         path: AppRoutes.notifications,
         pageBuilder: (BuildContext context, GoRouterState state) {
@@ -507,6 +569,67 @@ abstract final class AppRouter {
           final staffMember = state.extra as StaffMember;
           return EditStaffScreen(staff: staffMember);
         },
+      ),
+
+      // ── Company Admin ────────────────────────────────────────────────
+      // Deliberately NOT linked from any nav item/menu/button elsewhere in
+      // this router or in any screen — reachable only by typing/deep-linking
+      // these URLs directly. See the `redirect` callback above for why these
+      // paths bypass tenant-auth entirely, and AdminSessionGate for the
+      // separate admin-session check each of these screens performs itself.
+      GoRoute(
+        name: AppRouteNames.companyAdminLogin,
+        path: AppRoutes.companyAdminLogin,
+        builder: (BuildContext context, GoRouterState state) => const AdminLoginScreen(),
+      ),
+      GoRoute(
+        name: AppRouteNames.companyAdminDashboard,
+        path: AppRoutes.companyAdminDashboard,
+        builder: (BuildContext context, GoRouterState state) =>
+            const CompanyAdminShellScreen(),
+      ),
+      GoRoute(
+        name: AppRouteNames.companyAdminTenantDetail,
+        path: AppRoutes.companyAdminTenantDetail,
+        builder: (BuildContext context, GoRouterState state) => TenantDetailScreen(
+          tenantId: state.pathParameters['tenantId'] ?? '',
+        ),
+      ),
+      GoRoute(
+        name: AppRouteNames.companyAdminTenantModules,
+        path: AppRoutes.companyAdminTenantModules,
+        builder: (BuildContext context, GoRouterState state) => ModuleMatrixScreen(
+          tenantId: state.pathParameters['tenantId'] ?? '',
+        ),
+      ),
+      GoRoute(
+        name: AppRouteNames.companyAdminTenantTheme,
+        path: AppRoutes.companyAdminTenantTheme,
+        builder: (BuildContext context, GoRouterState state) => ThemeEditorScreen(
+          tenantId: state.pathParameters['tenantId'] ?? '',
+        ),
+      ),
+      GoRoute(
+        name: AppRouteNames.companyAdminPlanForm,
+        path: AppRoutes.companyAdminPlanForm,
+        builder: (BuildContext context, GoRouterState state) => PlanFormScreen(
+          existing: state.extra as SubscriptionPlanModel?,
+        ),
+      ),
+      GoRoute(
+        name: AppRouteNames.companyAdminPlanTenants,
+        path: AppRoutes.companyAdminPlanTenants,
+        builder: (BuildContext context, GoRouterState state) => PlanTenantsScreen(
+          planKey: state.pathParameters['planKey'] ?? '',
+          planDisplayName: state.extra as String? ?? state.pathParameters['planKey'] ?? 'Plan',
+        ),
+      ),
+      GoRoute(
+        name: AppRouteNames.companyAdminBusinessTypeForm,
+        path: AppRoutes.companyAdminBusinessTypeForm,
+        builder: (BuildContext context, GoRouterState state) => BusinessTypeFormScreen(
+          existing: state.extra as BusinessTypeModel?,
+        ),
       ),
     ],
   );

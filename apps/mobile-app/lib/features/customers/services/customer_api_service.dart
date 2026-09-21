@@ -25,7 +25,8 @@ class CustomerApiService {
        _baseUri = Uri.parse(
          baseUrl ??
              BackendEnvironment.resolveBase(
-               _environment('CUSTOMER_API_BASE_URL', 'http://10.0.2.2:3000'),
+               _environment('CUSTOMER_API_BASE_URL', 'http://10.0.2.2:3003'),
+               'RENDER_CUSTOMER_API_BASE_URL',
              ),
        );
 

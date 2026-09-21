@@ -33,6 +33,16 @@ export class UserService {
 
   // ── Read ─────────────────────────────────────────────────────────────────
 
+  /** No trusted scope needed — internal/system-level query (see
+   *  PlatformAdminInternalGuard), used by platform-admin-service's Company
+   *  Admin panel to show a tenant's staff count. */
+  countActiveStaffByTenant(tenantId: string): Promise<number> {
+    if (!Types.ObjectId.isValid(tenantId)) return Promise.resolve(0);
+    return this.userModel
+      .countDocuments({ tenantId: new Types.ObjectId(tenantId), isDeleted: false })
+      .exec();
+  }
+
   async listStaff(scope: UserAccessScope, tenantId: string): Promise<StaffResponseDto[]> {
     this.assertTenant(scope, tenantId);
     this.assertStaffRead(scope);

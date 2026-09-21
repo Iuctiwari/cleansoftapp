@@ -2,6 +2,7 @@ import 'reflect-metadata';
 
 import { Module, type INestApplication } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import { ConfigService } from '@nestjs/config';
 import { createSwaggerDocument, JWT_AUTH_NAME } from '@nexoraa/swagger';
 import type { OpenAPIObject } from '@nestjs/swagger';
 
@@ -20,7 +21,11 @@ const customerServiceMock = {
 
 @Module({
   controllers: [CustomerController],
-  providers: [CustomerScopeGuard, { provide: CustomerService, useValue: customerServiceMock }],
+  providers: [
+    CustomerScopeGuard,
+    { provide: ConfigService, useValue: { get: (): string => 'false' } },
+    { provide: CustomerService, useValue: customerServiceMock },
+  ],
 })
 class SwaggerTestModule {}
 

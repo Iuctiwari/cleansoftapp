@@ -63,6 +63,10 @@ export interface CustomerRepository {
   findById(scope: CustomerScope, id: string): Promise<CustomerRecord | null>;
   list(scope: CustomerScope, query: CustomerListQuery): Promise<CustomerPage>;
   statistics(scope: CustomerScope): Promise<CustomerStatistics>;
+  /** Tenant-wide (all branches), no scope needed — internal/system-level
+   *  query (see PlatformAdminInternalGuard), used by platform-admin-service's
+   *  Company Admin panel (tenant detail screen). */
+  countForTenant(tenantId: string): Promise<number>;
   update(
     scope: CustomerScope,
     id: string,

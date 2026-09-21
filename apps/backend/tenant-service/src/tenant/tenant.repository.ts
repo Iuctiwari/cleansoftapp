@@ -7,6 +7,8 @@ import type {
   CompleteTenantOnboardingInput,
   CompleteTenantOnboardingOutput,
   RegisterTenantOutput,
+  TenantListPage,
+  TenantListQuery,
   TenantOwnerRecord,
   TenantRecord,
   TenantRepository,
@@ -59,6 +61,32 @@ export class InMemoryTenantRepository implements TenantRepository {
 
   listBranches(tenantId: string): Promise<BranchRecord[]> {
     return Promise.resolve([...this.branches.values()].filter((b) => b.tenantId === tenantId));
+  }
+
+  listAll(query: TenantListQuery): Promise<TenantListPage> {
+    if (query.tenantIds) {
+      const idSet = new Set(query.tenantIds);
+      const items = [...this.tenants.values()].filter((t) => idSet.has(t.tenantId));
+      return Promise.resolve({ items, page: 1, limit: items.length, total: items.length });
+    }
+
+    const page = Math.max(1, query.page ?? 1);
+    const limit = Math.min(100, Math.max(1, query.limit ?? 20));
+    let items = [...this.tenants.values()];
+    if (query.status) items = items.filter((t) => t.status === query.status);
+    if (query.search) {
+      const needle = query.search.toLowerCase();
+      items = items.filter(
+        (t) =>
+          t.businessName.toLowerCase().includes(needle) ||
+          t.ownerName.toLowerCase().includes(needle) ||
+          t.ownerEmail.toLowerCase().includes(needle) ||
+          t.slug.toLowerCase().includes(needle),
+      );
+    }
+    const total = items.length;
+    const start = (page - 1) * limit;
+    return Promise.resolve({ items: items.slice(start, start + limit), page, limit, total });
   }
 
   listCatalogProvisioningCandidates(): Promise<CatalogProvisioningCandidate[]> {

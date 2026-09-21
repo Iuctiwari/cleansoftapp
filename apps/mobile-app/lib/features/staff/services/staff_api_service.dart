@@ -40,7 +40,11 @@ class StaffApiService {
     AuthTokenStorage? tokenStorage,
   }) : _client = client ?? http.Client(),
        _baseUrl = _normalizeBaseUrl(
-         baseUrl ?? BackendEnvironment.resolveBase(_configuredBaseUrl()),
+         baseUrl ??
+             BackendEnvironment.resolveBase(
+               _configuredBaseUrl(),
+               'RENDER_USER_API_BASE_URL',
+             ),
        ),
        _tokenStorage = tokenStorage ?? SecureAuthTokenStorage();
 
@@ -275,8 +279,10 @@ class StaffApiService {
   }
 
   Future<Map<String, dynamic>> getTenantProfile(String tenantId) async {
-    final gatewayUrl =
-        dotenv.env['API_BASE_URL']?.trim() ?? 'http://127.0.0.1:3000/api';
+    final gatewayUrl = BackendEnvironment.resolveBase(
+      dotenv.env['API_BASE_URL']?.trim() ?? 'http://127.0.0.1:3001/api',
+      'RENDER_AUTH_API_BASE_URL',
+    );
     final uri = Uri.parse('$gatewayUrl/v1/tenants/$tenantId');
     final headers = await _authHeaders();
     late http.Response response;
@@ -335,8 +341,10 @@ class StaffApiService {
     String? businessName,
     String? location,
   }) async {
-    final gatewayUrl =
-        dotenv.env['API_BASE_URL']?.trim() ?? 'http://127.0.0.1:3000/api';
+    final gatewayUrl = BackendEnvironment.resolveBase(
+      dotenv.env['API_BASE_URL']?.trim() ?? 'http://127.0.0.1:3001/api',
+      'RENDER_AUTH_API_BASE_URL',
+    );
     final uri = Uri.parse('$gatewayUrl/v1/tenants/$tenantId/profile');
     final headers = await _authHeaders();
     final body = <String, dynamic>{};

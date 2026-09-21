@@ -26,6 +26,7 @@ import {
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { JWT_AUTH_NAME } from '@nexoraa/swagger';
+import { ModuleKey, RequireModule } from '@nexoraa/tenant-enforcement-client';
 
 import {
   CreateExpenseCategoryDto,
@@ -38,6 +39,7 @@ import {
   ListExpensesQueryDto,
   UpdateExpenseDto,
 } from './expense.dto';
+import { ExpenseEnforcementGuard } from './expense-enforcement.guard';
 import { type ExpenseRequest, ExpenseScopeGuard } from './expense.guard';
 import { ExpenseService } from './expense.service';
 import type {
@@ -76,6 +78,8 @@ export class ExpenseController {
   @ApiBadRequestResponse({ type: ExpenseErrorResponseDto })
   @ApiUnauthorizedResponse({ type: ExpenseErrorResponseDto })
   @ApiForbiddenResponse({ type: ExpenseErrorResponseDto })
+  @UseGuards(ExpenseEnforcementGuard)
+  @RequireModule(ModuleKey.EXPENSES)
   createCategory(
     @Req() request: ExpenseRequest,
     @Body() body: CreateExpenseCategoryDto,
@@ -102,6 +106,8 @@ export class ExpenseController {
   @ApiBadRequestResponse({ type: ExpenseErrorResponseDto })
   @ApiUnauthorizedResponse({ type: ExpenseErrorResponseDto })
   @ApiForbiddenResponse({ type: ExpenseErrorResponseDto })
+  @UseGuards(ExpenseEnforcementGuard)
+  @RequireModule(ModuleKey.EXPENSES)
   createExpense(
     @Req() request: ExpenseRequest,
     @Body() body: CreateExpenseDto,
@@ -156,6 +162,8 @@ export class ExpenseController {
   @ApiOkResponse({ description: 'Updated expense.', type: ExpenseResponseDto })
   @ApiBadRequestResponse({ type: ExpenseErrorResponseDto })
   @ApiNotFoundResponse({ description: 'Expense not found.', type: ExpenseErrorResponseDto })
+  @UseGuards(ExpenseEnforcementGuard)
+  @RequireModule(ModuleKey.EXPENSES)
   updateExpense(
     @Req() request: ExpenseRequest,
     @Param('id') id: string,

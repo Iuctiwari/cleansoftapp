@@ -20,7 +20,8 @@ class PaymentApiService {
        _baseUrl = _apiV1Url(
          baseUrl ??
              BackendEnvironment.resolveBase(
-               _environment('PAYMENT_API_BASE_URL', 'http://10.0.2.2:3008'),
+               _environment('PAYMENT_API_BASE_URL', 'http://10.0.2.2:3010'),
+               'RENDER_PAYMENT_API_BASE_URL',
              ),
        );
 

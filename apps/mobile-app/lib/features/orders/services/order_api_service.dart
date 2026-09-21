@@ -28,6 +28,7 @@ class OrderApiService {
          baseUrl ??
              BackendEnvironment.resolveBase(
                _environment('ORDER_API_BASE_URL', 'http://10.0.2.2:3007/api'),
+               'RENDER_ORDER_API_BASE_URL',
              ),
        );
 

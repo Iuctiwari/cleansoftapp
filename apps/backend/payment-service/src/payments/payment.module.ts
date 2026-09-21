@@ -5,6 +5,8 @@ import { DatabaseModule } from '@nexoraa/database';
 
 import { PaymentAuthenticationMiddleware } from './payment-auth.middleware';
 import { PaymentController } from './payment.controller';
+import { PaymentInternalController } from './payment-internal.controller';
+import { PlatformAdminInternalGuard } from './platform-admin-internal.guard';
 import { PaymentOwnerLookupService } from './payment-owner.service';
 import { TenantOwnerMongoose, TenantOwnerMongooseSchema } from './payment-owner.schema';
 import { PaymentMongoose, PaymentMongooseSchema } from './payment.schema';
@@ -19,8 +21,13 @@ import { PaymentService } from './payment.service';
       { name: TenantOwnerMongoose.name, schema: TenantOwnerMongooseSchema },
     ]),
   ],
-  controllers: [PaymentController],
-  providers: [PaymentAuthenticationMiddleware, PaymentService, PaymentOwnerLookupService],
+  controllers: [PaymentController, PaymentInternalController],
+  providers: [
+    PaymentAuthenticationMiddleware,
+    PaymentService,
+    PaymentOwnerLookupService,
+    PlatformAdminInternalGuard,
+  ],
 })
 export class PaymentModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {

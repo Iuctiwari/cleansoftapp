@@ -35,7 +35,7 @@ class AllSetScreen extends StatelessWidget {
     }
 
     if (context.mounted) {
-      context.goNamed(AppRouteNames.dashboard, extra: data);
+      context.goNamed(AppRouteNames.onboardingChoosePlan, extra: data);
     }
   }
 

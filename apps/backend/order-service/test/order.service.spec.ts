@@ -99,6 +99,7 @@ describe('OrderService API use cases', () => {
       assign: jest.fn(),
       create: jest.fn(),
       findById: jest.fn(),
+      getSummaryForTenant: jest.fn(),
       history: jest.fn(),
       list: jest.fn(),
       rejectAssignment: jest.fn(),

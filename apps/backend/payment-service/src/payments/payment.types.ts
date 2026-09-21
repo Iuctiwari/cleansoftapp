@@ -64,3 +64,18 @@ export interface PaymentStatistics {
   readonly totalBills: number;
   readonly successfulBills: number;
 }
+
+/**
+ * Tenant-wide (all branches), for the Company Admin panel — see
+ * TenantPaymentSummaryController. "pendingPaymentsMinor" is the sum of this
+ * tenant's own Pending-status payment records (payments recorded but not yet
+ * confirmed) — NOT the tenant's accounts-receivable balance. True outstanding
+ * (what a tenant's orders still owe overall) lives on order-service's
+ * TenantOrderSummary.outstandingMinor, since payment-service only ever tracks
+ * payments it has actually received or attempted.
+ */
+export interface TenantPaymentSummary {
+  readonly totalRevenueMinor: number;
+  readonly revenueThisMonthMinor: number;
+  readonly pendingPaymentsMinor: number;
+}

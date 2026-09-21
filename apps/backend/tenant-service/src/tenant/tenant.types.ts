@@ -135,6 +135,23 @@ export interface UpdateTenantProfileInput {
   readonly location?: string;
 }
 
+export interface TenantListQuery {
+  /** Case-insensitive partial match on businessName, ownerName, ownerEmail, or slug. */
+  readonly search?: string;
+  readonly status?: TenantStatus;
+  /** Exact-match bulk lookup (e.g. "everyone on this subscription plan"); when set, ignores paging. */
+  readonly tenantIds?: readonly string[];
+  readonly page?: number;
+  readonly limit?: number;
+}
+
+export interface TenantListPage {
+  readonly items: readonly TenantRecord[];
+  readonly page: number;
+  readonly limit: number;
+  readonly total: number;
+}
+
 export interface TenantRepository {
   /** Find a tenant owner by normalised email (for uniqueness checks and login). */
   findByEmail(email: string): Promise<TenantOwnerRecord | null>;
@@ -144,6 +161,9 @@ export interface TenantRepository {
 
   /** Find a tenant record by its unique tenantId. */
   findById(tenantId: string): Promise<TenantRecord | null>;
+
+  /** Paginated/searchable tenant list — backs the internal endpoint platform-admin-service calls. */
+  listAll(query: TenantListQuery): Promise<TenantListPage>;
 
   /** List all branches for a given tenant. */
   listBranches(tenantId: string): Promise<BranchRecord[]>;
