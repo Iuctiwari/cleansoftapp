@@ -16,6 +16,8 @@ jobs:
             url: https://nexoraa-cleansoft-1.onrender.com/api/v1/health/live
           - name: platform-admin-service
             url: https://nexoraa-cleansoft-j8k6.onrender.com/api/v1/health
+          - name: tenant-service
+            url: https://tenant-service-f6dz.onrender.com/api/v1/health
     steps:
       - name: Ping ${{ matrix.service.name }}
         run: curl -sf --max-time 90 "${{ matrix.service.url }}"
