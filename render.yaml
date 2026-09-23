@@ -358,10 +358,11 @@ services:
         sync: false
       - key: AUTH_SERVICE_BASE_URL
         value: https://nexoraa-cleansoft-1.onrender.com/api
-      # Sibling in THIS same batch — fill in with service-service's Render URL
-      # (…/api) once live.
+      # service-service is live at this URL (confirmed: its /api/v1/catalog/provision
+      # route responds 401 "credentials required", not 404 — path and host are correct).
+      # Not a secret, so committed directly like AUTH_SERVICE_BASE_URL above.
       - key: SERVICE_MANAGEMENT_BASE_URL
-        sync: false
+        value: https://service-service-77t8.onrender.com/api
       # Must be the EXACT same value as service-service's own CATALOG_PROVISIONING_KEY.
       - key: CATALOG_PROVISIONING_KEY
         sync: false
