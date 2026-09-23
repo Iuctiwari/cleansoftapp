@@ -54,13 +54,30 @@ abstract final class BackendEnvironment {
     }
 
     try {
-      final Uri probeUri = Uri.parse(
-        base.endsWith('/') ? base : '$base/',
-      ).resolve('v1/health/live');
-      final http.Response response = await http
-          .get(probeUri)
-          .timeout(timeout);
-      _reachable[renderEnvKey] = response.statusCode < 500;
+      final List<String> candidates = <String>[
+        'v1/health/live',
+        'api/v1/health/live',
+        'health/live',
+        'api/health/live',
+        'health',
+        'api/health',
+        '',
+      ];
+
+      for (final String candidate in candidates) {
+        final Uri probeUri = Uri.parse(
+          base.endsWith('/') ? base : '$base/',
+        ).resolve(candidate);
+        final http.Response response = await http
+            .get(probeUri)
+            .timeout(timeout);
+        if (response.statusCode >= 200 && response.statusCode < 500) {
+          _reachable[renderEnvKey] = true;
+          return;
+        }
+      }
+
+      _reachable[renderEnvKey] = false;
     } on Object {
       _reachable[renderEnvKey] = false;
     }

@@ -1,4 +1,4 @@
-import type { Config } from 'jest';
+vimport type { Config } from 'jest';
 
 const config: Config = {
   cache: false,
