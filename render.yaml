@@ -430,3 +430,67 @@ services:
       # Database name: nexoraa_audit_prod
       - key: MONGODB_URI
         sync: false
+
+  # ---------------------------------------------------------------------------
+  # keep-alive-service
+  # Pings every other service's health endpoint every 2 minutes so the free
+  # tier's 15-minute inactivity spin-down never triggers. Also pings its own
+  # RENDER_EXTERNAL_URL (provided automatically by Render at runtime — do not
+  # set it manually) so it doesn't go idle itself; it receives no other
+  # inbound traffic. No database, no secrets — every value below is just a
+  # public Render hostname, safe to commit directly (same as the plain
+  # AUTH_SERVICE_BASE_URL values elsewhere in this file).
+  # ---------------------------------------------------------------------------
+  - type: web
+    name: keep-alive-service
+    runtime: node
+    plan: free
+    branch: iuc
+    buildCommand: npm install -g corepack@latest && corepack pnpm install --frozen-lockfile && corepack pnpm turbo run build --filter=@nexoraa/keep-alive-service
+    startCommand: corepack pnpm --filter @nexoraa/keep-alive-service start:prod
+    envVars:
+      - key: NODE_VERSION
+        value: 22.13.0
+      - key: NODE_ENV
+        value: production
+      - key: KEEP_ALIVE_INTERVAL_MS
+        value: "120000"
+      - key: KEEP_ALIVE_REQUEST_TIMEOUT_MS
+        value: "15000"
+      - key: KEEP_ALIVE_CONCURRENCY
+        value: "4"
+      - key: RENDER_AUTH_API_BASE_URL
+        value: https://nexoraa-cleansoft-1.onrender.com/api
+      - key: RENDER_PLATFORM_ADMIN_API_BASE_URL
+        value: https://nexoraa-cleansoft-j8k6.onrender.com/api
+      - key: RENDER_BRANCH_API_BASE_URL
+        value: https://branch-service-u48d.onrender.com
+      - key: RENDER_CUSTOMER_API_BASE_URL
+        value: https://customer-service-ms17.onrender.com
+      - key: RENDER_NOTIFICATION_API_BASE_URL
+        value: https://notification-service-5tvi.onrender.com
+      - key: RENDER_TENANT_API_BASE_URL
+        value: https://tenant-service-f6dz.onrender.com
+      - key: RENDER_ORDER_API_BASE_URL
+        value: https://order-service-bpd8.onrender.com
+      - key: RENDER_REPORT_API_BASE_URL
+        value: https://report-service-oimc.onrender.com
+      - key: RENDER_EXPENSE_API_BASE_URL
+        value: https://expense-service-f34h.onrender.com
+      - key: RENDER_PAYMENT_API_BASE_URL
+        value: https://payment-service-l566.onrender.com
+      - key: RENDER_SERVICE_API_BASE_URL
+        value: https://service-service-77t8.onrender.com
+      - key: RENDER_USER_API_BASE_URL
+        value: https://user-service-9bkt.onrender.com
+      - key: RENDER_SEARCH_API_BASE_URL
+        value: https://search-service-6k9h.onrender.com
+      - key: RENDER_SETTINGS_API_BASE_URL
+        value: https://settings-services.onrender.com
+      # Not deployed with a known URL yet — add once audit-service/scheduler-service
+      # get their own Render URLs confirmed; each starts being pinged automatically,
+      # no code change needed.
+      - key: RENDER_AUDIT_API_BASE_URL
+        value: ""
+      - key: RENDER_SCHEDULER_API_BASE_URL
+        value: ""

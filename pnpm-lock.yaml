@@ -422,6 +422,8 @@ importers:
         specifier: ^5.8.3
         version: 5.8.3
 
+  apps/backend/keep-alive-service: {}
+
   apps/backend/notification-service:
     dependencies:
       '@nestjs/common':
