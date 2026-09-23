@@ -1,0 +1,21 @@
+name: Keep-alive (Render free tier)
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - name: auth-service
+            url: https://nexoraa-cleansoft-1.onrender.com/api/v1/health/live
+          - name: platform-admin-service
+            url: https://nexoraa-cleansoft-j8k6.onrender.com/api/v1/health
+    steps:
+      - name: Ping ${{ matrix.service.name }}
+        run: curl -sf --max-time 90 "${{ matrix.service.url }}"
