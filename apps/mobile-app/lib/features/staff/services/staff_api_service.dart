@@ -64,19 +64,24 @@ class StaffApiService {
   static String _configuredBaseUrl() {
     if (dotenv.isInitialized) {
       final configured = dotenv.env[_environmentKey]?.trim();
-      print(
-        'StaffApiService._configuredBaseUrl: Loaded $configured from dotenv',
-      );
       if (configured != null && configured.isNotEmpty) return configured;
     }
-    print(
-      'StaffApiService._configuredBaseUrl: Falling back to http://localhost:3002',
-    );
-    return 'http://localhost:3002';
+    return 'http://127.0.0.1:3013';
   }
 
   static String _normalizeBaseUrl(String value) {
     return value.endsWith('/') ? value.substring(0, value.length - 1) : value;
+  }
+
+  /// Tenant profile/branches live on tenant-service, not user-service (this
+  /// class's own [_baseUrl]) or auth-service — resolved separately here.
+  static String _tenantServiceBaseUrl() {
+    return _normalizeBaseUrl(
+      BackendEnvironment.resolveBase(
+        dotenv.env['TENANT_API_BASE_URL']?.trim() ?? 'http://127.0.0.1:3006',
+        'RENDER_TENANT_API_BASE_URL',
+      ),
+    );
   }
 
   /// Returns headers with Authorization token if available.
@@ -106,20 +111,10 @@ class StaffApiService {
 
     late http.Response response;
     try {
-      print('StaffApiService.getStaffMembers: Calling GET $uri');
       response = await _client
           .get(uri, headers: headers)
           .timeout(_requestTimeout);
-      print(
-        'StaffApiService.getStaffMembers: Response status ${response.statusCode}',
-      );
-    } catch (e, stack) {
-      print('StaffApiService.getStaffMembers: Error $e');
-      print('StaffApiService.getStaffMembers: StackTrace $stack');
-      response = await _client
-          .get(uri, headers: headers)
-          .timeout(_requestTimeout);
-    } catch (e) {
+    } catch (_) {
       throw const StaffApiException(
         code: 'network_error',
         messageKey: 'network_error',
@@ -279,11 +274,8 @@ class StaffApiService {
   }
 
   Future<Map<String, dynamic>> getTenantProfile(String tenantId) async {
-    final gatewayUrl = BackendEnvironment.resolveBase(
-      dotenv.env['API_BASE_URL']?.trim() ?? 'http://127.0.0.1:3001/api',
-      'RENDER_AUTH_API_BASE_URL',
-    );
-    final uri = Uri.parse('$gatewayUrl/v1/tenants/$tenantId');
+    final tenantServiceUrl = _tenantServiceBaseUrl();
+    final uri = Uri.parse('$tenantServiceUrl/api/v1/tenants/$tenantId');
     final headers = await _authHeaders();
     late http.Response response;
     try {
@@ -304,7 +296,7 @@ class StaffApiService {
 
       try {
         final branchesUri = Uri.parse(
-          '$gatewayUrl/v1/tenants/$tenantId/branches',
+          '$tenantServiceUrl/api/v1/tenants/$tenantId/branches',
         );
         final branchesRes = await _client
             .get(branchesUri, headers: headers)
@@ -341,11 +333,7 @@ class StaffApiService {
     String? businessName,
     String? location,
   }) async {
-    final gatewayUrl = BackendEnvironment.resolveBase(
-      dotenv.env['API_BASE_URL']?.trim() ?? 'http://127.0.0.1:3001/api',
-      'RENDER_AUTH_API_BASE_URL',
-    );
-    final uri = Uri.parse('$gatewayUrl/v1/tenants/$tenantId/profile');
+    final uri = Uri.parse('${_tenantServiceBaseUrl()}/api/v1/tenants/$tenantId/profile');
     final headers = await _authHeaders();
     final body = <String, dynamic>{};
     if (ownerName != null && ownerName.isNotEmpty)
