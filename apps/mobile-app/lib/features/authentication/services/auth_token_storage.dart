@@ -1,6 +1,10 @@
 import 'dart:convert';
+import 'dart:io';
 
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:http/http.dart' as http;
+import 'package:nexoraa_mobile/core/network/backend_environment.dart';
 import 'package:nexoraa_mobile/features/authentication/authentication_models.dart';
 
 abstract interface class AuthTokenStorage {
@@ -12,8 +16,31 @@ abstract interface class AuthTokenStorage {
 }
 
 final class SecureAuthTokenStorage implements AuthTokenStorage {
-  SecureAuthTokenStorage({FlutterSecureStorage? storage})
-    : _storage = storage ?? const FlutterSecureStorage();
+  SecureAuthTokenStorage({FlutterSecureStorage? storage, http.Client? client})
+    : _storage = storage ?? const FlutterSecureStorage(),
+      _client = client ?? http.Client();
+
+  // Every *ApiService calls read() right before building request headers, so
+  // this is the one place that can transparently refresh an expired access
+  // token for the whole app — without it, every screen independently starts
+  // failing with 401 "session expired" the moment the 1-hour access token
+  // passes, even though the (much longer-lived) refresh token is still good.
+  static const Duration _refreshSafetyMargin = Duration(seconds: 30);
+  static const Duration _refreshTimeout = Duration(seconds: 15);
+
+  Uri get _refreshUri {
+    final base = BackendEnvironment.resolveBase(
+      _environment('API_BASE_URL', 'http://127.0.0.1:3001/api'),
+      'RENDER_AUTH_API_BASE_URL',
+    ).trimRight().replaceFirst(RegExp(r'/+$'), '');
+    return Uri.parse('$base/auth/refresh');
+  }
+
+  static String _environment(String key, String fallback) {
+    if (!dotenv.isInitialized) return fallback;
+    final value = dotenv.env[key]?.trim();
+    return value == null || value.isEmpty ? fallback : value;
+  }
 
   static const String _accessTokenKey = 'auth.access_token';
   static const String _refreshTokenKey = 'auth.refresh_token';
@@ -31,6 +58,7 @@ final class SecureAuthTokenStorage implements AuthTokenStorage {
   static const String _branchNameKey = 'auth.branch_name';
 
   final FlutterSecureStorage _storage;
+  final http.Client _client;
   static AuthenticationSession? _cachedSession;
 
   // Web (IndexedDB) is async and needs more time than native secure storage
@@ -112,9 +140,91 @@ final class SecureAuthTokenStorage implements AuthTokenStorage {
         branchName: values[_branchNameKey],
       );
       _cachedSession = session;
+
+      final now = DateTime.now().toUtc();
+      if (!now.isBefore(accessExpiry.subtract(_refreshSafetyMargin)) &&
+          now.isBefore(refreshExpiry)) {
+        final AuthenticationSession? refreshed = await _refresh(session);
+        if (refreshed != null) return refreshed;
+        // Refresh either failed transiently (stale session kept, caller's
+        // request will fail naturally) or the refresh token was rejected
+        // and _refresh already cleared storage (_cachedSession is null).
+        return _cachedSession;
+      }
+
       return session;
     } catch (_) {
       return _cachedSession;
+    }
+  }
+
+  /// Exchanges the refresh token for a new access/refresh pair, preserving
+  /// every other field (tenant/owner/permissions) from [current]. Returns
+  /// null on any failure; a hard rejection (expired/revoked refresh token)
+  /// also clears the stored session so the app doesn't keep silently
+  /// retrying a refresh token that can never work again.
+  Future<AuthenticationSession?> _refresh(AuthenticationSession current) async {
+    http.Response response;
+    try {
+      response = await _client
+          .post(
+            _refreshUri,
+            headers: {HttpHeaders.contentTypeHeader: 'application/json'},
+            body: jsonEncode({'refreshToken': current.refreshToken}),
+          )
+          .timeout(_refreshTimeout);
+    } catch (_) {
+      return null;
+    }
+
+    if (response.statusCode != 200) {
+      await clear();
+      return null;
+    }
+
+    try {
+      final decoded = jsonDecode(response.body);
+      if (decoded is! Map<String, dynamic>) return null;
+      final data = decoded['data'];
+      if (data is! Map<String, dynamic>) return null;
+
+      final String? newAccessToken = data['accessToken'] as String?;
+      final String? newRefreshToken = data['refreshToken'] as String?;
+      final DateTime? newAccessExpiry = DateTime.tryParse(
+        data['accessTokenExpiresAtUtc'] as String? ?? '',
+      );
+      final DateTime? newRefreshExpiry = DateTime.tryParse(
+        data['refreshTokenExpiresAtUtc'] as String? ?? '',
+      );
+      if (newAccessToken == null ||
+          newAccessToken.isEmpty ||
+          newRefreshToken == null ||
+          newRefreshToken.isEmpty ||
+          newAccessExpiry == null ||
+          newRefreshExpiry == null) {
+        return null;
+      }
+
+      final AuthenticationSession refreshed = AuthenticationSession(
+        accessToken: newAccessToken,
+        refreshToken: newRefreshToken,
+        accessTokenExpiresAt: newAccessExpiry,
+        refreshTokenExpiresAt: newRefreshExpiry,
+        tenantId: current.tenantId,
+        tenantSlug: current.tenantSlug,
+        ownerUserId: current.ownerUserId,
+        ownerName: current.ownerName,
+        ownerEmail: current.ownerEmail,
+        businessName: current.businessName,
+        roleCode: current.roleCode,
+        permissions: current.permissions,
+        branchId: current.branchId,
+        branchName: current.branchName,
+      );
+      await write(refreshed);
+      return refreshed;
+    } catch (_) {
+      return null;
     }
   }
 
