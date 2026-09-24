@@ -27,7 +27,8 @@ class SubscriptionApiService {
             ),
       );
 
-  static const Duration _timeout = Duration(seconds: 15);
+  // Generous enough to ride out a Render free-tier cold start (~30-60s).
+  static const Duration _timeout = Duration(seconds: 60);
 
   final AuthTokenStorage _tokenStorage;
   final http.Client _client;

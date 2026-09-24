@@ -26,6 +26,14 @@ abstract final class BackendEnvironment {
     return value == null || value.isEmpty ? null : value;
   }
 
+  /// Production builds (`APP_ENV=production`) run on real devices where the
+  /// local fallback URLs (10.0.2.2 / LAN IPs) can never work, so a configured
+  /// Render URL is always used there — even if the service is cold and still
+  /// waking up, since falling back would only guarantee failure.
+  static bool get _isProduction =>
+      dotenv.isInitialized &&
+      (dotenv.env['APP_ENV']?.trim().toLowerCase() ?? '') == 'production';
+
   /// Whether the last probe found [renderEnvKey]'s Render backend reachable.
   static bool isReachable(String renderEnvKey) => _reachable[renderEnvKey] ?? false;
 
@@ -36,6 +44,9 @@ abstract final class BackendEnvironment {
     Duration timeout = const Duration(seconds: 4),
   }) async {
     if (!dotenv.isInitialized) return;
+    // Production never falls back to local URLs, so probing would only delay
+    // startup (a cold Render service can take up to a minute to answer).
+    if (_isProduction) return;
 
     final Iterable<String> keys = dotenv.env.keys.where(
       (String key) =>
@@ -83,13 +94,16 @@ abstract final class BackendEnvironment {
     }
   }
 
-  /// Returns the Render base URL for [renderEnvKey] when it's reachable,
+  /// Returns the Render base URL for [renderEnvKey] when it's configured and
+  /// either this is a production build or the probe found it reachable;
   /// otherwise [local].
   ///
-  /// Call [resolve] once at startup before relying on this; until then it
-  /// behaves as if every Render backend was unreachable and returns [local].
+  /// Outside production, call [resolve] once at startup before relying on
+  /// this; until then it behaves as if every Render backend was unreachable.
   static String resolveBase(String local, String renderEnvKey) {
-    if (!isReachable(renderEnvKey)) return local;
-    return _renderUrlFor(renderEnvKey) ?? local;
+    final String? render = _renderUrlFor(renderEnvKey);
+    if (render == null) return local;
+    if (_isProduction || isReachable(renderEnvKey)) return render;
+    return local;
   }
 }
