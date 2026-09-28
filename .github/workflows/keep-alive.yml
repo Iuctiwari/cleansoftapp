@@ -1,8 +1,9 @@
 name: Keep-alive (Render free tier)
 
 on:
-  schedule:
-    - cron: '*/10 * * * *'
+  # Schedule removed: keeping every free Render service awake 24/7 exhausts the
+  # workspace's 750 free instance-hours/month in ~2 days, after which Render
+  # suspends ALL free services until the next month. Run manually if needed.
   workflow_dispatch: {}
 
 jobs:
