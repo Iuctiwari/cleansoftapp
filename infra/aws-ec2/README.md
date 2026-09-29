@@ -33,6 +33,10 @@ Replaces the Render deployment. Written for someone new to AWS.
    The file downloads. Keep it safe; it's the key to your server.
 6. **Network settings** → *Edit*. Keep "Create security group" and set the rules:
    - SSH, port 22, source **My IP**
+   - Add rule → **SSH**, port 22, source **Custom** → choose the prefix list
+     **com.amazonaws.ap-south-1.ec2-instance-connect** (or type `13.233.177.0/29`).
+     The browser terminal (EC2 Instance Connect) connects from AWS's servers, not
+     from your IP. Without this rule it fails with "Error establishing SSH connection".
    - Add rule → **HTTP**, port 80, source **Anywhere (0.0.0.0/0)**
    - Add rule → **HTTPS**, port 443, source **Anywhere (0.0.0.0/0)**
 
