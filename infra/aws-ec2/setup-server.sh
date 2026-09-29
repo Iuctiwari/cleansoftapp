@@ -56,8 +56,10 @@ done
 chmod 600 "$ENV_DIR"/*.env
 
 echo "==> Generating internal secrets (each GENERATE_ME gets its own random value)"
-while grep -q 'GENERATE_ME' "$ENV_DIR/common.env"; do
-  sed -i "0,/GENERATE_ME/s//$(openssl rand -hex 32)/" "$ENV_DIR/common.env"
+for env_file in "$ENV_DIR"/*.env; do
+  while grep -q 'GENERATE_ME' "$env_file"; do
+    sed -i "0,/GENERATE_ME/s//$(openssl rand -hex 32)/" "$env_file"
+  done
 done
 
 cat <<EOF

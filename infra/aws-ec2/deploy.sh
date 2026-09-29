@@ -21,10 +21,14 @@ missing=0
 for file in common $SERVICES; do
   if [ ! -f "$ENV_DIR/$file.env" ]; then
     echo "   MISSING: $ENV_DIR/$file.env"; missing=1
-  elif grep -q 'FILL_ME' "$ENV_DIR/$file.env"; then
-    echo "   NOT FILLED IN: $ENV_DIR/$file.env ($(grep -c 'FILL_ME' "$ENV_DIR/$file.env") value(s))"; missing=1
+  elif grep -qE 'FILL_ME|GENERATE_ME' "$ENV_DIR/$file.env"; then
+    echo "   NOT FILLED IN: $ENV_DIR/$file.env ($(grep -cE 'FILL_ME|GENERATE_ME' "$ENV_DIR/$file.env") value(s))"; missing=1
   fi
 done
+# platform-admin refuses to boot without this (see its billing.config.ts).
+if ! grep -qE '^RAZORPAY_WEBHOOK_SECRET=.{16,}' "$ENV_DIR/platform-admin-service.env"; then
+  echo "   platform-admin-service.env: RAZORPAY_WEBHOOK_SECRET must be at least 16 characters"; missing=1
+fi
 [ "$missing" -eq 0 ] || { echo "Fix the env files above, then re-run."; exit 1; }
 
 if [ "${1:-}" != "--no-pull" ]; then
