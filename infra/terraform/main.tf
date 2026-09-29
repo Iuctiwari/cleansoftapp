@@ -34,11 +34,12 @@ resource "aws_security_group" "server" {
 
 resource "aws_vpc_security_group_ingress_rule" "http" {
   security_group_id = aws_security_group.server.id
-  description       = "HTTP (Let's Encrypt challenge + redirect to HTTPS)"
-  ip_protocol       = "tcp"
-  from_port         = 80
-  to_port           = 80
-  cidr_ipv4         = "0.0.0.0/0"
+  # Rule descriptions allow only a-zA-Z0-9. _-:/()#,@[]+=&;{}!$* (no apostrophes).
+  description = "HTTP (LetsEncrypt challenge + redirect to HTTPS)"
+  ip_protocol = "tcp"
+  from_port   = 80
+  to_port     = 80
+  cidr_ipv4   = "0.0.0.0/0"
 }
 
 resource "aws_vpc_security_group_ingress_rule" "https" {
@@ -62,7 +63,7 @@ resource "aws_vpc_security_group_ingress_rule" "ssh_instance_connect" {
 resource "aws_vpc_security_group_ingress_rule" "ssh_admin" {
   count             = var.admin_ssh_cidr == null ? 0 : 1
   security_group_id = aws_security_group.server.id
-  description       = "SSH from the admin's own IP"
+  description       = "SSH from the admin own IP"
   ip_protocol       = "tcp"
   from_port         = 22
   to_port           = 22
@@ -71,7 +72,7 @@ resource "aws_vpc_security_group_ingress_rule" "ssh_admin" {
 
 resource "aws_vpc_security_group_egress_rule" "all" {
   security_group_id = aws_security_group.server.id
-  description       = "Outbound: MongoDB Atlas, GitHub, npm, Let's Encrypt, email/payment APIs"
+  description       = "Outbound: MongoDB Atlas, GitHub, npm, LetsEncrypt, email/payment APIs"
   ip_protocol       = "-1"
   cidr_ipv4         = "0.0.0.0/0"
 }
