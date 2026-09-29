@@ -66,3 +66,12 @@ $RECYCLE.BIN/
 .cache/
 tmp/
 temp/
+
+# Terraform (state holds infrastructure details; tfvars holds your email)
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+.terraform.lock.hcl.bak
+crash.log

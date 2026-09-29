@@ -1,0 +1,9 @@
+# Copy to terraform.tfvars (git-ignored) and fill in.
+budget_email = "you@example.com"
+
+# Optional — defaults shown:
+# aws_region         = "ap-south-1"
+# instance_type      = "t3.small"
+# monthly_budget_usd = 10
+# deploy_branch      = "iuc"
+# admin_ssh_cidr     = "122.176.237.237/32"   # your home IP, for direct SSH

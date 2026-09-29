@@ -2,6 +2,9 @@
 
 Replaces the Render deployment. Written for someone new to AWS.
 
+> **Using Terraform + GitHub Actions?** Follow [../terraform/README.md](../terraform/README.md) instead.
+> It creates Parts 1–3 and the S3 bucket for you, and sends you back here for Parts 5–8.
+
 ```
  Phone app ──HTTPS──▶ EC2 server (Caddy) ──▶ 14 NestJS services (PM2) ──▶ MongoDB Atlas (unchanged)
  Download link ─────▶ S3 bucket (the APK file)
