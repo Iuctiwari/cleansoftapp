@@ -75,13 +75,26 @@ class StaffApiService {
 
   /// Tenant profile/branches live on tenant-service, not user-service (this
   /// class's own [_baseUrl]) or auth-service — resolved separately here.
+  ///
+  /// Returns the bare host: callers append `/api/v1/...` themselves, but
+  /// RENDER_TENANT_API_BASE_URL is configured as `https://host/api/v1` (the
+  /// form TenantApiService expects), so a trailing `/api/v1`, `/v1` or `/api`
+  /// is stripped here the same way TenantApiService does — otherwise requests
+  /// go to `/api/v1/api/v1/tenants/...` and 404.
   static String _tenantServiceBaseUrl() {
-    return _normalizeBaseUrl(
+    var base = _normalizeBaseUrl(
       BackendEnvironment.resolveBase(
         dotenv.env['TENANT_API_BASE_URL']?.trim() ?? 'http://127.0.0.1:3006',
         'RENDER_TENANT_API_BASE_URL',
       ),
     );
+    for (final String suffix in const <String>['/api/v1', '/v1', '/api']) {
+      if (base.endsWith(suffix)) {
+        base = base.substring(0, base.length - suffix.length);
+        break;
+      }
+    }
+    return _normalizeBaseUrl(base);
   }
 
   /// Returns headers with Authorization token if available.
