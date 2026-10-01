@@ -135,9 +135,11 @@ export class TenantController {
   @ApiResponse({ status: 409, description: 'Owner email belongs to another tenant' })
   @ApiResponse({ status: 500, description: 'Transactional database update failed' })
   async completeOnboarding(
+    @Req() request: TenantAccessRequest,
     @Param('tenantId') tenantId: string,
     @Body() body: CompleteTenantOnboardingDto,
   ): Promise<CompleteTenantOnboardingResponseDto> {
+    assertOwnTenant(request, tenantId);
     return this.tenantService.completeOnboarding(tenantId, body);
   }
 

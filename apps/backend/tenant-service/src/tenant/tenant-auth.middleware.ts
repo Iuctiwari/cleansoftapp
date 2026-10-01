@@ -19,10 +19,10 @@ export class TenantAuthenticationMiddleware implements NestMiddleware {
   constructor(private readonly config: ConfigService) {}
 
   async use(request: TenantAccessRequest, _response: unknown, next: () => void): Promise<void> {
-    if (
-      (request.method === 'POST' && request.originalUrl?.endsWith('/tenants/register')) ||
-      (request.method === 'PATCH' && /\/tenants\/[^/]+$/.test(request.originalUrl ?? ''))
-    ) {
+    // Only sign-up is public. Onboarding (PATCH /tenants/:id) used to be exempt too,
+    // which let anyone who knew a tenantId overwrite the owner's details; the app now
+    // signs the owner in right after sign-up and sends their token for onboarding.
+    if (request.method === 'POST' && request.originalUrl?.endsWith('/tenants/register')) {
       next();
       return;
     }

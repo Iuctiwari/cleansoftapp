@@ -93,6 +93,10 @@ void main() {
     await tester.pump();
     expect(find.text('Customer name is required'), findsOneWidget);
     expect(find.text('Mobile number is required'), findsOneWidget);
+    // Missing required fields also raise a pop-up; dismiss it to keep editing.
+    expect(find.text('Required information'), findsOneWidget);
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
 
     final List<Finder> fields = List<Finder>.generate(
       4,

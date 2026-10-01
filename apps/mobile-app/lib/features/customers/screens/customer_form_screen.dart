@@ -62,7 +62,15 @@ class _CustomerFormScreenState extends State<CustomerFormScreen> {
   }
 
   Future<void> _save() async {
-    if (!_formKey.currentState!.validate() || _saving) return;
+    if (_saving) return;
+    if (!_formKey.currentState!.validate()) {
+      await AppAlertDialog.show(
+        context,
+        title: 'Required information',
+        message: 'Please fill in the highlighted fields before saving the customer.',
+      );
+      return;
+    }
     setState(() => _saving = true);
     final CustomerDraft draft = CustomerDraft(
       name: _name.text,
@@ -80,7 +88,13 @@ class _CustomerFormScreenState extends State<CustomerFormScreen> {
       }
       if (mounted) Navigator.of(context).pop(true);
     } on CustomerApiException catch (error) {
-      if (mounted) _message(error.message);
+      if (mounted) {
+        await AppAlertDialog.show(
+          context,
+          title: AppAlertDialog.titleFor(error.message),
+          message: error.message,
+        );
+      }
     } finally {
       if (mounted) setState(() => _saving = false);
     }

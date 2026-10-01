@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
+  IsBoolean,
   IsEmail,
   IsEnum,
   IsNotEmpty,
@@ -31,16 +32,32 @@ export class RegisterStaffDto {
   @MaxLength(160)
   loginId!: string;
 
-  @ApiProperty({
-    description: 'Initial password for the employee (min 8 chars, upper + lower + digit + special)',
+  @ApiPropertyOptional({
+    description:
+      'Initial password (min 8 chars, upper + lower + digit + special). Omit when sendInvite is true — ' +
+      'the staff member then sets their own password via Forgot password.',
     minLength: 8,
     maxLength: 256,
   })
+  @ValidateIf((o: RegisterStaffDto) => !o.sendInvite || o.password !== undefined)
   @IsString()
   @IsNotEmpty()
   @MinLength(8)
   @MaxLength(256)
-  password!: string;
+  password?: string;
+
+  @ApiPropertyOptional({
+    description: 'Email the staff member an invitation to set their own password (needs email).',
+  })
+  @IsOptional()
+  @IsBoolean()
+  sendInvite?: boolean;
+
+  @ApiPropertyOptional({ description: 'Business name shown in the invitation email.' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(160)
+  businessName?: string;
 
   @ApiPropertyOptional({ example: 'john@example.com', maxLength: 160 })
   @IsOptional()
@@ -125,6 +142,8 @@ export class UpdateAvailabilityDto {
 }
 
 export class StaffResponseDto {
+  @ApiPropertyOptional({ description: 'Only on register with sendInvite: whether the email went out' })
+  inviteSent?: boolean;
   @ApiProperty() userId!: string;
   @ApiProperty() tenantId!: string;
   @ApiProperty() name!: string;

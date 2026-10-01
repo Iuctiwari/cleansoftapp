@@ -62,7 +62,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Future<void> _saveProfile() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) {
+      await AppAlertDialog.show(
+        context,
+        title: 'Required information',
+        message: 'Please fix the highlighted fields before saving.',
+      );
+      return;
+    }
     setState(() {
       _isSaving = true;
       _error = null;
@@ -107,9 +114,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       context.pop(true); // Return true to trigger profile reload
     } catch (e) {
       if (!mounted) return;
-      setState(() => _error = e.toString());
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to update profile: $e')),
+      final String message = e is StaffApiException ? e.userMessage : e.toString();
+      setState(() => _error = message);
+      await AppAlertDialog.show(
+        context,
+        title: AppAlertDialog.titleFor(message),
+        message: message,
       );
     } finally {
       if (mounted) setState(() => _isSaving = false);

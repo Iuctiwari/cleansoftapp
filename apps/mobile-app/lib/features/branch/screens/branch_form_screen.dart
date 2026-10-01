@@ -116,7 +116,14 @@ class _BranchFormScreenState extends State<BranchFormScreen> {
   }
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) {
+      await AppAlertDialog.show(
+        context,
+        title: 'Required information',
+        message: 'Please fill in the highlighted fields — branch name, phone and email are required.',
+      );
+      return;
+    }
 
     final String? managerId = _optional(_managerIdController.text);
     final bool managerIdChanged =
@@ -178,6 +185,13 @@ class _BranchFormScreenState extends State<BranchFormScreen> {
             ),
           ),
         );
+    } else if (_controller.errorMessage != null) {
+      // e.g. "Branch code already exists" or the branch limit of the plan.
+      await AppAlertDialog.show(
+        context,
+        title: AppAlertDialog.titleFor(_controller.errorMessage!),
+        message: _controller.errorMessage!,
+      );
     }
   }
 

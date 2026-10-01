@@ -33,6 +33,14 @@ fi
 sudo npm install -g corepack@latest pm2
 sudo corepack enable
 
+echo "==> AWS CLI + MongoDB tools (nightly backups: infra/aws-ec2/backup-db.sh)"
+command -v aws >/dev/null || sudo snap install aws-cli --classic
+if ! command -v mongodump >/dev/null; then
+  curl -fsSL -o /tmp/mongodb-tools.deb \
+    https://fastdl.mongodb.org/tools/db/mongodb-database-tools-ubuntu2404-x86_64-100.12.0.deb
+  sudo apt-get install -y /tmp/mongodb-tools.deb
+fi
+
 echo "==> Caddy (reverse proxy + free Let's Encrypt certificates)"
 if ! command -v caddy >/dev/null; then
   curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' \

@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:nexoraa_mobile/design_system/design_system.dart' show AppAlertDialog;
+import 'package:nexoraa_mobile/features/authentication/authentication_dependencies.dart';
+import 'package:nexoraa_mobile/features/staff/services/staff_api_service.dart';
+
 import '../../../app/router.dart';
 import '../../../app/theme.dart';
 import '../models/tenant_onboarding_data.dart';
@@ -82,7 +86,16 @@ class _InviteStaffScreenState extends State<InviteStaffScreen> {
   Future<void> _skip() async {
     if (_isSubmitting) return;
     if (_hasInvitationInput) {
-      if (!_formKey.currentState!.validate()) return;
+      if (!_formKey.currentState!.validate()) {
+        await AppAlertDialog.show(
+          context,
+          title: 'Required information',
+          message:
+              'Please fix the highlighted fields. Each staff member needs an email address — '
+              'the invitation is sent by email.',
+        );
+        return;
+      }
       _save();
     } else {
       widget.data.staff.clear();
@@ -90,36 +103,108 @@ class _InviteStaffScreenState extends State<InviteStaffScreen> {
     setState(() => _isSubmitting = true);
 
     try {
-      await _apiService.completeOnboarding(widget.data);
-      if (mounted) {
-        widget.data.branchCreated = true;
-        widget.data.servicesConfigured = true;
-        widget.data.staffInvitationSubmitted = widget.data.staff.isNotEmpty;
-        context.pushNamed(AppRouteNames.onboardingAllSet, extra: widget.data);
+      // Onboarding and invitations need the owner's login. They're signed in right
+      // after sign-up, but re-sign in with the details they just entered if not.
+      final auth = AuthenticationDependencies.controller;
+      if (!auth.isAuthenticated) {
+        await auth.signIn(
+          identifier: widget.data.registrationForm.email.trim(),
+          password: widget.data.registrationForm.password,
+        );
       }
+
+      await _apiService.completeOnboarding(widget.data);
+      final String? report = await _sendInvitations();
+      if (!mounted) return;
+      if (report != null) {
+        await AppAlertDialog.show(
+          context,
+          title: report.startsWith('Invitation') ? 'Invitations sent' : 'Some invitations need attention',
+          message: report,
+          isError: !report.startsWith('Invitation'),
+        );
+        if (!mounted) return;
+      }
+      widget.data.branchCreated = true;
+      widget.data.servicesConfigured = true;
+      widget.data.staffInvitationSubmitted = widget.data.staff.isNotEmpty;
+      context.pushNamed(AppRouteNames.onboardingAllSet, extra: widget.data);
     } on TenantApiException catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(
+        await AppAlertDialog.show(
           context,
-        ).showSnackBar(SnackBar(content: Text(error.userMessage)));
+          title: AppAlertDialog.titleFor(error.userMessage),
+          message: error.userMessage,
+        );
       }
     } on TenantApiNetworkException catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(error.message)));
+        await AppAlertDialog.show(context, title: 'Connection problem', message: error.message);
       }
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Unable to save onboarding. Please try again.'),
-          ),
+        await AppAlertDialog.show(
+          context,
+          title: 'Something went wrong',
+          message: 'Unable to save onboarding. Please try again.',
         );
       }
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
+  }
+
+  /// Creates each invited staff account and emails the invitation. Returns a
+  /// summary to show, or null when nothing was invited.
+  Future<String?> _sendInvitations() async {
+    final invites = widget.data.staff.where((s) => s.email.trim().isNotEmpty).toList();
+    if (invites.isEmpty) return null;
+    final String? branchId = AuthenticationDependencies.controller.session?.branchId;
+    final StaffApiService staffApi = StaffApiService();
+
+    final List<String> sent = <String>[];
+    final List<String> problems = <String>[];
+    for (final StaffInvitationData invite in invites) {
+      final String email = invite.email.trim().toLowerCase();
+      try {
+        final bool emailed = await staffApi.inviteStaff(
+          tenantId: widget.data.tenantId,
+          name: _nameFromEmail(email),
+          email: email,
+          mobileNumber: invite.mobileNumber.trim(),
+          businessName: widget.data.registrationForm.businessName.trim(),
+          branches: <String>[if (branchId != null && branchId.isNotEmpty) branchId],
+        );
+        if (emailed) {
+          sent.add(email);
+        } else {
+          problems.add('$email — account created, but the email could not be sent. '
+              'Ask them to open the app and tap "Forgot password?".');
+        }
+      } on StaffApiException catch (error) {
+        problems.add('$email — ${error.backendMessage ?? 'could not be invited'}');
+      }
+    }
+
+    if (problems.isEmpty) {
+      return 'Invitation sent to ${sent.join(', ')}. '
+          'They\'ll set their own password using "Forgot password?" in the app.';
+    }
+    return <String>[
+      if (sent.isNotEmpty) 'Invited: ${sent.join(', ')}.',
+      ...problems,
+      'You can add or re-invite staff later from the Staff screen.',
+    ].join('\n\n');
+  }
+
+  /// "ravi.kumar@shop.com" → "Ravi Kumar" (staff can edit their name later).
+  static String _nameFromEmail(String email) {
+    final String local = email.split('@').first.replaceAll(RegExp(r'[._\-+0-9]+'), ' ').trim();
+    if (local.isEmpty) return 'Staff Member';
+    return local
+        .split(RegExp(r'\s+'))
+        .map((w) => w[0].toUpperCase() + w.substring(1))
+        .join(' ');
   }
 
   @override
@@ -139,7 +224,7 @@ class _InviteStaffScreenState extends State<InviteStaffScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Invite team members to join your workspace. They\'ll get an email invitation.',
+              'Invite team members to join your workspace. Each person gets an email invitation.',
               style: TextStyle(
                 color: kTextSecondary,
                 fontSize: 16,
@@ -155,9 +240,40 @@ class _InviteStaffScreenState extends State<InviteStaffScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     TenantFieldLabel(
+                      index == 0 ? 'Email *' : 'Email ${index + 1} *',
+                    ),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                      controller: controllers.email,
+                      keyboardType: TextInputType.emailAddress,
+                      onChanged: (_) => setState(() {}),
+                      decoration: const InputDecoration(
+                        hintText: 'staff@yourshop.com',
+                      ),
+                      validator: (value) {
+                        final email = value?.trim() ?? '';
+                        // Required once anything is entered in this row — the
+                        // invitation (and their login ID) is the email.
+                        if (email.isEmpty) {
+                          return controllers.mobileNumber.text.trim().isEmpty
+                              ? null
+                              : 'Email is required to send the invitation';
+                        }
+                        if (!_emailPattern.hasMatch(email)) {
+                          return 'Enter a valid email';
+                        }
+                        final duplicates = _controllers
+                            .where((c) => c.email.text.trim().toLowerCase() == email.toLowerCase())
+                            .length;
+                        if (duplicates > 1) return 'This email is entered twice';
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    TenantFieldLabel(
                       index == 0
-                          ? 'Mobile Number'
-                          : 'Mobile Number ${index + 1}',
+                          ? 'Mobile Number (Optional)'
+                          : 'Mobile Number ${index + 1} (Optional)',
                     ),
                     const SizedBox(height: 8),
                     TextFormField(
@@ -172,29 +288,6 @@ class _InviteStaffScreenState extends State<InviteStaffScreen> {
                         if (mobile.isEmpty) return null;
                         if (!_mobilePattern.hasMatch(mobile)) {
                           return 'Enter a valid mobile number';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    TenantFieldLabel(
-                      index == 0
-                          ? 'Email (Optional)'
-                          : 'Email ${index + 1} (Optional)',
-                    ),
-                    const SizedBox(height: 8),
-                    TextFormField(
-                      controller: controllers.email,
-                      keyboardType: TextInputType.emailAddress,
-                      onChanged: (_) => setState(() {}),
-                      decoration: const InputDecoration(
-                        hintText: 'staff@yourshop.com',
-                      ),
-                      validator: (value) {
-                        final email = value?.trim() ?? '';
-                        if (email.isEmpty) return null;
-                        if (!_emailPattern.hasMatch(email)) {
-                          return 'Enter a valid email';
                         }
                         return null;
                       },
@@ -232,7 +325,8 @@ class _InviteStaffScreenState extends State<InviteStaffScreen> {
                 border: Border.all(color: const Color(0xFFFFD45C)),
               ),
               child: const Text(
-                'Staff members will receive an invitation to join your workspace. They\'ll set their own password.',
+                'Each staff member gets an email with their login ID (their email). They set their own '
+                'password by tapping "Forgot password?" in the app. You can add more staff later from the Staff screen.',
                 style: TextStyle(
                   color: Color(0xFF9A4A00),
                   fontSize: 14,

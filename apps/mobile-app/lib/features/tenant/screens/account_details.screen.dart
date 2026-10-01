@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:nexoraa_mobile/design_system/design_system.dart' show AppAlertDialog;
 import 'package:nexoraa_mobile/features/authentication/authentication_dependencies.dart';
 
 import '../../../app/theme.dart';
@@ -52,10 +53,28 @@ class _AccountDetailsPageState extends State<AccountDetailsPage> {
 
   bool get _canSubmit => _agreedToTerms && !_isLoading;
 
+  /// Shows the problem inline AND as a pop-up, so "Email is already registered"
+  /// and missing required fields can't be missed.
+  Future<void> _showError(String message, {String? title}) async {
+    if (!mounted) return;
+    setState(() => _errorMessage = message);
+    await AppAlertDialog.show(
+      context,
+      title: title ?? AppAlertDialog.titleFor(message),
+      message: message,
+    );
+  }
+
   Future<void> _createAccount() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) {
+      await _showError(
+        'Please fill in the highlighted fields — email, phone number and password are required.',
+        title: 'Required information',
+      );
+      return;
+    }
     if (!_agreedToTerms) {
-      setState(() => _errorMessage = 'You must agree to the Terms of Service.');
+      await _showError('You must agree to the Terms of Service.', title: 'Required information');
       return;
     }
 
@@ -89,16 +108,17 @@ class _AccountDetailsPageState extends State<AccountDetailsPage> {
         );
       }
     } on TenantApiException catch (e) {
-      if (mounted) setState(() => _errorMessage = e.userMessage);
+      final String message = e.userMessage;
+      await _showError(
+        message.contains('already registered')
+            ? '$message. Log in with that account instead (use "Forgot password?" if needed), '
+                  'or use a different one.'
+            : message,
+      );
     } on TenantApiNetworkException catch (e) {
-      if (mounted) setState(() => _errorMessage = e.message);
+      await _showError(e.message, title: 'Connection problem');
     } catch (_) {
-      if (mounted) {
-        setState(
-          () => _errorMessage =
-              'Unable to complete registration. Please try again.',
-        );
-      }
+      await _showError('Unable to complete registration. Please try again.');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }

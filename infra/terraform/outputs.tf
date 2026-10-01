@@ -17,6 +17,11 @@ output "apk_download_url" {
   value       = "https://${aws_s3_bucket.downloads.bucket_regional_domain_name}/apk/app-release.apk"
 }
 
+output "backups_bucket" {
+  description = "Private bucket with the nightly database backups."
+  value       = aws_s3_bucket.backups.bucket
+}
+
 output "downloads_bucket" {
   value = aws_s3_bucket.downloads.bucket
 }

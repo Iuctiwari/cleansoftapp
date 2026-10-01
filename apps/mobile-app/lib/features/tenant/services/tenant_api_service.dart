@@ -337,12 +337,28 @@ class TenantApiService {
       );
     }
 
+    // tenant-service requires the owner's login for onboarding (it used to be open
+    // to anyone who knew the tenantId). The owner is signed in right after sign-up.
+    final session = await _tokenStorage.read();
+    if (session == null) {
+      throw const TenantApiException(
+        code: 'tenant.session_missing',
+        messageKey: 'errors.tenant.session_missing',
+        category: 'unauthenticated',
+        statusCode: 401,
+        backendMessage: 'Your session has expired. Please sign in and continue setup.',
+      );
+    }
+
     late http.Response response;
     try {
       response = await _client
           .patch(
             Uri.parse('$_baseUrl/api/v1/tenants/$tenantId'),
-            headers: {'Content-Type': 'application/json'},
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer ${session.accessToken}',
+            },
             body: jsonEncode(data.toOnboardingJson()),
           )
           .timeout(_requestTimeout);

@@ -1,4 +1,7 @@
+import { randomBytes } from 'node:crypto';
+
 import {
+  BadRequestException,
   ConflictException,
   ForbiddenException,
   Injectable,
@@ -96,6 +99,16 @@ export class UserService {
         'Branch Managers may invite Staff only to their assigned branch',
       );
     }
+    if (dto.sendInvite && !dto.email?.trim()) {
+      throw new BadRequestException('An email address is required to send an invitation');
+    }
+    if (!dto.sendInvite && !dto.password) {
+      throw new BadRequestException('A password is required unless an invitation is sent');
+    }
+    // Invited staff set their own password via Forgot password, so the account gets
+    // a random one nobody knows (never returned or emailed).
+    const password = dto.password ?? `Inv!${randomBytes(18).toString('base64url')}a1`;
+
     // Check duplicate loginId within tenant
     const tenantOid = new Types.ObjectId(tenantId);
     const existingLoginId = await this.userModel.findOne({
@@ -143,16 +156,19 @@ export class UserService {
     await user.save();
 
     // Provision auth credentials in auth-service
+    let inviteSent = false;
     try {
-      await this.provisionAuthCredentials({
+      inviteSent = await this.provisionAuthCredentials({
         userId: user._id.toString(),
         tenantId,
         loginId: dto.loginId.trim().toLowerCase(),
         displayName: dto.name,
         email: dto.email,
-        password: dto.password,
+        password,
         roleCode: dto.role,
         branchIds: dto.branchIds,
+        sendInvite: dto.sendInvite === true,
+        businessName: dto.businessName?.trim() || undefined,
       });
     } catch (err) {
       // Roll back user record if auth provisioning fails
@@ -164,7 +180,7 @@ export class UserService {
       throw err;
     }
 
-    return this.mapToDto(user);
+    return { ...this.mapToDto(user), ...(dto.sendInvite ? { inviteSent } : {}) };
   }
 
   // ── Status ────────────────────────────────────────────────────────────────
@@ -385,7 +401,9 @@ export class UserService {
     password: string;
     roleCode: string;
     branchIds: string[];
-  }): Promise<void> {
+    sendInvite?: boolean;
+    businessName?: string;
+  }): Promise<boolean> {
     const authBaseUrl = this.configService.getOrThrow<string>('AUTH_SERVICE_INTERNAL_URL');
     const secret = this.configService.getOrThrow<string>('INTERNAL_SERVICE_SECRET');
     const apiVersion = this.configService.get<string>('API_VERSION', 'v1');
@@ -399,13 +417,15 @@ export class UserService {
       userId: params.userId,
       tenantId: params.tenantId,
       tenantSlug,
-      tenantName: tenantSlug,
+      // Shown to staff as their business name (login response, invitation email).
+      tenantName: params.businessName ?? tenantSlug,
       loginId: params.loginId,
       displayName: params.displayName,
       email: params.email,
       password: params.password,
       roleCode: params.roleCode,
       branchIds: params.branchIds,
+      sendInvite: params.sendInvite === true,
     });
 
     const response = await fetch(url, {
@@ -421,6 +441,11 @@ export class UserService {
       const text = await response.text();
       throw new Error(`Auth provisioning failed (${response.status}): ${text}`);
     }
+    const result = (await response.json().catch(() => ({}))) as {
+      inviteSent?: boolean;
+      data?: { inviteSent?: boolean };
+    };
+    return (result.data ?? result).inviteSent === true;
   }
 
   private async updateAuthStatus(userId: string, status: 'active' | 'disabled'): Promise<void> {

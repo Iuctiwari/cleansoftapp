@@ -501,6 +501,64 @@ class StaffApiService {
     }
   }
 
+  /// Creates a staff account WITHOUT a password and emails them an invitation;
+  /// they set their own password with "Forgot password?". Returns whether the
+  /// invitation email was sent (the account is created either way).
+  Future<bool> inviteStaff({
+    required String tenantId,
+    required String name,
+    required String email,
+    String? mobileNumber,
+    required String businessName,
+    required List<String> branches,
+    String role = 'Staff',
+  }) async {
+    final uri = Uri.parse('$_baseUrl/api/v1/users/tenant/$tenantId/register');
+    final headers = await _authHeaders();
+
+    late http.Response response;
+    try {
+      response = await _client
+          .post(
+            uri,
+            headers: headers,
+            body: jsonEncode({
+              'name': name,
+              'loginId': email,
+              'email': email,
+              if (mobileNumber != null && mobileNumber.isNotEmpty)
+                'mobileNumber': mobileNumber,
+              'role': role,
+              'branchIds': branches,
+              'sendInvite': true,
+              'businessName': businessName,
+            }),
+          )
+          .timeout(_requestTimeout);
+    } catch (_) {
+      throw const StaffApiException(
+        code: 'network_error',
+        messageKey: 'network_error',
+        statusCode: 0,
+        backendMessage: 'Unable to reach the staff service.',
+      );
+    }
+
+    final Object? decoded = response.body.isEmpty ? null : jsonDecode(response.body);
+    if (response.statusCode == 201) {
+      return decoded is Map && decoded['inviteSent'] == true;
+    }
+    final Object? msg = decoded is Map ? decoded['message'] : null;
+    throw StaffApiException(
+      code: response.statusCode == 409 ? 'duplicate' : 'error',
+      messageKey: 'error',
+      statusCode: response.statusCode,
+      backendMessage: msg is List
+          ? msg.join('\n')
+          : msg?.toString() ?? 'Could not invite this staff member.',
+    );
+  }
+
   // ── Update ────────────────────────────────────────────────────────────────
 
   Future<void> updateStaff({

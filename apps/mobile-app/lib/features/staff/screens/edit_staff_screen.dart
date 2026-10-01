@@ -95,7 +95,14 @@ class _EditStaffScreenState extends State<EditStaffScreen> {
   }
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) {
+      await AppAlertDialog.show(
+        context,
+        title: 'Required information',
+        message: 'Please fix the highlighted fields before saving.',
+      );
+      return;
+    }
 
     setState(() {
       _isSubmitting = true;
@@ -119,10 +126,14 @@ class _EditStaffScreenState extends State<EditStaffScreen> {
         context.pop(true);
       }
     } catch (e) {
+      final String message = e is StaffApiException ? e.userMessage : e.toString();
       setState(() {
-        _errorMessage = e is StaffApiException ? e.userMessage : e.toString();
+        _errorMessage = message;
         _isSubmitting = false;
       });
+      if (mounted) {
+        await AppAlertDialog.show(context, title: AppAlertDialog.titleFor(message), message: message);
+      }
     }
   }
 

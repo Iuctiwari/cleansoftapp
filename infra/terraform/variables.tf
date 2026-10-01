@@ -45,6 +45,18 @@ variable "deploy_branch" {
   default     = "iuc"
 }
 
+variable "alert_email" {
+  description = "Email for downtime/server alerts. Defaults to budget_email."
+  type        = string
+  default     = null
+}
+
+variable "backup_retention_days" {
+  description = "How long daily database backups are kept in S3."
+  type        = number
+  default     = 30
+}
+
 variable "create_github_oidc_provider" {
   description = "Set false if this AWS account already has the token.actions.githubusercontent.com OIDC provider."
   type        = bool

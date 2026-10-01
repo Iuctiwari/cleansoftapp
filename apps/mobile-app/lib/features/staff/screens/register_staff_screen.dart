@@ -89,10 +89,19 @@ class _RegisterStaffScreenState extends State<RegisterStaffScreen> {
   }
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) {
+      await AppAlertDialog.show(
+        context,
+        title: 'Required information',
+        message: 'Please fill in the highlighted fields before adding this staff member.',
+      );
+      return;
+    }
     if (_selectedBranchIds.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please assign at least one branch')),
+      await AppAlertDialog.show(
+        context,
+        title: 'Required information',
+        message: 'Please assign at least one branch.',
       );
       return;
     }
@@ -120,10 +129,14 @@ class _RegisterStaffScreenState extends State<RegisterStaffScreen> {
       );
       if (mounted) context.pop(true);
     } catch (e) {
+      final String message = e is StaffApiException ? e.userMessage : e.toString();
       setState(() {
-        _errorMessage = e is StaffApiException ? e.userMessage : e.toString();
+        _errorMessage = message;
         _isSubmitting = false;
       });
+      if (mounted) {
+        await AppAlertDialog.show(context, title: AppAlertDialog.titleFor(message), message: message);
+      }
     }
   }
 

@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:nexoraa_mobile/features/authentication/authentication_models.dart';
+import 'package:nexoraa_mobile/features/authentication/services/auth_token_storage.dart';
 import 'package:nexoraa_mobile/features/tenant/models/registration_form.dart';
 import 'package:nexoraa_mobile/features/tenant/models/tenant_onboarding_data.dart';
 import 'package:nexoraa_mobile/features/tenant/services/tenant_api_service.dart';
@@ -206,6 +208,8 @@ void main() {
           request.url.toString(),
           'http://10.0.2.2:3003/api/v1/tenants/tenant-123',
         );
+        // Onboarding now requires the owner's login (it used to be open to anyone).
+        expect(request.headers['Authorization'], 'Bearer owner-token');
         final body = jsonDecode(request.body) as Map<String, dynamic>;
         expect(body['staff'], <Map<String, String>>[
           <String, String>{'mobileNumber': '+919876543211'},
@@ -223,6 +227,7 @@ void main() {
       await TenantApiService(
         client: client,
         baseUrl: 'http://10.0.2.2:3003',
+        tokenStorage: _OwnerTokenStorage(),
       ).completeOnboarding(data);
 
       expect(requests, 1);
@@ -242,4 +247,22 @@ void main() {
       expect(error.message, 'Tenant Service unavailable');
     }
   });
+}
+
+final class _OwnerTokenStorage implements AuthTokenStorage {
+  AuthenticationSession? _session = AuthenticationSession(
+    accessToken: 'owner-token',
+    refreshToken: 'refresh',
+    accessTokenExpiresAt: DateTime.utc(2027),
+    refreshTokenExpiresAt: DateTime.utc(2028),
+  );
+
+  @override
+  Future<void> clear() async => _session = null;
+
+  @override
+  Future<AuthenticationSession?> read() async => _session;
+
+  @override
+  Future<void> write(AuthenticationSession session) async => _session = session;
 }
