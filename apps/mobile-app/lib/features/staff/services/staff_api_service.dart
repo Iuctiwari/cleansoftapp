@@ -376,7 +376,13 @@ class StaffApiService {
       try {
         final decoded = jsonDecode(response.body);
         final msg = decoded['message'];
-        if (msg is List) {
+        // tenant-service errors come as {"error": {"code": ...}} with no message.
+        final error = decoded['error'];
+        final code = error is Map ? error['code'] : null;
+        if (code == 'tenant.mobile_already_registered') {
+          backendMessage =
+              'This mobile number is already used by another account. Please use a different number.';
+        } else if (msg is List) {
           backendMessage = msg.join('\n');
         } else if (msg != null) {
           backendMessage = msg.toString();
