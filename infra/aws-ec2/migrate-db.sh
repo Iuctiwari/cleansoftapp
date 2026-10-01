@@ -65,7 +65,8 @@ for uri in "${OLD_URIS[@]}"; do
   restore_status=0
   restore_log="$(mongorestore --uri="$NEW_HOST/$NEW_QUERY" --nsInclude="$db.*" --drop "$WORK/dump" 2>&1)" \
     || restore_status=$?
-  echo "$restore_log" | sed -E 's#//[^@]*@#//***@#' | grep -E 'error|Failed|document\(s\) restored' | tail -5
+  # Display only; its exit status must not decide anything (grep with no match = 1).
+  echo "$restore_log" | sed -E 's#//[^@]*@#//***@#' | grep -E 'error|Failed|document\(s\) restored' | tail -5 || true
   [ "$restore_status" -eq 0 ]
 done
 
