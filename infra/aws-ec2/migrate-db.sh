@@ -38,6 +38,19 @@ NEW_HOST="$NEW_SCHEME://$NEW_AUTHORITY"
 NEW_QUERY="$(query_of "$NEW_BASE")"; [ -n "$NEW_QUERY" ] || NEW_QUERY='?retryWrites=true&w=majority'
 [[ "$NEW_AUTHORITY" == *@* ]] || { echo "The new connection string must include user:password@"; exit 1; }
 
+echo "==> Checking the new cluster accepts this login (before any downtime)"
+if ! login_check="$(mongoexport --uri="$NEW_HOST/$(db_of "${OLD_URIS[0]}")$NEW_QUERY" \
+      --collection=__migration_login_check --quiet 2>&1)"; then
+  echo "!! Cannot log in to the new cluster:"
+  echo "$login_check" | sed -E 's#//[^@]*@#//***@#' | tail -3
+  echo
+  echo "Fix in Atlas (the NEW project): Database Access → user/password, and"
+  echo "Network Access → allow this server's IP. A password containing @ must be written as %40."
+  echo "Nothing was stopped or changed."
+  exit 1
+fi
+echo "   login ok"
+
 echo "==> Stopping services (no writes during the copy)"
 pm2 stop all >/dev/null
 
@@ -49,7 +62,9 @@ for uri in "${OLD_URIS[@]}"; do
   echo "==> Dump  $db"
   mongodump --uri="$uri" --out="$WORK/dump" --quiet
   echo "==> Restore $db → new cluster"
-  mongorestore --uri="$NEW_HOST/$NEW_QUERY" --nsInclude="$db.*" --drop --quiet "$WORK/dump"
+  mongorestore --uri="$NEW_HOST/$NEW_QUERY" --nsInclude="$db.*" --drop "$WORK/dump" 2>&1 \
+    | sed -E 's#//[^@]*@#//***@#' | grep -E 'error|Failed|document\(s\) restored' || true
+  [ "${PIPESTATUS[0]}" -eq 0 ]
 done
 
 echo "==> Verifying document counts"
