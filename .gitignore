@@ -75,3 +75,6 @@ temp/
 !*.tfvars.example
 .terraform.lock.hcl.bak
 crash.log
+
+# E2E seed run reports (contain test-account passwords)
+scripts/e2e-seed/output/
