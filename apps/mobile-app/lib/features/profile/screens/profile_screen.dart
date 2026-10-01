@@ -4,6 +4,7 @@ import 'package:nexoraa_mobile/app/router.dart';
 import 'package:nexoraa_mobile/design_system/design_system.dart';
 import 'package:nexoraa_mobile/features/authentication/authentication_dependencies.dart';
 import 'package:nexoraa_mobile/features/authentication/authentication_models.dart';
+import 'package:nexoraa_mobile/features/profile/screens/change_password_screen.dart';
 import 'package:nexoraa_mobile/features/staff/services/staff_api_service.dart';
 import 'package:nexoraa_mobile/features/staff/models/staff_member.dart';
 
@@ -237,11 +238,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _onChangePassword() {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        const SnackBar(content: Text('Change password coming soon.')),
-      );
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => const ChangePasswordScreen()),
+    );
   }
 
   @override

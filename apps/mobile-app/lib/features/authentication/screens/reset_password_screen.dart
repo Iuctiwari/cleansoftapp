@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:nexoraa_mobile/app/router.dart';
 import 'package:nexoraa_mobile/design_system/design_system.dart';
 import 'package:nexoraa_mobile/features/authentication/authentication_dependencies.dart';
+import 'package:nexoraa_mobile/features/authentication/password_policy.dart';
 
 class ResetPasswordScreen extends StatefulWidget {
   const ResetPasswordScreen({
@@ -59,8 +60,9 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       _showMessage('Enter the 6-digit verification code sent to your email.');
       return;
     }
-    if (password.length < 8) {
-      _showMessage('Password must be at least 8 characters.');
+    final String? passwordProblem = PasswordPolicy.validate(password);
+    if (passwordProblem != null) {
+      _showMessage(passwordProblem);
       return;
     }
     if (password != confirmPassword) {
@@ -189,6 +191,8 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                         controller: _passwordController,
                         label: 'New Password',
                       ),
+                      const SizedBox(height: AppSpacing.sm),
+                      const Text(PasswordPolicy.hint, style: AppTextStyles.bodySmall),
                       const SizedBox(height: AppSpacing.xl),
                       AppPasswordField(
                         controller: _confirmPasswordController,

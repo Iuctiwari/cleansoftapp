@@ -19,4 +19,11 @@ abstract interface class AuthenticationService {
     required String otp,
     required String newPassword,
   });
+
+  /// Changes the signed-in user's password. The backend signs out the user's
+  /// other devices.
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  });
 }

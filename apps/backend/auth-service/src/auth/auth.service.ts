@@ -439,7 +439,9 @@ export class AuthService {
   }
 
   async forgotPassword(input: AuthForgotPasswordInput): Promise<AuthResetRequestAcknowledgement> {
-    this.assertTenantLoginInput(input.context, input.tenantSlug);
+    // Like login, the account is found by its identifier alone (owner emails and
+    // staff login IDs are unique), so tenantSlug is optional: users on the
+    // "Forgot password?" screen don't know their tenant slug.
     const identity = await this.authRepository.findIdentity(
       input.context,
       normalizeIdentifier(input.identifier),
@@ -516,7 +518,6 @@ export class AuthService {
   }
 
   async resetPassword(input: AuthResetPasswordInput): Promise<AuthAcknowledgement> {
-    this.assertTenantLoginInput(input.context, input.tenantSlug);
     assertStrongPassword(input.newPassword);
 
     const identity = await this.authRepository.findIdentity(
@@ -689,17 +690,6 @@ export class AuthService {
       tenantId: context.tenantId,
       branchId,
     };
-  }
-
-  private assertTenantLoginInput(context: 'platform' | 'tenant', tenantSlug?: string): void {
-    if (context === 'tenant' && (!tenantSlug || tenantSlug.trim().length === 0)) {
-      throw new PlatformError({
-        code: 'auth.tenant_slug_required',
-        category: 'validation',
-        messageKey: 'errors.auth.tenant_slug_required',
-        fields: [{ field: 'tenantSlug', code: 'auth.tenant_slug_required' }],
-      });
-    }
   }
 
   private async assertTrackerAllowsLogin(trackerKey: string): Promise<void> {

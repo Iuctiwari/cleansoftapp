@@ -23,6 +23,20 @@ final class ApiAuthenticationService implements AuthenticationService {
   static const Duration _requestTimeout = Duration(seconds: 20);
   static const String _genericLoginError = 'Invalid email or password';
 
+  static const Map<String, String> _errorCodeMessages = <String, String>{
+    'auth.current_password_invalid': 'Your current password is incorrect.',
+    'auth.password_policy_failed':
+        'The new password must have at least 8 characters, with an uppercase letter, a lowercase letter, a number and a special character.',
+    'auth.reset_invalid':
+        'The verification code is incorrect or has expired. Request a new code and try again.',
+    'auth.reset_attempts_exceeded':
+        'Too many incorrect codes. Request a new verification code.',
+    'auth.email_delivery_failed':
+        'We could not send the verification email right now. Please try again in a minute.',
+    'auth.login_temporarily_blocked':
+        'Too many failed attempts. Please wait a while and try again.',
+  };
+
   final Uri _apiBaseUri;
   final http.Client _client;
   final String _loginContext;
@@ -259,6 +273,68 @@ final class ApiAuthenticationService implements AuthenticationService {
     }
   }
 
+  @override
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    final AuthenticationSession? session = await _tokenStorage.read();
+    if (session == null) {
+      throw const AuthenticationException(
+        'Your session has expired. Please sign in again.',
+      );
+    }
+    final Uri normalizedBaseUri = _apiBaseUri.replace(
+      path: _apiBaseUri.path.endsWith('/')
+          ? _apiBaseUri.path
+          : '${_apiBaseUri.path}/',
+    );
+    final Uri endpoint = normalizedBaseUri.resolve('v1/auth/change-password');
+
+    try {
+      final http.Response response = await _client
+          .post(
+            endpoint,
+            headers: <String, String>{
+              HttpHeaders.acceptHeader: 'application/json',
+              HttpHeaders.contentTypeHeader: 'application/json',
+              HttpHeaders.authorizationHeader: 'Bearer ${session.accessToken}',
+            },
+            body: jsonEncode(<String, Object>{
+              'currentPassword': currentPassword,
+              'newPassword': newPassword,
+            }),
+          )
+          .timeout(_requestTimeout);
+
+      if (response.statusCode >= HttpStatus.ok &&
+          response.statusCode < HttpStatus.multipleChoices) {
+        return;
+      }
+      final Object? decoded = _decodeJson(response.body);
+      // Not _errorMessage: its 401 text is the login screen's "Invalid email
+      // or password", but here a 401 means the session itself expired.
+      throw AuthenticationException(
+        response.statusCode == HttpStatus.unauthorized
+            ? 'Your session has expired. Please sign in again.'
+            : _backendMessage(decoded) ??
+                  'Unable to change the password. Please try again.',
+      );
+    } on AuthenticationException {
+      rethrow;
+    } on TimeoutException {
+      throw const AuthenticationNetworkException();
+    } on SocketException {
+      throw const AuthenticationNetworkException();
+    } on http.ClientException {
+      throw const AuthenticationNetworkException();
+    } on FormatException {
+      throw const AuthenticationException(
+        'The server returned an invalid response.',
+      );
+    }
+  }
+
   Future<void> _clearStoredSession() async {
     try {
       await _tokenStorage.clear();
@@ -343,6 +419,9 @@ final class ApiAuthenticationService implements AuthenticationService {
     final Object? error = decoded['error'];
     if (error is String && error.trim().isNotEmpty) return error.trim();
     if (error is Map<String, dynamic>) {
+      // auth-service errors carry a code but no human message.
+      final String? known = _errorCodeMessages[error['code']];
+      if (known != null) return known;
       final Object? message = error['message'];
       if (message is String && message.trim().isNotEmpty) {
         return message.trim();

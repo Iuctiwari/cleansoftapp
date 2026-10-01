@@ -83,6 +83,25 @@ final class AuthenticationController extends ChangeNotifier {
     return false;
   }
 
+  Future<bool> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    _errorMessage = null;
+    try {
+      await _service.changePassword(
+        currentPassword: currentPassword,
+        newPassword: newPassword,
+      );
+      return true;
+    } on AuthenticationException catch (error) {
+      _errorMessage = error.message;
+    } on Exception {
+      _errorMessage = 'Something went wrong. Please try again.';
+    }
+    return false;
+  }
+
   Future<bool> confirmPasswordReset({
     required String identifier,
     required String otp,

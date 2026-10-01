@@ -326,4 +326,10 @@ final class _DeferredAuthenticationService implements AuthenticationService {
     required String otp,
     required String newPassword,
   }) async {}
+
+  @override
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {}
 }

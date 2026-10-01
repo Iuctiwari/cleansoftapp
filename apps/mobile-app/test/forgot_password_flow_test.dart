@@ -48,6 +48,12 @@ class MockAuthenticationService implements AuthenticationService {
       throw const AuthenticationException('Invalid verification code.');
     }
   }
+
+  @override
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {}
 }
 
 void main() {

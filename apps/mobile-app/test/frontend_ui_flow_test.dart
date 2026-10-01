@@ -60,6 +60,12 @@ class _MockAuthService implements AuthenticationService {
     required String otp,
     required String newPassword,
   }) async {}
+
+  @override
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {}
 }
 
 Map<String, dynamic> _notificationJson({
