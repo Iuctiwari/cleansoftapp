@@ -62,9 +62,11 @@ for uri in "${OLD_URIS[@]}"; do
   echo "==> Dump  $db"
   mongodump --uri="$uri" --out="$WORK/dump" --quiet
   echo "==> Restore $db → new cluster"
-  mongorestore --uri="$NEW_HOST/$NEW_QUERY" --nsInclude="$db.*" --drop "$WORK/dump" 2>&1 \
-    | sed -E 's#//[^@]*@#//***@#' | grep -E 'error|Failed|document\(s\) restored' || true
-  [ "${PIPESTATUS[0]}" -eq 0 ]
+  restore_status=0
+  restore_log="$(mongorestore --uri="$NEW_HOST/$NEW_QUERY" --nsInclude="$db.*" --drop "$WORK/dump" 2>&1)" \
+    || restore_status=$?
+  echo "$restore_log" | sed -E 's#//[^@]*@#//***@#' | grep -E 'error|Failed|document\(s\) restored' | tail -5
+  [ "$restore_status" -eq 0 ]
 done
 
 echo "==> Verifying document counts"
