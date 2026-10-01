@@ -3,6 +3,7 @@ import { InjectConnection, InjectModel } from '@nestjs/mongoose';
 import { Connection, Model } from 'mongoose';
 
 import { generateTenantId } from './tenant.crypto';
+import { TenantError } from './tenant.errors';
 import {
   BranchMongoose,
   TenantMongoose,
@@ -298,6 +299,19 @@ export class MongoTenantRepository implements TenantRepository {
             .exec();
         }
       });
+    } catch (error) {
+      // ownerPhone (tenants) and mobileNumber (owners) are unique across the
+      // platform: report a taken number as a 409 instead of a 500.
+      if ((error as { code?: number }).code === 11000 && input.mobileNumber) {
+        throw new TenantError({
+          code: 'tenant.mobile_already_registered',
+          category: 'conflict',
+          messageKey: 'errors.tenant.mobile_already_registered',
+          fields: [{ field: 'mobileNumber', code: 'tenant.mobile_already_registered' }],
+          cause: error as Error,
+        });
+      }
+      throw error;
     } finally {
       await session.endSession();
     }

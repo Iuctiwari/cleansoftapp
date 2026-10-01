@@ -268,9 +268,28 @@ export class TenantService {
   }
 
   async updateProfile(tenantId: string, input: UpdateTenantProfileInput): Promise<TenantRecord> {
-    // Verify tenant exists first
-    await this.getTenantById(tenantId);
-    await this.tenantRepository.updateProfile(tenantId, input);
+    const current = await this.getTenantById(tenantId);
+
+    // The Edit Profile screen re-sends every field, including ones the user did
+    // not touch. Only write values that actually changed: re-writing an
+    // unchanged phone number can still collide with the unique ownerPhone /
+    // owner mobileNumber indexes (e.g. the same number on another test
+    // account) and must never block saving a new name or location.
+    const changed = (next: string | undefined, previous: string | undefined) =>
+      next !== undefined && next.trim() !== '' && next.trim() !== (previous ?? '').trim()
+        ? next.trim()
+        : undefined;
+    const update: UpdateTenantProfileInput = {
+      ownerName: changed(input.ownerName, current.ownerName),
+      mobileNumber: changed(input.mobileNumber, current.ownerPhone),
+      businessName: changed(input.businessName, current.businessName),
+      // Location maps to the head office's city (no uniqueness), so keep it as sent.
+      location: input.location?.trim() || undefined,
+    };
+
+    if (Object.values(update).some((value) => value !== undefined)) {
+      await this.tenantRepository.updateProfile(tenantId, update);
+    }
     return this.getTenantById(tenantId);
   }
 
