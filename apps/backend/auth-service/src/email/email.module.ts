@@ -5,19 +5,26 @@ import { BrevoEmailProvider } from './brevo-email.provider';
 import { EmailService } from './email.service';
 import { EMAIL_PROVIDER, type EmailProvider } from './email.types';
 import { NoopEmailProvider } from './noop-email.provider';
+import { SmtpEmailProvider } from './smtp-email.provider';
 
 @Module({
   imports: [ConfigModule],
   providers: [
     BrevoEmailProvider,
     NoopEmailProvider,
+    SmtpEmailProvider,
     {
       provide: EMAIL_PROVIDER,
       useFactory: (
         configService: ConfigService,
         brevo: BrevoEmailProvider,
         noop: NoopEmailProvider,
+        smtp: SmtpEmailProvider,
       ): EmailProvider => {
+        // SMTP (e.g. Gmail app password) takes priority when configured.
+        if (configService.get<string>('SMTP_HOST')?.trim()) {
+          return smtp;
+        }
         const apiKey = configService.get<string>('BREVO_API_KEY')?.trim();
         const nodeEnv = configService.get<string>('NODE_ENV')?.trim();
         if (!apiKey && nodeEnv !== 'production') {
@@ -25,7 +32,7 @@ import { NoopEmailProvider } from './noop-email.provider';
         }
         return brevo;
       },
-      inject: [ConfigService, BrevoEmailProvider, NoopEmailProvider],
+      inject: [ConfigService, BrevoEmailProvider, NoopEmailProvider, SmtpEmailProvider],
     },
     EmailService,
   ],
