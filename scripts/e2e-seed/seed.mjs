@@ -220,6 +220,23 @@ async function stepSignup() {
     return `tenant ${state.tenantId} (${state.tenantSlug})`;
   }, { critical: true });
 
+  const expectConflict = async (label, body, field) => {
+    try {
+      await api('tenant', 'POST', '/tenants/register', { token: null, branch: null, body });
+    } catch (error) {
+      const fields = error.body?.error?.fields ?? [];
+      assert(error.status === 409, `expected 409, got ${error.status} (${error.message})`);
+      assert(fields.some((f) => f.field === field), `409 does not name the ${field} field`);
+      return `refused (409 ${error.body.error.code})`;
+    }
+    throw new Error(`${label} was accepted — duplicate account created`);
+  };
+  const base = { businessName: `${owner.businessName} dup`, businessType: 'laundry', ownerName: 'Dup', password: owner.password, agreedToTerms: true };
+  await check('Sign-up with an already-registered PHONE is refused clearly', () =>
+    expectConflict('Duplicate phone', { ...base, email: `dup-phone-${RUN}@example.com`, mobileNumber: owner.mobile }, 'mobileNumber'));
+  await check('Sign-up with an already-registered EMAIL is refused clearly', () =>
+    expectConflict('Duplicate email', { ...base, email: owner.email, mobileNumber: mobile() }, 'email'));
+
   await check('Owner logs in (tenant context)', async () => {
     const res = await api('auth', 'POST', '/auth/login', { token: null, branch: null, body: { context: 'tenant', identifier: owner.email, password: owner.password, tenantSlug: state.tenantSlug } });
     session.token = res.accessToken;

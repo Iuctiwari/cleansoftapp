@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { nextAvailableBranchCode } from '@nexoraa/utils';
 
 import { generateTenantId, generateUserId, hashPassword, slugify } from './tenant.crypto';
-import { TenantError } from './tenant.errors';
+import { duplicateKeyToTenantError, TenantError } from './tenant.errors';
 import {
   TENANT_REPOSITORY,
   TENANT_CATALOG_PROVISIONER,
@@ -182,7 +182,16 @@ export class TenantService {
       createdAt: now,
     };
 
-    return this.tenantRepository.createTenant(tenant, owner, headOfficeBranch, [defaultService]);
+    try {
+      return await this.tenantRepository.createTenant(tenant, owner, headOfficeBranch, [
+        defaultService,
+      ]);
+    } catch (error) {
+      // The email is pre-checked above, but the owner's phone is only enforced
+      // by the unique ownerPhone / mobileNumber indexes (a re-used phone used to
+      // surface as a 500 "could not complete registration").
+      throw duplicateKeyToTenantError(error) ?? error;
+    }
   }
 
   async completeOnboarding(
