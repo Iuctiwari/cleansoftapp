@@ -439,11 +439,23 @@ async function stepStaff() {
   }
 }
 
+const ADDITIONAL_SERVICE_SURCHARGE = 10;
+
 async function createOrder(i) {
   const customer = state.customers[i % state.customers.length];
   const lines = Array.from({ length: between(1, 3) }, () => pick(state.catalog));
   const items = lines.map((l) => (l.pricingType === 'PerKg' ? { itemCategoryId: l.itemCategoryId, serviceId: l.serviceId, weight: round2(1 + Math.random() * 5) } : { itemCategoryId: l.itemCategoryId, serviceId: l.serviceId, quantity: between(1, 6) }));
-  const expectedSubtotal = round2(items.reduce((sum, item, k) => sum + lines[k].price * (item.quantity ?? item.weight), 0));
+  // Business rule (order-service ADDITIONAL_SERVICE_SURCHARGE, mirrored in the app's
+  // NewOrderController): the first service on an item category is charged its catalog
+  // price; every further service on the SAME item category in the order is a flat ₹10/unit.
+  const servicesPerCategory = new Map();
+  const expectedSubtotal = round2(
+    items.reduce((sum, item, k) => {
+      const nth = servicesPerCategory.get(item.itemCategoryId) ?? 0;
+      servicesPerCategory.set(item.itemCategoryId, nth + 1);
+      return sum + (nth === 0 ? lines[k].price : ADDITIONAL_SERVICE_SURCHARGE) * (item.quantity ?? item.weight);
+    }, 0),
+  );
   const order = await api('order', 'POST', '/orders', { body: { customerId: customer.id, items, expectedDeliveryDate: new Date(Date.now() + between(1, 5) * 86_400_000).toISOString() } });
   const grand = Number(order.grandTotal);
   const subtotal = Number(order.subtotal);
