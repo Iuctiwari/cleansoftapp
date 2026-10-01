@@ -178,9 +178,20 @@ flutter build apk --release
 
 ---
 
+## Email (OTP / forgot password)
+
+auth-service sends email through **Gmail SMTP** when `SMTP_HOST` is set in `~/nexoraa-env/auth-service.env`, and through **Brevo** otherwise.
+
+- **Gmail:** `SMTP_HOST=smtp.gmail.com`, `SMTP_PORT=587`, `SMTP_USER=<gmail>`, `SMTP_PASS=<16-letter app password from myaccount.google.com/apppasswords>`.
+- **Brevo:** `BREVO_SENDER_EMAIL` must be a **verified sender** in Brevo (currently `contact@nexoraatech.com`). Otherwise Brevo rejects every email.
+
+After editing, run `pm2 restart auth-service`.
+
+---
+
 ## Everyday use
 
-**Deploy new code:** push to `iuc` from your PC, then in the server terminal run:
+**Deploy new code:** push to `iuc`. GitHub Actions (**Deploy backend to AWS**) deploys automatically when backend code, `packages/` or `infra/aws-ec2/` changes; watch it under the repo's **Actions** tab. To deploy by hand instead, run this in the server terminal:
 ```bash
 cd ~/nexoraa-cleansoft && bash infra/aws-ec2/deploy.sh
 ```
