@@ -3,7 +3,13 @@ import { ApiExcludeController } from '@nestjs/swagger';
 
 import { PlatformAdminInternalGuard } from './platform-admin-internal.guard';
 import { TenantService } from './tenant.service';
-import type { TenantListPage, TenantListQuery, TenantRecord, TenantStatus } from './tenant.types';
+import type {
+  TenantListPage,
+  TenantListQuery,
+  TenantMarketplaceProfile,
+  TenantRecord,
+  TenantStatus,
+} from './tenant.types';
 
 /**
  * Service-to-service only — excluded from Swagger. Replaces
@@ -41,6 +47,12 @@ export class TenantInternalController {
       limit: limit ? Number(limit) : undefined,
     };
     return this.tenantService.listAllForAdmin(query);
+  }
+
+  /** Called by marketplace-service when a shop edits or publishes its listing. */
+  @Get(':tenantId/marketplace-profile')
+  getMarketplaceProfile(@Param('tenantId') tenantId: string): Promise<TenantMarketplaceProfile> {
+    return this.tenantService.getMarketplaceProfile(tenantId);
   }
 
   @Get(':tenantId')

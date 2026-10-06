@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 
 import { AuditService } from '../audit/audit.service';
 import { PlatformError } from '../platform/platform.errors';
-import type { PaginatedResult, TrustedContext } from '../platform/platform.types';
+import type { PaginatedResult, StaffTrustedContext } from '../platform/platform.types';
 import {
   QUEUE_DISPATCHER,
   SCHEDULER_REPOSITORY,
@@ -44,7 +44,7 @@ export class SchedulerService {
   }
 
   async inspectJob(
-    authorization: TrustedContext,
+    authorization: StaffTrustedContext,
     jobId: string,
   ): Promise<SchedulerJobRecord | null> {
     const job = await this.schedulerRepository.getById(jobId);
@@ -132,7 +132,7 @@ export class SchedulerService {
   }
 
   createJobInputFromContext(
-    authorization: TrustedContext,
+    authorization: StaffTrustedContext,
     request: {
       owner: string;
       version: string;
@@ -169,7 +169,7 @@ export class SchedulerService {
   }
 
   private assertJobAuthorization(
-    authorization: TrustedContext,
+    authorization: StaffTrustedContext,
     job: SchedulerJobRecord,
     action: 'inspect' | 'replay',
   ): void {

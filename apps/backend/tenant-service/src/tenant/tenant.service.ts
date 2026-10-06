@@ -14,6 +14,7 @@ import {
   type TenantCatalogProvisioner,
   type TenantListPage,
   type TenantListQuery,
+  type TenantMarketplaceProfile,
   type TenantOwnerRecord,
   type TenantRecord,
   type TenantRepository,
@@ -268,6 +269,24 @@ export class TenantService {
       });
     }
     return tenant;
+  }
+
+  async getMarketplaceProfile(tenantId: string): Promise<TenantMarketplaceProfile> {
+    const tenant = await this.getTenantById(tenantId);
+    const [services, branches] = await Promise.all([
+      this.tenantRepository.listEnabledServiceTypes(tenantId),
+      this.tenantRepository.listBranches(tenantId),
+    ]);
+    return {
+      tenantId: tenant.tenantId,
+      businessName: tenant.businessName,
+      businessType: tenant.businessType,
+      ownerName: tenant.ownerName,
+      ownerPhone: tenant.ownerPhone,
+      status: tenant.status,
+      services: services.length > 0 ? services : [tenant.businessType],
+      branches,
+    };
   }
 
   async listBranches(tenantId: string): Promise<BranchRecord[]> {

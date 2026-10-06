@@ -106,6 +106,7 @@ In nano, replace `FILL_ME` with the value, press **Ctrl+O** then Enter to save, 
 | `auth-service.env` | nexoraa-cleansoft-1 (auth) |
 | `platform-admin-service.env` | nexoraa-cleansoft-j8k6 (platform admin) |
 | `branch-service.env`, `customer-service.env`, `notification-service.env`, `tenant-service.env`, `order-service.env`, `report-service.env`, `expense-service.env`, `payment-service.env`, `service-service.env`, `user-service.env`, `settings-services.env`, `search-service.env` | the service with the same name |
+| `marketplace-service.env` | none (added after the Render move): copy `customer-service.env`'s `MONGODB_URI` and change only the database name to `nexoraa-marketplace` |
 
 Also copy these if Render has them:
 - **auth-service:** `BREVO_API_KEY` (OTP / password-reset emails)

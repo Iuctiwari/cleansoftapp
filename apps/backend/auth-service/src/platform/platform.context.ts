@@ -1,7 +1,10 @@
+import { PlatformError } from './platform.errors';
 import type {
+  ConsumerContext,
   PlatformContext,
   SupportContext,
   SupportAccessMode,
+  StaffTrustedContext,
   TenantContext,
   TrustedContext,
 } from './platform.types';
@@ -65,6 +68,20 @@ export class TrustedContextFactory {
     };
   }
 
+  createConsumerContext(seed: ContextSeed & { readonly accessVersion: number }): ConsumerContext {
+    return {
+      kind: 'consumer',
+      actorId: seed.actorId,
+      actorType: 'user',
+      correlationId: seed.correlationId,
+      causationId: seed.causationId,
+      requestId: seed.requestId,
+      sessionId: seed.sessionId,
+      accessVersion: seed.accessVersion,
+      [TRUSTED_CONTEXT_TOKEN]: true,
+    };
+  }
+
   createSupportContext(
     seed: ContextSeed & {
       readonly tenantId: string;
@@ -96,5 +113,18 @@ export class TrustedContextFactory {
       throw new Error('Untrusted context');
     }
     return context;
+  }
+
+  /** Rejects marketplace consumer sessions on staff-only (platform/tenant/support) endpoints. */
+  assertStaffContext(context: TrustedContext): StaffTrustedContext {
+    const trusted = this.assertTrustedContext(context);
+    if (trusted.kind === 'consumer') {
+      throw new PlatformError({
+        code: 'auth.staff_context_required',
+        category: 'forbidden',
+        messageKey: 'errors.auth.staff_context_required',
+      });
+    }
+    return trusted;
   }
 }

@@ -152,6 +152,21 @@ export interface TenantListPage {
   readonly total: number;
 }
 
+/**
+ * What marketplace-service needs to list a shop to customers: the trusted
+ * business identity, enabled services and branches. Internal API only.
+ */
+export interface TenantMarketplaceProfile {
+  readonly tenantId: string;
+  readonly businessName: string;
+  readonly businessType: TenantBusinessType;
+  readonly ownerName: string;
+  readonly ownerPhone: string;
+  readonly status: TenantStatus;
+  readonly services: readonly TenantBusinessType[];
+  readonly branches: readonly BranchRecord[];
+}
+
 export interface TenantRepository {
   /** Find a tenant owner by normalised email (for uniqueness checks and login). */
   findByEmail(email: string): Promise<TenantOwnerRecord | null>;
@@ -167,6 +182,9 @@ export interface TenantRepository {
 
   /** List all branches for a given tenant. */
   listBranches(tenantId: string): Promise<BranchRecord[]>;
+
+  /** The tenant's enabled service types (laundry, salon, …). */
+  listEnabledServiceTypes(tenantId: string): Promise<TenantBusinessType[]>;
 
   /** List existing tenants and only their enabled business capabilities for catalog backfill. */
   listCatalogProvisioningCandidates(): Promise<CatalogProvisioningCandidate[]>;

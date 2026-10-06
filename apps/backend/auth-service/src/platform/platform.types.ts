@@ -59,7 +59,21 @@ export interface SupportContext extends CorrelationContext, ActorContext {
   readonly [TRUSTED_CONTEXT_TOKEN]: true;
 }
 
-export type TrustedContext = PlatformContext | TenantContext | SupportContext;
+/**
+ * An end customer of the marketplace (consumer app). Never carries a tenant or
+ * branch: tenant-scoped services reject it because it is not kind 'tenant'.
+ */
+export interface ConsumerContext extends CorrelationContext, ActorContext {
+  readonly kind: 'consumer';
+  readonly sessionId?: string;
+  readonly accessVersion: number;
+  readonly [TRUSTED_CONTEXT_TOKEN]: true;
+}
+
+export type TrustedContext = PlatformContext | TenantContext | SupportContext | ConsumerContext;
+
+/** Every context except marketplace consumers — required by staff-only surfaces (audit, scheduler). */
+export type StaffTrustedContext = PlatformContext | TenantContext | SupportContext;
 
 export interface SupportAuthorization {
   readonly context: PlatformContext | SupportContext;

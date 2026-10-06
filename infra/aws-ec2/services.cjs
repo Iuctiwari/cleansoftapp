@@ -18,6 +18,7 @@ const SERVICES = [
   { name: 'settings-services', port: 3014, subdomain: 'settings', mobileKey: 'SETTINGS', mobilePath: '/api' },
   { name: 'platform-admin-service', port: 3015, subdomain: 'admin', mobileKey: 'PLATFORM_ADMIN', mobilePath: '/api' },
   { name: 'search-service', port: 3016, subdomain: 'search', mobileKey: 'SEARCH', mobilePath: '' },
+  { name: 'marketplace-service', port: 3017, subdomain: 'market', mobileKey: 'MARKETPLACE', mobilePath: '/api' },
 ];
 
 module.exports = { SERVICES };

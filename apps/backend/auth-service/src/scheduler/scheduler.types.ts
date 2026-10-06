@@ -1,4 +1,4 @@
-import type { PaginatedResult, TrustedContext } from '../platform/platform.types';
+import type { PaginatedResult, StaffTrustedContext } from '../platform/platform.types';
 
 export type SchedulerJobStatus =
   | 'Pending'
@@ -65,7 +65,7 @@ export interface SchedulerScheduleRecord extends SchedulerScheduleInput {
 }
 
 export interface RetryOrReplayInput {
-  readonly authorization: TrustedContext;
+  readonly authorization: StaffTrustedContext;
   readonly jobId: string;
   readonly reason: string;
 }

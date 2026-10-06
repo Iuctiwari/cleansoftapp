@@ -1,0 +1,353 @@
+import {
+  Injectable,
+  Logger,
+  ServiceUnavailableException,
+  type OnModuleDestroy,
+  type OnModuleInit,
+} from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import mongoose, { Schema, type Connection, type Model } from 'mongoose';
+
+import {
+  ADDRESS_LABELS,
+  SERVICE_MODES,
+  SHOP_CATEGORIES,
+  type AddressLabel,
+  type ServiceMode,
+  type ShopCategory,
+} from './marketplace.types';
+
+/** GeoJSON point as stored by MongoDB: coordinates are [longitude, latitude]. */
+export interface GeoJsonPoint {
+  readonly type: 'Point';
+  readonly coordinates: [number, number];
+}
+
+const geoPointSchema = new Schema<GeoJsonPoint>(
+  {
+    type: { type: String, enum: ['Point'], required: true },
+    coordinates: { type: [Number], required: true },
+  },
+  { _id: false },
+);
+
+// ─── Consumer address ──────────────────────────────────────────────────────
+
+export interface ConsumerAddressDocument {
+  readonly addressId: string;
+  readonly consumerId: string;
+  readonly label: AddressLabel;
+  readonly contactName: string;
+  readonly contactPhone: string;
+  readonly houseFlat: string;
+  readonly streetArea: string;
+  readonly landmark?: string;
+  readonly city: string;
+  readonly state: string;
+  readonly pincode: string;
+  readonly location: GeoJsonPoint;
+  readonly isDefault: boolean;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+}
+
+const consumerAddressSchema = new Schema<ConsumerAddressDocument>(
+  {
+    addressId: { type: String, required: true, unique: true },
+    consumerId: { type: String, required: true, index: true },
+    label: { type: String, enum: ADDRESS_LABELS, required: true },
+    contactName: { type: String, required: true, trim: true },
+    contactPhone: { type: String, required: true, trim: true },
+    houseFlat: { type: String, required: true, trim: true },
+    streetArea: { type: String, required: true, trim: true },
+    landmark: { type: String, trim: true },
+    city: { type: String, required: true, trim: true },
+    state: { type: String, required: true, trim: true },
+    pincode: { type: String, required: true, trim: true },
+    location: { type: geoPointSchema, required: true },
+    isDefault: { type: Boolean, required: true, default: false },
+    createdAt: { type: String, required: true },
+    updatedAt: { type: String, required: true },
+  },
+  { collection: 'consumerAddresses', versionKey: false },
+);
+
+// ─── Shop listing (one per branch) ──────────────────────────────────────────
+
+export interface OpeningHoursDay {
+  /** 0 = Sunday … 6 = Saturday */
+  readonly day: number;
+  readonly closed: boolean;
+  /** "HH:mm", 24-hour, shop local time (IST) */
+  readonly open?: string;
+  readonly close?: string;
+}
+
+export interface ShopAddress {
+  readonly streetAddress: string;
+  readonly area?: string;
+  readonly landmark?: string;
+  readonly city: string;
+  readonly state: string;
+  readonly postalCode: string;
+}
+
+export interface ShopListingDocument {
+  readonly branchId: string;
+  readonly tenantId: string;
+  readonly shopName: string;
+  readonly branchName: string;
+  readonly categories: readonly ShopCategory[];
+  readonly address: ShopAddress;
+  readonly location?: GeoJsonPoint;
+  readonly bookingPhone?: string;
+  readonly ownerPhone: string;
+  readonly serviceModes: readonly ServiceMode[];
+  readonly serviceRadiusKm: number;
+  readonly openingHours: readonly OpeningHoursDay[];
+  readonly about?: string;
+  readonly isListed: boolean;
+  readonly tenantStatus: string;
+  readonly isComplete: boolean;
+  /** isListed && isComplete && tenant Active — the only listings customers can find. */
+  readonly searchable: boolean;
+  readonly updatedBy: string;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+}
+
+const openingHoursSchema = new Schema<OpeningHoursDay>(
+  {
+    day: { type: Number, min: 0, max: 6, required: true },
+    closed: { type: Boolean, required: true },
+    open: { type: String },
+    close: { type: String },
+  },
+  { _id: false },
+);
+
+const shopListingSchema = new Schema<ShopListingDocument>(
+  {
+    branchId: { type: String, required: true, unique: true },
+    tenantId: { type: String, required: true, index: true },
+    shopName: { type: String, required: true },
+    branchName: { type: String, required: true },
+    categories: { type: [String], enum: SHOP_CATEGORIES, required: true },
+    address: {
+      type: new Schema<ShopAddress>(
+        {
+          streetAddress: { type: String, default: '' },
+          area: { type: String },
+          landmark: { type: String },
+          city: { type: String, default: '' },
+          state: { type: String, default: '' },
+          postalCode: { type: String, default: '' },
+        },
+        { _id: false },
+      ),
+      required: true,
+    },
+    location: { type: geoPointSchema },
+    bookingPhone: { type: String },
+    ownerPhone: { type: String, default: '' },
+    serviceModes: { type: [String], enum: SERVICE_MODES, default: [] },
+    serviceRadiusKm: { type: Number, min: 1, max: 50, default: 5 },
+    openingHours: { type: [openingHoursSchema], default: [] },
+    about: { type: String, maxlength: 300 },
+    isListed: { type: Boolean, required: true, default: true },
+    tenantStatus: { type: String, required: true },
+    isComplete: { type: Boolean, required: true, default: false },
+    searchable: { type: Boolean, required: true, default: false, index: true },
+    updatedBy: { type: String, required: true },
+    createdAt: { type: String, required: true },
+    updatedAt: { type: String, required: true },
+  },
+  { collection: 'shopListings', versionKey: false },
+);
+// 2dsphere indexes skip documents with no location, so incomplete listings are fine.
+shopListingSchema.index({ location: '2dsphere' });
+
+// ─── Service request (customer → shop) ─────────────────────────────────────
+
+export const REQUEST_STATUSES = [
+  'Pending',
+  'Accepted',
+  'Declined',
+  'Cancelled',
+  'Expired',
+  'Completed',
+] as const;
+export type RequestStatus = (typeof REQUEST_STATUSES)[number];
+
+export interface RequestHistoryEntry {
+  readonly status: RequestStatus;
+  readonly at: string;
+  readonly by: 'customer' | 'shop' | 'system';
+  readonly actorId?: string;
+  readonly note?: string;
+}
+
+export interface RequestAddressSnapshot {
+  readonly addressId: string;
+  readonly label: string;
+  readonly contactName: string;
+  readonly contactPhone: string;
+  readonly formatted: string;
+  readonly landmark?: string;
+  readonly location: GeoJsonPoint;
+}
+
+export interface ServiceRequestDocument {
+  readonly requestId: string;
+  /** Human-friendly, e.g. SR-2026-000123 */
+  readonly requestNumber: string;
+  readonly consumerId: string;
+  readonly customer: { readonly name: string; readonly mobile: string; readonly email: string };
+  readonly tenantId: string;
+  readonly branchId: string;
+  readonly shop: { readonly shopName: string; readonly branchName: string; readonly phone: string };
+  readonly category: ShopCategory;
+  readonly requestType: ServiceMode;
+  readonly description: string;
+  readonly items: readonly { readonly name: string; readonly quantity: number }[];
+  /** YYYY-MM-DD, India date */
+  readonly preferredDate: string;
+  readonly preferredSlot: { readonly start: string; readonly end: string };
+  readonly address?: RequestAddressSnapshot;
+  readonly distanceKm?: number;
+  readonly status: RequestStatus;
+  readonly confirmedAt?: string;
+  readonly shopNote?: string;
+  readonly declineReason?: string;
+  readonly cancelReason?: string;
+  /** The branch's customer-list record (customer-service) for this customer. */
+  readonly shopCustomerId?: string;
+  readonly orderId?: string;
+  readonly orderNumber?: string;
+  readonly expiresAt: string;
+  readonly statusHistory: readonly RequestHistoryEntry[];
+  readonly createdAt: string;
+  readonly updatedAt: string;
+}
+
+const serviceRequestSchema = new Schema<ServiceRequestDocument>(
+  {
+    requestId: { type: String, required: true, unique: true },
+    requestNumber: { type: String, required: true, unique: true },
+    consumerId: { type: String, required: true },
+    customer: { type: Schema.Types.Mixed, required: true },
+    tenantId: { type: String, required: true },
+    branchId: { type: String, required: true },
+    shop: { type: Schema.Types.Mixed, required: true },
+    category: { type: String, enum: SHOP_CATEGORIES, required: true },
+    requestType: { type: String, enum: SERVICE_MODES, required: true },
+    description: { type: String, required: true },
+    items: { type: [Schema.Types.Mixed], default: [] },
+    preferredDate: { type: String, required: true },
+    preferredSlot: { type: Schema.Types.Mixed, required: true },
+    address: { type: Schema.Types.Mixed },
+    distanceKm: { type: Number },
+    status: { type: String, enum: REQUEST_STATUSES, required: true },
+    confirmedAt: { type: String },
+    shopNote: { type: String },
+    declineReason: { type: String },
+    cancelReason: { type: String },
+    shopCustomerId: { type: String },
+    orderId: { type: String },
+    orderNumber: { type: String },
+    expiresAt: { type: String, required: true },
+    statusHistory: { type: [Schema.Types.Mixed], default: [] },
+    createdAt: { type: String, required: true },
+    updatedAt: { type: String, required: true },
+  },
+  { collection: 'serviceRequests', versionKey: false },
+);
+serviceRequestSchema.index({ consumerId: 1, createdAt: -1 });
+serviceRequestSchema.index({ branchId: 1, status: 1, createdAt: -1 });
+serviceRequestSchema.index({ status: 1, expiresAt: 1 });
+// An order can settle only one request.
+serviceRequestSchema.index(
+  { orderId: 1 },
+  { unique: true, partialFilterExpression: { orderId: { $exists: true } } },
+);
+
+interface CounterDocument {
+  readonly _id: string;
+  readonly seq: number;
+}
+const counterSchema = new Schema<CounterDocument>(
+  { _id: { type: String, required: true }, seq: { type: Number, required: true } },
+  { collection: 'counters', versionKey: false },
+);
+
+/** One Mongo connection for the whole service; models are created once. */
+@Injectable()
+export class MarketplaceDatabase implements OnModuleInit, OnModuleDestroy {
+  private readonly logger = new Logger(MarketplaceDatabase.name);
+  private connection?: Connection;
+  private addressModel?: Model<ConsumerAddressDocument>;
+  private listingModel?: Model<ShopListingDocument>;
+  private requestModel?: Model<ServiceRequestDocument>;
+  private counterModel?: Model<CounterDocument>;
+
+  constructor(private readonly configService: ConfigService) {}
+
+  async onModuleInit(): Promise<void> {
+    const uri = this.configService.get<string>(
+      'MONGODB_URI',
+      'mongodb://localhost:27017/nexoraa_marketplace',
+    );
+    try {
+      this.connection = await mongoose
+        .createConnection(uri, { serverSelectionTimeoutMS: 5000, autoIndex: true })
+        .asPromise();
+      this.addressModel = this.connection.model('ConsumerAddress', consumerAddressSchema);
+      this.listingModel = this.connection.model('ShopListing', shopListingSchema);
+      this.requestModel = this.connection.model('ServiceRequest', serviceRequestSchema);
+      this.counterModel = this.connection.model('Counter', counterSchema);
+      await Promise.all([
+        this.addressModel.syncIndexes(),
+        this.listingModel.syncIndexes(),
+        this.requestModel.syncIndexes(),
+      ]);
+      this.logger.log('Marketplace MongoDB connection established');
+    } catch (error) {
+      this.logger.error(
+        'MongoDB not reachable. Marketplace persistence is unavailable.',
+        error instanceof Error ? error.stack : undefined,
+      );
+    }
+  }
+
+  async onModuleDestroy(): Promise<void> {
+    await this.connection?.close();
+  }
+
+  get addresses(): Model<ConsumerAddressDocument> {
+    return this.ready(this.addressModel);
+  }
+
+  get listings(): Model<ShopListingDocument> {
+    return this.ready(this.listingModel);
+  }
+
+  get requests(): Model<ServiceRequestDocument> {
+    return this.ready(this.requestModel);
+  }
+
+  /** Next value of a named sequence (atomic). */
+  async nextSequence(name: string): Promise<number> {
+    const counter = await this.ready(this.counterModel)
+      .findOneAndUpdate({ _id: name }, { $inc: { seq: 1 } }, { new: true, upsert: true })
+      .lean()
+      .exec();
+    return counter.seq;
+  }
+
+  private ready<T>(model: Model<T> | undefined): Model<T> {
+    if (!model || this.connection?.readyState !== mongoose.ConnectionStates.connected) {
+      throw new ServiceUnavailableException('Marketplace storage is temporarily unavailable');
+    }
+    return model;
+  }
+}

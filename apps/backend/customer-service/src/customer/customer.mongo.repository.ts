@@ -7,7 +7,7 @@ import {
 } from '@nexoraa/database';
 import { Types, type Model } from 'mongoose';
 
-import { CustomerMongoose, type CustomerType } from './customer.mongoose.schema';
+import { CustomerMongoose, CustomerSource, CustomerType } from './customer.mongoose.schema';
 import type {
   CreateCustomerFields,
   CustomerListQuery,
@@ -17,10 +17,24 @@ import type {
   CustomerRepository,
   CustomerScope,
   CustomerStatistics,
+  OnlineCustomerInput,
+  OnlineCustomerLink,
 } from './customer.types';
 
 function escapeRegularExpression(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * Matches a 10-digit mobile however the shop typed it: "9876543210",
+ * "+91 98765 43210", "098765-43210", "919876543210".
+ */
+export function mobileMatcher(tenDigits: string): RegExp {
+  return new RegExp(`^\\s*(\\+?\\s*91|0)?[\\s-]*${tenDigits.split('').join('[\\s-]*')}\\s*$`);
+}
+
+function isDuplicateKeyError(error: unknown): boolean {
+  return (error as { code?: number } | null)?.code === 11000;
 }
 
 @Injectable()
@@ -72,6 +86,9 @@ export class MongoCustomerRepository implements CustomerRepository {
         branchId: scope.branchId,
       },
     );
+    if (query.source === CustomerSource.ONLINE) filter.source = CustomerSource.ONLINE;
+    // Records created before `source` existed have no value and count as shop-entered.
+    if (query.source === CustomerSource.SHOP) filter.source = { $ne: CustomerSource.ONLINE };
     const search = query.search?.trim();
     if (search) {
       const expression = new RegExp(escapeRegularExpression(search), 'i');
@@ -127,6 +144,76 @@ export class MongoCustomerRepository implements CustomerRepository {
       .lean()
       .exec();
     return customer ? this.mapCustomer(customer) : null;
+  }
+
+  async linkOnlineCustomer(
+    tenantId: string,
+    branchId: string,
+    input: OnlineCustomerInput,
+  ): Promise<OnlineCustomerLink> {
+    const scopeFilter = createActiveTenantFilter<CustomerMongoose>(new Types.ObjectId(tenantId), {
+      branchId,
+    });
+
+    const linked = await this.customerModel
+      .findOne({ ...scopeFilter, consumerId: input.consumerId }, { _id: 1 })
+      .lean()
+      .exec();
+    if (linked) return { customerId: String(linked._id), outcome: 'existing' };
+
+    // Same person already entered by the shop (matched by mobile): link, keep the shop's data.
+    const byMobile = await this.customerModel
+      .findOne(
+        { ...scopeFilter, mobile: mobileMatcher(input.mobile), consumerId: { $exists: false } },
+        { _id: 1, email: 1, address: 1 },
+      )
+      .sort({ createdAt: 1 })
+      .lean()
+      .exec();
+    if (byMobile) {
+      await this.customerModel
+        .updateOne(
+          { _id: byMobile._id, consumerId: { $exists: false } },
+          {
+            $set: {
+              consumerId: input.consumerId,
+              ...(!byMobile.email && input.email ? { email: input.email } : {}),
+              ...(!byMobile.address && input.address ? { address: input.address } : {}),
+            },
+          },
+        )
+        .exec();
+      return { customerId: String(byMobile._id), outcome: 'linked' };
+    }
+
+    try {
+      const created = await this.customerModel.create({
+        tenantId: new Types.ObjectId(tenantId),
+        branchId,
+        name: input.name,
+        mobile: input.mobile,
+        email: input.email,
+        address: input.address,
+        customerType: CustomerType.REGULAR,
+        joiningDate: new Date(),
+        totalOrders: 0,
+        totalSpent: 0,
+        outstandingBalance: 0,
+        lastOrderDate: null,
+        source: CustomerSource.ONLINE,
+        consumerId: input.consumerId,
+      });
+      return { customerId: String(created._id), outcome: 'created' };
+    } catch (error) {
+      // Two requests from the same customer at once: the other one created it.
+      if (!isDuplicateKeyError(error)) throw error;
+      const winner = await this.customerModel
+        .findOne({ ...scopeFilter, consumerId: input.consumerId }, { _id: 1 })
+        .lean()
+        .exec();
+      if (!winner) throw error;
+      return { customerId: String(winner._id), outcome: 'existing' };
+    }
   }
 
   async countForTenant(tenantId: string): Promise<number> {
@@ -187,6 +274,8 @@ export class MongoCustomerRepository implements CustomerRepository {
       totalSpent: document.totalSpent as number,
       outstandingBalance: document.outstandingBalance as number,
       lastOrderDate: document.lastOrderDate as Date | null,
+      source: (document.source as CustomerSource | undefined) ?? CustomerSource.SHOP,
+      consumerId: document.consumerId as string | undefined,
       createdAt: document.createdAt as Date,
       updatedAt: document.updatedAt as Date,
     };

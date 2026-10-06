@@ -2,7 +2,7 @@ import { defaultPermissionsForRole } from '@nexoraa/shared';
 import type { RequestWithPlatformContext } from '../platform/platform.request';
 import type { ContractVersion, TrustedContext } from '../platform/platform.types';
 
-export type AuthLoginContext = 'platform' | 'tenant';
+export type AuthLoginContext = 'platform' | 'tenant' | 'consumer';
 export type AuthTokenKind = 'access' | 'refresh';
 export type AuthIdentityStatus = 'active' | 'disabled';
 export type AuthResetDeliveryChannel = 'email' | 'sms';
@@ -33,6 +33,28 @@ export interface AuthIdentityRecord {
   readonly passwordChangedAtUtc: string;
   /** Set only for staff identities — the loginId chosen by the owner. */
   readonly loginId?: string;
+  /** Set only for consumer identities — login is refused until the email is verified. */
+  readonly emailVerified?: boolean;
+}
+
+/** A marketplace end-customer account (consumerAccounts collection). */
+export interface ConsumerAccountRecord {
+  readonly userId: string;
+  readonly email: string;
+  readonly mobileNumber: string;
+  readonly displayName: string;
+  readonly passwordHash: string;
+  readonly status: AuthIdentityStatus;
+  readonly emailVerified: boolean;
+  readonly emailVerifiedAtUtc?: string;
+  readonly verificationOtpHash?: string;
+  readonly verificationExpiresAtUtc?: string;
+  readonly verificationAttempts: number;
+  readonly verificationSentAtUtc?: string;
+  readonly accessVersion: number;
+  readonly passwordChangedAtUtc: string;
+  readonly createdAtUtc: string;
+  readonly updatedAtUtc: string;
 }
 
 /** Minimal record written to the tenantStaff collection when an owner registers a staff member. */
@@ -315,6 +337,13 @@ export interface AuthRepository {
     branchIds: readonly string[],
   ): Promise<void>;
   deleteStaffIdentity(userId: string): Promise<void>;
+  // ── Consumer (marketplace customer) accounts ──────────────────────────────
+  findConsumerAccount(by: {
+    readonly email?: string;
+    readonly mobileNumber?: string;
+    readonly userId?: string;
+  }): Promise<ConsumerAccountRecord | null>;
+  saveConsumerAccount(record: ConsumerAccountRecord): Promise<ConsumerAccountRecord>;
 }
 
 export interface AccessTokenResolution {

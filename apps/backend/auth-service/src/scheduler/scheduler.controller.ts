@@ -124,7 +124,7 @@ export class SchedulerController {
 
   private getAuthorization(
     request: RequestWithPlatformContext,
-  ): ReturnType<TrustedContextFactory['assertTrustedContext']> {
+  ): ReturnType<TrustedContextFactory['assertStaffContext']> {
     if (!request.trustedContext) {
       throw new PlatformError({
         code: 'platform.unauthenticated',
@@ -133,6 +133,6 @@ export class SchedulerController {
       });
     }
 
-    return this.trustedContextFactory.assertTrustedContext(request.trustedContext);
+    return this.trustedContextFactory.assertStaffContext(request.trustedContext);
   }
 }

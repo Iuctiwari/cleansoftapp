@@ -13,11 +13,11 @@ import type { AuthLoginContext } from './auth.types';
 
 export class AuthLoginDto {
   @ApiProperty({
-    description: 'Login context — use "tenant" for business users, "platform" for operators',
-    enum: ['platform', 'tenant'],
+    description: 'Login context — use "tenant" for business users, "consumer" for marketplace customers, "platform" for operators',
+    enum: ['platform', 'tenant', 'consumer'],
     example: 'tenant',
   })
-  @IsEnum(['platform', 'tenant'])
+  @IsEnum(['platform', 'tenant', 'consumer'])
   context!: AuthLoginContext;
 
   @ApiProperty({
@@ -92,10 +92,10 @@ export class AuthRefreshDto {
 export class AuthForgotPasswordDto {
   @ApiProperty({
     description: 'Login context',
-    enum: ['platform', 'tenant'],
+    enum: ['platform', 'tenant', 'consumer'],
     example: 'tenant',
   })
-  @IsEnum(['platform', 'tenant'])
+  @IsEnum(['platform', 'tenant', 'consumer'])
   context!: AuthLoginContext;
 
   @ApiProperty({
@@ -121,10 +121,10 @@ export class AuthForgotPasswordDto {
 export class AuthResetPasswordDto {
   @ApiProperty({
     description: 'Login context',
-    enum: ['platform', 'tenant'],
+    enum: ['platform', 'tenant', 'consumer'],
     example: 'tenant',
   })
-  @IsEnum(['platform', 'tenant'])
+  @IsEnum(['platform', 'tenant', 'consumer'])
   context!: AuthLoginContext;
 
   @ApiProperty({

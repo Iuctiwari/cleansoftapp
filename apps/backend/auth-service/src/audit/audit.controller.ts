@@ -4,7 +4,7 @@ import { ApiBearerAuth, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger'
 import { PlatformError } from '../platform/platform.errors';
 import { TrustedContextFactory } from '../platform/platform.context';
 import type { RequestWithPlatformContext } from '../platform/platform.request';
-import type { TrustedContext } from '../platform/platform.types';
+import type { StaffTrustedContext } from '../platform/platform.types';
 import { ApiEnvelopeResponse } from '../platform/platform.swagger';
 import { AuditExportRequestDto, AuditQueryDto } from './audit.dto';
 import { AuditService } from './audit.service';
@@ -101,7 +101,7 @@ export class AuditController {
     );
   }
 
-  private getAuthorization(request: RequestWithPlatformContext): TrustedContext {
+  private getAuthorization(request: RequestWithPlatformContext): StaffTrustedContext {
     if (!request.trustedContext) {
       throw new PlatformError({
         code: 'platform.unauthenticated',
@@ -110,6 +110,6 @@ export class AuditController {
       });
     }
 
-    return this.trustedContextFactory.assertTrustedContext(request.trustedContext);
+    return this.trustedContextFactory.assertStaffContext(request.trustedContext);
   }
 }

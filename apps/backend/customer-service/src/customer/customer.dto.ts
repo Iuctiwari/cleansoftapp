@@ -16,7 +16,7 @@ import {
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { DEFAULT_PAGE_NUMBER, DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from '@nexoraa/constants';
 
-import { CustomerType } from './customer.mongoose.schema';
+import { CustomerSource, CustomerType } from './customer.mongoose.schema';
 
 const MOBILE_PATTERN = /^\+?[0-9]{7,15}$/;
 
@@ -133,6 +133,39 @@ export class ListCustomersQueryDto {
   @IsString()
   @MaxLength(120)
   search?: string;
+
+  @ApiPropertyOptional({
+    enum: CustomerSource,
+    description: 'online = came through the marketplace app; shop = added by the shop',
+  })
+  @IsOptional()
+  @IsEnum(CustomerSource)
+  source?: CustomerSource;
+}
+
+export class LinkOnlineCustomerDto {
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(80)
+  consumerId!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(80)
+  name!: string;
+
+  @Matches(/^[6-9]\d{9}$/)
+  mobile!: string;
+
+  @IsOptional()
+  @IsEmail()
+  @MaxLength(160)
+  email?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(300)
+  address?: string;
 }
 
 export class CustomerResponseDto {

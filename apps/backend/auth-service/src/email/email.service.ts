@@ -51,6 +51,41 @@ export class EmailService {
     });
   }
 
+  /** 6-digit code a new marketplace customer enters to verify their email. */
+  async sendEmailVerificationOtp(
+    email: string,
+    otp: string,
+    recipientName?: string,
+  ): Promise<SendEmailResult> {
+    const escape = (value: string) =>
+      value.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+    const subject = 'Verify your email for Nexoraa';
+    const htmlContent = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
+        <h2 style="color: #1976d2; margin-bottom: 16px;">Nexoraa</h2>
+        <p>Hello${recipientName ? ` ${escape(recipientName)}` : ''},</p>
+        <p>Welcome! Enter this 6-digit code in the app to verify your email and finish creating your account:</p>
+        <div style="text-align: center; margin: 24px 0;">
+          <span style="font-size: 32px; font-weight: bold; letter-spacing: 6px; padding: 12px 24px; background-color: #f5f5f5; border-radius: 6px; border: 1px dashed #1976d2; color: #1976d2; display: inline-block;">
+            ${otp}
+          </span>
+        </div>
+        <p style="color: #666; font-size: 14px;">This code will expire in 10 minutes. If you did not sign up for Nexoraa, please ignore this email.</p>
+        <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
+        <p style="color: #999; font-size: 12px;">© ${new Date().getFullYear()} Nexoraa CleanSoft. All rights reserved.</p>
+      </div>
+    `;
+    const textContent = `Your Nexoraa verification code is: ${otp}. It will expire in 10 minutes. If you did not sign up, please ignore this email.`;
+
+    return this.sendEmail({
+      to: [{ email, ...(recipientName ? { name: recipientName } : {}) }],
+      subject,
+      htmlContent,
+      textContent,
+      tags: ['email-verification'],
+    });
+  }
+
   /**
    * Invitation for a staff member added by an owner. The account already exists;
    * the staff member sets their own password via the app's "Forgot password?"

@@ -9,6 +9,12 @@ export enum CustomerType {
   VIP = 'VIP',
 }
 
+/** How the customer first reached the shop. */
+export enum CustomerSource {
+  SHOP = 'shop',
+  ONLINE = 'online',
+}
+
 export type CustomerDocument = HydratedDocument<CustomerMongoose>;
 
 @DatabaseSchema({ collection: 'customers' })
@@ -50,6 +56,13 @@ export class CustomerMongoose extends BaseSchema {
 
   @Prop({ default: null, type: Date })
   lastOrderDate!: Date | null;
+
+  @Prop({ default: CustomerSource.SHOP, enum: CustomerSource, required: true, type: String })
+  source!: CustomerSource;
+
+  /** Set when the customer has a marketplace (online) account linked to this record. */
+  @Prop({ trim: true, type: String })
+  consumerId?: string;
 }
 
 export const CustomerMongooseSchema = createBaseSchema(CustomerMongoose);
@@ -60,3 +73,12 @@ CustomerMongooseSchema.index({ tenantId: 1, mobile: 1 });
 CustomerMongooseSchema.index({ tenantId: 1, branchId: 1 });
 CustomerMongooseSchema.index({ tenantId: 1, branchId: 1, isDeleted: 1, name: 1 });
 CustomerMongooseSchema.index({ tenantId: 1, branchId: 1, isDeleted: 1, mobile: 1 });
+// One live record per online customer per branch.
+CustomerMongooseSchema.index(
+  { tenantId: 1, branchId: 1, consumerId: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { consumerId: { $exists: true }, isDeleted: false },
+    name: 'tenant_branch_consumer_unique',
+  },
+);

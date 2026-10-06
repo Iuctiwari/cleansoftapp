@@ -12,6 +12,7 @@ import {
   isOwnerRole,
   isStaffRole,
 } from '@nexoraa/shared';
+import { Types } from 'mongoose';
 
 import type { CreateCustomerDto, ListCustomersQueryDto, UpdateCustomerDto } from './customer.dto';
 import { CustomerType } from './customer.mongoose.schema';
@@ -23,6 +24,8 @@ import {
   type CustomerRepository,
   type CustomerScope,
   type CustomerStatistics,
+  type OnlineCustomerInput,
+  type OnlineCustomerLink,
 } from './customer.types';
 
 @Injectable()
@@ -36,6 +39,16 @@ export class CustomerService {
    *  used by platform-admin-service's Company Admin panel (tenant detail screen). */
   countForTenant(tenantId: string): Promise<number> {
     return this.customerRepository.countForTenant(tenantId);
+  }
+
+  /** Internal (marketplace-service): link or create the customer behind an online request. */
+  linkOnlineCustomer(
+    tenantId: string,
+    branchId: string,
+    input: OnlineCustomerInput,
+  ): Promise<OnlineCustomerLink> {
+    if (!Types.ObjectId.isValid(tenantId)) throw new NotFoundException('Tenant not found');
+    return this.customerRepository.linkOnlineCustomer(tenantId, branchId, input);
   }
 
   create(scope: CustomerScope, input: CreateCustomerDto): Promise<CustomerRecord> {
@@ -56,6 +69,7 @@ export class CustomerService {
       page: query.page,
       limit: query.limit,
       search: query.search?.trim(),
+      source: query.source,
     });
   }
 

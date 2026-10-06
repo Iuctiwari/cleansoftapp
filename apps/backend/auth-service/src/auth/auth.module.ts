@@ -9,6 +9,8 @@ import { AuthController } from './auth.controller';
 import { AuthenticationContextMiddleware } from './auth.middleware';
 import { MongoAuthRepository } from './auth.mongo.repository';
 import { AuthService } from './auth.service';
+import { ConsumerAuthController } from './consumer-auth.controller';
+import { ConsumerAuthService } from './consumer-auth.service';
 import { AUTH_REPOSITORY } from './auth.types';
 
 import {
@@ -32,6 +34,8 @@ import {
   TenantStaffAuthMongooseSchema,
   UserBranchAssignmentMongoose,
   UserBranchAssignmentMongooseSchema,
+  ConsumerAccountMongoose,
+  ConsumerAccountMongooseSchema,
 } from './auth.mongoose.schema';
 
 @Module({
@@ -52,11 +56,13 @@ import {
       { name: BranchAuthMongoose.name, schema: BranchAuthMongooseSchema },
       { name: TenantStaffAuthMongoose.name, schema: TenantStaffAuthMongooseSchema },
       { name: UserBranchAssignmentMongoose.name, schema: UserBranchAssignmentMongooseSchema },
+      { name: ConsumerAccountMongoose.name, schema: ConsumerAccountMongooseSchema },
     ]),
   ],
-  controllers: [AuthController],
+  controllers: [AuthController, ConsumerAuthController],
   providers: [
     AuthService,
+    ConsumerAuthService,
     MongoAuthRepository,
     {
       provide: AUTH_REPOSITORY,

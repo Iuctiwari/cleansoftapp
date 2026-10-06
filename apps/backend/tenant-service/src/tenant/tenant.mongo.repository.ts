@@ -11,6 +11,7 @@ import {
   TenantServiceMongoose,
 } from './tenant.mongoose.schema';
 import type {
+  TenantBusinessType,
   BranchRecord,
   CatalogProvisioningCandidate,
   CompleteTenantOnboardingInput,
@@ -106,6 +107,11 @@ export class MongoTenantRepository implements TenantRepository {
   async listBranches(tenantId: string): Promise<BranchRecord[]> {
     const docs = await this.branchModel.find({ tenantId }).lean().exec();
     return docs.map((d) => this.mapBranch(d));
+  }
+
+  async listEnabledServiceTypes(tenantId: string): Promise<TenantBusinessType[]> {
+    const services = await this.tenantServiceModel.find({ tenantId, isEnabled: true }).lean().exec();
+    return [...new Set(services.map((service) => service.serviceType as TenantBusinessType))];
   }
 
   async listCatalogProvisioningCandidates(): Promise<CatalogProvisioningCandidate[]> {

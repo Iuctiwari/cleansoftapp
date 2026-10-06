@@ -3,10 +3,11 @@ import { InjectModel } from '@nestjs/mongoose';
 import { effectivePermissions } from '@nexoraa/shared';
 import { FilterQuery, Model } from 'mongoose';
 import { hashPassword } from './auth.crypto';
-import { normalizeIdentifier } from './auth.normalization';
+import { normalizeIdentifier, normalizeIndianMobile } from './auth.normalization';
 
 import type {
   AuthIdentityRecord,
+  ConsumerAccountRecord,
   AuthLoginContext,
   AuthLoginTracker,
   AuthNotificationIntent,
@@ -23,6 +24,8 @@ import {
   AuthNotificationIntentMongoose,
   AuthSessionDocument,
   AuthSessionMongoose,
+  ConsumerAccountDocument,
+  ConsumerAccountMongoose,
   BranchAuthDocument,
   BranchAuthMongoose,
   PasswordResetDocument,
@@ -60,6 +63,8 @@ export class MongoAuthRepository implements AuthRepository, OnModuleInit {
     private readonly tenantStaffModel: Model<TenantStaffAuthDocument>,
     @InjectModel(UserBranchAssignmentMongoose.name)
     private readonly userBranchAssignmentModel: Model<UserBranchAssignmentDocument>,
+    @InjectModel(ConsumerAccountMongoose.name)
+    private readonly consumerAccountModel: Model<ConsumerAccountDocument>,
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -163,7 +168,64 @@ export class MongoAuthRepository implements AuthRepository, OnModuleInit {
       };
     }
 
+    if (context === 'consumer') {
+      const mobile = normalizeIndianMobile(identifier);
+      const account = await this.findConsumerAccount(
+        mobile ? { mobileNumber: mobile } : { email: normalized },
+      );
+      return account ? this.toConsumerIdentity(account) : null;
+    }
+
     return null;
+  }
+
+  private toConsumerIdentity(account: ConsumerAccountRecord): AuthIdentityRecord {
+    return {
+      userId: account.userId,
+      kind: 'consumer',
+      email: account.email,
+      mobileNumber: account.mobileNumber,
+      displayName: account.displayName,
+      passwordHash: account.passwordHash,
+      roleCode: 'consumer',
+      permissions: Object.freeze([]),
+      status: account.status,
+      accessVersion: account.accessVersion,
+      branches: Object.freeze([]),
+      passwordChangedAtUtc: account.passwordChangedAtUtc,
+      emailVerified: account.emailVerified,
+    };
+  }
+
+  async findConsumerAccount(by: {
+    readonly email?: string;
+    readonly mobileNumber?: string;
+    readonly userId?: string;
+  }): Promise<ConsumerAccountRecord | null> {
+    let filter: FilterQuery<ConsumerAccountMongoose>;
+    if (by.userId) filter = { userId: by.userId };
+    else if (by.email) filter = { email: normalizeIdentifier(by.email) };
+    else if (by.mobileNumber) filter = { mobileNumber: by.mobileNumber };
+    else return null;
+
+    const doc = await this.consumerAccountModel.findOne(filter, { _id: 0 }).lean().exec();
+    return doc ? (doc as unknown as ConsumerAccountRecord) : null;
+  }
+
+  async saveConsumerAccount(record: ConsumerAccountRecord): Promise<ConsumerAccountRecord> {
+    // Cleared verification fields are removed rather than stored as undefined.
+    const unset: Record<string, ''> = {};
+    for (const key of ['verificationOtpHash', 'verificationExpiresAtUtc'] as const) {
+      if (record[key] === undefined) unset[key] = '';
+    }
+    await this.consumerAccountModel
+      .updateOne(
+        { userId: record.userId },
+        { $set: record, ...(Object.keys(unset).length > 0 ? { $unset: unset } : {}) },
+        { upsert: true },
+      )
+      .exec();
+    return record;
   }
 
   /**
@@ -234,6 +296,11 @@ export class MongoAuthRepository implements AuthRepository, OnModuleInit {
       return this.findIdentity('tenant', tenantOwner.email);
     }
 
+    const consumer = await this.findConsumerAccount({ userId });
+    if (consumer) {
+      return this.toConsumerIdentity(consumer);
+    }
+
     // Check staff identities
     const staff = await this.tenantStaffModel.findOne({ userId }).lean().exec();
     if (staff) {
@@ -287,6 +354,20 @@ export class MongoAuthRepository implements AuthRepository, OnModuleInit {
             $set: {
               passwordHash: identity.passwordHash,
               accessVersion: identity.accessVersion,
+            },
+          },
+        )
+        .exec();
+    } else if (identity.kind === 'consumer') {
+      await this.consumerAccountModel
+        .updateOne(
+          { userId: identity.userId },
+          {
+            $set: {
+              passwordHash: identity.passwordHash,
+              accessVersion: identity.accessVersion,
+              passwordChangedAtUtc: identity.passwordChangedAtUtc,
+              updatedAtUtc: new Date().toISOString(),
             },
           },
         )

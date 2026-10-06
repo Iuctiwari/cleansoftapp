@@ -6,7 +6,13 @@ import { AuditService } from '../audit/audit.service';
 import { EmailService } from '../email/email.service';
 import { TrustedContextFactory } from '../platform/platform.context';
 import { PlatformError } from '../platform/platform.errors';
-import type { PlatformContext, TenantContext, TrustedContext } from '../platform/platform.types';
+import type {
+  ConsumerContext,
+  PlatformContext,
+  StaffTrustedContext,
+  TenantContext,
+  TrustedContext,
+} from '../platform/platform.types';
 import {
   createAccessTokenId,
   createRefreshFamilyId,
@@ -29,6 +35,7 @@ import {
   type AuthenticatedBranchContext,
   type AuthForgotPasswordInput,
   type AuthIdentityRecord,
+  type AuthLoginContext,
   type AuthLoginInput,
   type AuthLoginResponse,
   type AuthLogoutAllInput,
@@ -76,7 +83,7 @@ function parseBoolean(value: string | undefined, fallback: boolean): boolean {
   return value.trim().toLowerCase() === 'true';
 }
 
-function assertStrongPassword(password: string): void {
+export function assertStrongPassword(password: string): void {
   const checks = [
     { field: 'newPassword', code: 'auth.password_min_length', ok: password.length >= 8 },
     { field: 'newPassword', code: 'auth.password_uppercase', ok: /[A-Z]/.test(password) },
@@ -174,6 +181,14 @@ export class AuthService {
       });
     }
 
+    if (identity.kind === 'consumer' && identity.emailVerified !== true) {
+      throw new PlatformError({
+        code: 'auth.email_not_verified',
+        category: 'forbidden',
+        messageKey: 'errors.auth.email_not_verified',
+      });
+    }
+
     if (passwordMatchesLegacy) {
       await this.authRepository.replaceIdentity({
         ...identity,
@@ -246,7 +261,7 @@ export class AuthService {
       classification: 'security',
       actor: { actorId: identity.userId, actorType: 'user' },
       target: { targetId: session.sessionId, targetType: 'auth_session' },
-      context: principalContext,
+      context: this.toAuditContext(principalContext, input.metadata),
       newSummary: {
         fields: {
           sessionId: session.sessionId,
@@ -384,7 +399,7 @@ export class AuthService {
       classification: 'security',
       actor: { actorId: updatedSession.userId, actorType: 'user' },
       target: { targetId: updatedSession.sessionId, targetType: 'auth_session' },
-      context: principalContext,
+      context: this.toAuditContext(principalContext, input.metadata),
       retentionTags: [{ code: 'security', label: 'Security' }],
       contractVersion: { major: 1, minor: 0 },
     });
@@ -747,6 +762,7 @@ export class AuthService {
     return (
       identity.status === 'active' &&
       (identity.kind === 'platform' ||
+        identity.kind === 'consumer' ||
         (identity.tenantStatus === 'active' && identity.tenantId !== undefined))
     );
   }
@@ -816,7 +832,21 @@ export class AuthService {
     }
   }
 
-  private createAccessClaims(context: PlatformContext | TenantContext): AuthAccessTokenClaims {
+  private createAccessClaims(
+    context: PlatformContext | TenantContext | ConsumerContext,
+  ): AuthAccessTokenClaims {
+    if (context.kind === 'consumer') {
+      return {
+        tokenKind: 'access',
+        sessionId: context.sessionId ?? '',
+        userId: context.actorId,
+        kind: 'consumer',
+        roleCode: 'consumer',
+        permissions: [],
+        accessVersion: context.accessVersion,
+      };
+    }
+
     return {
       tokenKind: 'access',
       sessionId: context.sessionId ?? '',
@@ -834,7 +864,19 @@ export class AuthService {
     identity: AuthIdentityRecord,
     session: AuthSessionRecord,
     metadata: AuthRequestMetadata,
-  ): PlatformContext | TenantContext {
+  ): PlatformContext | TenantContext | ConsumerContext {
+    if (identity.kind === 'consumer') {
+      return this.trustedContextFactory.createConsumerContext({
+        actorId: identity.userId,
+        actorType: 'user',
+        correlationId: metadata.correlationId,
+        causationId: metadata.causationId,
+        requestId: metadata.requestId,
+        sessionId: session.sessionId,
+        accessVersion: identity.accessVersion,
+      });
+    }
+
     if (identity.kind === 'platform') {
       return this.trustedContextFactory.createPlatformContext({
         actorId: identity.userId,
@@ -867,7 +909,19 @@ export class AuthService {
   private createTrustedContextFromSession(
     session: AuthSessionRecord,
     metadata: AuthRequestMetadata,
-  ): PlatformContext | TenantContext {
+  ): PlatformContext | TenantContext | ConsumerContext {
+    if (session.kind === 'consumer') {
+      return this.trustedContextFactory.createConsumerContext({
+        actorId: session.userId,
+        actorType: 'user',
+        correlationId: metadata.correlationId,
+        causationId: metadata.causationId,
+        requestId: metadata.requestId,
+        sessionId: session.sessionId,
+        accessVersion: session.accessVersion,
+      });
+    }
+
     if (session.kind === 'platform') {
       return this.trustedContextFactory.createPlatformContext({
         actorId: session.userId,
@@ -921,8 +975,31 @@ export class AuthService {
     });
   }
 
+  /**
+   * The audit log is scoped to platform/tenant/support. Consumer activity has no
+   * tenant, so it is recorded on the platform scope with the consumer as actor.
+   */
+  private toAuditContext(
+    context: TrustedContext,
+    metadata: AuthRequestMetadata,
+  ): StaffTrustedContext {
+    if (context.kind !== 'consumer') {
+      return context;
+    }
+
+    return this.trustedContextFactory.createPlatformContext({
+      actorId: context.actorId,
+      actorType: 'user',
+      correlationId: metadata.correlationId,
+      causationId: metadata.causationId,
+      requestId: metadata.requestId,
+      sessionId: context.sessionId,
+      roleCode: 'consumer',
+    });
+  }
+
   private createTrackerKey(
-    context: 'platform' | 'tenant',
+    context: AuthLoginContext,
     identifier: string,
     tenantSlug?: string,
   ): string {
@@ -992,7 +1069,7 @@ export class AuthService {
       classification: 'security',
       actor: { actorId: session.userId, actorType: 'user' },
       target: { targetId: session.sessionId, targetType: 'auth_session' },
-      context: this.createTrustedContextFromSession(session, metadata),
+      context: this.toAuditContext(this.createTrustedContextFromSession(session, metadata), metadata),
       retentionTags: [{ code: 'security', label: 'Security' }],
       contractVersion: { major: 1, minor: 0 },
     });

@@ -1,6 +1,6 @@
 import type { PaginatedResult } from '@nexoraa/types';
 
-import type { CustomerType } from './customer.mongoose.schema';
+import type { CustomerSource, CustomerType } from './customer.mongoose.schema';
 
 export const CUSTOMER_REPOSITORY = Symbol('CUSTOMER_REPOSITORY');
 
@@ -26,8 +26,28 @@ export interface CustomerRecord {
   readonly totalSpent: number;
   readonly outstandingBalance: number;
   readonly lastOrderDate: Date | null;
+  /** "online" when the customer first came through the marketplace app. */
+  readonly source: CustomerSource;
+  /** Marketplace account linked to this customer, if any. */
+  readonly consumerId?: string;
   readonly createdAt: Date;
   readonly updatedAt: Date;
+}
+
+/** A marketplace customer who sent a request to this branch. */
+export interface OnlineCustomerInput {
+  readonly consumerId: string;
+  readonly name: string;
+  /** 10-digit Indian mobile number. */
+  readonly mobile: string;
+  readonly email?: string;
+  readonly address?: string;
+}
+
+export interface OnlineCustomerLink {
+  readonly customerId: string;
+  /** existing: already linked · linked: matched a shop-entered customer by mobile · created: new */
+  readonly outcome: 'existing' | 'linked' | 'created';
 }
 
 export interface CustomerMutableFields {
@@ -48,6 +68,7 @@ export interface CustomerListQuery {
   readonly page: number;
   readonly limit: number;
   readonly search?: string;
+  readonly source?: CustomerSource;
 }
 
 export type CustomerPage = Omit<PaginatedResult<CustomerRecord>, 'totalPages'>;
@@ -73,4 +94,10 @@ export interface CustomerRepository {
     input: CustomerMutableFields,
   ): Promise<CustomerRecord | null>;
   softDelete(scope: CustomerScope, id: string): Promise<boolean>;
+  /** Internal: find or create the branch's customer record for a marketplace customer. */
+  linkOnlineCustomer(
+    tenantId: string,
+    branchId: string,
+    input: OnlineCustomerInput,
+  ): Promise<OnlineCustomerLink>;
 }

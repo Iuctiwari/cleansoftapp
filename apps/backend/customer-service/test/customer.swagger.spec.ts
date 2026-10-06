@@ -110,7 +110,7 @@ describe('Customer Swagger contract', () => {
   it('documents pagination, search, path parameters, and scoped errors', () => {
     const list = operation(document, '/customers', 'get');
     const queryNames = list.parameters?.map((parameter) => parameter.name) ?? [];
-    expect(queryNames.sort()).toEqual(['limit', 'page', 'search']);
+    expect(queryNames.sort()).toEqual(['limit', 'page', 'search', 'source']);
     expect(list.responses?.['200']).toBeDefined();
     expect(list.responses?.['400']).toBeDefined();
 

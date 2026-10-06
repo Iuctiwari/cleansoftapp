@@ -10,7 +10,11 @@ import {
   ListCustomersQueryDto,
   UpdateCustomerDto,
 } from '../src/customer/customer.dto';
-import { CustomerMongooseSchema, CustomerType } from '../src/customer/customer.mongoose.schema';
+import {
+  CustomerMongooseSchema,
+  CustomerSource,
+  CustomerType,
+} from '../src/customer/customer.mongoose.schema';
 import { CustomerService } from '../src/customer/customer.service';
 import type {
   CreateCustomerFields,
@@ -26,6 +30,10 @@ import type {
 class InMemoryCustomerRepository implements CustomerRepository {
   readonly records: CustomerRecord[] = [];
   readonly deletedIds = new Set<string>();
+
+  linkOnlineCustomer(): never {
+    throw new Error('not used by these tests');
+  }
 
   countForTenant(tenantId: string): Promise<number> {
     return Promise.resolve(
@@ -49,6 +57,7 @@ class InMemoryCustomerRepository implements CustomerRepository {
       totalSpent: 0,
       outstandingBalance: 0,
       lastOrderDate: null,
+      source: CustomerSource.SHOP,
       createdAt: now,
       updatedAt: now,
     };

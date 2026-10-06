@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 
 import { generateTenantId } from './tenant.crypto';
 import type {
+  TenantBusinessType,
   BranchRecord,
   CatalogProvisioningCandidate,
   CompleteTenantOnboardingInput,
@@ -87,6 +88,16 @@ export class InMemoryTenantRepository implements TenantRepository {
     const total = items.length;
     const start = (page - 1) * limit;
     return Promise.resolve({ items: items.slice(start, start + limit), page, limit, total });
+  }
+
+  listEnabledServiceTypes(tenantId: string): Promise<TenantBusinessType[]> {
+    return Promise.resolve([
+      ...new Set(
+        [...this.services.values()]
+          .filter((service) => service.tenantId === tenantId && service.isEnabled)
+          .map((service) => service.serviceType),
+      ),
+    ]);
   }
 
   listCatalogProvisioningCandidates(): Promise<CatalogProvisioningCandidate[]> {

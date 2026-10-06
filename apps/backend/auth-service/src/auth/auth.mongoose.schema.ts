@@ -16,7 +16,7 @@ export class AuthSessionMongoose extends Document {
   @Prop({ required: true, index: true })
   userId!: string;
 
-  @Prop({ required: true, enum: ['platform', 'tenant'] })
+  @Prop({ required: true, enum: ['platform', 'tenant', 'consumer'] })
   kind!: string;
 
   @Prop({ required: true })
@@ -91,7 +91,7 @@ export class PasswordResetMongoose extends Document {
   @Prop({ required: true, index: true })
   userId!: string;
 
-  @Prop({ required: true, enum: ['platform', 'tenant'] })
+  @Prop({ required: true, enum: ['platform', 'tenant', 'consumer'] })
   kind!: string;
 
   @Prop() tenantId?: string;
@@ -343,3 +343,57 @@ export class UserBranchAssignmentMongoose extends Document {
 export const UserBranchAssignmentMongooseSchema = SchemaFactory.createForClass(
   UserBranchAssignmentMongoose,
 );
+
+// ─── Consumer Account ──────────────────────────────────────────────────────
+// Marketplace end customers (the consumer side of the app). A separate realm
+// from tenant owners/staff: the same email may exist in both.
+
+export type ConsumerAccountDocument = HydratedDocument<ConsumerAccountMongoose>;
+
+@Schema({ collection: 'consumerAccounts', timestamps: false, versionKey: false })
+export class ConsumerAccountMongoose extends Document {
+  @Prop({ required: true, unique: true, index: true })
+  userId!: string;
+
+  @Prop({ required: true, unique: true, index: true })
+  email!: string;
+
+  /** 10-digit Indian mobile number, digits only. */
+  @Prop({ required: true, unique: true, index: true })
+  mobileNumber!: string;
+
+  @Prop({ required: true })
+  displayName!: string;
+
+  @Prop({ required: true })
+  passwordHash!: string;
+
+  @Prop({ required: true, enum: ['active', 'disabled'], default: 'active' })
+  status!: string;
+
+  @Prop({ required: true, default: false })
+  emailVerified!: boolean;
+
+  @Prop() emailVerifiedAtUtc?: string;
+  @Prop() verificationOtpHash?: string;
+  @Prop() verificationExpiresAtUtc?: string;
+
+  @Prop({ required: true, default: 0 })
+  verificationAttempts!: number;
+
+  @Prop() verificationSentAtUtc?: string;
+
+  @Prop({ required: true, default: 1 })
+  accessVersion!: number;
+
+  @Prop({ required: true })
+  passwordChangedAtUtc!: string;
+
+  @Prop({ required: true })
+  createdAtUtc!: string;
+
+  @Prop({ required: true })
+  updatedAtUtc!: string;
+}
+
+export const ConsumerAccountMongooseSchema = SchemaFactory.createForClass(ConsumerAccountMongoose);
