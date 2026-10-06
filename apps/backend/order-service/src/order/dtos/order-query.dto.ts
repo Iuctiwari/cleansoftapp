@@ -7,6 +7,7 @@ import {
 } from '@nexoraa/constants';
 import { Transform } from 'class-transformer';
 import {
+  IsBoolean,
   IsEnum,
   IsIn,
   IsInt,
@@ -90,6 +91,29 @@ export class OrderQueryDto {
   @IsOptional()
   @IsMongoId()
   customerId?: string;
+
+  @ApiPropertyOptional({
+    description: 'Owner/Branch Manager only: orders assigned to this worker. Ignored for Staff.',
+  })
+  @IsOptional()
+  @IsMongoId()
+  assignedTo?: string;
+
+  @ApiPropertyOptional({
+    description: 'Only orders nobody is assigned to that can still be assigned.',
+  })
+  @IsOptional()
+  @Transform(({ value }: { value: unknown }) => value === true || value === 'true')
+  @IsBoolean()
+  unassigned?: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Only orders past their expected delivery date that are not Ready or finished.',
+  })
+  @IsOptional()
+  @Transform(({ value }: { value: unknown }) => value === true || value === 'true')
+  @IsBoolean()
+  overdue?: boolean;
 
   @ApiPropertyOptional({
     enum: ['createdAt', 'updatedAt', 'orderNumber', 'grandTotal', 'expectedDeliveryDate'],

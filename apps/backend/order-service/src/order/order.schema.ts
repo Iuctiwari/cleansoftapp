@@ -54,6 +54,31 @@ OrderItemMongooseSchema.pre(
   },
 );
 
+@Schema({ _id: true, timestamps: false, versionKey: false })
+export class OrderNoteMongoose {
+  readonly _id!: Types.ObjectId;
+
+  @Prop({ maxlength: 1000, required: true, trim: true, type: String })
+  text!: string;
+
+  @Prop({ default: 'General', enum: ['General', 'Damage'], required: true, type: String })
+  kind!: string;
+
+  @Prop({ type: MongooseSchema.Types.ObjectId })
+  itemId?: Types.ObjectId;
+
+  @Prop({ required: true, type: MongooseSchema.Types.ObjectId })
+  authorId!: Types.ObjectId;
+
+  @Prop({ required: true, trim: true, type: String })
+  authorRole!: string;
+
+  @Prop({ default: Date.now, required: true, type: Date })
+  createdAt!: Date;
+}
+
+export const OrderNoteMongooseSchema = SchemaFactory.createForClass(OrderNoteMongoose);
+
 export type OrderDocument = HydratedDocument<OrderMongoose>;
 
 @DatabaseSchema({ collection: 'orders' })
@@ -134,6 +159,9 @@ export class OrderMongoose {
 
   @Prop({ type: MongooseSchema.Types.ObjectId })
   assignedTo?: Types.ObjectId;
+
+  @Prop({ default: [], type: [OrderNoteMongooseSchema] })
+  notes!: OrderNoteMongoose[];
 
   @Prop({ trim: true, type: String })
   cancelReason?: string;
@@ -234,6 +262,32 @@ export const StatusHistoryMongooseSchema = SchemaFactory.createForClass(StatusHi
 StatusHistoryMongooseSchema.index({ tenantId: 1, orderId: 1, timestamp: 1 });
 StatusHistoryMongooseSchema.index({ tenantId: 1, branchId: 1, timestamp: -1 });
 
+@Schema({ _id: false, timestamps: false, versionKey: false })
+export class DeclineRequestMongoose {
+  @Prop({ maxlength: 500, required: true, trim: true, type: String })
+  reason!: string;
+
+  @Prop({ enum: ['Pending', 'Approved', 'Denied'], required: true, type: String })
+  status!: string;
+
+  @Prop({ required: true, type: MongooseSchema.Types.ObjectId })
+  requestedBy!: Types.ObjectId;
+
+  @Prop({ required: true, type: Date })
+  requestedAt!: Date;
+
+  @Prop({ type: MongooseSchema.Types.ObjectId })
+  resolvedBy?: Types.ObjectId;
+
+  @Prop({ type: Date })
+  resolvedAt?: Date;
+
+  @Prop({ maxlength: 500, trim: true, type: String })
+  responseNote?: string;
+}
+
+export const DeclineRequestMongooseSchema = SchemaFactory.createForClass(DeclineRequestMongoose);
+
 export type AssignmentDocument = HydratedDocument<AssignmentMongoose>;
 
 @DatabaseSchema({ collection: 'assignments' })
@@ -264,6 +318,9 @@ export class AssignmentMongoose {
   @Prop({ required: true, trim: true, type: String })
   status!: string;
 
+  @Prop({ type: DeclineRequestMongooseSchema })
+  declineRequest?: DeclineRequestMongoose;
+
   readonly createdAt!: Date;
   readonly updatedAt!: Date;
   readonly version!: number;
@@ -276,3 +333,7 @@ AssignmentMongooseSchema.index(
   { name: 'assignments_tenant_branch_order_unique', unique: true },
 );
 AssignmentMongooseSchema.index({ tenantId: 1, branchId: 1, assignedTo: 1, status: 1, dueDate: 1 });
+AssignmentMongooseSchema.index(
+  { tenantId: 1, branchId: 1, 'declineRequest.status': 1 },
+  { partialFilterExpression: { 'declineRequest.status': 'Pending' } },
+);

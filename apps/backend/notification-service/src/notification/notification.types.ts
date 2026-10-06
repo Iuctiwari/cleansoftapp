@@ -1,6 +1,17 @@
 export enum NotificationType {
   WORKER_ASSIGNED = 'WorkerAssigned',
   ASSIGNMENT_ACCEPTED = 'AssignmentAccepted',
+  // order-service has always sent these two names; until they were listed here
+  // every accept/reject notification was rejected with 400 and silently dropped.
+  WORKER_ASSIGNMENT_ACCEPTED = 'WorkerAssignmentAccepted',
+  WORKER_ASSIGNMENT_REJECTED = 'WorkerAssignmentRejected',
+  WORKER_DECLINE_REQUESTED = 'WorkerDeclineRequested',
+  WORKER_DECLINE_APPROVED = 'WorkerDeclineApproved',
+  WORKER_DECLINE_DENIED = 'WorkerDeclineDenied',
+  ORDER_NOTE_ADDED = 'OrderNoteAdded',
+  ORDER_DAMAGE_REPORTED = 'OrderDamageReported',
+  ORDER_READY = 'OrderReady',
+  ORDERS_OVERDUE = 'OrdersOverdue',
   ORDER_CREATED = 'OrderCreated',
   ORDER_IN_PROGRESS = 'OrderInProgress',
   ORDER_IN_DELIVERY = 'OrderInDelivery',

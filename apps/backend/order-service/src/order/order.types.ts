@@ -40,6 +40,46 @@ export interface OrderItemRecord {
   readonly notes?: string;
 }
 
+export const DECLINE_REQUEST_STATUSES = ['Pending', 'Approved', 'Denied'] as const;
+export type DeclineRequestStatus = (typeof DECLINE_REQUEST_STATUSES)[number];
+
+/**
+ * A worker's request to be taken off an order. Workers cannot drop an order
+ * themselves: the order stays theirs until an Owner/Branch Manager approves
+ * (order goes back to the unassigned pool) or denies (worker keeps it).
+ */
+/** Thrown inside the approve transaction to roll it back when the order already moved on. */
+export class DeclineConflictError extends Error {
+  constructor() {
+    super('Order changed since the decline request was made');
+  }
+}
+
+export interface DeclineRequestRecord {
+  readonly reason: string;
+  readonly status: DeclineRequestStatus;
+  readonly requestedBy: string;
+  readonly requestedAt: Date;
+  readonly resolvedBy?: string;
+  readonly resolvedAt?: Date;
+  readonly responseNote?: string;
+}
+
+export const ORDER_NOTE_KINDS = ['General', 'Damage'] as const;
+export type OrderNoteKind = (typeof ORDER_NOTE_KINDS)[number];
+
+/** Append-only note on an order, e.g. a worker reporting a damaged item. */
+export interface OrderNoteRecord {
+  readonly id: string;
+  readonly text: string;
+  readonly kind: OrderNoteKind;
+  /** Set when the note is about one specific line item of the order. */
+  readonly itemId?: string;
+  readonly authorId: string;
+  readonly authorRole: string;
+  readonly createdAt: Date;
+}
+
 export interface OrderAssignmentRecord {
   readonly id: string;
   readonly orderId: string;
@@ -48,6 +88,7 @@ export interface OrderAssignmentRecord {
   readonly dueDate?: Date;
   readonly note?: string;
   readonly status: string;
+  readonly declineRequest?: DeclineRequestRecord;
   readonly createdAt: Date;
   readonly updatedAt: Date;
   readonly version: number;
@@ -74,6 +115,7 @@ export interface OrderRecord {
   readonly deliveryDate?: Date;
   readonly assignedTo?: string;
   readonly assignment?: OrderAssignmentRecord;
+  readonly notes?: readonly OrderNoteRecord[];
   readonly cancelReason?: string;
   readonly createdBy: string;
   readonly createdAt: Date;
@@ -143,6 +185,44 @@ export interface OrderListQuery {
     | 'expectedDeliveryDate';
   readonly sortDirection: 1 | -1;
   readonly assignedTo?: string;
+  /** Only orders nobody is assigned to that can still be assigned (Received/Rejected). */
+  readonly unassigned?: boolean;
+  /** Only orders past their expected delivery date that are not Ready/delivered/cancelled. */
+  readonly overdueBefore?: Date;
+}
+
+/** Per-worker task counts for the owner's Worker Tasks screen. */
+export interface WorkerWorkload {
+  readonly workerId: string;
+  readonly assigned: number;
+  readonly accepted: number;
+  readonly inProgress: number;
+  readonly ready: number;
+  readonly outForDelivery: number;
+  readonly deliveredToday: number;
+  readonly deliveredTotal: number;
+  /** Open = assigned + accepted + inProgress (work still to be done). */
+  readonly open: number;
+  readonly overdue: number;
+  readonly pendingDeclineRequests: number;
+  readonly damageReports: number;
+}
+
+export interface WorkloadSummary {
+  readonly workers: readonly WorkerWorkload[];
+  readonly unassigned: number;
+  readonly pendingDeclineRequests: number;
+  readonly generatedAt: Date;
+}
+
+export interface NewOrderNote {
+  readonly id: string;
+  readonly text: string;
+  readonly kind: OrderNoteKind;
+  readonly itemId?: string;
+  readonly authorId: string;
+  readonly authorRole: string;
+  readonly createdAt: Date;
 }
 
 export type OrderPage = PaginatedResult<OrderRecord>;
@@ -203,6 +283,31 @@ export interface OrderRepository {
     note?: string,
   ): Promise<OrderRecord | null>;
   acceptAssignment(scope: OrderScope, id: string): Promise<OrderRecord | null>;
+  /** Records a Pending decline request; null when the worker no longer holds the order or one is already pending. */
+  requestDecline(
+    scope: OrderScope,
+    id: string,
+    workerId: string,
+    reason: string,
+  ): Promise<OrderRecord | null>;
+  /**
+   * Approve: unassigns the order and returns it to Received. Deny: the worker keeps it.
+   * Null when there is no pending request (e.g. resolved concurrently).
+   */
+  resolveDecline(
+    scope: OrderScope,
+    id: string,
+    approve: boolean,
+    responseNote?: string,
+  ): Promise<OrderRecord | null>;
+  listPendingDeclines(scope: OrderScope): Promise<readonly OrderRecord[]>;
+  addNote(scope: OrderScope, id: string, note: NewOrderNote): Promise<OrderRecord | null>;
+  workload(scope: OrderScope, now: Date): Promise<WorkloadSummary>;
+  /** Open (assigned/accepted/in-progress) order counts for the given workers. */
+  openCounts(
+    scope: OrderScope,
+    workerIds: readonly string[],
+  ): Promise<Readonly<Record<string, number>>>;
   rejectAssignment(scope: OrderScope, id: string, reason?: string): Promise<OrderRecord | null>;
   history(scope: OrderScope, orderId: string): Promise<readonly StatusHistoryRecord[]>;
   applyPaymentProjection(

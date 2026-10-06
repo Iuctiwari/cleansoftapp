@@ -33,9 +33,12 @@ import { ModuleKey, RequireModule } from '@nexoraa/tenant-enforcement-client';
 
 import { ConfigService } from '@nestjs/config';
 import { ApplyPaymentProjectionDto } from './dtos/apply-payment-projection.dto';
+import { AddOrderNoteDto } from './dtos/add-order-note.dto';
 import { AssignOrderDto } from './dtos/assign-order.dto';
+import { BulkAssignDto } from './dtos/bulk-assign.dto';
 import { CancelOrderDto } from './dtos/cancel-order.dto';
 import { CreateOrderDto } from './dtos/create-order.dto';
+import { DeclineRequestDto, ResolveDeclineRequestDto } from './dtos/decline-request.dto';
 import { RejectAssignmentDto } from './dtos/reject-assignment.dto';
 import { OrderHistoryResponseDto } from './dtos/order-history-response.dto';
 import { OrderQueryDto } from './dtos/order-query.dto';
@@ -49,13 +52,14 @@ import { UpdateOrderDto } from './dtos/update-order.dto';
 import { OrderEnforcementGuard } from './order-enforcement.guard';
 import { OrderIdPipe } from './order-id.pipe';
 import { type OrderRequest, OrderScopeGuard } from './order.guard';
-import { OrderService } from './order.service';
+import { type BulkAssignResult, OrderService } from './order.service';
 import type {
   OrderPage,
   OrderRecord,
   OrderScope,
   OrderStatistics,
   StatusHistoryRecord,
+  WorkloadSummary,
 } from './order.types';
 
 const ID_PARAMETER = {
@@ -149,6 +153,39 @@ export class OrderController {
     @Query('customerId') customerId?: string,
   ): Promise<OrderStatistics> {
     return this.orderService.statistics(scope(request), customerId);
+  }
+
+  @Get('workload')
+  @ApiOperation({
+    summary: 'Owner/Branch Manager: per-worker task counts for the Worker Tasks screen',
+  })
+  @ApiOkResponse({ description: 'Per-worker counts, unassigned and pending-decline totals.' })
+  @ApiForbiddenResponse({ description: 'Only Owner or Branch Manager.' })
+  workload(@Req() request: OrderRequest): Promise<WorkloadSummary> {
+    return this.orderService.workload(scope(request));
+  }
+
+  @Get('decline-requests')
+  @ApiOperation({ summary: 'Owner/Branch Manager: orders whose worker asked to be taken off' })
+  @ApiOkResponse({ description: 'Orders with a pending decline request, oldest first.' })
+  @ApiForbiddenResponse({ description: 'Only Owner or Branch Manager.' })
+  pendingDeclines(@Req() request: OrderRequest): Promise<readonly OrderRecord[]> {
+    return this.orderService.listPendingDeclines(scope(request));
+  }
+
+  @Post('bulk-assign')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Assign many orders at once (auto = even split by workload, manual = one worker)',
+  })
+  @ApiBody({ type: BulkAssignDto })
+  @ApiOkResponse({ description: 'Plan plus what was assigned, skipped, or failed.' })
+  @ApiBadRequestResponse({ description: 'Body validation failed.' })
+  @ApiForbiddenResponse({ description: 'Only Owner or Branch Manager.' })
+  @UseGuards(OrderEnforcementGuard)
+  @RequireModule(ModuleKey.ORDER_MANAGEMENT)
+  bulkAssign(@Req() request: OrderRequest, @Body() body: BulkAssignDto): Promise<BulkAssignResult> {
+    return this.orderService.bulkAssign(scope(request), body);
   }
 
   @Get(':id')
@@ -252,9 +289,91 @@ export class OrderController {
     return this.orderService.acceptAssignment(scope(request), id);
   }
 
+  @Post(':id/assignment/decline-request')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Assigned worker asks the owner to be taken off this order (owner decides)',
+  })
+  @ApiParam(ID_PARAMETER)
+  @ApiBody({ type: DeclineRequestDto })
+  @ApiOkResponse({ description: 'Decline request recorded as Pending.', type: OrderResponseDto })
+  @ApiForbiddenResponse({ description: 'Only the assigned worker may ask.' })
+  @ApiConflictResponse({ description: 'Already pending, or the order can no longer be declined.' })
+  @UseGuards(OrderEnforcementGuard)
+  @RequireModule(ModuleKey.ORDER_MANAGEMENT)
+  requestDecline(
+    @Req() request: OrderRequest,
+    @Param('id', OrderIdPipe) id: string,
+    @Body() body: DeclineRequestDto,
+  ): Promise<OrderRecord> {
+    return this.orderService.requestDecline(scope(request), id, body.reason);
+  }
+
+  @Post(':id/assignment/decline-request/approve')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Approve a decline request: the order returns to the unassigned pool' })
+  @ApiParam(ID_PARAMETER)
+  @ApiBody({ type: ResolveDeclineRequestDto })
+  @ApiOkResponse({
+    description: 'Approved; order is Received and unassigned.',
+    type: OrderResponseDto,
+  })
+  @ApiForbiddenResponse({ description: 'Only Owner or Branch Manager.' })
+  @ApiConflictResponse({ description: 'No pending request, or the order changed meanwhile.' })
+  @UseGuards(OrderEnforcementGuard)
+  @RequireModule(ModuleKey.ORDER_MANAGEMENT)
+  approveDecline(
+    @Req() request: OrderRequest,
+    @Param('id', OrderIdPipe) id: string,
+    @Body() body: ResolveDeclineRequestDto,
+  ): Promise<OrderRecord> {
+    return this.orderService.resolveDecline(scope(request), id, true, body.note);
+  }
+
+  @Post(':id/assignment/decline-request/deny')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Deny a decline request: the worker keeps the order' })
+  @ApiParam(ID_PARAMETER)
+  @ApiBody({ type: ResolveDeclineRequestDto })
+  @ApiOkResponse({ description: 'Denied; assignment unchanged.', type: OrderResponseDto })
+  @ApiForbiddenResponse({ description: 'Only Owner or Branch Manager.' })
+  @ApiConflictResponse({ description: 'No pending request.' })
+  @UseGuards(OrderEnforcementGuard)
+  @RequireModule(ModuleKey.ORDER_MANAGEMENT)
+  denyDecline(
+    @Req() request: OrderRequest,
+    @Param('id', OrderIdPipe) id: string,
+    @Body() body: ResolveDeclineRequestDto,
+  ): Promise<OrderRecord> {
+    return this.orderService.resolveDecline(scope(request), id, false, body.note);
+  }
+
+  @Post(':id/notes')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Add a note to an order (e.g. a worker reporting a damaged item); append-only',
+  })
+  @ApiParam(ID_PARAMETER)
+  @ApiBody({ type: AddOrderNoteDto })
+  @ApiOkResponse({ description: 'Order including the new note.', type: OrderResponseDto })
+  @ApiBadRequestResponse({ description: 'Note validation failed or itemId not on this order.' })
+  @ApiNotFoundResponse({ description: 'Order not found (workers only see their own orders).' })
+  @UseGuards(OrderEnforcementGuard)
+  @RequireModule(ModuleKey.ORDER_MANAGEMENT)
+  addNote(
+    @Req() request: OrderRequest,
+    @Param('id', OrderIdPipe) id: string,
+    @Body() body: AddOrderNoteDto,
+  ): Promise<OrderRecord> {
+    return this.orderService.addNote(scope(request), id, body);
+  }
+
   @Post(':id/assignment/reject')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Reject the authenticated worker assignment' })
+  @ApiOperation({
+    summary:
+      'Owner/Branch Manager: unassign the worker. Workers cannot reject; they use decline-request.',
+  })
   @ApiParam(ID_PARAMETER)
   @ApiBody({ type: RejectAssignmentDto })
   @ApiOkResponse({

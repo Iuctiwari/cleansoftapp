@@ -95,8 +95,14 @@ describe('OrderService API use cases', () => {
   beforeEach(() => {
     repository = {
       acceptAssignment: jest.fn(),
+      addNote: jest.fn(),
       applyPaymentProjection: jest.fn(),
       assign: jest.fn(),
+      listPendingDeclines: jest.fn(),
+      openCounts: jest.fn().mockResolvedValue({}),
+      requestDecline: jest.fn(),
+      resolveDecline: jest.fn(),
+      workload: jest.fn(),
       create: jest.fn(),
       findById: jest.fn(),
       getSummaryForTenant: jest.fn(),
@@ -908,38 +914,18 @@ describe('OrderService API use cases', () => {
       expect(repository.acceptAssignment).toHaveBeenCalledWith(staffScope, ORDER_ID);
     });
 
-    it('allows assigned staff to reject assignment and clear worker', async () => {
-      const existingOrder = order({ assignedTo: STAFF_ID });
-      repository.findById.mockResolvedValue(existingOrder);
-      repository.rejectAssignment.mockResolvedValue({
-        ...existingOrder,
-        assignedTo: undefined,
-        assignment: {
-          assignedBy: ACTOR_ID,
-          assignedTo: STAFF_ID,
-          createdAt: new Date(),
-          id: 'assign-1',
-          orderId: ORDER_ID,
-          status: 'Rejected',
-          updatedAt: new Date(),
-          version: 0,
-        },
-      });
-
+    it('forbids workers from rejecting outright (they must send a decline request)', async () => {
+      repository.findById.mockResolvedValue(order({ assignedTo: STAFF_ID }));
       const staffScope = scope({
         actorId: STAFF_ID,
         permissions: ['orders:read', 'orders:write'],
         roleCode: 'Staff',
       });
 
-      const result = await service.rejectAssignment(staffScope, ORDER_ID, 'Not available');
-      expect(result.assignedTo).toBeUndefined();
-      expect(result.assignment?.status).toBe('Rejected');
-      expect(repository.rejectAssignment).toHaveBeenCalledWith(
-        staffScope,
-        ORDER_ID,
-        'Not available',
-      );
+      await expect(
+        service.rejectAssignment(staffScope, ORDER_ID, 'Not available'),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+      expect(repository.rejectAssignment).not.toHaveBeenCalled();
     });
 
     it('forbids unassigned staff from accepting or rejecting assignment', async () => {

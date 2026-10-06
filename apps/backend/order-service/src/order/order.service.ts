@@ -19,7 +19,9 @@ import {
 } from '@nexoraa/shared';
 import { Types } from 'mongoose';
 
+import type { AddOrderNoteDto } from './dtos/add-order-note.dto';
 import type { AssignOrderDto } from './dtos/assign-order.dto';
+import type { BulkAssignDto } from './dtos/bulk-assign.dto';
 import type { CancelOrderDto } from './dtos/cancel-order.dto';
 import type { CreateOrderDto } from './dtos/create-order.dto';
 import type { OrderItemDto } from './dtos/order-item.dto';
@@ -31,6 +33,7 @@ import { OrderAuditService } from './order-audit.service';
 import { OrderOwnerLookupService } from './order-owner.service';
 import {
   CATALOG_PRICING_TYPES,
+  DeclineConflictError,
   ORDER_DEPENDENCIES,
   ORDER_REPOSITORY,
   type CatalogPricingType,
@@ -45,7 +48,35 @@ import {
   type PersistedOrderItem,
   type StatusHistoryRecord,
   type TenantOrderSummary,
+  type WorkloadSummary,
 } from './order.types';
+
+/** Statuses in which a worker still holds (and may ask to be taken off) an order. */
+const DECLINABLE_STATUSES: readonly OrderStatus[] = [
+  OrderStatus.ASSIGNED,
+  OrderStatus.ACCEPTED,
+  OrderStatus.IN_PROGRESS,
+];
+
+export interface BulkAssignPlanEntry {
+  readonly orderId: string;
+  readonly orderNumber: string;
+  readonly workerId: string;
+}
+
+export interface BulkAssignSkip {
+  readonly orderId: string;
+  readonly orderNumber?: string;
+  readonly reason: string;
+}
+
+export interface BulkAssignResult {
+  readonly dryRun: boolean;
+  readonly plan: readonly BulkAssignPlanEntry[];
+  readonly assigned: readonly BulkAssignPlanEntry[];
+  readonly skipped: readonly BulkAssignSkip[];
+  readonly failed: readonly BulkAssignSkip[];
+}
 
 const ADDITIONAL_SERVICE_SURCHARGE = 10;
 
@@ -65,6 +96,11 @@ const STATUS_NOTIFICATIONS: Readonly<
     message: 'is now in progress',
     title: 'Order in progress',
     type: 'OrderInProgress',
+  },
+  [OrderStatus.READY]: {
+    message: 'is ready (work completed)',
+    title: 'Order ready',
+    type: 'OrderReady',
   },
   [OrderStatus.OUT_FOR_DELIVERY]: {
     message: 'is out for delivery',
@@ -165,7 +201,13 @@ export class OrderService {
       sortBy: query.sortBy,
       sortDirection: query.sortDirection === SortDirection.Ascending ? 1 : -1,
       status: query.status,
-      ...(isStaffRole(scope.roleCode) ? { assignedTo: scope.actorId } : {}),
+      ...(query.unassigned && !isStaffRole(scope.roleCode) ? { unassigned: true } : {}),
+      ...(query.overdue ? { overdueBefore: new Date() } : {}),
+      ...(isStaffRole(scope.roleCode)
+        ? { assignedTo: scope.actorId }
+        : query.assignedTo
+          ? { assignedTo: query.assignedTo }
+          : {}),
     });
   }
 
@@ -311,6 +353,11 @@ export class OrderService {
   }
 
   async rejectAssignment(scope: OrderScope, id: string, reason?: string): Promise<OrderRecord> {
+    if (isStaffRole(scope.roleCode)) {
+      throw new ForbiddenException(
+        'Workers cannot reject an order. Send a decline request to the owner instead.',
+      );
+    }
     const existing = await this.get(scope, id);
     this.assertAssignmentAction(scope, existing);
     const order = await this.repository.rejectAssignment(scope, id, reason);
@@ -325,6 +372,269 @@ export class OrderService {
       type: 'WorkerAssignmentRejected',
     });
     return order;
+  }
+
+  /**
+   * Workers cannot drop an order themselves: they ask, and the order stays
+   * theirs until an Owner/Branch Manager approves or denies the request.
+   */
+  async requestDecline(scope: OrderScope, id: string, reason: string): Promise<OrderRecord> {
+    if (!isStaffRole(scope.roleCode)) {
+      throw new ForbiddenException('Only the assigned worker can ask to decline an order');
+    }
+    const trimmed = reason.trim();
+    if (!trimmed) throw new BadRequestException('A reason is required');
+    const existing = await this.get(scope, id);
+    if (existing.assignedTo !== scope.actorId) {
+      throw new ForbiddenException('Only the assigned worker can ask to decline an order');
+    }
+    if (!DECLINABLE_STATUSES.includes(existing.status)) {
+      throw new ConflictException('This order can no longer be declined');
+    }
+    if (existing.assignment?.declineRequest?.status === 'Pending') {
+      throw new ConflictException('A decline request is already waiting for the owner');
+    }
+    const order = await this.repository.requestDecline(scope, id, scope.actorId, trimmed);
+    if (!order) throw new ConflictException('Order assignment changed concurrently');
+    this.audit.record(scope, 'order.decline_requested', id, { reason: trimmed });
+    this.notifyOwner(scope, undefined, {
+      entityId: order.id,
+      entityType: 'Order',
+      message: `A worker asked to be taken off order ${order.orderNumber}: ${trimmed}`,
+      orderId: order.id,
+      title: 'Decline request',
+      type: 'WorkerDeclineRequested',
+    });
+    return order;
+  }
+
+  async resolveDecline(
+    scope: OrderScope,
+    id: string,
+    approve: boolean,
+    note?: string,
+  ): Promise<OrderRecord> {
+    this.assertManage(scope);
+    const existing = await this.get(scope, id);
+    if (existing.assignment?.declineRequest?.status !== 'Pending') {
+      throw new ConflictException('There is no pending decline request for this order');
+    }
+    const workerId = existing.assignedTo;
+    const responseNote = note?.trim() || undefined;
+    let order: OrderRecord | null;
+    try {
+      order = await this.repository.resolveDecline(scope, id, approve, responseNote);
+    } catch (error) {
+      if (error instanceof DeclineConflictError) {
+        throw new ConflictException('The order changed since the request was made');
+      }
+      throw error;
+    }
+    if (!order) throw new ConflictException('There is no pending decline request for this order');
+    this.audit.record(scope, approve ? 'order.decline_approved' : 'order.decline_denied', id, {
+      workerId,
+    });
+    const reply = responseNote ? ` Note: ${responseNote}` : '';
+    this.notify(scope, workerId, {
+      entityId: order.id,
+      entityType: 'Order',
+      message: approve
+        ? `Your request to decline order ${order.orderNumber} was approved. It has been removed from your tasks.${reply}`
+        : `Your request to decline order ${order.orderNumber} was not approved. Please complete it.${reply}`,
+      orderId: order.id,
+      title: approve ? 'Decline approved' : 'Decline not approved',
+      type: approve ? 'WorkerDeclineApproved' : 'WorkerDeclineDenied',
+    });
+    return order;
+  }
+
+  listPendingDeclines(scope: OrderScope): Promise<readonly OrderRecord[]> {
+    this.assertManage(scope);
+    return this.repository.listPendingDeclines(scope);
+  }
+
+  /** Append-only: notes are an audit trail (e.g. damage found before washing). */
+  async addNote(scope: OrderScope, id: string, input: AddOrderNoteDto): Promise<OrderRecord> {
+    this.assertRead(scope);
+    const existing = await this.get(scope, id);
+    const text = input.text.trim();
+    if (!text) throw new BadRequestException('Note text is required');
+    if (input.itemId && !existing.items.some((item) => item.id === input.itemId)) {
+      throw new BadRequestException('itemId does not belong to this order');
+    }
+    const kind = input.kind ?? 'General';
+    const order = await this.repository.addNote(scope, id, {
+      authorId: scope.actorId,
+      authorRole: scope.roleCode,
+      createdAt: new Date(),
+      id: new Types.ObjectId().toHexString(),
+      itemId: input.itemId,
+      kind,
+      text,
+    });
+    if (!order) throw new NotFoundException('Order not found');
+    this.audit.record(scope, 'order.note_added', id, { itemId: input.itemId, kind });
+
+    const itemName = this.itemName(existing, input.itemId);
+    const about = itemName ? ` (${itemName})` : '';
+    const notification: NotifyInput = {
+      entityId: order.id,
+      entityType: 'Order',
+      message: `${kind === 'Damage' ? 'Damage reported on' : 'New note on'} order ${order.orderNumber}${about}: ${text}`,
+      orderId: order.id,
+      title: kind === 'Damage' ? 'Damage reported' : 'New order note',
+      type: kind === 'Damage' ? 'OrderDamageReported' : 'OrderNoteAdded',
+    };
+    if (isStaffRole(scope.roleCode)) {
+      this.notifyOwner(scope, undefined, notification);
+    } else {
+      this.notify(scope, order.assignedTo, notification);
+    }
+    return order;
+  }
+
+  workload(scope: OrderScope): Promise<WorkloadSummary> {
+    this.assertManage(scope);
+    return this.repository.workload(scope, new Date());
+  }
+
+  /**
+   * Assign many orders at once. "manual" gives every order to one worker;
+   * "auto" spreads unassigned orders over the chosen workers, each next order
+   * going to whoever currently has the least open work (existing + new), so a
+   * worker who is already busy gets fewer. Orders are taken earliest expected
+   * delivery first. With dryRun nothing is written — the plan is returned for
+   * the app's preview screen.
+   */
+  async bulkAssign(scope: OrderScope, input: BulkAssignDto): Promise<BulkAssignResult> {
+    this.assertManage(scope);
+    if (input.mode === 'manual' && input.workerIds.length !== 1) {
+      throw new BadRequestException('Manual assignment takes exactly one worker');
+    }
+    for (const workerId of input.workerIds) {
+      await this.dependencies.assertStaffEligible(scope, workerId);
+    }
+
+    const skipped: BulkAssignSkip[] = [];
+    const candidates: OrderRecord[] = [];
+    for (const orderId of input.orderIds) {
+      const order = await this.repository.findById(scope, orderId);
+      if (!order) {
+        skipped.push({ orderId, reason: 'Order not found' });
+      } else if ([OrderStatus.DELIVERED, OrderStatus.CANCELLED].includes(order.status)) {
+        skipped.push({ orderId, orderNumber: order.orderNumber, reason: 'Order is finished' });
+      } else if (input.mode === 'auto' && order.assignedTo) {
+        skipped.push({ orderId, orderNumber: order.orderNumber, reason: 'Already assigned' });
+      } else if (input.mode === 'manual' && order.assignedTo === input.workerIds[0]) {
+        skipped.push({
+          orderId,
+          orderNumber: order.orderNumber,
+          reason: 'Already assigned to this worker',
+        });
+      } else {
+        candidates.push(order);
+      }
+    }
+
+    const plan = this.planBulkAssignment(
+      input.mode,
+      candidates,
+      input.workerIds,
+      input.mode === 'auto' ? await this.repository.openCounts(scope, input.workerIds) : {},
+    );
+    if (input.dryRun) {
+      return { assigned: [], dryRun: true, failed: [], plan, skipped };
+    }
+
+    const assigned: BulkAssignPlanEntry[] = [];
+    const failed: BulkAssignSkip[] = [];
+    for (const entry of plan) {
+      const order = await this.repository.assign(scope, entry.orderId, entry.workerId);
+      if (!order) {
+        failed.push({
+          orderId: entry.orderId,
+          orderNumber: entry.orderNumber,
+          reason: 'Order changed while assigning',
+        });
+        continue;
+      }
+      this.audit.record(scope, 'order.assigned', entry.orderId, {
+        assignedTo: entry.workerId,
+        bulk: true,
+      });
+      assigned.push(entry);
+    }
+
+    // One notification per worker instead of one per order.
+    const byWorker = new Map<string, BulkAssignPlanEntry[]>();
+    for (const entry of assigned) {
+      byWorker.set(entry.workerId, [...(byWorker.get(entry.workerId) ?? []), entry]);
+    }
+    for (const [workerId, entries] of byWorker) {
+      this.notify(scope, workerId, {
+        entityId: entries[0].orderId,
+        entityType: 'Order',
+        message:
+          entries.length === 1
+            ? `You have been assigned to order ${entries[0].orderNumber}.`
+            : `You have been assigned ${entries.length} new orders: ${entries
+                .slice(0, 5)
+                .map((entry) => entry.orderNumber)
+                .join(', ')}${entries.length > 5 ? '…' : ''}`,
+        orderId: entries[0].orderId,
+        title: entries.length === 1 ? 'Order assigned to you' : 'New orders assigned to you',
+        type: 'WorkerAssigned',
+      });
+    }
+    if (assigned.length > 0) {
+      this.notifyOwner(scope, undefined, {
+        entityId: assigned[0].orderId,
+        entityType: 'Order',
+        message: `${assigned.length} order(s) assigned to ${byWorker.size} worker(s).`,
+        orderId: assigned[0].orderId,
+        title: 'Orders assigned',
+        type: 'WorkerAssigned',
+      });
+    }
+    return { assigned, dryRun: false, failed, plan, skipped };
+  }
+
+  private planBulkAssignment(
+    mode: 'auto' | 'manual',
+    orders: readonly OrderRecord[],
+    workerIds: readonly string[],
+    openCounts: Readonly<Record<string, number>>,
+  ): BulkAssignPlanEntry[] {
+    if (mode === 'manual') {
+      return orders.map((order) => ({
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+        workerId: workerIds[0],
+      }));
+    }
+    const load = new Map(workerIds.map((workerId) => [workerId, openCounts[workerId] ?? 0]));
+    const byDueDate = [...orders].sort(
+      (a, b) =>
+        (a.expectedDeliveryDate?.getTime() ?? Number.MAX_SAFE_INTEGER) -
+          (b.expectedDeliveryDate?.getTime() ?? Number.MAX_SAFE_INTEGER) ||
+        a.createdAt.getTime() - b.createdAt.getTime(),
+    );
+    return byDueDate.map((order) => {
+      // Least loaded worker; ties go to the worker listed first.
+      let chosen = workerIds[0];
+      for (const workerId of workerIds) {
+        if ((load.get(workerId) ?? 0) < (load.get(chosen) ?? 0)) chosen = workerId;
+      }
+      load.set(chosen, (load.get(chosen) ?? 0) + 1);
+      return { orderId: order.id, orderNumber: order.orderNumber, workerId: chosen };
+    });
+  }
+
+  private itemName(order: OrderRecord, itemId?: string): string | undefined {
+    if (!itemId) return undefined;
+    const item = order.items.find((candidate) => candidate.id === itemId);
+    const name = item?.itemCategorySnapshot.name;
+    return typeof name === 'string' ? name : undefined;
   }
 
   async cancel(scope: OrderScope, id: string, input: CancelOrderDto): Promise<OrderRecord> {
