@@ -1,0 +1,670 @@
+{
+  "@@locale": "en",
+  "language": "Language",
+  "chooseLanguage": "Choose language",
+  "chooseLanguageSubtitle": "You can change this anytime from your profile.",
+  "commonContinue": "Continue",
+  "commonBack": "Back",
+  "commonSkipForNow": "Skip for now",
+  "commonRetry": "Retry",
+  "commonEmail": "Email",
+  "commonPhone": "Phone",
+  "commonLocation": "Location",
+  "commonBusiness": "Business",
+  "commonOr": "or",
+  "commonActive": "Active",
+  "commonRequiredInformation": "Required information",
+  "commonConnectionProblem": "Connection problem",
+  "commonSomethingWentWrong": "Something went wrong",
+  "commonUnableToSignIn": "Unable to sign in. Please try again.",
+  "fieldRequired": "{field} is required",
+  "@fieldRequired": {
+    "placeholders": {
+      "field": {
+        "type": "String"
+      }
+    }
+  },
+  "stepFraction": "Step {current}/{total}",
+  "@stepFraction": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "stepOf": "Step {current} of {total}",
+  "@stepOf": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "loginWelcomeBack": "Welcome back",
+  "loginSubtitle": "Sign in to your business account",
+  "emailAddress": "Email Address",
+  "password": "Password",
+  "forgotPassword": "Forgot password?",
+  "signIn": "Sign In",
+  "createBusinessAccount": "Create Business Account",
+  "companyAdmin": "Company Admin",
+  "termsAgreementPrefix": "By signing in you agree to our ",
+  "termsAgreementSuffix": "",
+  "termsOfService": "Terms of Service",
+  "privacyPolicy": "Privacy Policy",
+  "loginMissingCredentials": "Enter your email and password to continue.",
+  "loginInvalidCredentials": "Invalid email or password",
+  "splashTagline": "Business Management Platform",
+  "resetPasswordTitle": "Reset Password",
+  "backToLoginTooltip": "Back to login",
+  "backToLogin": "Back to Login",
+  "forgotPasswordHeading": "Forgot your password?",
+  "forgotPasswordBody": "Enter your email address and we'll send you a 6-digit verification code to reset your password.",
+  "sendingCode": "Sending code...",
+  "sendVerificationCode": "Send verification code",
+  "checkYourEmail": "Check your email",
+  "codeSentTo": "If the account is eligible, a verification code has been sent to {email}. Follow the instructions to reset your password.",
+  "@codeSentTo": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "codeSentGeneric": "If the account is eligible, a verification code has been sent.",
+  "enterEmailToContinue": "Enter your email address to continue.",
+  "unableToSendCode": "Unable to send verification code. Please try again.",
+  "enterVerificationCode": "Enter Verification Code",
+  "setNewPassword": "Set New Password",
+  "resetPasswordBody": "Enter the 6-digit verification code sent to your email and your new password.",
+  "verificationCodeLabel": "6-Digit Verification Code",
+  "currentPassword": "Current Password",
+  "newPassword": "New Password",
+  "confirmNewPassword": "Confirm New Password",
+  "resettingPassword": "Resetting password...",
+  "enterSixDigitCode": "Enter the 6-digit verification code sent to your email.",
+  "passwordsDoNotMatch": "Passwords do not match.",
+  "passwordResetSuccess": "Password reset successfully. Please sign in.",
+  "passwordResetFailed": "Failed to reset password. Please verify your code and try again.",
+  "passwordPolicyHint": "At least 8 characters, with an uppercase letter, a lowercase letter, a number and a special character.",
+  "passwordRuleMinLength": "At least 8 characters",
+  "passwordRuleUppercase": "An uppercase letter (A–Z)",
+  "passwordRuleLowercase": "A lowercase letter (a–z)",
+  "passwordRuleNumber": "A number (0–9)",
+  "passwordRuleSpecial": "A special character (e.g. ! @ # $)",
+  "passwordNeeds": "Password needs: {rule}.",
+  "@passwordNeeds": {
+    "placeholders": {
+      "rule": {
+        "type": "String"
+      }
+    }
+  },
+  "businessInfoTitle": "Business Info",
+  "businessInfoHeading": "Tell us about your business",
+  "businessInfoSubtitle": "This helps us personalize your experience.",
+  "businessName": "Business Name",
+  "businessNameHint": "e.g. Ahmed Laundry & Cleaners",
+  "businessNameRequired": "Business name is required",
+  "nameTooShort": "Name is too short",
+  "businessType": "Business Type",
+  "ownerName": "Owner Name",
+  "owner": "Owner",
+  "fullNameHint": "Full name",
+  "ownerNameRequired": "Owner name is required",
+  "selectBusinessType": "Please select a business type",
+  "businessSummaryIntro": "Here's a summary of your business. You can update these later in Settings.",
+  "businessTypeLaundry": "Laundry",
+  "businessTypeDryCleaning": "Dry Cleaning",
+  "businessTypeTailoring": "Tailoring",
+  "businessTypeShoeCleaning": "Shoe Cleaning",
+  "businessTypeApplianceRepair": "Appliance Repair",
+  "businessTypeMobileRepair": "Mobile Repair",
+  "businessTypeVehicleWash": "Vehicle Wash",
+  "businessTypeSalon": "Salon",
+  "businessTypeGeneral": "General",
+  "businessTypeCustom": "Custom",
+  "serviceWashAndFold": "Wash & Fold",
+  "accountDetailsTitle": "Account Details",
+  "createAccountHeading": "Create your account",
+  "createAccountSubtitle": "You'll use these to sign in.",
+  "emailRequired": "Email is required",
+  "phoneNumber": "Phone Number",
+  "phoneRequired": "Phone number is required",
+  "invalidPhone": "Enter a valid phone number",
+  "passwordMinHint": "Min. 8 characters",
+  "passwordRequired": "Password is required",
+  "passwordMin8": "Minimum 8 characters",
+  "passwordNeedsUppercase": "Must contain an uppercase letter",
+  "passwordNeedsNumber": "Must contain a number",
+  "passwordNeedsSpecial": "Must contain a special character",
+  "agreePrefix": "I agree to the ",
+  "agreeAnd": " and ",
+  "agreeSuffix": "",
+  "createAccount": "Create Account",
+  "registrationFillHighlighted": "Please fill in the highlighted fields — email, phone number and password are required.",
+  "mustAgreeTerms": "You must agree to the Terms of Service.",
+  "alreadyRegisteredAdvice": "{message}. Log in with that account instead (use \"Forgot password?\" if needed), or use a different one.",
+  "@alreadyRegisteredAdvice": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "registrationFailed": "Unable to complete registration. Please try again.",
+  "accountCreatedTitle": "Account Created!",
+  "accountCreatedBody": "Your business account is ready.\nLet's set up your workspace.",
+  "startSetup": "Start Setup",
+  "firstBranchTitle": "First Branch",
+  "firstBranchHeading": "Add your first branch",
+  "firstBranchSubtitle": "Enter the location and contact details for your main branch.",
+  "branchName": "Branch Name",
+  "mainBranchHint": "Main Branch",
+  "streetAddress": "Street Address",
+  "streetAddressHint": "Street address",
+  "city": "City",
+  "postalCode": "Postal Code",
+  "postalCodeHint": "Postal code",
+  "invalidEmailAddress": "Enter a valid email address",
+  "servicesTitle": "Services",
+  "servicesSubtitle": "Select the services your business offers. You can add more later.",
+  "selectAtLeastOneService": "Select at least one service",
+  "servicesSelected": "{count, plural, =1{1 service selected} other{{count} services selected}}",
+  "@servicesSelected": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "inviteStaffTitle": "Invite Staff",
+  "inviteStaffSubtitle": "Invite team members to join your workspace. Each person gets an email invitation.",
+  "staffEmailLabel": "Email *",
+  "staffEmailNumberedLabel": "Email {number} *",
+  "@staffEmailNumberedLabel": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "staffMobileLabel": "Mobile Number (Optional)",
+  "staffMobileNumberedLabel": "Mobile Number {number} (Optional)",
+  "@staffMobileNumberedLabel": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "emailRequiredForInvite": "Email is required to send the invitation",
+  "invalidEmail": "Enter a valid email",
+  "emailEnteredTwice": "This email is entered twice",
+  "invalidMobile": "Enter a valid mobile number",
+  "addAnother": "Add Another",
+  "inviteStaffNote": "Each staff member gets an email with their login ID (their email). They set their own password by tapping \"Forgot password?\" in the app. You can add more staff later from the Staff screen.",
+  "inviteFixHighlighted": "Please fix the highlighted fields. Each staff member needs an email address — the invitation is sent by email.",
+  "invitationsSent": "Invitations sent",
+  "invitationsNeedAttention": "Some invitations need attention",
+  "inviteReportAllSent": "Invitation sent to {emails}. They'll set their own password using \"Forgot password?\" in the app.",
+  "@inviteReportAllSent": {
+    "placeholders": {
+      "emails": {
+        "type": "String"
+      }
+    }
+  },
+  "inviteReportInvited": "Invited: {emails}.",
+  "@inviteReportInvited": {
+    "placeholders": {
+      "emails": {
+        "type": "String"
+      }
+    }
+  },
+  "inviteReportEmailFailed": "{email} — account created, but the email could not be sent. Ask them to open the app and tap \"Forgot password?\".",
+  "@inviteReportEmailFailed": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "inviteReportFailed": "{email} — {reason}",
+  "@inviteReportFailed": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      },
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "inviteReportCouldNotInvite": "could not be invited",
+  "inviteReportFooter": "You can add or re-invite staff later from the Staff screen.",
+  "unableToSaveOnboarding": "Unable to save onboarding. Please try again.",
+  "allSetTitle": "All Set!",
+  "allSetHeading": "You're all set!",
+  "allSetBody": "Your workspace is configured and ready. Start adding orders and managing your business.",
+  "goToDashboard": "Go to Dashboard",
+  "branchCreated": "{name} created",
+  "@branchCreated": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "branchNotCreated": "Branch not created",
+  "servicesConfigured": "{count, plural, =1{1 service configured} other{{count} services configured}}",
+  "@servicesConfigured": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "servicesNotConfigured": "Services not configured",
+  "staffInvitationSkipped": "Staff invitation skipped",
+  "staffInvitationsSent": "{count, plural, =1{1 staff invitation sent} other{{count} staff invitations sent}}",
+  "@staffInvitationsSent": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "choosePlanTitle": "Choose your plan",
+  "choosePlanSubtitle": "Pick a plan to activate your workspace. You can change this anytime.",
+  "unableToLoadPlans": "Unable to load plans. Please try again.",
+  "unableToSelectPlan": "Unable to select this plan. Please try again.",
+  "noPlansTitle": "No plans available",
+  "noPlansMessage": "There are no active subscription plans configured yet.",
+  "billingMonthly": "Monthly",
+  "billingAnnual": "Annual",
+  "currentPlan": "Current plan",
+  "planFree": "Free",
+  "perYear": " / year",
+  "perMonth": " / month",
+  "freeTrialDays": "{days}-day free trial",
+  "@freeTrialDays": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "planLimits": "Up to {branches} branches · {staff} staff · {orders} orders/mo",
+  "@planLimits": {
+    "placeholders": {
+      "branches": {
+        "type": "int"
+      },
+      "staff": {
+        "type": "int"
+      },
+      "orders": {
+        "type": "int"
+      }
+    }
+  },
+  "myProfile": "My Profile",
+  "editProfileTooltip": "Edit profile",
+  "loadingProfile": "Loading profile...",
+  "personalInformation": "PERSONAL INFORMATION",
+  "securitySection": "SECURITY",
+  "preferencesSection": "PREFERENCES",
+  "changePassword": "Change Password",
+  "lastChanged": "Last changed {when}",
+  "@lastChanged": {
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "accountCreatedLabel": "Account Created",
+  "plan": "Plan",
+  "branch": "Branch",
+  "roleSwitch": "ROLE SWITCH",
+  "roleSwitchSubtitle": "Demo mode — switch dashboard view",
+  "roleOwnerDescription": "Full access to all features",
+  "roleBranchManager": "Branch Manager",
+  "roleBranchManagerDescription": "Branch operations & staff",
+  "roleStaffMember": "Staff Member",
+  "roleStaffMemberDescription": "Assigned orders only",
+  "signOut": "Sign Out",
+  "editProfile": "Edit Profile",
+  "name": "Name",
+  "enterYourName": "Enter your name",
+  "nameRequired": "Name is required",
+  "enterYourPhone": "Enter your phone number",
+  "enterBusinessName": "Enter your business name",
+  "enterLocationCityBranch": "Enter your location (City/Branch)",
+  "enterLocation": "Enter your location",
+  "saveProfile": "Save Profile",
+  "fixHighlightedBeforeSaving": "Please fix the highlighted fields before saving.",
+  "changePasswordIntro": "Enter your current password, then choose a new one.",
+  "enterCurrentPassword": "Enter your current password.",
+  "newPasswordsDoNotMatch": "The new passwords do not match.",
+  "newPasswordMustDiffer": "The new password must be different from the current one.",
+  "unableToChangePassword": "Unable to change the password. Please try again.",
+  "passwordChanged": "Password changed",
+  "passwordChangedBody": "Your password has been changed and your other devices were signed out. Please sign in again with your new password.",
+  "changingPassword": "Changing password...",
+  "welcomeTitle": "How would you like to use Nexoraa?",
+  "welcomeSubtitle": "Choose one — you can switch any time.",
+  "welcomeCustomerTitle": "I need a service",
+  "welcomeCustomerSubtitle": "Find laundry, repair, salon and more near you",
+  "welcomeBusinessTitle": "I run a business",
+  "welcomeBusinessSubtitle": "Manage orders, staff and payments for your shop",
+  "consumerLoginTitle": "Welcome",
+  "consumerLoginSubtitle": "Sign in to find services near you",
+  "consumerIdentifierLabel": "Email or mobile number",
+  "consumerNewHere": "New here?",
+  "consumerCreateAccount": "Create an account",
+  "consumerBusinessLink": "Run a business? Sign in here",
+  "consumerSignupTitle": "Create your account",
+  "consumerSignupSubtitle": "It's free. We'll email you a code to verify.",
+  "consumerFullName": "Full name",
+  "consumerMobileNumber": "Mobile number",
+  "consumerConfirmPassword": "Confirm password",
+  "consumerHaveAccount": "Already have an account? Sign in",
+  "consumerVerifyTitle": "Verify your email",
+  "consumerVerifySubtitle": "Enter the 6-digit code we sent to {email}",
+  "@consumerVerifySubtitle": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "consumerVerifyButton": "Verify and continue",
+  "consumerResendCode": "Send a new code",
+  "consumerResendIn": "Send a new code in {seconds}s",
+  "@consumerResendIn": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "consumerCodeSent": "A new code has been sent to your email",
+  "consumerForgotTitle": "Reset your password",
+  "consumerForgotSubtitle": "Enter your email or mobile number and we'll email you a code.",
+  "consumerSendCode": "Send code",
+  "consumerResetButton": "Reset password",
+  "consumerPasswordResetDone": "Password changed. Please sign in.",
+  "consumerErrEmailTaken": "An account with this email already exists. Please sign in.",
+  "consumerErrMobileTaken": "This mobile number is already registered.",
+  "consumerErrPasswordPolicy": "Password must have at least 8 characters, with an uppercase letter, a lowercase letter, a number and a symbol.",
+  "consumerErrLoginDenied": "Incorrect email/mobile or password.",
+  "consumerErrNotVerified": "Please verify your email first.",
+  "consumerErrCodeInvalid": "The code is incorrect or has expired.",
+  "consumerErrTooManyAttempts": "Too many tries. Please wait a while and try again.",
+  "consumerErrEmailDelivery": "We couldn't send the email right now. Please try again.",
+  "consumerErrNetwork": "Unable to reach the server. Check your internet connection.",
+  "consumerErrSession": "Your session has expired. Please sign in again.",
+  "consumerErrGeneric": "Something went wrong. Please try again.",
+  "consumerFullNameRequired": "Enter your full name",
+  "consumerIdentifierRequired": "Enter your email or mobile number",
+  "consumerAddressTitleNew": "Add your address",
+  "consumerAddressTitleEdit": "Edit address",
+  "consumerAddressRequiredNote": "We need your address to show shops near you.",
+  "consumerUseCurrentLocation": "Use my current location",
+  "consumerLocating": "Finding your location…",
+  "consumerLocationPinned": "Location pinned",
+  "consumerLocationNeeded": "Tap “Use my current location” to pin your address.",
+  "consumerLocationOff": "Location is turned off. Turn it on to pin your address.",
+  "consumerLocationDenied": "Location permission is needed to pin your address.",
+  "consumerLocationUnavailable": "Couldn't get your location. Please try again.",
+  "consumerOpenSettings": "Open settings",
+  "consumerSaveAs": "Save as",
+  "addressLabelHome": "Home",
+  "addressLabelWork": "Work",
+  "addressLabelOther": "Other",
+  "consumerHouseFlat": "House / flat / floor",
+  "consumerStreetArea": "Street, area or locality",
+  "consumerLandmark": "Landmark (optional)",
+  "consumerState": "State",
+  "consumerPincode": "PIN code",
+  "consumerInvalidPincode": "Enter a valid 6-digit PIN code",
+  "consumerContactName": "Contact name",
+  "consumerContactPhone": "Contact phone",
+  "consumerMakeDefault": "Make this my default address",
+  "consumerSaveAddress": "Save address",
+  "consumerAddresses": "My addresses",
+  "consumerAddAddress": "Add new address",
+  "consumerDefault": "Default",
+  "consumerSetDefault": "Set as default",
+  "consumerEdit": "Edit",
+  "consumerDelete": "Delete",
+  "consumerDeleteAddressConfirm": "Delete this address?",
+  "consumerCannotDeleteLastAddress": "You need at least one address. Add another before deleting this one.",
+  "consumerTabShops": "Shops",
+  "consumerTabRequests": "My requests",
+  "consumerTabAccount": "Account",
+  "consumerShowingNear": "Shops near",
+  "consumerCurrentLocation": "Current location",
+  "consumerChooseLocation": "Search shops near…",
+  "consumerSearchShops": "Search by shop name",
+  "consumerFilterAll": "All",
+  "consumerFilterOpenNow": "Open now",
+  "modeVisitShop": "Visit shop",
+  "modeHomeService": "Home service",
+  "modePickupDrop": "Pickup & drop",
+  "consumerDistanceKm": "{km} km",
+  "@consumerDistanceKm": {
+    "placeholders": {
+      "km": {
+        "type": "String"
+      }
+    }
+  },
+  "consumerWithinKm": "Within {km} km",
+  "@consumerWithinKm": {
+    "placeholders": {
+      "km": {
+        "type": "int"
+      }
+    }
+  },
+  "consumerOpenNow": "Open now",
+  "consumerClosedNow": "Closed now",
+  "consumerTodayHours": "Today {open} – {close}",
+  "@consumerTodayHours": {
+    "placeholders": {
+      "open": {
+        "type": "String"
+      },
+      "close": {
+        "type": "String"
+      }
+    }
+  },
+  "consumerClosedToday": "Closed today",
+  "consumerCall": "Call",
+  "consumerBook": "Book",
+  "consumerDirections": "Directions",
+  "consumerServesYou": "Comes to your area",
+  "consumerNoShopsTitle": "No shops found nearby",
+  "consumerNoShopsMessage": "Try another category, remove filters or search a bigger distance.",
+  "consumerCouldNotOpen": "Couldn't open the app for this action",
+  "consumerAbout": "About",
+  "consumerServices": "Services",
+  "consumerHowTheyServe": "How they serve",
+  "consumerTravelsUpTo": "Comes to you within {km} km",
+  "@consumerTravelsUpTo": {
+    "placeholders": {
+      "km": {
+        "type": "int"
+      }
+    }
+  },
+  "consumerOpeningHours": "Opening hours",
+  "consumerClosed": "Closed",
+  "consumerAddressHeading": "Address",
+  "consumerBookService": "Book a service",
+  "consumerBookTitle": "Book at {shop}",
+  "@consumerBookTitle": {
+    "placeholders": {
+      "shop": {
+        "type": "String"
+      }
+    }
+  },
+  "consumerWhatService": "What do you need?",
+  "consumerHowServed": "How would you like it?",
+  "consumerWhen": "When?",
+  "consumerPickDate": "Pick a date",
+  "consumerTimeFrom": "From",
+  "consumerTimeTo": "To",
+  "consumerYourAddress": "Your address",
+  "consumerDescribe": "Describe what you need",
+  "consumerDescribeHint": "e.g. Wash and iron 5 shirts, 2 bedsheets have stains",
+  "consumerItemsOptional": "Items (optional)",
+  "consumerAddItem": "Add item",
+  "consumerItemName": "Item",
+  "consumerQty": "Qty",
+  "consumerSendRequest": "Send request",
+  "consumerRequestSentTitle": "Request sent!",
+  "consumerRequestSentMessage": "{shop} will reply within 48 hours. You can follow it in My requests.",
+  "@consumerRequestSentMessage": {
+    "placeholders": {
+      "shop": {
+        "type": "String"
+      }
+    }
+  },
+  "consumerShopClosedThatDay": "The shop is closed on that day. Please pick another date.",
+  "consumerSlotInvalid": "The end time must be after the start time.",
+  "consumerDescribeMore": "Please describe what you need (at least 5 characters).",
+  "consumerChooseAddress": "Choose the address for home service or pickup.",
+  "consumerOutsideArea": "This shop comes up to {km} km away; your address is farther.",
+  "@consumerOutsideArea": {
+    "placeholders": {
+      "km": {
+        "type": "int"
+      }
+    }
+  },
+  "requestStatusPending": "Waiting",
+  "requestStatusAccepted": "Accepted",
+  "requestStatusDeclined": "Declined",
+  "requestStatusCancelled": "Cancelled",
+  "requestStatusExpired": "No reply",
+  "requestStatusCompleted": "Completed",
+  "consumerNoRequestsTitle": "No requests yet",
+  "consumerNoRequestsMessage": "Find a shop and book a service — your requests show up here.",
+  "consumerRequestDetails": "Request details",
+  "consumerPreferredTime": "Preferred time",
+  "consumerConfirmedTime": "Confirmed time",
+  "consumerShopMessage": "Message from the shop",
+  "consumerReason": "Reason",
+  "consumerOrderCreated": "Order {number} created",
+  "@consumerOrderCreated": {
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
+  "consumerReplyBy": "The shop has until {time} to reply",
+  "@consumerReplyBy": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "consumerCancelRequest": "Cancel request",
+  "consumerCancelConfirm": "Cancel this request?",
+  "consumerCancelReasonHint": "Reason (optional)",
+  "consumerKeepRequest": "Keep it",
+  "consumerHistory": "History",
+  "consumerByYou": "You",
+  "consumerByShop": "Shop",
+  "consumerByAutomatic": "Automatic",
+  "consumerCallShop": "Call shop",
+  "consumerItems": "Items",
+  "consumerAccountTitle": "My account",
+  "consumerSignOutConfirm": "Sign out of your account?",
+
+  "shopListingTitle": "Shop listing",
+  "shopListingMenuSubtitle": "Address, booking phone and hours customers see",
+  "shopListingVisible": "Customers can find your shop",
+  "shopListingHiddenIncomplete": "Hidden from customers — add the missing details below",
+  "shopListingHiddenUnlisted": "Hidden from customers — you switched the listing off",
+  "shopListingHiddenInactive": "Hidden from customers — your business account is not active",
+  "shopListingShowToCustomers": "Show my shop to customers",
+  "shopListingAddressSection": "Shop address",
+  "shopListingPinShop": "Pin shop location",
+  "shopListingPinHint": "Stand inside your shop and tap “Pin shop location”. Customers see distance from this point.",
+  "shopListingStreet": "Shop no., building, street",
+  "shopListingArea": "Area / locality",
+  "shopListingBookingPhone": "Booking phone (shown to customers)",
+  "shopListingBookingPhoneHint": "Leave empty to use your phone: {phone}",
+  "@shopListingBookingPhoneHint": {"placeholders": {"phone": {"type": "String"}}},
+  "shopListingInvalidPhone": "Enter a 10-digit mobile or a landline with STD code",
+  "shopListingHowServe": "How you serve customers",
+  "shopListingChooseMode": "Choose at least one",
+  "shopListingRadius": "You travel up to {km} km for home service and pickup",
+  "@shopListingRadius": {"placeholders": {"km": {"type": "int"}}},
+  "shopListingHours": "Opening hours",
+  "shopListingOpen": "Open",
+  "shopListingClosed": "Closed",
+  "shopListingNeedOpenDay": "The shop must be open on at least one day",
+  "shopListingAbout": "About your shop (optional)",
+  "shopListingAboutHint": "e.g. Same-day ironing, free pickup above ₹300",
+  "shopListingSave": "Save listing",
+  "shopListingSaved": "Listing saved",
+  "shopListingNeedPin": "Pin your shop location first",
+  "shopListingNoPermission": "Only the owner or a branch manager can change the shop listing.",
+  "shopAddressPromptTitle": "Add your shop address",
+  "shopAddressPromptBody": "Customers near you can find and book your shop once you add your address and location.",
+  "shopAddressPromptAction": "Add address",
+  "shopAddressPromptLater": "Later",
+  "onlineRequestsTitle": "Online requests",
+  "onlineRequestsCardSubtitle": "Bookings from customers on the app",
+  "onlineRequestsWaiting": "{count} waiting",
+  "@onlineRequestsWaiting": {"placeholders": {"count": {"type": "int"}}},
+  "onlineRequestsNoneWaiting": "No new requests",
+  "onlineRequestsEmptyTitle": "No requests here",
+  "onlineRequestsEmptyMessage": "Requests from customers appear here. Keep your shop listing complete so customers can find you.",
+  "onlineRequestCustomer": "Customer",
+  "onlineRequestAccept": "Accept",
+  "onlineRequestDecline": "Decline",
+  "onlineRequestCreateOrder": "Create order",
+  "onlineRequestComplete": "Mark completed",
+  "onlineRequestAcceptTitle": "Accept request",
+  "onlineRequestConfirmTime": "Confirmed date and time",
+  "onlineRequestNoteHint": "Message to the customer (optional)",
+  "onlineRequestDeclineTitle": "Decline request",
+  "onlineRequestDeclineHint": "Reason (the customer will see this)",
+  "onlineRequestDeclineNeedReason": "Please give a reason",
+  "onlineRequestCompleteTitle": "Mark as completed?",
+  "onlineRequestAccepted": "Request accepted",
+  "onlineRequestDeclined": "Request declined",
+  "onlineRequestCompleted": "Request completed",
+  "onlineRequestOrderLinked": "Order {number} created and linked",
+  "@onlineRequestOrderLinked": {"placeholders": {"number": {"type": "String"}}},
+  "onlineRequestOrderNotLinked": "The order was created but could not be linked to this request. Open the request again to retry.",
+  "onlineRequestOnlineBadge": "Online",
+  "onlineRequestReceived": "Received {time}",
+  "@onlineRequestReceived": {"placeholders": {"time": {"type": "String"}}},
+  "onlineRequestExpiresAt": "Reply before {time} or it expires",
+  "@onlineRequestExpiresAt": {"placeholders": {"time": {"type": "String"}}},
+  "onlineRequestCallCustomer": "Call customer",
+  "onlineRequestDistance": "{km} km from your shop",
+  "@onlineRequestDistance": {"placeholders": {"km": {"type": "String"}}},
+  "onlineRequestStaffCannotCreate": "Ask the owner or a manager to create the order."
+}

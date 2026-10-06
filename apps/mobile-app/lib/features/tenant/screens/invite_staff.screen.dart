@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:nexoraa_mobile/core/localization/l10n.dart';
 import 'package:nexoraa_mobile/design_system/design_system.dart' show AppAlertDialog;
 import 'package:nexoraa_mobile/features/authentication/authentication_dependencies.dart';
 import 'package:nexoraa_mobile/features/staff/services/staff_api_service.dart';
@@ -85,14 +86,13 @@ class _InviteStaffScreenState extends State<InviteStaffScreen> {
 
   Future<void> _skip() async {
     if (_isSubmitting) return;
+    final AppLocalizations l10n = context.l10n;
     if (_hasInvitationInput) {
       if (!_formKey.currentState!.validate()) {
         await AppAlertDialog.show(
           context,
-          title: 'Required information',
-          message:
-              'Please fix the highlighted fields. Each staff member needs an email address — '
-              'the invitation is sent by email.',
+          title: l10n.commonRequiredInformation,
+          message: l10n.inviteFixHighlighted,
         );
         return;
       }
@@ -114,14 +114,14 @@ class _InviteStaffScreenState extends State<InviteStaffScreen> {
       }
 
       await _apiService.completeOnboarding(widget.data);
-      final String? report = await _sendInvitations();
+      final ({bool allSent, String message})? report = await _sendInvitations(l10n);
       if (!mounted) return;
       if (report != null) {
         await AppAlertDialog.show(
           context,
-          title: report.startsWith('Invitation') ? 'Invitations sent' : 'Some invitations need attention',
-          message: report,
-          isError: !report.startsWith('Invitation'),
+          title: report.allSent ? l10n.invitationsSent : l10n.invitationsNeedAttention,
+          message: report.message,
+          isError: !report.allSent,
         );
         if (!mounted) return;
       }
@@ -139,14 +139,18 @@ class _InviteStaffScreenState extends State<InviteStaffScreen> {
       }
     } on TenantApiNetworkException catch (error) {
       if (mounted) {
-        await AppAlertDialog.show(context, title: 'Connection problem', message: error.message);
+        await AppAlertDialog.show(
+          context,
+          title: l10n.commonConnectionProblem,
+          message: error.message,
+        );
       }
     } catch (_) {
       if (mounted) {
         await AppAlertDialog.show(
           context,
-          title: 'Something went wrong',
-          message: 'Unable to save onboarding. Please try again.',
+          title: l10n.commonSomethingWentWrong,
+          message: l10n.unableToSaveOnboarding,
         );
       }
     } finally {
@@ -156,7 +160,9 @@ class _InviteStaffScreenState extends State<InviteStaffScreen> {
 
   /// Creates each invited staff account and emails the invitation. Returns a
   /// summary to show, or null when nothing was invited.
-  Future<String?> _sendInvitations() async {
+  Future<({bool allSent, String message})?> _sendInvitations(
+    AppLocalizations l10n,
+  ) async {
     final invites = widget.data.staff.where((s) => s.email.trim().isNotEmpty).toList();
     if (invites.isEmpty) return null;
     final String? branchId = AuthenticationDependencies.controller.session?.branchId;
@@ -178,23 +184,29 @@ class _InviteStaffScreenState extends State<InviteStaffScreen> {
         if (emailed) {
           sent.add(email);
         } else {
-          problems.add('$email — account created, but the email could not be sent. '
-              'Ask them to open the app and tap "Forgot password?".');
+          problems.add(l10n.inviteReportEmailFailed(email));
         }
       } on StaffApiException catch (error) {
-        problems.add('$email — ${error.backendMessage ?? 'could not be invited'}');
+        problems.add(
+          l10n.inviteReportFailed(
+            email,
+            error.backendMessage ?? l10n.inviteReportCouldNotInvite,
+          ),
+        );
       }
     }
 
     if (problems.isEmpty) {
-      return 'Invitation sent to ${sent.join(', ')}. '
-          'They\'ll set their own password using "Forgot password?" in the app.';
+      return (allSent: true, message: l10n.inviteReportAllSent(sent.join(', ')));
     }
-    return <String>[
-      if (sent.isNotEmpty) 'Invited: ${sent.join(', ')}.',
-      ...problems,
-      'You can add or re-invite staff later from the Staff screen.',
-    ].join('\n\n');
+    return (
+      allSent: false,
+      message: <String>[
+        if (sent.isNotEmpty) l10n.inviteReportInvited(sent.join(', ')),
+        ...problems,
+        l10n.inviteReportFooter,
+      ].join('\n\n'),
+    );
   }
 
   /// "ravi.kumar@shop.com" → "Ravi Kumar" (staff can edit their name later).
@@ -211,21 +223,23 @@ class _InviteStaffScreenState extends State<InviteStaffScreen> {
   Widget build(BuildContext context) {
     return TenantOnboardingScaffold(
       step: 4,
-      title: 'Invite Staff',
+      title: context.l10n.inviteStaffTitle,
       icon: Icons.group_add_outlined,
       actions: TenantOnboardingActions(
         onBack: _back,
         onContinue: _skip,
-        continueLabel: _hasValidInvitation ? 'Continue' : 'Skip for now',
+        continueLabel: _hasValidInvitation
+            ? context.l10n.commonContinue
+            : context.l10n.commonSkipForNow,
       ),
       child: Form(
         key: _formKey,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Invite team members to join your workspace. Each person gets an email invitation.',
-              style: TextStyle(
+            Text(
+              context.l10n.inviteStaffSubtitle,
+              style: const TextStyle(
                 color: kTextSecondary,
                 fontSize: 16,
                 height: 1.45,
@@ -240,7 +254,9 @@ class _InviteStaffScreenState extends State<InviteStaffScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     TenantFieldLabel(
-                      index == 0 ? 'Email *' : 'Email ${index + 1} *',
+                      index == 0
+                          ? context.l10n.staffEmailLabel
+                          : context.l10n.staffEmailNumberedLabel(index + 1),
                     ),
                     const SizedBox(height: 8),
                     TextFormField(
@@ -257,23 +273,23 @@ class _InviteStaffScreenState extends State<InviteStaffScreen> {
                         if (email.isEmpty) {
                           return controllers.mobileNumber.text.trim().isEmpty
                               ? null
-                              : 'Email is required to send the invitation';
+                              : context.l10n.emailRequiredForInvite;
                         }
                         if (!_emailPattern.hasMatch(email)) {
-                          return 'Enter a valid email';
+                          return context.l10n.invalidEmail;
                         }
                         final duplicates = _controllers
                             .where((c) => c.email.text.trim().toLowerCase() == email.toLowerCase())
                             .length;
-                        if (duplicates > 1) return 'This email is entered twice';
+                        if (duplicates > 1) return context.l10n.emailEnteredTwice;
                         return null;
                       },
                     ),
                     const SizedBox(height: 16),
                     TenantFieldLabel(
                       index == 0
-                          ? 'Mobile Number (Optional)'
-                          : 'Mobile Number ${index + 1} (Optional)',
+                          ? context.l10n.staffMobileLabel
+                          : context.l10n.staffMobileNumberedLabel(index + 1),
                     ),
                     const SizedBox(height: 8),
                     TextFormField(
@@ -287,7 +303,7 @@ class _InviteStaffScreenState extends State<InviteStaffScreen> {
                         final mobile = value?.trim() ?? '';
                         if (mobile.isEmpty) return null;
                         if (!_mobilePattern.hasMatch(mobile)) {
-                          return 'Enter a valid mobile number';
+                          return context.l10n.invalidMobile;
                         }
                         return null;
                       },
@@ -309,9 +325,9 @@ class _InviteStaffScreenState extends State<InviteStaffScreen> {
                   ),
                 ),
                 icon: const Icon(Icons.add),
-                label: const Text(
-                  'Add Another',
-                  style: TextStyle(fontWeight: FontWeight.w700),
+                label: Text(
+                  context.l10n.addAnother,
+                  style: const TextStyle(fontWeight: FontWeight.w700),
                 ),
               ),
             ),
@@ -324,10 +340,9 @@ class _InviteStaffScreenState extends State<InviteStaffScreen> {
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: const Color(0xFFFFD45C)),
               ),
-              child: const Text(
-                'Each staff member gets an email with their login ID (their email). They set their own '
-                'password by tapping "Forgot password?" in the app. You can add more staff later from the Staff screen.',
-                style: TextStyle(
+              child: Text(
+                context.l10n.inviteStaffNote,
+                style: const TextStyle(
                   color: Color(0xFF9A4A00),
                   fontSize: 14,
                   height: 1.45,

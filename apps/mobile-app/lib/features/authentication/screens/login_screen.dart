@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:nexoraa_mobile/app/router.dart';
+import 'package:nexoraa_mobile/core/localization/l10n.dart';
 import 'package:nexoraa_mobile/design_system/design_system.dart';
 import 'package:nexoraa_mobile/features/authentication/authentication_dependencies.dart';
 import 'package:nexoraa_mobile/features/tenant/models/registration_form.dart';
@@ -54,7 +55,7 @@ class _LoginScreenState extends State<LoginScreen>
     final String email = _emailController.text.trim();
     final String password = _passwordController.text;
     if (email.isEmpty || password.isEmpty) {
-      _showMessage('Enter your email and password to continue.');
+      _showMessage(context.l10n.loginMissingCredentials);
       return;
     }
 
@@ -72,7 +73,7 @@ class _LoginScreenState extends State<LoginScreen>
 
     _showMessage(
       AuthenticationDependencies.controller.errorMessage ??
-          'Invalid email or password',
+          context.l10n.loginInvalidCredentials,
     );
   }
 
@@ -137,19 +138,19 @@ class _LoginScreenState extends State<LoginScreen>
                               hintText: 'you@business.com',
                               icon: AppIcons.email,
                               keyboardType: TextInputType.emailAddress,
-                              label: 'Email Address',
+                              label: context.l10n.emailAddress,
                               textInputAction: TextInputAction.next,
                             ),
                             const SizedBox(height: AppSpacing.xl),
                             AppPasswordField(
                               controller: _passwordController,
-                              label: 'Password',
+                              label: context.l10n.password,
                             ),
                             const SizedBox(height: AppSpacing.xl),
                             Align(
                               alignment: Alignment.centerRight,
                               child: AppLinkButton(
-                                label: 'Forgot password?',
+                                label: context.l10n.forgotPassword,
                                 onPressed: _handleForgotPassword,
                               ),
                             ),
@@ -159,10 +160,10 @@ class _LoginScreenState extends State<LoginScreen>
                               onPressed: _isLoading ? null : _handleSignIn,
                             ),
                             const SizedBox(height: AppSpacing.xl),
-                            const AppDivider(label: 'or'),
+                            AppDivider(label: context.l10n.commonOr),
                             const SizedBox(height: AppSpacing.xl),
                             SecondaryButton(
-                              label: 'Create Business Account',
+                              label: context.l10n.createBusinessAccount,
                               onPressed: _handleCreateBusinessAccount,
                             ),
                             const SizedBox(height: AppSpacing.xxlPlus),
@@ -171,7 +172,7 @@ class _LoginScreenState extends State<LoginScreen>
                             Align(
                               alignment: Alignment.center,
                               child: AppLinkButton(
-                                label: 'Company Admin',
+                                label: context.l10n.companyAdmin,
                                 onPressed: _handleCompanyAdmin,
                               ),
                             ),
@@ -201,7 +202,10 @@ class _SignInButton extends StatelessWidget {
     return Stack(
       alignment: Alignment.center,
       children: <Widget>[
-        PrimaryButton(label: isLoading ? '' : 'Sign In', onPressed: onPressed),
+        PrimaryButton(
+          label: isLoading ? '' : context.l10n.signIn,
+          onPressed: onPressed,
+        ),
         if (isLoading)
           const SizedBox.square(
             dimension: AppIconSizes.xl,
@@ -242,8 +246,8 @@ class _LoginHeader extends StatelessWidget {
                 constraints: const BoxConstraints(
                   maxWidth: AppSizes.authenticationContentMaxWidth,
                 ),
-                child: const Padding(
-                  padding: EdgeInsets.fromLTRB(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(
                     AppSpacing.xxlPlus,
                     AppSpacing.section,
                     AppSpacing.xxlPlus,
@@ -252,15 +256,21 @@ class _LoginHeader extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
-                      AppBrandLogo(),
-                      SizedBox(height: AppSpacing.xl),
+                      const Row(
+                        children: <Widget>[
+                          AppBrandLogo(),
+                          Spacer(),
+                          LanguageSelectorButton(onDark: true),
+                        ],
+                      ),
+                      const SizedBox(height: AppSpacing.xl),
                       Text(
-                        'Welcome back',
+                        context.l10n.loginWelcomeBack,
                         style: AppTextStyles.headingExtraLarge,
                       ),
-                      SizedBox(height: AppSpacing.sm),
+                      const SizedBox(height: AppSpacing.sm),
                       Text(
-                        'Sign in to your business account',
+                        context.l10n.loginSubtitle,
                         style: AppTextStyles.headerSubtitle,
                       ),
                     ],
@@ -284,11 +294,12 @@ class _TermsText extends StatelessWidget {
       TextSpan(
         style: AppTextStyles.caption,
         children: <InlineSpan>[
-          const TextSpan(text: 'By signing in you agree to our '),
+          TextSpan(text: context.l10n.termsAgreementPrefix),
           TextSpan(
-            text: 'Terms of Service',
+            text: context.l10n.termsOfService,
             style: AppTextStyles.captionBold.copyWith(color: AppColors.primary),
           ),
+          TextSpan(text: context.l10n.termsAgreementSuffix),
         ],
       ),
       textAlign: TextAlign.center,

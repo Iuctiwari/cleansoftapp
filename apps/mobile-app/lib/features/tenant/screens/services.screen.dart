@@ -1,22 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:nexoraa_mobile/core/localization/l10n.dart';
+
 import '../../../app/router.dart';
 import '../../../app/theme.dart';
 import '../models/tenant_onboarding_data.dart';
 import '../widgets/tenant_onboarding_scaffold.dart';
 
-const _services = <(String, String)>[
-  ('Wash & Fold', 'laundry'),
-  ('Dry Cleaning', 'dry_cleaning'),
-  ('Tailoring', 'tailoring'),
-  ('Shoe Cleaning', 'shoe_cleaning'),
-  ('Appliance Repair', 'appliance_repair'),
-  ('Mobile Repair', 'mobile_repair'),
-  ('Vehicle Wash', 'vehicle_wash'),
-  ('Salon', 'salon'),
-  ('General', 'general'),
-  ('Custom', 'custom'),
+final List<(String Function(AppLocalizations), String)> _services = [
+  ((l) => l.serviceWashAndFold, 'laundry'),
+  ((l) => l.businessTypeDryCleaning, 'dry_cleaning'),
+  ((l) => l.businessTypeTailoring, 'tailoring'),
+  ((l) => l.businessTypeShoeCleaning, 'shoe_cleaning'),
+  ((l) => l.businessTypeApplianceRepair, 'appliance_repair'),
+  ((l) => l.businessTypeMobileRepair, 'mobile_repair'),
+  ((l) => l.businessTypeVehicleWash, 'vehicle_wash'),
+  ((l) => l.businessTypeSalon, 'salon'),
+  ((l) => l.businessTypeGeneral, 'general'),
+  ((l) => l.businessTypeCustom, 'custom'),
 ];
 
 class ServicesScreen extends StatefulWidget {
@@ -40,7 +42,7 @@ class _ServicesScreenState extends State<ServicesScreen> {
   void _continue() {
     if (widget.data.selectedServices.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Select at least one service')),
+        SnackBar(content: Text(context.l10n.selectAtLeastOneService)),
       );
       return;
     }
@@ -51,7 +53,7 @@ class _ServicesScreenState extends State<ServicesScreen> {
   Widget build(BuildContext context) {
     return TenantOnboardingScaffold(
       step: 3,
-      title: 'Services',
+      title: context.l10n.servicesTitle,
       icon: Icons.build_outlined,
       actions: TenantOnboardingActions(
         onBack: context.pop,
@@ -60,9 +62,9 @@ class _ServicesScreenState extends State<ServicesScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Select the services your business offers. You can add more later.',
-            style: TextStyle(color: kTextSecondary, fontSize: 16, height: 1.45),
+          Text(
+            context.l10n.servicesSubtitle,
+            style: const TextStyle(color: kTextSecondary, fontSize: 16, height: 1.45),
           ),
           const SizedBox(height: 24),
           Wrap(
@@ -76,7 +78,7 @@ class _ServicesScreenState extends State<ServicesScreen> {
                 selected: selected,
                 showCheckmark: true,
                 checkmarkColor: kPrimary,
-                label: Text(service.$1),
+                label: Text(service.$1(context.l10n)),
                 onSelected: (_) => _toggle(service.$2),
                 backgroundColor: kSurface,
                 selectedColor: kPrimaryLight,
@@ -100,7 +102,7 @@ class _ServicesScreenState extends State<ServicesScreen> {
           ),
           const SizedBox(height: 22),
           Text(
-            '${widget.data.selectedServices.length} services selected',
+            context.l10n.servicesSelected(widget.data.selectedServices.length),
             style: const TextStyle(color: kTextSecondary, fontSize: 15),
           ),
         ],

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:nexoraa_mobile/app/router.dart';
+import 'package:nexoraa_mobile/core/localization/l10n.dart';
 import 'package:nexoraa_mobile/design_system/design_system.dart';
 import 'package:nexoraa_mobile/features/authentication/authentication_dependencies.dart';
 import 'package:nexoraa_mobile/features/authentication/password_policy.dart';
@@ -43,14 +44,15 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     final String current = _currentController.text;
     final String next = _newController.text;
     final String confirm = _confirmController.text;
+    final AppLocalizations l10n = context.l10n;
 
     final String? problem = current.isEmpty
-        ? 'Enter your current password.'
-        : PasswordPolicy.validate(next) ??
+        ? l10n.enterCurrentPassword
+        : PasswordPolicy.validate(next, l10n) ??
               (next != confirm
-                  ? 'The new passwords do not match.'
+                  ? l10n.newPasswordsDoNotMatch
                   : next == current
-                  ? 'The new password must be different from the current one.'
+                  ? l10n.newPasswordMustDiffer
                   : null);
     if (problem != null) {
       setState(() => _errorMessage = problem);
@@ -74,7 +76,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
       setState(() {
         _isSaving = false;
         _errorMessage =
-            controller.errorMessage ?? 'Unable to change the password. Please try again.';
+            controller.errorMessage ?? l10n.unableToChangePassword;
       });
       return;
     }
@@ -83,15 +85,12 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
       context: context,
       barrierDismissible: false,
       builder: (BuildContext dialogContext) => AlertDialog(
-        title: const Text('Password changed'),
-        content: const Text(
-          'Your password has been changed and your other devices were signed out. '
-          'Please sign in again with your new password.',
-        ),
+        title: Text(l10n.passwordChanged),
+        content: Text(l10n.passwordChangedBody),
         actions: <Widget>[
           FilledButton(
             onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('Sign in'),
+            child: Text(l10n.signIn),
           ),
         ],
       ),
@@ -109,9 +108,9 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
         leading: IconButton(
           onPressed: () => Navigator.of(context).maybePop(),
           icon: const Icon(AppIcons.arrowBack),
-          tooltip: 'Back',
+          tooltip: context.l10n.commonBack,
         ),
-        title: const Text('Change Password'),
+        title: Text(context.l10n.changePassword),
       ),
       body: SafeArea(
         top: false,
@@ -120,8 +119,8 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
-              const Text(
-                'Enter your current password, then choose a new one.',
+              Text(
+                context.l10n.changePasswordIntro,
                 style: AppTextStyles.bodyMedium,
               ),
               const SizedBox(height: AppSpacing.section),
@@ -141,12 +140,12 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
               ],
               AppPasswordField(
                 controller: _currentController,
-                label: 'Current Password',
+                label: context.l10n.currentPassword,
               ),
               const SizedBox(height: AppSpacing.xl),
               AppPasswordField(
                 controller: _newController,
-                label: 'New Password',
+                label: context.l10n.newPassword,
               ),
               const SizedBox(height: AppSpacing.md),
               for (final rule in PasswordPolicy.rules)
@@ -160,18 +159,20 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                         color: rule.test(newPassword) ? AppColors.success : AppColors.textSecondary,
                       ),
                       const SizedBox(width: AppSpacing.sm),
-                      Text(rule.label, style: AppTextStyles.bodySmall),
+                      Text(rule.label(context.l10n), style: AppTextStyles.bodySmall),
                     ],
                   ),
                 ),
               const SizedBox(height: AppSpacing.lg),
               AppPasswordField(
                 controller: _confirmController,
-                label: 'Confirm New Password',
+                label: context.l10n.confirmNewPassword,
               ),
               const SizedBox(height: AppSpacing.xxlPlus),
               PrimaryButton(
-                label: _isSaving ? 'Changing password...' : 'Change Password',
+                label: _isSaving
+                    ? context.l10n.changingPassword
+                    : context.l10n.changePassword,
                 onPressed: _isSaving ? null : _submit,
               ),
             ],

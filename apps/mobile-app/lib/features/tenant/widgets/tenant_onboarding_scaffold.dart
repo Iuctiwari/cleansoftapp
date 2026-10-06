@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'package:nexoraa_mobile/core/localization/l10n.dart';
+
 import '../../../app/theme.dart';
 
 class TenantOnboardingScaffold extends StatelessWidget {
@@ -69,7 +71,7 @@ class TenantOnboardingScaffold extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Step $step of 5',
+                          context.l10n.stepOf(step, 5),
                           style: TextStyle(
                             color: Colors.white.withValues(alpha: 0.78),
                             fontSize: 13,
@@ -117,13 +119,13 @@ class TenantOnboardingScaffold extends StatelessWidget {
 class TenantOnboardingActions extends StatelessWidget {
   final VoidCallback onBack;
   final VoidCallback onContinue;
-  final String continueLabel;
+  final String? continueLabel;
 
   const TenantOnboardingActions({
     super.key,
     required this.onBack,
     required this.onContinue,
-    this.continueLabel = 'Continue',
+    this.continueLabel,
   });
 
   @override
@@ -131,13 +133,16 @@ class TenantOnboardingActions extends StatelessWidget {
     return Row(
       children: [
         Expanded(
-          child: OutlinedButton(onPressed: onBack, child: const Text('Back')),
+          child: OutlinedButton(
+            onPressed: onBack,
+            child: Text(context.l10n.commonBack),
+          ),
         ),
         const SizedBox(width: 14),
         Expanded(
           child: ElevatedButton(
             onPressed: onContinue,
-            child: Text(continueLabel),
+            child: Text(continueLabel ?? context.l10n.commonContinue),
           ),
         ),
       ],

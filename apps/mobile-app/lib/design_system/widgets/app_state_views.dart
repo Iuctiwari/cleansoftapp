@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:nexoraa_mobile/core/localization/l10n.dart';
 import 'package:nexoraa_mobile/design_system/colors/app_colors.dart';
 import 'package:nexoraa_mobile/design_system/icons/app_icons.dart';
 import 'package:nexoraa_mobile/design_system/sizes/app_sizes.dart';
@@ -49,7 +50,7 @@ class AppErrorView extends StatelessWidget {
             ),
             if (onRetry != null) ...<Widget>[
               const SizedBox(height: AppSpacing.xl),
-              SecondaryButton(label: 'Retry', onPressed: onRetry),
+              SecondaryButton(label: context.l10n.commonRetry, onPressed: onRetry),
             ],
           ],
         ),

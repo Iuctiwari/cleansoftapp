@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:nexoraa_mobile/core/localization/l10n.dart';
 import 'package:nexoraa_mobile/design_system/design_system.dart';
 import 'package:nexoraa_mobile/features/subscription/models/subscription_models.dart';
 
@@ -67,7 +68,7 @@ class _BillingCycleToggle extends StatelessWidget {
       children: <Widget>[
         Expanded(
           child: _CycleOption(
-            label: 'Monthly',
+            label: context.l10n.billingMonthly,
             selected: value == 'MONTHLY',
             onTap: () => onChanged('MONTHLY'),
           ),
@@ -75,7 +76,7 @@ class _BillingCycleToggle extends StatelessWidget {
         const SizedBox(width: AppSpacing.sm),
         Expanded(
           child: _CycleOption(
-            label: 'Annual',
+            label: context.l10n.billingAnnual,
             selected: value == 'ANNUAL',
             onTap: () => onChanged('ANNUAL'),
           ),
@@ -154,7 +155,10 @@ class _PlanCard extends StatelessWidget {
                 child: Text(plan.displayName, style: AppTextStyles.headingSmall),
               ),
               if (isCurrent)
-                const AppStatusBadge(label: 'Current plan', tone: AppBadgeTone.info),
+                AppStatusBadge(
+                  label: context.l10n.currentPlan,
+                  tone: AppBadgeTone.info,
+                ),
             ],
           ),
           const SizedBox(height: AppSpacing.sm),
@@ -162,12 +166,14 @@ class _PlanCard extends StatelessWidget {
             TextSpan(
               children: <InlineSpan>[
                 TextSpan(
-                  text: isFree ? 'Free' : formatPaise(price),
+                  text: isFree ? context.l10n.planFree : formatPaise(price),
                   style: AppTextStyles.headingMedium.copyWith(color: AppColors.primary),
                 ),
                 if (!isFree)
                   TextSpan(
-                    text: billingCycle == 'ANNUAL' ? ' / year' : ' / month',
+                    text: billingCycle == 'ANNUAL'
+                        ? context.l10n.perYear
+                        : context.l10n.perMonth,
                     style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSubtle),
                   ),
               ],
@@ -176,14 +182,17 @@ class _PlanCard extends StatelessWidget {
           if (plan.trialDays > 0) ...<Widget>[
             const SizedBox(height: AppSpacing.xs),
             Text(
-              '${plan.trialDays}-day free trial',
+              context.l10n.freeTrialDays(plan.trialDays),
               style: AppTextStyles.caption.copyWith(color: AppColors.success),
             ),
           ],
           const SizedBox(height: AppSpacing.sm),
           Text(
-            'Up to ${plan.maxBranches} branches · ${plan.maxStaff} staff · '
-            '${plan.maxMonthlyOrders} orders/mo',
+            context.l10n.planLimits(
+              plan.maxBranches,
+              plan.maxStaff,
+              plan.maxMonthlyOrders,
+            ),
             style: AppTextStyles.caption.copyWith(color: AppColors.textSubtle),
           ),
         ],

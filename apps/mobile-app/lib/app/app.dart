@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:nexoraa_mobile/app/router.dart';
+import 'package:nexoraa_mobile/core/localization/l10n.dart';
 import 'package:nexoraa_mobile/core/network/tenant_config_bootstrapper.dart';
 
 class NexoraaApp extends StatefulWidget {
@@ -25,11 +26,17 @@ class _NexoraaAppState extends State<NexoraaApp> {
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
-      animation: TenantConfigBootstrapper.themeProvider,
+      animation: Listenable.merge(<Listenable>[
+        TenantConfigBootstrapper.themeProvider,
+        LocaleDependencies.controller,
+      ]),
       builder: (BuildContext context, Widget? child) {
         return MaterialApp.router(
           darkTheme: TenantConfigBootstrapper.themeProvider.darkTheme,
           debugShowCheckedModeBanner: false,
+          locale: LocaleDependencies.controller.language.locale,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           routerConfig: AppRouter.router,
           scrollBehavior: const _ClampedScrollBehavior(),
           theme: TenantConfigBootstrapper.themeProvider.lightTheme,

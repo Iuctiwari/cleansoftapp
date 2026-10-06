@@ -1,3 +1,4 @@
+import 'package:nexoraa_mobile/features/online_requests/widgets/shop_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:nexoraa_mobile/app/router.dart';
@@ -75,6 +76,8 @@ class MoreScreen extends StatelessWidget {
     'Staff Management' => accessPolicy.allows(AppCapability.staffView),
     'Branch Management' => accessPolicy.allows(AppCapability.branchesView),
     'Business Settings' => accessPolicy.allows(AppCapability.businessSettings),
+    'Online Requests' => accessPolicy.allows(AppCapability.ordersView),
+    'Shop Listing' => accessPolicy.allows(AppCapability.branchesView),
     'My Profile' => accessPolicy.allows(AppCapability.ownProfile),
     _ => false,
   };
@@ -117,6 +120,18 @@ class MoreScreen extends StatelessWidget {
     MoreMenuSectionData(
       title: 'Business',
       items: <MoreMenuItemData>[
+        MoreMenuItemData(
+          backgroundColor: AppColors.primarySurface,
+          icon: Icons.shopping_bag_outlined,
+          iconColor: AppColors.primary,
+          title: 'Online Requests',
+        ),
+        MoreMenuItemData(
+          backgroundColor: AppColors.successSurface,
+          icon: Icons.storefront_outlined,
+          iconColor: AppColors.successLight,
+          title: 'Shop Listing',
+        ),
         MoreMenuItemData(
           backgroundColor: AppColors.infoSurface,
           icon: AppIcons.users,
@@ -179,6 +194,20 @@ class MoreScreen extends StatelessWidget {
     }
     if (item.title == 'Business Settings') {
       context.pushNamed(AppRouteNames.businessSettings);
+      return;
+    }
+    if (item.title == 'Online Requests' || item.title == 'Shop Listing') {
+      final ShopBranchArgs branch = ShopBranchArgs.from(null);
+      context.pushNamed(
+        item.title == 'Online Requests' ? AppRouteNames.onlineRequests : AppRouteNames.shopListing,
+        extra: branchId == null || branchId == 'unavailable'
+            ? branch
+            : ShopBranchArgs(
+                branchId: branchId!,
+                branchName: branch.branchName,
+                businessName: businessName,
+              ),
+      );
       return;
     }
     if (item.title == 'Payments') {

@@ -20,6 +20,11 @@ void main() {
     await tester.pump(AppDurations.startupSplash - AppDurations.standard);
     await tester.pumpAndSettle();
 
+    // Signed-out start shows the customer/business choice first.
+    expect(find.text('I run a business'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('welcome.business')));
+    await tester.pumpAndSettle();
+
     expect(find.text('Welcome back'), findsOneWidget);
     expect(find.text('Email Address'), findsOneWidget);
     expect(find.text('Password'), findsOneWidget);

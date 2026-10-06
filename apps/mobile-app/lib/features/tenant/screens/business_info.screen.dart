@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:nexoraa_mobile/core/localization/l10n.dart';
+
 import '../../../app/theme.dart';
 import '../models/registration_form.dart';
 import '../models/tenant_onboarding_data.dart';
@@ -8,17 +10,17 @@ import '../widgets/business_type_chip.dart';
 import '../widgets/tenant_onboarding_scaffold.dart';
 
 /// Business types shown as chips — values match the backend enum.
-const _kBusinessTypes = [
-  ('Laundry', 'laundry'),
-  ('Dry Cleaning', 'dry_cleaning'),
-  ('Tailoring', 'tailoring'),
-  ('Shoe Cleaning', 'shoe_cleaning'),
-  ('Appliance Repair', 'appliance_repair'),
-  ('Mobile Repair', 'mobile_repair'),
-  ('Vehicle Wash', 'vehicle_wash'),
-  ('Salon', 'salon'),
-  ('General', 'general'),
-  ('Custom', 'custom'),
+final List<(String Function(AppLocalizations), String)> _kBusinessTypes = [
+  ((l) => l.businessTypeLaundry, 'laundry'),
+  ((l) => l.businessTypeDryCleaning, 'dry_cleaning'),
+  ((l) => l.businessTypeTailoring, 'tailoring'),
+  ((l) => l.businessTypeShoeCleaning, 'shoe_cleaning'),
+  ((l) => l.businessTypeApplianceRepair, 'appliance_repair'),
+  ((l) => l.businessTypeMobileRepair, 'mobile_repair'),
+  ((l) => l.businessTypeVehicleWash, 'vehicle_wash'),
+  ((l) => l.businessTypeSalon, 'salon'),
+  ((l) => l.businessTypeGeneral, 'general'),
+  ((l) => l.businessTypeCustom, 'custom'),
 ];
 
 /// Screen 2 (Step 1/2) — "Tell us about your business".
@@ -63,8 +65,8 @@ class _BusinessInfoPageState extends State<BusinessInfoPage> {
 
     if (_selectedType.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select a business type'),
+        SnackBar(
+          content: Text(context.l10n.selectBusinessType),
           backgroundColor: Colors.redAccent,
         ),
       );
@@ -95,7 +97,10 @@ class _BusinessInfoPageState extends State<BusinessInfoPage> {
 
     return Scaffold(
       backgroundColor: kSurface,
-      appBar: _StepAppBar(title: 'Business Info', step: 'Step 1/2'),
+      appBar: _StepAppBar(
+        title: context.l10n.businessInfoTitle,
+        step: context.l10n.stepFraction(1, 2),
+      ),
       body: Column(
         children: [
           // ── Progress bar ─────────────────────────────────────────────
@@ -110,50 +115,50 @@ class _BusinessInfoPageState extends State<BusinessInfoPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Heading
-                    const Text(
-                      'Tell us about your business',
-                      style: TextStyle(
+                    Text(
+                      context.l10n.businessInfoHeading,
+                      style: const TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.w800,
                         color: kTextPrimary,
                       ),
                     ),
                     const SizedBox(height: 6),
-                    const Text(
-                      'This helps us personalize your experience.',
+                    Text(
+                      context.l10n.businessInfoSubtitle,
                       style: TextStyle(fontSize: 14, color: kTextSecondary),
                     ),
                     const SizedBox(height: 28),
 
                     // Business Name
-                    const _FieldLabel('Business Name'),
+                    _FieldLabel(context.l10n.businessName),
                     const SizedBox(height: 8),
                     TextFormField(
                       controller: _businessNameController,
-                      decoration: const InputDecoration(
-                        hintText: 'e.g. Ahmed Laundry & Cleaners',
-                        prefixIcon: Icon(Icons.store_outlined),
+                      decoration: InputDecoration(
+                        hintText: context.l10n.businessNameHint,
+                        prefixIcon: const Icon(Icons.store_outlined),
                       ),
                       validator: (v) {
                         if (v == null || v.trim().isEmpty) {
-                          return 'Business name is required';
+                          return context.l10n.businessNameRequired;
                         }
-                        if (v.trim().length < 2) return 'Name is too short';
+                        if (v.trim().length < 2) return context.l10n.nameTooShort;
                         return null;
                       },
                     ),
                     const SizedBox(height: 24),
 
                     // Business Type chips
-                    const _FieldLabel('Business Type'),
+                    _FieldLabel(context.l10n.businessType),
                     const SizedBox(height: 12),
                     Wrap(
                       spacing: 10,
                       runSpacing: 10,
                       children: _kBusinessTypes.map((entry) {
-                        final (label, value) = entry;
+                        final (labelOf, value) = entry;
                         return BusinessTypeChip(
-                          label: label,
+                          label: labelOf(context.l10n),
                           isSelected: _selectedType == value,
                           onTap: () => setState(() => _selectedType = value),
                         );
@@ -162,17 +167,17 @@ class _BusinessInfoPageState extends State<BusinessInfoPage> {
                     const SizedBox(height: 24),
 
                     // Owner Name
-                    const _FieldLabel('Owner Name'),
+                    _FieldLabel(context.l10n.ownerName),
                     const SizedBox(height: 8),
                     TextFormField(
                       controller: _ownerNameController,
-                      decoration: const InputDecoration(
-                        hintText: 'Full name',
-                        prefixIcon: Icon(Icons.person_outline_rounded),
+                      decoration: InputDecoration(
+                        hintText: context.l10n.fullNameHint,
+                        prefixIcon: const Icon(Icons.person_outline_rounded),
                       ),
                       validator: (v) {
                         if (v == null || v.trim().isEmpty) {
-                          return 'Owner name is required';
+                          return context.l10n.ownerNameRequired;
                         }
                         return null;
                       },
@@ -185,7 +190,7 @@ class _BusinessInfoPageState extends State<BusinessInfoPage> {
                       child: ElevatedButton.icon(
                         onPressed: _onContinue,
                         icon: const Icon(Icons.arrow_forward_rounded, size: 20),
-                        label: const Text('Continue'),
+                        label: Text(context.l10n.commonContinue),
                       ),
                     ),
                   ],
@@ -203,14 +208,14 @@ class _BusinessInfoPageState extends State<BusinessInfoPage> {
     var businessType = form.businessType;
     for (final entry in _kBusinessTypes) {
       if (entry.$2 == form.businessType) {
-        businessType = entry.$1;
+        businessType = entry.$1(context.l10n);
         break;
       }
     }
 
     return TenantOnboardingScaffold(
       step: 1,
-      title: 'Business Info',
+      title: context.l10n.businessInfoTitle,
       icon: Icons.business_outlined,
       actions: SizedBox(
         width: double.infinity,
@@ -220,15 +225,15 @@ class _BusinessInfoPageState extends State<BusinessInfoPage> {
             extra: widget.onboardingData,
           ),
           icon: const Icon(Icons.arrow_forward_rounded, size: 20),
-          label: const Text('Continue'),
+          label: Text(context.l10n.commonContinue),
         ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            "Here's a summary of your business. You can update these later in Settings.",
-            style: TextStyle(color: kTextSecondary, fontSize: 16, height: 1.5),
+          Text(
+            context.l10n.businessSummaryIntro,
+            style: const TextStyle(color: kTextSecondary, fontSize: 16, height: 1.5),
           ),
           const SizedBox(height: 24),
           Container(
@@ -248,10 +253,14 @@ class _BusinessInfoPageState extends State<BusinessInfoPage> {
             ),
             child: Column(
               children: [
-                _SummaryRow(label: 'Business Name', value: form.businessName),
-                _SummaryRow(label: 'Business Type', value: businessType),
-                _SummaryRow(label: 'Owner', value: form.ownerName),
-                _SummaryRow(label: 'Email', value: form.email, isLast: true),
+                _SummaryRow(label: context.l10n.businessName, value: form.businessName),
+                _SummaryRow(label: context.l10n.businessType, value: businessType),
+                _SummaryRow(label: context.l10n.owner, value: form.ownerName),
+                _SummaryRow(
+                  label: context.l10n.commonEmail,
+                  value: form.email,
+                  isLast: true,
+                ),
               ],
             ),
           ),
@@ -334,6 +343,8 @@ class _StepAppBar extends StatelessWidget implements PreferredSizeWidget {
       ),
       title: Text(title),
       actions: [
+        const Center(child: LanguageSelectorButton()),
+        const SizedBox(width: 12),
         Padding(
           padding: const EdgeInsets.only(right: 16),
           child: Center(

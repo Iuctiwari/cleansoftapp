@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:nexoraa_mobile/app/router.dart';
+import 'package:nexoraa_mobile/core/localization/l10n.dart';
 import 'package:nexoraa_mobile/design_system/design_system.dart';
 import 'package:nexoraa_mobile/features/authentication/authentication_dependencies.dart';
 
@@ -34,7 +35,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
     final String email = _emailController.text.trim();
     if (email.isEmpty) {
-      _showMessage('Enter your email address to continue.');
+      _showMessage(context.l10n.enterEmailToContinue);
       return;
     }
 
@@ -52,7 +53,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
     if (success) {
       setState(() => _codeSent = true);
-      _showMessage('If the account is eligible, a verification code has been sent.');
+      _showMessage(context.l10n.codeSentGeneric);
       try {
         context.pushNamed(AppRouteNames.resetPassword, extra: email);
       } catch (_) {
@@ -62,7 +63,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     }
 
     final String error = AuthenticationDependencies.controller.errorMessage ??
-        'Unable to send verification code. Please try again.';
+        context.l10n.unableToSendCode;
     setState(() => _errorMessage = error);
     _showMessage(error);
   }
@@ -89,9 +90,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         leading: IconButton(
           onPressed: _backToLogin,
           icon: const Icon(AppIcons.arrowBack),
-          tooltip: 'Back to login',
+          tooltip: context.l10n.backToLoginTooltip,
         ),
-        title: const Text('Reset Password'),
+        title: Text(context.l10n.resetPasswordTitle),
       ),
       body: SafeArea(
         top: false,
@@ -165,10 +166,10 @@ class _RequestState extends StatelessWidget {
           ),
         ),
         const SizedBox(height: AppSpacing.section),
-        const Text('Forgot your password?', style: AppTextStyles.headingLarge),
+        Text(context.l10n.forgotPasswordHeading, style: AppTextStyles.headingLarge),
         const SizedBox(height: AppSpacing.lg),
-        const Text(
-          "Enter your email address and we'll send you a 6-digit verification code to reset your password.",
+        Text(
+          context.l10n.forgotPasswordBody,
           style: AppTextStyles.bodyMedium,
         ),
         const SizedBox(height: AppSpacing.section),
@@ -192,16 +193,18 @@ class _RequestState extends StatelessWidget {
           hintText: 'you@business.com',
           icon: AppIcons.email,
           keyboardType: TextInputType.emailAddress,
-          label: 'Email Address',
+          label: context.l10n.emailAddress,
           textInputAction: TextInputAction.done,
         ),
         const SizedBox(height: AppSpacing.xxlPlus),
         PrimaryButton(
-          label: isLoading ? 'Sending code...' : 'Send verification code',
+          label: isLoading
+              ? context.l10n.sendingCode
+              : context.l10n.sendVerificationCode,
           onPressed: isLoading ? null : onSendResetCode,
         ),
         const SizedBox(height: AppSpacing.xl),
-        AppLinkButton(label: 'Back to Login', onPressed: onBackToLogin),
+        AppLinkButton(label: context.l10n.backToLogin, onPressed: onBackToLogin),
       ],
     );
   }
@@ -233,16 +236,19 @@ class _SuccessState extends StatelessWidget {
           ),
         ),
         const SizedBox(height: AppSpacing.section),
-        const Text('Check your email', style: AppTextStyles.headingLarge),
+        Text(context.l10n.checkYourEmail, style: AppTextStyles.headingLarge),
         const SizedBox(height: AppSpacing.lg),
         Text(
-          'If the account is eligible, a verification code has been sent to $email. Follow the instructions to reset your password.',
+          context.l10n.codeSentTo(email),
           style: AppTextStyles.bodyMedium,
         ),
         const SizedBox(height: AppSpacing.section),
-        PrimaryButton(label: 'Enter Verification Code', onPressed: onEnterCode),
+        PrimaryButton(
+          label: context.l10n.enterVerificationCode,
+          onPressed: onEnterCode,
+        ),
         const SizedBox(height: AppSpacing.xl),
-        AppLinkButton(label: 'Back to Login', onPressed: onBackToLogin),
+        AppLinkButton(label: context.l10n.backToLogin, onPressed: onBackToLogin),
       ],
     );
   }

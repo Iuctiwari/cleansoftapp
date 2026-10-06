@@ -1,3 +1,5 @@
+import 'package:nexoraa_mobile/features/online_requests/widgets/online_requests_card.dart';
+import 'package:nexoraa_mobile/features/online_requests/widgets/shop_ui.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -463,6 +465,17 @@ class _RoleDashboardScreenState extends State<RoleDashboardScreen> {
                       unawaited(_openSearchCustomer(customer)),
                   onPaymentTap: (PaymentRecord payment) =>
                       unawaited(_openSearchPayment(payment)),
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: OnlineRequestsCard(
+                  key: ValueKey<String>('online-$_selectedBranchId'),
+                  branch: ShopBranchArgs(
+                    branchId: _selectedBranchId,
+                    branchName: _branchName,
+                    businessName:
+                        AuthenticationDependencies.controller.session?.businessName ?? '',
+                  ),
                 ),
               ),
               SliverToBoxAdapter(

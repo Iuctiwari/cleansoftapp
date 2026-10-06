@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:nexoraa_mobile/app/router.dart';
+import 'package:nexoraa_mobile/core/localization/l10n.dart';
 import 'package:nexoraa_mobile/design_system/design_system.dart';
 import 'package:nexoraa_mobile/features/authentication/authentication_dependencies.dart';
 import 'package:nexoraa_mobile/features/authentication/controllers/splash_controller.dart';
@@ -76,6 +77,10 @@ class _SplashScreenState extends State<SplashScreen>
         context.goNamed(AppRouteNames.login);
       case StartupDestination.choosePlan:
         context.goNamed(AppRouteNames.onboardingChoosePlan);
+      case StartupDestination.welcome:
+        context.goNamed(AppRouteNames.welcome);
+      case StartupDestination.consumerHome:
+        context.goNamed(AppRouteNames.consumerHome);
     }
   }
 
@@ -201,7 +206,7 @@ class _SplashFooter extends StatelessWidget {
         ),
         const SizedBox(height: AppSpacing.xxl),
         Text(
-          'Business Management Platform',
+          context.l10n.splashTagline,
           style: AppTextStyles.caption.copyWith(
             color: AppColors.whiteOverlay40,
           ),

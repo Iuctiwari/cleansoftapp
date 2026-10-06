@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:nexoraa_mobile/core/localization/l10n.dart';
 import 'package:nexoraa_mobile/design_system/widgets/app_state_views.dart';
 import 'package:nexoraa_mobile/features/subscription/models/subscription_models.dart';
 import 'package:nexoraa_mobile/features/subscription/services/subscription_api_service.dart';
@@ -72,7 +73,7 @@ class _ChoosePlanScreenState extends State<ChoosePlanScreen> {
       if (!mounted) return;
       setState(() {
         _loading = false;
-        _loadError = 'Unable to load plans. Please try again.';
+        _loadError = context.l10n.unableToLoadPlans;
       });
     }
   }
@@ -98,7 +99,7 @@ class _ChoosePlanScreenState extends State<ChoosePlanScreen> {
       if (!mounted) return;
       setState(() {
         _submitting = false;
-        _submitError = 'Unable to select this plan. Please try again.';
+        _submitError = context.l10n.unableToSelectPlan;
       });
     }
   }
@@ -118,21 +119,21 @@ class _ChoosePlanScreenState extends State<ChoosePlanScreen> {
               24,
               24,
             ),
-            child: const Column(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 Text(
-                  'Choose your plan',
-                  style: TextStyle(
+                  context.l10n.choosePlanTitle,
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 23,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
-                SizedBox(height: 6),
+                const SizedBox(height: 6),
                 Text(
-                  'Pick a plan to activate your workspace. You can change this anytime.',
-                  style: TextStyle(color: Colors.white70, fontSize: 14, height: 1.4),
+                  context.l10n.choosePlanSubtitle,
+                  style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.4),
                 ),
               ],
             ),
@@ -168,7 +169,7 @@ class _ChoosePlanScreenState extends State<ChoosePlanScreen> {
                                 color: Colors.white,
                               ),
                             )
-                          : const Text('Continue'),
+                          : Text(context.l10n.commonContinue),
                     ),
                   ),
                 ],
@@ -186,10 +187,10 @@ class _ChoosePlanScreenState extends State<ChoosePlanScreen> {
       return AppErrorView(message: _loadError!, onRetry: _loadPlans);
     }
     if (_plans.isEmpty) {
-      return const AppEmptyState(
+      return AppEmptyState(
         icon: Icons.inventory_2_outlined,
-        title: 'No plans available',
-        message: 'There are no active subscription plans configured yet.',
+        title: context.l10n.noPlansTitle,
+        message: context.l10n.noPlansMessage,
       );
     }
     return SingleChildScrollView(

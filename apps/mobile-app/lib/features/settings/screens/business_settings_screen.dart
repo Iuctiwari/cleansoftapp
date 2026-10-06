@@ -1,3 +1,4 @@
+import 'package:nexoraa_mobile/core/localization/l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:nexoraa_mobile/app/router.dart';
@@ -55,6 +56,25 @@ class BusinessSettingsScreen extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
                 children: <Widget>[
                   // Catalog / Services, Items / Catalog, Pricing card
+                  _SettingsCard(
+                    items: <_SettingsItemData>[
+                      _SettingsItemData(
+                        title: context.l10n.shopListingTitle,
+                        subtitle: context.l10n.shopListingMenuSubtitle,
+                        icon: Icons.storefront_outlined,
+                        iconColor: const Color(0xFF0EA5E9),
+                        iconBg: const Color(0xFFE0F2FE),
+                        onTap: () {
+                          try {
+                            context.pushNamed(AppRouteNames.shopListing);
+                          } catch (_) {
+                            // No GoRouter in some widget tests.
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
                   _SettingsCard(
                     items: <_SettingsItemData>[
                       _SettingsItemData(

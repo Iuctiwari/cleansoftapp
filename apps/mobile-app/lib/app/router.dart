@@ -9,8 +9,20 @@ import 'package:nexoraa_mobile/features/authentication/screens/login_screen.dart
 import 'package:nexoraa_mobile/features/authentication/screens/reset_password_screen.dart';
 import 'package:nexoraa_mobile/features/authentication/screens/splash_screen.dart';
 import 'package:nexoraa_mobile/features/branch/branch.dart';
+import 'package:nexoraa_mobile/features/consumer/consumer_dependencies.dart';
+import 'package:nexoraa_mobile/features/consumer/models/consumer_models.dart';
+import 'package:nexoraa_mobile/features/consumer/screens/address_screens.dart';
+import 'package:nexoraa_mobile/features/consumer/screens/booking_screen.dart';
+import 'package:nexoraa_mobile/features/consumer/screens/consumer_auth_screens.dart';
+import 'package:nexoraa_mobile/features/consumer/screens/consumer_home_screen.dart';
+import 'package:nexoraa_mobile/features/consumer/screens/request_detail_screen.dart';
+import 'package:nexoraa_mobile/features/consumer/screens/shop_detail_screen.dart';
+import 'package:nexoraa_mobile/features/consumer/screens/welcome_screen.dart';
 import 'package:nexoraa_mobile/features/dashboard/dashboard.dart';
 import 'package:nexoraa_mobile/features/notifications/notifications.dart';
+import 'package:nexoraa_mobile/features/online_requests/screens/online_requests_screen.dart';
+import 'package:nexoraa_mobile/features/online_requests/screens/shop_listing_screen.dart';
+import 'package:nexoraa_mobile/features/online_requests/widgets/shop_ui.dart';
 import 'package:nexoraa_mobile/features/profile/screens/edit_profile_screen.dart';
 import 'package:nexoraa_mobile/features/profile/screens/profile_screen.dart';
 import 'package:nexoraa_mobile/features/settings/settings.dart';
@@ -66,6 +78,31 @@ abstract final class AppRoutes {
   static const String settingsPricing = '/dashboard/business-settings/pricing';
   static const String rolesAndStaff = '/dashboard/roles-and-staff';
   static const String staffDashboard = '/staff-dashboard';
+  static const String shopListing = '/dashboard/shop-listing';
+  static const String onlineRequests = '/dashboard/online-requests';
+
+  // Customer (marketplace) side — everything under /c/ uses the customer
+  // session, never the shop login.
+  static const String welcome = '/welcome';
+  static const String consumerLogin = '/c/login';
+  static const String consumerSignup = '/c/signup';
+  static const String consumerVerify = '/c/verify';
+  static const String consumerForgotPassword = '/c/forgot-password';
+  static const String consumerHome = '/c/home';
+  static const String consumerAddresses = '/c/addresses';
+  static const String consumerAddressNew = '/c/addresses/new';
+  static const String consumerAddressEdit = '/c/addresses/edit';
+  static const String consumerShop = '/c/shops/:shopId';
+  static const String consumerBook = '/c/shops/:shopId/book';
+  static const String consumerRequest = '/c/requests/:requestId';
+
+  /// Customer screens a signed-out visitor may open.
+  static const Set<String> consumerPublic = <String>{
+    consumerLogin,
+    consumerSignup,
+    consumerVerify,
+    consumerForgotPassword,
+  };
 
   // Company Admin — reachable only by direct URL, never linked from any
   // tenant-facing UI. Uses a completely separate auth system (Phase 1 of the
@@ -116,6 +153,20 @@ abstract final class AppRouteNames {
   static const String staffEdit = 'staffEdit';
   static const String profileEdit = 'profileEdit';
   static const String staffDashboard = 'staffDashboard';
+  static const String shopListing = 'shopListing';
+  static const String onlineRequests = 'onlineRequests';
+  static const String welcome = 'welcome';
+  static const String consumerLogin = 'consumerLogin';
+  static const String consumerSignup = 'consumerSignup';
+  static const String consumerVerify = 'consumerVerify';
+  static const String consumerForgotPassword = 'consumerForgotPassword';
+  static const String consumerHome = 'consumerHome';
+  static const String consumerAddresses = 'consumerAddresses';
+  static const String consumerAddressNew = 'consumerAddressNew';
+  static const String consumerAddressEdit = 'consumerAddressEdit';
+  static const String consumerShop = 'consumerShop';
+  static const String consumerBook = 'consumerBook';
+  static const String consumerRequest = 'consumerRequest';
 
   // Company Admin — see AppRoutes above for the isolation rationale.
   static const String companyAdminLogin = 'companyAdminLogin';
@@ -150,7 +201,10 @@ abstract final class AppRouter {
 
   static final GoRouter router = GoRouter(
     initialLocation: AppRoutes.splash,
-    refreshListenable: AuthenticationDependencies.controller,
+    refreshListenable: Listenable.merge(<Listenable>[
+      AuthenticationDependencies.controller,
+      ConsumerDependencies.controller,
+    ]),
     redirect: (BuildContext context, GoRouterState state) {
       // Company Admin is a completely separate identity/auth system (Phase 1
       // of the Nexoraa Company Admin Panel) — it must never be subject to
@@ -160,6 +214,21 @@ abstract final class AppRouter {
       // either. Admin-session verification is handled per-screen instead
       // (AdminSessionGate), not here.
       if (state.matchedLocation.startsWith('/company-admin')) {
+        return null;
+      }
+
+      // Customer side: its own session, independent of the shop login.
+      if (state.matchedLocation.startsWith('/c/')) {
+        final bool customer = ConsumerDependencies.controller.isAuthenticated;
+        final bool public = AppRoutes.consumerPublic.contains(state.matchedLocation);
+        if (!customer && !public) return AppRoutes.consumerLogin;
+        if (customer && state.matchedLocation == AppRoutes.consumerLogin) {
+          return AppRoutes.consumerHome;
+        }
+        return null;
+      }
+      if (state.matchedLocation == AppRoutes.welcome) {
+        if (ConsumerDependencies.controller.isAuthenticated) return AppRoutes.consumerHome;
         return null;
       }
 
@@ -221,6 +290,12 @@ abstract final class AppRouter {
           ),
           AppRouteNames.businessSettings || AppRouteNames.rolesAndStaff =>
             accessPolicy.allows(AppCapability.businessSettings),
+          AppRouteNames.shopListing => accessPolicy.allows(
+            AppCapability.branchesView,
+          ),
+          AppRouteNames.onlineRequests => accessPolicy.allows(
+            AppCapability.ordersView,
+          ),
           _ => true,
         };
         if (!permitted) return dashboardLocationForRole(role);
@@ -569,6 +644,104 @@ abstract final class AppRouter {
           final staffMember = state.extra as StaffMember;
           return EditStaffScreen(staff: staffMember);
         },
+      ),
+
+      // ── Shop side of the marketplace ─────────────────────────────────
+      GoRoute(
+        name: AppRouteNames.shopListing,
+        path: AppRoutes.shopListing,
+        builder: (BuildContext context, GoRouterState state) =>
+            ShopListingScreen(branch: ShopBranchArgs.from(state.extra)),
+      ),
+      GoRoute(
+        name: AppRouteNames.onlineRequests,
+        path: AppRoutes.onlineRequests,
+        builder: (BuildContext context, GoRouterState state) =>
+            OnlineRequestsScreen(branch: ShopBranchArgs.from(state.extra)),
+      ),
+
+      // ── Customer (marketplace) ───────────────────────────────────────
+      GoRoute(
+        name: AppRouteNames.welcome,
+        path: AppRoutes.welcome,
+        pageBuilder: (BuildContext context, GoRouterState state) =>
+            _fadePage<void>(state: state, child: const WelcomeScreen()),
+      ),
+      GoRoute(
+        name: AppRouteNames.consumerLogin,
+        path: AppRoutes.consumerLogin,
+        builder: (BuildContext context, GoRouterState state) => const ConsumerLoginScreen(),
+      ),
+      GoRoute(
+        name: AppRouteNames.consumerSignup,
+        path: AppRoutes.consumerSignup,
+        builder: (BuildContext context, GoRouterState state) => const ConsumerSignupScreen(),
+      ),
+      GoRoute(
+        name: AppRouteNames.consumerVerify,
+        path: AppRoutes.consumerVerify,
+        redirect: (BuildContext context, GoRouterState state) =>
+            state.extra is ConsumerVerifyArgs ? null : AppRoutes.consumerLogin,
+        builder: (BuildContext context, GoRouterState state) =>
+            ConsumerVerifyEmailScreen(args: state.extra! as ConsumerVerifyArgs),
+      ),
+      GoRoute(
+        name: AppRouteNames.consumerForgotPassword,
+        path: AppRoutes.consumerForgotPassword,
+        builder: (BuildContext context, GoRouterState state) => const ConsumerForgotPasswordScreen(),
+      ),
+      GoRoute(
+        name: AppRouteNames.consumerHome,
+        path: AppRoutes.consumerHome,
+        pageBuilder: (BuildContext context, GoRouterState state) => _fadePage<void>(
+          state: state,
+          child: ConsumerHomeScreen(
+            key: ValueKey<Object?>(state.extra),
+            initialTab: state.extra is int ? state.extra! as int : 0,
+          ),
+        ),
+      ),
+      GoRoute(
+        name: AppRouteNames.consumerAddresses,
+        path: AppRoutes.consumerAddresses,
+        builder: (BuildContext context, GoRouterState state) => const AddressListScreen(),
+      ),
+      GoRoute(
+        name: AppRouteNames.consumerAddressNew,
+        path: AppRoutes.consumerAddressNew,
+        // extra == true: the compulsory first address.
+        builder: (BuildContext context, GoRouterState state) =>
+            AddressFormScreen(isFirstAddress: state.extra == true),
+      ),
+      GoRoute(
+        name: AppRouteNames.consumerAddressEdit,
+        path: AppRoutes.consumerAddressEdit,
+        redirect: (BuildContext context, GoRouterState state) =>
+            state.extra is ConsumerAddress ? null : AppRoutes.consumerAddresses,
+        builder: (BuildContext context, GoRouterState state) =>
+            AddressFormScreen(existing: state.extra! as ConsumerAddress),
+      ),
+      GoRoute(
+        name: AppRouteNames.consumerShop,
+        path: AppRoutes.consumerShop,
+        builder: (BuildContext context, GoRouterState state) => ShopDetailScreen(
+          shopId: state.pathParameters['shopId'] ?? '',
+          origin: state.extra is ShopSearchFilters ? state.extra! as ShopSearchFilters : null,
+        ),
+      ),
+      GoRoute(
+        name: AppRouteNames.consumerBook,
+        path: AppRoutes.consumerBook,
+        redirect: (BuildContext context, GoRouterState state) =>
+            state.extra is ShopDetail ? null : AppRoutes.consumerHome,
+        builder: (BuildContext context, GoRouterState state) =>
+            BookingScreen(shop: state.extra! as ShopDetail),
+      ),
+      GoRoute(
+        name: AppRouteNames.consumerRequest,
+        path: AppRoutes.consumerRequest,
+        builder: (BuildContext context, GoRouterState state) =>
+            RequestDetailScreen(requestId: state.pathParameters['requestId'] ?? ''),
       ),
 
       // ── Company Admin ────────────────────────────────────────────────

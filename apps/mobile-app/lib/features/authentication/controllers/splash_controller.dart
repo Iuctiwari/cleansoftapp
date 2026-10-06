@@ -1,8 +1,9 @@
 import 'package:nexoraa_mobile/design_system/design_system.dart';
 import 'package:nexoraa_mobile/features/authentication/controllers/authentication_controller.dart';
+import 'package:nexoraa_mobile/features/consumer/consumer_dependencies.dart';
 import 'package:nexoraa_mobile/features/subscription/services/subscription_api_service.dart';
 
-enum StartupDestination { dashboard, login, choosePlan }
+enum StartupDestination { dashboard, login, choosePlan, welcome, consumerHome }
 
 final class SplashController {
   SplashController({
@@ -17,7 +18,11 @@ final class SplashController {
   Future<StartupDestination> resolveDestination() async {
     await Future<void>.delayed(AppDurations.startupSplash);
 
-    if (!_authenticationController.isAuthenticated) return StartupDestination.login;
+    if (!_authenticationController.isAuthenticated) {
+      return ConsumerDependencies.controller.isAuthenticated
+          ? StartupDestination.consumerHome
+          : StartupDestination.welcome;
+    }
 
     // Only an Owner ever chooses a plan — staff/cashier/branch-manager
     // sessions proceed to their normal destination regardless of whether

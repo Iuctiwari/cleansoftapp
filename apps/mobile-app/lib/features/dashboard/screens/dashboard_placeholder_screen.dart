@@ -20,6 +20,8 @@ import 'package:nexoraa_mobile/features/expenses/screens/expense_list_screen.dar
 import 'package:nexoraa_mobile/features/expenses/services/expense_api_service.dart';
 import 'package:nexoraa_mobile/features/notifications/controllers/notification_controller.dart';
 import 'package:nexoraa_mobile/features/notifications/services/notification_api_service.dart';
+import 'package:nexoraa_mobile/features/online_requests/widgets/online_requests_card.dart';
+import 'package:nexoraa_mobile/features/online_requests/widgets/shop_ui.dart';
 import 'package:nexoraa_mobile/features/orders/controllers/new_order_controller.dart';
 import 'package:nexoraa_mobile/features/orders/controllers/order_controller.dart';
 import 'package:nexoraa_mobile/features/orders/models/order.dart';
@@ -693,6 +695,16 @@ class _DashboardPlaceholderScreenState
                       unawaited(_openSearchCustomer(customer)),
                   onPaymentTap: (PaymentRecord payment) =>
                       unawaited(_openSearchPayment(payment)),
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: OnlineRequestsCard(
+                  key: ValueKey<String>('online-${data.branchId}'),
+                  branch: ShopBranchArgs(
+                    branchId: data.branchId,
+                    branchName: data.branchName,
+                    businessName: data.businessName,
+                  ),
                 ),
               ),
               SliverToBoxAdapter(

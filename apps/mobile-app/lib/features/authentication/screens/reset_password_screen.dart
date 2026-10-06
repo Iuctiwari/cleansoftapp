@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:nexoraa_mobile/app/router.dart';
+import 'package:nexoraa_mobile/core/localization/l10n.dart';
 import 'package:nexoraa_mobile/design_system/design_system.dart';
 import 'package:nexoraa_mobile/features/authentication/authentication_dependencies.dart';
 import 'package:nexoraa_mobile/features/authentication/password_policy.dart';
@@ -53,20 +54,20 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     final String confirmPassword = _confirmPasswordController.text;
 
     if (identifier.isEmpty) {
-      _showMessage('Enter your email address to continue.');
+      _showMessage(context.l10n.enterEmailToContinue);
       return;
     }
     if (otp.length != 6 || !RegExp(r'^\d{6}$').hasMatch(otp)) {
-      _showMessage('Enter the 6-digit verification code sent to your email.');
+      _showMessage(context.l10n.enterSixDigitCode);
       return;
     }
-    final String? passwordProblem = PasswordPolicy.validate(password);
+    final String? passwordProblem = PasswordPolicy.validate(password, context.l10n);
     if (passwordProblem != null) {
       _showMessage(passwordProblem);
       return;
     }
     if (password != confirmPassword) {
-      _showMessage('Passwords do not match.');
+      _showMessage(context.l10n.passwordsDoNotMatch);
       return;
     }
 
@@ -89,8 +90,8 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(
-          const SnackBar(
-            content: Text('Password reset successfully. Please sign in.'),
+          SnackBar(
+            content: Text(context.l10n.passwordResetSuccess),
           ),
         );
       context.goNamed(AppRouteNames.login);
@@ -98,7 +99,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     }
 
     final String error = AuthenticationDependencies.controller.errorMessage ??
-        'Failed to reset password. Please verify your code and try again.';
+        context.l10n.passwordResetFailed;
     setState(() => _errorMessage = error);
     _showMessage(error);
   }
@@ -118,9 +119,9 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         leading: IconButton(
           onPressed: _backToLogin,
           icon: const Icon(AppIcons.arrowBack),
-          tooltip: 'Back to login',
+          tooltip: context.l10n.backToLoginTooltip,
         ),
-        title: const Text('Reset Password'),
+        title: Text(context.l10n.resetPasswordTitle),
       ),
       body: SafeArea(
         top: false,
@@ -147,10 +148,10 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                         ),
                       ),
                       const SizedBox(height: AppSpacing.section),
-                      const Text('Set New Password', style: AppTextStyles.headingLarge),
+                      Text(context.l10n.setNewPassword, style: AppTextStyles.headingLarge),
                       const SizedBox(height: AppSpacing.lg),
-                      const Text(
-                        'Enter the 6-digit verification code sent to your email and your new password.',
+                      Text(
+                        context.l10n.resetPasswordBody,
                         style: AppTextStyles.bodyMedium,
                       ),
                       const SizedBox(height: AppSpacing.section),
@@ -174,7 +175,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                         hintText: 'you@business.com',
                         icon: AppIcons.email,
                         keyboardType: TextInputType.emailAddress,
-                        label: 'Email Address',
+                        label: context.l10n.emailAddress,
                         textInputAction: TextInputAction.next,
                       ),
                       const SizedBox(height: AppSpacing.xl),
@@ -183,31 +184,33 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                         hintText: '123456',
                         icon: AppIcons.lock,
                         keyboardType: TextInputType.number,
-                        label: '6-Digit Verification Code',
+                        label: context.l10n.verificationCodeLabel,
                         textInputAction: TextInputAction.next,
                       ),
                       const SizedBox(height: AppSpacing.xl),
                       AppPasswordField(
                         controller: _passwordController,
-                        label: 'New Password',
+                        label: context.l10n.newPassword,
                       ),
                       const SizedBox(height: AppSpacing.sm),
-                      const Text(PasswordPolicy.hint, style: AppTextStyles.bodySmall),
+                      Text(context.l10n.passwordPolicyHint, style: AppTextStyles.bodySmall),
                       const SizedBox(height: AppSpacing.xl),
                       AppPasswordField(
                         controller: _confirmPasswordController,
-                        label: 'Confirm New Password',
+                        label: context.l10n.confirmNewPassword,
                       ),
                       const SizedBox(height: AppSpacing.xxlPlus),
                       PrimaryButton(
-                        label: _isLoading ? 'Resetting password...' : 'Reset Password',
+                        label: _isLoading
+                            ? context.l10n.resettingPassword
+                            : context.l10n.resetPasswordTitle,
                         onPressed: _isLoading ? null : _handleResetPassword,
                       ),
                       const SizedBox(height: AppSpacing.lg),
                       Center(
                         child: TextButton(
                           onPressed: _backToLogin,
-                          child: const Text('Back to Login'),
+                          child: Text(context.l10n.backToLogin),
                         ),
                       ),
                     ],

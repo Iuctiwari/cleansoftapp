@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:nexoraa_mobile/core/localization/l10n.dart';
 import 'package:nexoraa_mobile/design_system/design_system.dart';
 import 'package:nexoraa_mobile/features/authentication/authentication_dependencies.dart';
 import 'package:nexoraa_mobile/features/staff/models/staff_member.dart';
@@ -65,8 +66,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     if (!_formKey.currentState!.validate()) {
       await AppAlertDialog.show(
         context,
-        title: 'Required information',
-        message: 'Please fix the highlighted fields before saving.',
+        title: context.l10n.commonRequiredInformation,
+        message: context.l10n.fixHighlightedBeforeSaving,
       );
       return;
     }
@@ -131,7 +132,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Edit Profile'),
+        title: Text(context.l10n.editProfile),
         leading: IconButton(
           icon: const Icon(AppIcons.arrowBack),
           onPressed: () => context.pop(),
@@ -159,21 +160,21 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             ],
             TextFormField(
               controller: _nameController,
-              decoration: const InputDecoration(
-                labelText: 'Name',
-                hintText: 'Enter your name',
+              decoration: InputDecoration(
+                labelText: context.l10n.name,
+                hintText: context.l10n.enterYourName,
               ),
               validator: (value) =>
-                  value == null || value.trim().isEmpty ? 'Name is required' : null,
+                  value == null || value.trim().isEmpty ? context.l10n.nameRequired : null,
               enabled: !_isSaving,
             ),
             const SizedBox(height: AppSpacing.xl),
             TextFormField(
               controller: _phoneController,
               keyboardType: TextInputType.phone,
-              decoration: const InputDecoration(
-                labelText: 'Phone Number',
-                hintText: 'Enter your phone number',
+              decoration: InputDecoration(
+                labelText: context.l10n.phoneNumber,
+                hintText: context.l10n.enterYourPhone,
               ),
               enabled: !_isSaving,
             ),
@@ -181,20 +182,20 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               const SizedBox(height: AppSpacing.xl),
               TextFormField(
                 controller: _businessNameController,
-                decoration: const InputDecoration(
-                  labelText: 'Business Name',
-                  hintText: 'Enter your business name',
+                decoration: InputDecoration(
+                  labelText: context.l10n.businessName,
+                  hintText: context.l10n.enterBusinessName,
                 ),
                 validator: (value) =>
-                    value == null || value.trim().isEmpty ? 'Business Name is required' : null,
+                    value == null || value.trim().isEmpty ? context.l10n.businessNameRequired : null,
                 enabled: !_isSaving,
               ),
               const SizedBox(height: AppSpacing.xl),
               TextFormField(
                 controller: _locationController,
-                decoration: const InputDecoration(
-                  labelText: 'Location',
-                  hintText: 'Enter your location (City/Branch)',
+                decoration: InputDecoration(
+                  labelText: context.l10n.commonLocation,
+                  hintText: context.l10n.enterLocationCityBranch,
                 ),
                 enabled: !_isSaving,
               ),
@@ -202,9 +203,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               const SizedBox(height: AppSpacing.xl),
               TextFormField(
                 controller: _departmentController,
-                decoration: const InputDecoration(
-                  labelText: 'Location',
-                  hintText: 'Enter your location',
+                decoration: InputDecoration(
+                  labelText: context.l10n.commonLocation,
+                  hintText: context.l10n.enterLocation,
                 ),
                 enabled: !_isSaving,
               ),
@@ -226,7 +227,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       child: CircularProgressIndicator(
                           strokeWidth: 2, color: AppColors.surface),
                     )
-                  : const Text('Save Profile'),
+                  : Text(context.l10n.saveProfile),
             ),
           ],
         ),

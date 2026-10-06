@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:nexoraa_mobile/design_system/design_system.dart' show AppAlertDialog;
+import 'package:nexoraa_mobile/core/localization/l10n.dart';
 import 'package:nexoraa_mobile/features/authentication/authentication_dependencies.dart';
 
 import '../../../app/theme.dart';
@@ -66,15 +67,19 @@ class _AccountDetailsPageState extends State<AccountDetailsPage> {
   }
 
   Future<void> _createAccount() async {
+    final AppLocalizations l10n = context.l10n;
     if (!_formKey.currentState!.validate()) {
       await _showError(
-        'Please fill in the highlighted fields — email, phone number and password are required.',
-        title: 'Required information',
+        l10n.registrationFillHighlighted,
+        title: l10n.commonRequiredInformation,
       );
       return;
     }
     if (!_agreedToTerms) {
-      await _showError('You must agree to the Terms of Service.', title: 'Required information');
+      await _showError(
+        l10n.mustAgreeTerms,
+        title: l10n.commonRequiredInformation,
+      );
       return;
     }
 
@@ -111,14 +116,13 @@ class _AccountDetailsPageState extends State<AccountDetailsPage> {
       final String message = e.userMessage;
       await _showError(
         message.contains('already registered')
-            ? '$message. Log in with that account instead (use "Forgot password?" if needed), '
-                  'or use a different one.'
+            ? l10n.alreadyRegisteredAdvice(message)
             : message,
       );
     } on TenantApiNetworkException catch (e) {
-      await _showError(e.message, title: 'Connection problem');
+      await _showError(e.message, title: l10n.commonConnectionProblem);
     } catch (_) {
-      await _showError('Unable to complete registration. Please try again.');
+      await _showError(l10n.registrationFailed);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -128,7 +132,10 @@ class _AccountDetailsPageState extends State<AccountDetailsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: kSurface,
-      appBar: _StepAppBar(title: 'Account Details', step: 'Step 2/2'),
+      appBar: _StepAppBar(
+        title: context.l10n.accountDetailsTitle,
+        step: context.l10n.stepFraction(2, 2),
+      ),
       body: Column(
         children: [
           // ── Progress bar (full) ───────────────────────────────────────
@@ -143,34 +150,34 @@ class _AccountDetailsPageState extends State<AccountDetailsPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Heading
-                    const Text(
-                      'Create your account',
-                      style: TextStyle(
+                    Text(
+                      context.l10n.createAccountHeading,
+                      style: const TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.w800,
                         color: kTextPrimary,
                       ),
                     ),
                     const SizedBox(height: 6),
-                    const Text(
-                      "You'll use these to sign in.",
+                    Text(
+                      context.l10n.createAccountSubtitle,
                       style: TextStyle(fontSize: 14, color: kTextSecondary),
                     ),
                     const SizedBox(height: 28),
 
                     // Email
-                    const _FieldLabel('Email Address'),
+                    _FieldLabel(context.l10n.emailAddress),
                     const SizedBox(height: 8),
                     TextFormField(
                       controller: _emailController,
                       keyboardType: TextInputType.emailAddress,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         hintText: 'you@business.com',
-                        prefixIcon: Icon(Icons.mail_outline_rounded),
+                        prefixIcon: const Icon(Icons.mail_outline_rounded),
                       ),
                       validator: (v) {
                         if (v == null || v.trim().isEmpty) {
-                          return 'Email is required';
+                          return context.l10n.emailRequired;
                         }
                         return null;
                       },
@@ -178,21 +185,21 @@ class _AccountDetailsPageState extends State<AccountDetailsPage> {
                     const SizedBox(height: 20),
 
                     // Phone Number
-                    const _FieldLabel('Phone Number'),
+                    _FieldLabel(context.l10n.phoneNumber),
                     const SizedBox(height: 8),
                     TextFormField(
                       controller: _phoneController,
                       keyboardType: TextInputType.phone,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         hintText: '+92 300 1234567',
-                        prefixIcon: Icon(Icons.phone_outlined),
+                        prefixIcon: const Icon(Icons.phone_outlined),
                       ),
                       validator: (v) {
                         if (v == null || v.trim().isEmpty) {
-                          return 'Phone number is required';
+                          return context.l10n.phoneRequired;
                         }
                         if (!RegExp(r'^\+?[0-9]{7,15}$').hasMatch(v.trim())) {
-                          return 'Enter a valid phone number';
+                          return context.l10n.invalidPhone;
                         }
                         return null;
                       },
@@ -200,13 +207,13 @@ class _AccountDetailsPageState extends State<AccountDetailsPage> {
                     const SizedBox(height: 20),
 
                     // Password
-                    const _FieldLabel('Password'),
+                    _FieldLabel(context.l10n.password),
                     const SizedBox(height: 8),
                     TextFormField(
                       controller: _passwordController,
                       obscureText: _obscurePassword,
                       decoration: InputDecoration(
-                        hintText: 'Min. 8 characters',
+                        hintText: context.l10n.passwordMinHint,
                         prefixIcon: const Icon(Icons.lock_outline_rounded),
                         suffixIcon: IconButton(
                           icon: Icon(
@@ -222,16 +229,16 @@ class _AccountDetailsPageState extends State<AccountDetailsPage> {
                       ),
                       validator: (v) {
                         if (v == null || v.isEmpty)
-                          return 'Password is required';
-                        if (v.length < 8) return 'Minimum 8 characters';
+                          return context.l10n.passwordRequired;
+                        if (v.length < 8) return context.l10n.passwordMin8;
                         if (!RegExp(r'[A-Z]').hasMatch(v)) {
-                          return 'Must contain an uppercase letter';
+                          return context.l10n.passwordNeedsUppercase;
                         }
                         if (!RegExp(r'[0-9]').hasMatch(v)) {
-                          return 'Must contain a number';
+                          return context.l10n.passwordNeedsNumber;
                         }
                         if (!RegExp(r'[^A-Za-z0-9]').hasMatch(v)) {
-                          return 'Must contain a special character';
+                          return context.l10n.passwordNeedsSpecial;
                         }
                         return null;
                       },
@@ -259,22 +266,23 @@ class _AccountDetailsPageState extends State<AccountDetailsPage> {
                                   fontSize: 13.5,
                                 ),
                                 children: [
-                                  const TextSpan(text: 'I agree to the '),
-                                  const TextSpan(
-                                    text: 'Terms of Service',
-                                    style: TextStyle(
+                                  TextSpan(text: context.l10n.agreePrefix),
+                                  TextSpan(
+                                    text: context.l10n.termsOfService,
+                                    style: const TextStyle(
                                       color: kPrimary,
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
-                                  const TextSpan(text: ' and '),
-                                  const TextSpan(
-                                    text: 'Privacy Policy',
-                                    style: TextStyle(
+                                  TextSpan(text: context.l10n.agreeAnd),
+                                  TextSpan(
+                                    text: context.l10n.privacyPolicy,
+                                    style: const TextStyle(
                                       color: kPrimary,
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
+                                  TextSpan(text: context.l10n.agreeSuffix),
                                 ],
                               ),
                             ),
@@ -326,7 +334,7 @@ class _AccountDetailsPageState extends State<AccountDetailsPage> {
                                   strokeWidth: 2.5,
                                 ),
                               )
-                            : const Text('Create Account'),
+                            : Text(context.l10n.createAccount),
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -335,9 +343,9 @@ class _AccountDetailsPageState extends State<AccountDetailsPage> {
                     Center(
                       child: TextButton(
                         onPressed: () => context.pop(),
-                        child: const Text(
-                          'Back',
-                          style: TextStyle(
+                        child: Text(
+                          context.l10n.commonBack,
+                          style: const TextStyle(
                             color: kTextPrimary,
                             fontWeight: FontWeight.w600,
                           ),

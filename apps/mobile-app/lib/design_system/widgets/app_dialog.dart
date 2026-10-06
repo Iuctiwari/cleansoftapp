@@ -13,7 +13,7 @@ abstract final class AppAlertDialog {
     required String title,
     required String message,
     bool isError = true,
-    String buttonLabel = 'OK',
+    String? buttonLabel,
   }) {
     return showDialog<void>(
       context: context,
@@ -39,7 +39,10 @@ abstract final class AppAlertDialog {
           actions: <Widget>[
             ElevatedButton(
               onPressed: () => Navigator.of(dialogContext).pop(),
-              child: Text(buttonLabel),
+              child: Text(
+                buttonLabel ??
+                    MaterialLocalizations.of(dialogContext).okButtonLabel,
+              ),
             ),
           ],
         );
@@ -68,7 +71,7 @@ abstract final class AppConfirmDialog {
     required String title,
     required String message,
     required String confirmLabel,
-    String cancelLabel = 'Cancel',
+    String? cancelLabel,
     bool destructive = true,
   }) async {
     final bool? confirmed = await showDialog<bool>(
@@ -89,7 +92,10 @@ abstract final class AppConfirmDialog {
           actions: <Widget>[
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: Text(cancelLabel),
+              child: Text(
+                cancelLabel ??
+                    MaterialLocalizations.of(dialogContext).cancelButtonLabel,
+              ),
             ),
             ElevatedButton(
               style: destructive

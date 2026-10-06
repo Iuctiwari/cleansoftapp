@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:nexoraa_mobile/app/router.dart';
+import 'package:nexoraa_mobile/core/localization/l10n.dart';
 import 'package:nexoraa_mobile/features/authentication/authentication_dependencies.dart';
 
 import '../../../app/theme.dart';
@@ -34,7 +35,7 @@ class AccountCreatedPage extends StatelessWidget {
             SnackBar(
               content: Text(
                 AuthenticationDependencies.controller.errorMessage ??
-                    'Unable to sign in. Please try again.',
+                    context.l10n.commonUnableToSignIn,
               ),
             ),
           );
@@ -78,20 +79,20 @@ class AccountCreatedPage extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 32),
-                      const Text(
-                        'Account Created!',
+                      Text(
+                        context.l10n.accountCreatedTitle,
                         textAlign: TextAlign.center,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 26,
                           fontWeight: FontWeight.w800,
                           color: kTextPrimary,
                         ),
                       ),
                       const SizedBox(height: 12),
-                      const Text(
-                        'Your business account is ready.\nLet\'s set up your workspace.',
+                      Text(
+                        context.l10n.accountCreatedBody,
                         textAlign: TextAlign.center,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 15,
                           color: kTextSecondary,
                           height: 1.5,
@@ -109,14 +110,14 @@ class AccountCreatedPage extends StatelessWidget {
                                 ),
                               ),
                         ),
-                        child: const Text('Start Setup'),
+                        child: Text(context.l10n.startSetup),
                       ),
                       const SizedBox(height: 16),
                       TextButton(
                         onPressed: () => _goToDashboard(context),
-                        child: const Text(
-                          'Skip for now',
-                          style: TextStyle(
+                        child: Text(
+                          context.l10n.commonSkipForNow,
+                          style: const TextStyle(
                             color: kTextPrimary,
                             fontSize: 15,
                             fontWeight: FontWeight.w600,

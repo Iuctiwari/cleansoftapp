@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:nexoraa_mobile/app/router.dart';
+import 'package:nexoraa_mobile/core/localization/l10n.dart';
 import 'package:nexoraa_mobile/design_system/design_system.dart';
 import 'package:nexoraa_mobile/features/authentication/authentication_dependencies.dart';
 import 'package:nexoraa_mobile/features/authentication/authentication_models.dart';
@@ -168,20 +169,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  static const List<_RoleOption> _roles = <_RoleOption>[
+  static List<_RoleOption> _roles(AppLocalizations l10n) => <_RoleOption>[
     _RoleOption(
-      title: 'Owner',
-      subtitle: 'Full access to all features',
+      title: l10n.owner,
+      subtitle: l10n.roleOwnerDescription,
       isActive: true,
     ),
     _RoleOption(
-      title: 'Branch Manager',
-      subtitle: 'Branch operations & staff',
+      title: l10n.roleBranchManager,
+      subtitle: l10n.roleBranchManagerDescription,
       isActive: false,
     ),
     _RoleOption(
-      title: 'Staff Member',
-      subtitle: 'Assigned orders only',
+      title: l10n.roleStaffMember,
+      subtitle: l10n.roleStaffMemberDescription,
       isActive: false,
     ),
   ];
@@ -196,7 +197,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (_isLoading) {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
-        ..showSnackBar(const SnackBar(content: Text('Loading profile...')));
+        ..showSnackBar(SnackBar(content: Text(context.l10n.loadingProfile)));
       return;
     }
 
@@ -252,6 +253,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       'tenant_owner',
       'owner',
     }.contains(session?.roleCode);
+    final List<_RoleOption> roles = _roles(context.l10n);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -265,12 +267,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
               icon: const Icon(AppIcons.arrowBack),
               onPressed: () => context.pop(),
             ),
-            title: const Text('My Profile'),
+            title: Text(context.l10n.myProfile),
             actions: <Widget>[
               IconButton(
                 icon: const Icon(AppIcons.edit),
                 onPressed: _onEditPressed,
-                tooltip: 'Edit profile',
+                tooltip: context.l10n.editProfileTooltip,
               ),
             ],
           ),
@@ -298,31 +300,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                       // ── Personal Information ────────────────────────────
                       _ProfileSection(
-                        title: 'PERSONAL INFORMATION',
+                        title: context.l10n.personalInformation,
                         children: <Widget>[
                           if (data.businessName != '—') ...[
                             _InfoTile(
                               icon: AppIcons.branch,
-                              label: 'Business',
+                              label: context.l10n.commonBusiness,
                               value: data.businessName,
                             ),
                             const _SectionDivider(),
                           ],
                           _InfoTile(
                             icon: AppIcons.email,
-                            label: 'Email',
+                            label: context.l10n.commonEmail,
                             value: data.email,
                           ),
                           const _SectionDivider(),
                           _InfoTile(
                             icon: AppIcons.phone,
-                            label: 'Phone',
+                            label: context.l10n.commonPhone,
                             value: data.phone,
                           ),
                           const _SectionDivider(),
                           _InfoTile(
                             icon: AppIcons.location,
-                            label: 'Location',
+                            label: context.l10n.commonLocation,
                             value: data.location,
                           ),
                         ],
@@ -331,14 +333,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                       // ── Security ────────────────────────────────────────
                       _ProfileSection(
-                        title: 'SECURITY',
+                        title: context.l10n.securitySection,
                         children: <Widget>[
                           _SecurityTile(
                             icon: AppIcons.key,
-                            title: 'Change Password',
+                            title: context.l10n.changePassword,
                             subtitle:
-                                'Last changed ${data.passwordLastChanged}',
+                                context.l10n.lastChanged(data.passwordLastChanged),
                             onTap: _onChangePassword,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: AppSpacing.xxl),
+
+                      // ── Preferences ─────────────────────────────────────
+                      _ProfileSection(
+                        title: context.l10n.preferencesSection,
+                        children: <Widget>[
+                          _SecurityTile(
+                            icon: Icons.language_rounded,
+                            title: context.l10n.language,
+                            subtitle: LocaleDependencies
+                                .controller.language.nativeName,
+                            onTap: () => showLanguagePicker(context),
                           ),
                         ],
                       ),
@@ -351,19 +368,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       // ── Role Switch ─────────────────────────────────────
                       if (isOwner)
                         _ProfileSection(
-                          title: 'ROLE SWITCH',
-                          headerSubtitle: 'Demo mode — switch dashboard view',
+                          title: context.l10n.roleSwitch,
+                          headerSubtitle: context.l10n.roleSwitchSubtitle,
                           children: List<Widget>.generate(
-                            _roles.length,
+                            roles.length,
                             (int i) => Column(
                               children: <Widget>[
                                 _RoleTile(
-                                  role: _roles[i],
+                                  role: roles[i],
                                   isSelected: _activeRoleIndex == i,
                                   onTap: () =>
                                       setState(() => _activeRoleIndex = i),
                                 ),
-                                if (i < _roles.length - 1)
+                                if (i < roles.length - 1)
                                   const _SectionDivider(),
                               ],
                             ),
@@ -634,15 +651,18 @@ class _StatsRow extends StatelessWidget {
     return Row(
       children: <Widget>[
         Expanded(
-          child: _StatChip(value: data.accountCreated, label: 'Account Created'),
+          child: _StatChip(
+            value: data.accountCreated,
+            label: context.l10n.accountCreatedLabel,
+          ),
         ),
         const SizedBox(width: AppSpacing.lg),
         Expanded(
-          child: _StatChip(value: data.plan, label: 'Plan'),
+          child: _StatChip(value: data.plan, label: context.l10n.plan),
         ),
         const SizedBox(width: AppSpacing.lg),
         Expanded(
-          child: _StatChip(value: data.branch, label: 'Branch'),
+          child: _StatChip(value: data.branch, label: context.l10n.branch),
         ),
       ],
     );
@@ -750,7 +770,7 @@ class _RoleTile extends StatelessWidget {
               ),
               if (isSelected)
                 Text(
-                  'Active',
+                  context.l10n.commonActive,
                   style: AppTextStyles.captionBold.copyWith(
                     color: AppColors.primary,
                   ),
@@ -790,7 +810,7 @@ class _SignOutButton extends StatelessWidget {
               ),
               const SizedBox(width: AppSpacing.md),
               Text(
-                'Sign Out',
+                context.l10n.signOut,
                 style: AppTextStyles.buttonLarge.copyWith(
                   color: AppColors.error,
                 ),

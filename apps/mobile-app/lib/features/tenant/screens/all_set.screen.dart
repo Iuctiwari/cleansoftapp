@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:nexoraa_mobile/core/localization/l10n.dart';
 import 'package:nexoraa_mobile/features/authentication/authentication_dependencies.dart';
 
 import '../../../app/router.dart';
@@ -26,7 +27,7 @@ class AllSetScreen extends StatelessWidget {
             SnackBar(
               content: Text(
                 AuthenticationDependencies.controller.errorMessage ??
-                    'Unable to sign in. Please try again.',
+                    context.l10n.commonUnableToSignIn,
               ),
             ),
           );
@@ -43,13 +44,13 @@ class AllSetScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return TenantOnboardingScaffold(
       step: 5,
-      title: 'All Set!',
+      title: context.l10n.allSetTitle,
       icon: Icons.check_circle_outline_rounded,
       actions: SizedBox(
         width: double.infinity,
         child: ElevatedButton(
           onPressed: () => _goToDashboard(context),
-          child: const Text('Go to Dashboard'),
+          child: Text(context.l10n.goToDashboard),
         ),
       ),
       child: Column(
@@ -69,19 +70,19 @@ class AllSetScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 24),
-          const Text(
-            "You're all set!",
-            style: TextStyle(
+          Text(
+            context.l10n.allSetHeading,
+            style: const TextStyle(
               color: kTextPrimary,
               fontSize: 26,
               fontWeight: FontWeight.w900,
             ),
           ),
           const SizedBox(height: 14),
-          const Text(
-            'Your workspace is configured and ready. Start adding orders and managing your business.',
+          Text(
+            context.l10n.allSetBody,
             textAlign: TextAlign.center,
-            style: TextStyle(color: kTextSecondary, fontSize: 16, height: 1.5),
+            style: const TextStyle(color: kTextSecondary, fontSize: 16, height: 1.5),
           ),
           const SizedBox(height: 24),
           _StatusRow(
@@ -89,8 +90,8 @@ class AllSetScreen extends StatelessWidget {
                 ? Icons.check_circle_outline_rounded
                 : Icons.close_rounded,
             text: data.branchCreated
-                ? '${data.branchName.trim()} created'
-                : 'Branch not created',
+                ? context.l10n.branchCreated(data.branchName.trim())
+                : context.l10n.branchNotCreated,
             completed: data.branchCreated,
           ),
           const SizedBox(height: 10),
@@ -99,8 +100,8 @@ class AllSetScreen extends StatelessWidget {
                 ? Icons.check_circle_outline_rounded
                 : Icons.close_rounded,
             text: data.servicesConfigured
-                ? '${data.selectedServices.length} services configured'
-                : 'Services not configured',
+                ? context.l10n.servicesConfigured(data.selectedServices.length)
+                : context.l10n.servicesNotConfigured,
             completed: data.servicesConfigured,
           ),
           const SizedBox(height: 10),
@@ -109,8 +110,8 @@ class AllSetScreen extends StatelessWidget {
                 ? Icons.close_rounded
                 : Icons.check_circle_outline_rounded,
             text: !data.staffInvitationSubmitted
-                ? 'Staff invitation skipped'
-                : '${data.staff.length} staff invitation${data.staff.length == 1 ? '' : 's'} sent',
+                ? context.l10n.staffInvitationSkipped
+                : context.l10n.staffInvitationsSent(data.staff.length),
             completed: data.staffInvitationSubmitted,
           ),
         ],
