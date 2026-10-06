@@ -11,13 +11,18 @@ export function normalizeIndianMobile(value: string): string | undefined {
 }
 
 /**
- * A shop's booking number may also be a landline with STD code
- * ("022 2345 6789" → "02223456789"): 10–11 digits after removing +91.
+ * A shop's booking number: a 10-digit mobile, or anything dialled with a
+ * leading 0 (a landline with STD code, or a mobile written "0 98765…").
+ * A leading 0 is kept as typed — "079 2345 6789" must not be mistaken for the
+ * mobile 79234 56789, and 0 + a mobile number still dials that mobile.
  */
 export function normalizeShopPhone(value: string): string | undefined {
-  const mobile = normalizeIndianMobile(value);
-  if (mobile) return mobile;
   let digits = value.replace(/[\s()-]/g, '');
-  if (digits.startsWith('+91')) digits = `0${digits.slice(3)}`;
+  if (digits.startsWith('+91')) {
+    const rest = digits.slice(3);
+    return /^[6-9]\d{9}$/.test(rest) ? rest : /^[1-9]\d{8,9}$/.test(rest) ? `0${rest}` : undefined;
+  }
+  if (digits.length === 12 && digits.startsWith('91')) digits = digits.slice(2);
+  if (/^[6-9]\d{9}$/.test(digits)) return digits;
   return /^0[1-9]\d{8,9}$/.test(digits) ? digits : undefined;
 }

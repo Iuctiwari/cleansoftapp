@@ -66,5 +66,10 @@ describe('phone numbers', () => {
     expect(normalizeShopPhone('022 2345 6789')).toBe('02223456789');
     expect(normalizeShopPhone('+91 22 2345 6789')).toBe('02223456789');
     expect(normalizeShopPhone('12345')).toBeUndefined();
+    // A landline whose area code starts like a mobile stays a landline.
+    expect(normalizeShopPhone('079 2345 6789')).toBe('07923456789');
+    expect(normalizeShopPhone('080-2345-6789')).toBe('08023456789');
+    // A mobile typed with a leading 0 keeps it (still dials correctly).
+    expect(normalizeShopPhone('098765 43210')).toBe('09876543210');
   });
 });
