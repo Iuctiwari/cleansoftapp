@@ -62,7 +62,16 @@ final class AuthenticationController extends ChangeNotifier {
     return false;
   }
 
+  /// Runs while the session is still valid, just before signing out (stops
+  /// push notifications for this account on this phone).
+  Future<void> Function()? beforeSignOut;
+
   Future<void> signOut() async {
+    try {
+      await beforeSignOut?.call();
+    } on Object {
+      // Signing out must never be blocked by a notification problem.
+    }
     await _service.signOut();
     _errorMessage = null;
     _session = null;

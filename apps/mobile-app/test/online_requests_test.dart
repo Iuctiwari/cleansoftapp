@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -7,6 +8,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:nexoraa_mobile/app/router.dart';
 import 'package:nexoraa_mobile/core/localization/l10n.dart';
+import 'package:nexoraa_mobile/core/push/push_platform.dart';
 import 'package:nexoraa_mobile/features/authentication/authentication_dependencies.dart';
 import 'package:nexoraa_mobile/features/authentication/authentication_models.dart';
 import 'package:nexoraa_mobile/features/authentication/controllers/authentication_controller.dart';
@@ -305,5 +307,28 @@ void main() {
 
     expect(find.byKey(const Key('request.accept')), findsNothing);
     expect(find.byKey(const Key('request.decline')), findsNothing);
+  });
+
+  testWidgets('the waiting badge refreshes straight away when a booking push arrives', (WidgetTester tester) async {
+    final AuthTokenStorage storage = await _signInAs('Owner', const <String>[]);
+    final _Backend backend = _Backend();
+    final StreamController<PushPayload> pushes = StreamController<PushPayload>.broadcast();
+    await tester.pumpWidget(
+      _app(OnlineRequestsCard(branch: _branch, serviceFactory: (_) => backend.service(storage), pushes: pushes.stream)),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Later'));
+    await tester.pumpAndSettle();
+    int summaries() => backend.requests.where((http.Request r) => r.url.path.endsWith('/shop/requests/summary')).length;
+    final int before = summaries();
+
+    pushes.add(const PushPayload(title: 'x', body: 'y', data: <String, String>{'type': 'WorkerAssigned'}));
+    await tester.pumpAndSettle();
+    expect(summaries(), before, reason: 'an unrelated push does not reload the card');
+
+    pushes.add(const PushPayload(title: 'New online request', body: 'Riya', data: <String, String>{'type': 'online_request'}));
+    await tester.pumpAndSettle();
+    expect(summaries(), before + 1);
+    await pushes.close();
   });
 }

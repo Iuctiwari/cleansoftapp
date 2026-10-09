@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:nexoraa_mobile/app/router.dart';
 import 'package:nexoraa_mobile/core/localization/l10n.dart';
+import 'package:nexoraa_mobile/core/push/push_dependencies.dart';
+import 'package:nexoraa_mobile/core/push/push_platform.dart';
 import 'package:nexoraa_mobile/design_system/design_system.dart';
 import 'package:nexoraa_mobile/features/authentication/access_policy.dart';
 import 'package:nexoraa_mobile/features/authentication/authentication_dependencies.dart';
@@ -15,12 +17,15 @@ import 'package:nexoraa_mobile/features/online_requests/widgets/shop_ui.dart';
 /// waiting count, plus the "add your shop address" banner and one-time pop-up
 /// while the listing is incomplete (owners and branch managers only).
 class OnlineRequestsCard extends StatefulWidget {
-  const OnlineRequestsCard({required this.branch, this.serviceFactory, super.key});
+  const OnlineRequestsCard({required this.branch, this.serviceFactory, this.pushes, super.key});
 
   final ShopBranchArgs branch;
 
   /// For tests.
   final ShopMarketplaceApiService Function(String branchId)? serviceFactory;
+
+  /// Pushes that arrive while the app is open; defaults to the app's own.
+  final Stream<PushPayload>? pushes;
 
   /// The pop-up is shown at most once per app session.
   static bool addressPromptShown = false;
@@ -32,6 +37,7 @@ class OnlineRequestsCard extends StatefulWidget {
 class _OnlineRequestsCardState extends State<OnlineRequestsCard> {
   ShopRequestSummary? _summary;
   ShopListing? _listing;
+  StreamSubscription<PushPayload>? _pushSubscription;
 
   AccessPolicy get _policy => AccessPolicy.fromSession(AuthenticationDependencies.controller.session);
   bool get _canSeeRequests => _policy.allows(AppCapability.ordersView);
@@ -49,6 +55,18 @@ class _OnlineRequestsCardState extends State<OnlineRequestsCard> {
   void initState() {
     super.initState();
     unawaited(_refresh());
+    // A booking push while the app is open updates the "N waiting" badge at once.
+    _pushSubscription = (widget.pushes ?? PushDependencies.registrar.arrivals).listen((
+      PushPayload payload,
+    ) {
+      if (payload.data['type'] == 'online_request') unawaited(_refresh());
+    });
+  }
+
+  @override
+  void dispose() {
+    unawaited(_pushSubscription?.cancel());
+    super.dispose();
   }
 
   @override

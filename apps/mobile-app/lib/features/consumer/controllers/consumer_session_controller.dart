@@ -30,7 +30,15 @@ final class ConsumerSessionController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Runs while the session is still valid, just before signing out.
+  Future<void> Function()? beforeSignOut;
+
   Future<void> signOut() async {
+    try {
+      await beforeSignOut?.call();
+    } on Object {
+      // Signing out must never be blocked by a notification problem.
+    }
     await _api.signOut();
     _session = null;
     notifyListeners();
