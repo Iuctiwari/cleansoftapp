@@ -161,10 +161,24 @@ export class AuthService {
     const trackerKey = this.createTrackerKey(input.context, input.identifier, input.tenantSlug);
     await this.assertTrackerAllowsLogin(trackerKey);
 
-    const identity = await this.authRepository.findIdentity(
+    let identity = await this.authRepository.findIdentity(
       input.context,
       normalizeIdentifier(input.identifier),
     );
+
+    // A staff member may have been added with an email that is also a shop
+    // owner's sign-in. The owner is found first; if the password is not the
+    // owner's, the staff account with that login ID gets its own check.
+    if (
+      identity?.kind === 'tenant' &&
+      !identity.loginId &&
+      !verifyPassword(input.password, identity.passwordHash) &&
+      !verifyLegacyTenantPassword(input.password, identity.passwordHash) &&
+      this.authRepository.findStaffIdentity
+    ) {
+      const staff = await this.authRepository.findStaffIdentity(normalizeIdentifier(input.identifier));
+      if (staff && verifyPassword(input.password, staff.passwordHash)) identity = staff;
+    }
 
     const passwordMatchesScrypt =
       identity !== null && verifyPassword(input.password, identity.passwordHash);

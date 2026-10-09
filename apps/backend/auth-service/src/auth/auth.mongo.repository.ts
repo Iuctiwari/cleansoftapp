@@ -232,6 +232,21 @@ export class MongoAuthRepository implements AuthRepository, OnModuleInit {
    * Look up a staff member by loginId within a tenant.
    * Called after owner lookup fails so staff can log in with their loginId.
    */
+  /** True when [identifier] is a shop owner's sign-in (email or mobile). */
+  async isOwnerLogin(identifier: string): Promise<boolean> {
+    const normalized = normalizeIdentifier(identifier);
+    const owner = await this.tenantOwnerModel
+      .findOne({ $or: [{ email: normalized }, { mobileNumber: normalized }] }, { _id: 1 })
+      .lean()
+      .exec();
+    return owner !== null;
+  }
+
+  /** The staff account with this login ID, even when an owner shares the same email. */
+  async findStaffIdentity(loginId: string): Promise<AuthIdentityRecord | null> {
+    return this.findStaffIdentityByLoginId(loginId);
+  }
+
   private async findStaffIdentityByLoginId(loginId: string): Promise<AuthIdentityRecord | null> {
     const normalized = normalizeIdentifier(loginId);
     const filter: Record<string, unknown> = { loginId: normalized };
@@ -346,6 +361,19 @@ export class MongoAuthRepository implements AuthRepository, OnModuleInit {
           },
         )
         .exec();
+    } else if (identity.kind === 'tenant' && identity.loginId) {
+      // Staff: same 'tenant' kind as owners, told apart by their loginId.
+      await this.tenantStaffModel
+        .updateOne(
+          { userId: identity.userId },
+          {
+            $set: {
+              passwordHash: identity.passwordHash,
+              accessVersion: identity.accessVersion,
+            },
+          },
+        )
+        .exec();
     } else if (identity.kind === 'tenant') {
       await this.tenantOwnerModel
         .updateOne(
@@ -368,18 +396,6 @@ export class MongoAuthRepository implements AuthRepository, OnModuleInit {
               accessVersion: identity.accessVersion,
               passwordChangedAtUtc: identity.passwordChangedAtUtc,
               updatedAtUtc: new Date().toISOString(),
-            },
-          },
-        )
-        .exec();
-    } else if (identity.kind === 'tenant_staff') {
-      await this.tenantStaffModel
-        .updateOne(
-          { userId: identity.userId },
-          {
-            $set: {
-              passwordHash: identity.passwordHash,
-              accessVersion: identity.accessVersion,
             },
           },
         )

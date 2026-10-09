@@ -1,5 +1,6 @@
 import {
   Body,
+  ConflictException,
   Controller,
   Delete,
   Headers,
@@ -69,6 +70,12 @@ export class StaffProvisioningController {
     @Body() dto: ProvisionStaffDto,
   ): Promise<{ userId: string; inviteSent: boolean }> {
     this.assertInternalSecret(secret);
+
+    if (await this.authRepository.isOwnerLogin(dto.loginId)) {
+      throw new ConflictException(
+        'This email is already used to sign in as a shop owner. Use a different email or login ID for this staff member.',
+      );
+    }
 
     const permissions = STAFF_ROLES_PERMISSIONS[dto.roleCode] ?? [];
     await this.authRepository.createStaffIdentity({

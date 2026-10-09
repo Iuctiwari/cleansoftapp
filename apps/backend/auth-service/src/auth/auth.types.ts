@@ -297,6 +297,8 @@ export interface AuthenticatedBranchContext {
 export interface AuthRepository {
   findIdentity(context: AuthLoginContext, identifier: string): Promise<AuthIdentityRecord | null>;
   findIdentityByUserId(userId: string): Promise<AuthIdentityRecord | null>;
+  /** Staff account by login ID, even when a shop owner uses the same email. */
+  findStaffIdentity?(loginId: string): Promise<AuthIdentityRecord | null>;
   resetLoginTracker(trackerKey: string): Promise<void>;
   getLoginTracker(trackerKey: string): Promise<AuthLoginTracker | null>;
   saveLoginTracker(tracker: AuthLoginTracker): Promise<AuthLoginTracker>;
