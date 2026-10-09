@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:nexoraa_mobile/app/router.dart';
 import 'package:nexoraa_mobile/core/localization/l10n.dart';
+import 'package:nexoraa_mobile/core/push/push_dependencies.dart';
+import 'package:nexoraa_mobile/core/push/push_platform.dart';
 import 'package:nexoraa_mobile/design_system/design_system.dart';
 import 'package:nexoraa_mobile/features/consumer/consumer_dependencies.dart';
 import 'package:nexoraa_mobile/features/consumer/models/consumer_models.dart';
@@ -13,9 +15,12 @@ import 'package:nexoraa_mobile/features/consumer/widgets/shop_card.dart';
 
 /// The customer's home: Shops, My requests and Account tabs.
 class ConsumerHomeScreen extends StatefulWidget {
-  const ConsumerHomeScreen({this.initialTab = 0, super.key});
+  const ConsumerHomeScreen({this.initialTab = 0, this.pushes, super.key});
 
   final int initialTab;
+
+  /// Pushes that arrive while the app is open; defaults to the app's own.
+  final Stream<PushPayload>? pushes;
 
   @override
   State<ConsumerHomeScreen> createState() => _ConsumerHomeScreenState();
@@ -33,7 +38,7 @@ class _ConsumerHomeScreenState extends State<ConsumerHomeScreen> {
           index: _tab,
           children: <Widget>[
             const _ShopsTab(),
-            _RequestsTab(key: _requestsKey),
+            _RequestsTab(key: _requestsKey, pushes: widget.pushes),
             const _AccountTab(),
           ],
         ),
@@ -421,7 +426,9 @@ class _ShopsTabState extends State<_ShopsTab> {
 // ── My requests ──────────────────────────────────────────────────────────────
 
 class _RequestsTab extends StatefulWidget {
-  const _RequestsTab({super.key});
+  const _RequestsTab({this.pushes, super.key});
+
+  final Stream<PushPayload>? pushes;
 
   @override
   State<_RequestsTab> createState() => _RequestsTabState();
@@ -430,10 +437,32 @@ class _RequestsTab extends StatefulWidget {
 class _RequestsTabState extends State<_RequestsTab> {
   RequestStatus? _status;
   late Future<ServiceRequestPage> _requests = _fetch();
+  StreamSubscription<PushPayload>? _pushSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    // The shop answered while the list is on screen: show it straight away.
+    _pushSubscription = (widget.pushes ?? PushDependencies.registrar.arrivals).listen((
+      PushPayload payload,
+    ) {
+      if ((payload.data['type'] ?? '').startsWith('request_')) reload();
+    });
+  }
+
+  @override
+  void dispose() {
+    unawaited(_pushSubscription?.cancel());
+    super.dispose();
+  }
 
   Future<ServiceRequestPage> _fetch() => ConsumerDependencies.api.listRequests(status: _status);
 
-  void reload() => setState(() => _requests = _fetch());
+  void reload() {
+    setState(() {
+      _requests = _fetch();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {

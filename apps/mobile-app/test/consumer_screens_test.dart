@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -7,10 +8,12 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:nexoraa_mobile/app/router.dart';
 import 'package:nexoraa_mobile/core/localization/l10n.dart';
+import 'package:nexoraa_mobile/core/push/push_platform.dart';
 import 'package:nexoraa_mobile/features/consumer/consumer_dependencies.dart';
 import 'package:nexoraa_mobile/features/consumer/controllers/consumer_session_controller.dart';
 import 'package:nexoraa_mobile/features/consumer/models/consumer_models.dart';
 import 'package:nexoraa_mobile/features/consumer/screens/booking_screen.dart';
+import 'package:nexoraa_mobile/features/consumer/screens/consumer_home_screen.dart';
 import 'package:nexoraa_mobile/features/consumer/screens/consumer_auth_screens.dart';
 import 'package:nexoraa_mobile/features/consumer/screens/request_detail_screen.dart';
 import 'package:nexoraa_mobile/features/consumer/screens/welcome_screen.dart';
@@ -275,5 +278,70 @@ void main() {
     expect(sentReason, 'Found another shop');
     expect(find.text('Cancelled'), findsWidgets);
     expect(find.byKey(const Key('request.cancel')), findsNothing);
+  });
+
+  testWidgets('an open request shows the shop’s answer the moment its push arrives', (WidgetTester tester) async {
+    String status = 'Pending';
+    int loads = 0;
+    Map<String, dynamic> body() => <String, dynamic>{
+      'requestId': 'r1',
+      'requestNumber': 'SR-2026-000011',
+      'shop': <String, String>{'shopId': 'b1', 'shopName': 'Sparkle Laundry', 'phone': '9123456789'},
+      'category': 'laundry',
+      'requestType': 'visit_shop',
+      'description': 'Dry clean 2 suits',
+      'preferredDate': '2030-01-08',
+      'preferredSlot': <String, String>{'start': '10:00', 'end': '12:00'},
+      'status': status,
+      'declineReason': status == 'Declined' ? 'Fully booked this week' : null,
+      'canCancel': status == 'Pending',
+      'expiresAt': '2030-01-03T10:00:00.000Z',
+      'createdAt': '2030-01-01T10:00:00.000Z',
+      'history': <Object>[],
+    };
+    _useBackend((http.Request r) async {
+      loads++;
+      return http.Response(jsonEncode(body()), 200);
+    }, session: _session);
+    final StreamController<PushPayload> pushes = StreamController<PushPayload>.broadcast();
+    await tester.pumpWidget(_app(RequestDetailScreen(requestId: 'r1', pushes: pushes.stream)));
+    await tester.pumpAndSettle();
+    expect(find.text('Waiting'), findsWidgets);
+    final int before = loads;
+
+    // A push about a different request changes nothing.
+    pushes.add(const PushPayload(title: 'x', body: 'y', data: <String, String>{'type': 'request_declined', 'requestId': 'other'}));
+    await tester.pumpAndSettle();
+    expect(loads, before);
+
+    status = 'Declined';
+    pushes.add(const PushPayload(title: 'Request declined', body: 'y', data: <String, String>{'type': 'request_declined', 'requestId': 'r1'}));
+    await tester.pumpAndSettle();
+
+    expect(loads, before + 1);
+    expect(find.text('Declined'), findsWidgets);
+    expect(find.text('Fully booked this week'), findsOneWidget);
+    await pushes.close();
+  });
+
+  testWidgets('My requests reloads when a request update push arrives', (WidgetTester tester) async {
+    int listCalls = 0;
+    _useBackend((http.Request r) async {
+      if (r.url.path.endsWith('/consumer/requests')) listCalls++;
+      return http.Response(jsonEncode(<String, Object>{'items': <Object>[], 'page': 1, 'total': 0}), 200);
+    }, session: _session);
+    final StreamController<PushPayload> pushes = StreamController<PushPayload>.broadcast();
+    await tester.pumpWidget(_app(ConsumerHomeScreen(initialTab: 1, pushes: pushes.stream)));
+    await tester.pumpAndSettle();
+    final int before = listCalls;
+
+    pushes.add(const PushPayload(title: 'x', body: 'y', data: <String, String>{'type': 'online_request'}));
+    await tester.pumpAndSettle();
+    expect(listCalls, before, reason: 'a shop-side push is not about the customer’s requests');
+
+    pushes.add(const PushPayload(title: 'Request accepted', body: 'y', data: <String, String>{'type': 'request_accepted', 'requestId': 'r1'}));
+    await tester.pumpAndSettle();
+    expect(listCalls, before + 1);
+    await pushes.close();
   });
 }

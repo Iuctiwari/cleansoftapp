@@ -69,7 +69,9 @@ class _ShopDetailScreenState extends State<ShopDetailScreen> {
           body: switch (snapshot.connectionState) {
             ConnectionState.done when snapshot.hasError => AppErrorView(
               message: context.consumerError(snapshot.error!),
-              onRetry: () => setState(() => _shop = _fetch()),
+              onRetry: () => setState(() {
+                _shop = _fetch();
+              }),
             ),
             ConnectionState.done => _body(context, shop!),
             _ => const AppLoadingView(),

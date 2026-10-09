@@ -40,7 +40,11 @@ class _OnlineRequestsScreenState extends State<OnlineRequestsScreen> {
     return _api.listRequests(status: _status?.code);
   }
 
-  void _reload() => setState(() => _requests = _fetch());
+  void _reload() {
+    setState(() {
+      _requests = _fetch();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {

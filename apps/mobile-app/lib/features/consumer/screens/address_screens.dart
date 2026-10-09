@@ -298,7 +298,11 @@ class AddressListScreen extends StatefulWidget {
 class _AddressListScreenState extends State<AddressListScreen> {
   late Future<List<ConsumerAddress>> _addresses = ConsumerDependencies.api.listAddresses();
 
-  void _reload() => setState(() => _addresses = ConsumerDependencies.api.listAddresses());
+  void _reload() {
+    setState(() {
+      _addresses = ConsumerDependencies.api.listAddresses();
+    });
+  }
 
   Future<void> _run(Future<void> Function() action) async {
     try {

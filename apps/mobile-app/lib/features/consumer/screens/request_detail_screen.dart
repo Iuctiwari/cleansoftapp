@@ -1,6 +1,10 @@
+import 'dart:async';
+
 import 'package:nexoraa_mobile/features/consumer/widgets/text_prompt_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:nexoraa_mobile/core/localization/l10n.dart';
+import 'package:nexoraa_mobile/core/push/push_dependencies.dart';
+import 'package:nexoraa_mobile/core/push/push_platform.dart';
 import 'package:nexoraa_mobile/design_system/design_system.dart';
 import 'package:nexoraa_mobile/features/consumer/consumer_dependencies.dart';
 import 'package:nexoraa_mobile/features/consumer/models/consumer_models.dart';
@@ -8,9 +12,12 @@ import 'package:nexoraa_mobile/features/consumer/widgets/consumer_ui.dart';
 
 /// One of the customer's requests: status, shop reply, history, cancel.
 class RequestDetailScreen extends StatefulWidget {
-  const RequestDetailScreen({required this.requestId, super.key});
+  const RequestDetailScreen({required this.requestId, this.pushes, super.key});
 
   final String requestId;
+
+  /// Pushes that arrive while the app is open; defaults to the app's own.
+  final Stream<PushPayload>? pushes;
 
   @override
   State<RequestDetailScreen> createState() => _RequestDetailScreenState();
@@ -19,10 +26,32 @@ class RequestDetailScreen extends StatefulWidget {
 class _RequestDetailScreenState extends State<RequestDetailScreen> {
   late Future<ServiceRequest> _request = _fetch();
   bool _cancelling = false;
+  StreamSubscription<PushPayload>? _pushSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    // The shop answered this very request while it is open: show the answer.
+    _pushSubscription = (widget.pushes ?? PushDependencies.registrar.arrivals).listen((
+      PushPayload payload,
+    ) {
+      if (payload.data['requestId'] == widget.requestId) _reload();
+    });
+  }
+
+  @override
+  void dispose() {
+    unawaited(_pushSubscription?.cancel());
+    super.dispose();
+  }
 
   Future<ServiceRequest> _fetch() => ConsumerDependencies.api.getRequest(widget.requestId);
 
-  void _reload() => setState(() => _request = _fetch());
+  void _reload() {
+    setState(() {
+      _request = _fetch();
+    });
+  }
 
   Future<void> _cancel(ServiceRequest request) async {
     final String? reason = await showDialog<String>(
@@ -41,7 +70,11 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
     setState(() => _cancelling = true);
     try {
       final ServiceRequest updated = await ConsumerDependencies.api.cancelRequest(request.requestId, reason: reason);
-      if (mounted) setState(() => _request = Future<ServiceRequest>.value(updated));
+      if (mounted) {
+        setState(() {
+          _request = Future<ServiceRequest>.value(updated);
+        });
+      }
     } on Object catch (error) {
       if (mounted) setState(() => _cancelling = false);
       if (mounted) await context.showConsumerError(error);

@@ -74,6 +74,19 @@ export function istInstant(date: string, clock: string): string {
   return new Date(`${date}T${clock}:00+05:30`).toISOString();
 }
 
+/** "Wed, 8 Oct, 10:30 am" in India time, for push text. */
+export function formatIst(iso: string): string {
+  return new Date(iso).toLocaleString('en-IN', {
+    timeZone: 'Asia/Kolkata',
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
+}
+
 export interface PageOf<T> {
   readonly items: readonly T[];
   readonly page: number;
@@ -276,7 +289,7 @@ export class RequestService {
     };
     await this.database.requests.create(request);
     // Tell the shop's phones right away (owner, plus staff who can see orders).
-    void this.push.send(
+    this.firePush(
       { tenantId: request.tenantId, branchId: request.branchId },
       'New online request',
       `${request.customer.name} · ${CATEGORY_LABELS[request.category]} · ${MODE_LABELS[request.requestType]}`,
@@ -419,6 +432,7 @@ export class RequestService {
       },
     );
     if (!updated) throw this.alreadyHandled(await this.findOne(scope));
+    this.notifyCustomer(updated, 'accepted');
     return this.toShopView(updated);
   }
 
@@ -441,6 +455,7 @@ export class RequestService {
       { declineReason: reason },
     );
     if (!updated) throw this.alreadyHandled(await this.findOne(scope));
+    this.notifyCustomer(updated, 'declined');
     return this.toShopView(updated);
   }
 
@@ -506,6 +521,7 @@ export class RequestService {
         ? new ConflictException('Accept the request before completing it')
         : this.alreadyHandled(current);
     }
+    this.notifyCustomer(updated, 'completed');
     return this.toShopView(updated);
   }
 
@@ -577,6 +593,45 @@ export class RequestService {
     if (listing.openingHours.find((day) => day.day === weekday)?.closed) {
       throw new BadRequestException('The shop is closed on that day');
     }
+  }
+
+  /**
+   * Tells the customer's phone what the shop did. Best effort and not awaited:
+   * a push problem must never fail the shop's action.
+   */
+  private notifyCustomer(
+    request: ServiceRequestDocument,
+    event: 'accepted' | 'declined' | 'completed',
+  ): void {
+    const shop = request.shop.shopName;
+    const copy = {
+      accepted: {
+        title: 'Request accepted',
+        body: `${shop} accepted ${request.requestNumber}${
+          request.confirmedAt ? ` for ${formatIst(request.confirmedAt)}` : ''
+        }${request.shopNote ? `. ${request.shopNote}` : ''}`,
+      },
+      declined: {
+        title: 'Request declined',
+        body: `${shop}: ${request.declineReason ?? 'The shop could not take this request.'}`,
+      },
+      completed: {
+        title: 'Request completed',
+        body: `${shop} marked ${request.requestNumber} as completed`,
+      },
+    }[event];
+    this.firePush({ consumerId: request.consumerId }, copy.title, copy.body, {
+      type: `request_${event}`,
+      requestId: request.requestId,
+      requestNumber: request.requestNumber,
+    });
+  }
+
+  /** Sends a push without waiting, and without ever letting a failure escape. */
+  private firePush(...args: Parameters<PushClient['send']>): void {
+    void Promise.resolve()
+      .then(() => this.push.send(...args))
+      .catch(() => undefined);
   }
 
   private shopFilter(
