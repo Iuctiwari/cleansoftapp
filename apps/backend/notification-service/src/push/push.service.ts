@@ -147,6 +147,8 @@ export class PushService {
         return { kind: 'shop', accountId: audience.userId };
       case 'consumer':
         return { kind: 'consumer', accountId: audience.consumerId };
+      case 'owners':
+        return { kind: 'shop', tenantId: audience.tenantId, isOwner: true };
       case 'branch':
         return {
           kind: 'shop',

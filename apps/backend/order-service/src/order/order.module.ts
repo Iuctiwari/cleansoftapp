@@ -24,6 +24,8 @@ import { HttpOrderDependencies } from './order.integrations';
 import { MongoOrderRepository } from './order.mongo.repository';
 import { OrderOwnerLookupService } from './order-owner.service';
 import { TenantOwnerMongoose, TenantOwnerMongooseSchema } from './order-owner.schema';
+import { OrderOverdueController } from './order-overdue.controller';
+import { OrderOverdueService } from './order-overdue.service';
 import { OrderService } from './order.service';
 import { ORDER_DEPENDENCIES, ORDER_REPOSITORY } from './order.types';
 
@@ -39,7 +41,7 @@ import { ORDER_DEPENDENCIES, ORDER_REPOSITORY } from './order.types';
       { name: TenantOwnerMongoose.name, schema: TenantOwnerMongooseSchema },
     ]),
   ],
-  controllers: [OrderController, OrderInternalController],
+  controllers: [OrderController, OrderInternalController, OrderOverdueController],
   providers: [
     OrderService,
     OrderAuditService,
@@ -52,6 +54,7 @@ import { ORDER_DEPENDENCIES, ORDER_REPOSITORY } from './order.types';
     HttpOrderDependencies,
     { provide: ORDER_DEPENDENCIES, useExisting: HttpOrderDependencies },
     OrderOwnerLookupService,
+    OrderOverdueService,
   ],
   exports: [OrderService],
 })

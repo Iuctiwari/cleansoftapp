@@ -140,6 +140,7 @@ interface InternalPushBody {
     readonly tenantId?: unknown;
     readonly branchId?: unknown;
     readonly excludeUserId?: unknown;
+    readonly ownersOnly?: unknown;
   };
   readonly title?: unknown;
   readonly body?: unknown;
@@ -196,6 +197,7 @@ export class PushInternalController {
     const branchId = text(value?.branchId);
     if (userId) return { kind: 'user', userId };
     if (consumerId) return { kind: 'consumer', consumerId };
+    if (tenantId && value?.ownersOnly === true) return { kind: 'owners', tenantId };
     if (tenantId && branchId) {
       return { kind: 'branch', tenantId, branchId, excludeUserId: text(value?.excludeUserId) };
     }

@@ -10,6 +10,8 @@ export interface PushMessage {
 export type PushAudience =
   | { readonly kind: 'user'; readonly userId: string }
   | { readonly kind: 'consumer'; readonly consumerId: string }
+  /** Only the shop's owners, whichever branch they are signed in to. */
+  | { readonly kind: 'owners'; readonly tenantId: string }
   /** Shop users of one branch who can see orders, plus the shop's owners. */
   | {
       readonly kind: 'branch';

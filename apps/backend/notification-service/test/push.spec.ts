@@ -452,3 +452,14 @@ describe('NotificationService → push', () => {
     expect(push.send).not.toHaveBeenCalled();
   });
 });
+
+describe('owners-only audience', () => {
+  it('targets only owners of that shop', () => {
+    const service = Object.create(PushService.prototype) as PushService;
+    expect(service.filterFor({ kind: 'owners', tenantId: 't1' })).toEqual({
+      kind: 'shop',
+      tenantId: 't1',
+      isOwner: true,
+    });
+  });
+});
