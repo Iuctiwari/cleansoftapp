@@ -4,6 +4,7 @@ import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
+  HttpStatus,
   Injectable,
   Logger,
   NotFoundException,
@@ -439,6 +440,18 @@ export class UserService {
 
     if (!response.ok) {
       const text = await response.text();
+      if (response.status === HttpStatus.CONFLICT) {
+        // auth-service refused the login ID (e.g. it is a shop owner's email):
+        // pass its explanation on instead of a generic server error.
+        let message = 'This login ID cannot be used for a staff member.';
+        try {
+          const body = JSON.parse(text) as { message?: unknown };
+          if (typeof body.message === 'string' && body.message.trim()) message = body.message;
+        } catch {
+          // keep the generic message
+        }
+        throw new ConflictException(message);
+      }
       throw new Error(`Auth provisioning failed (${response.status}): ${text}`);
     }
     const result = (await response.json().catch(() => ({}))) as {
