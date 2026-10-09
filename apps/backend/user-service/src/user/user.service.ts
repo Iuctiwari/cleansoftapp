@@ -443,7 +443,8 @@ export class UserService {
       if (response.status === HttpStatus.CONFLICT) {
         // auth-service refused the login ID (e.g. it is a shop owner's email):
         // pass its explanation on instead of a generic server error.
-        let message = 'This login ID cannot be used for a staff member.';
+        let message =
+          'This email is already used to sign in as a shop owner. Use a different email or login ID for this staff member.';
         try {
           const body = JSON.parse(text) as { message?: unknown };
           if (typeof body.message === 'string' && body.message.trim()) message = body.message;
