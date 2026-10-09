@@ -562,3 +562,19 @@ class ActiveTenantConfigModel {
     );
   }
 }
+
+/// The built-in business types shops choose from at sign-up
+/// (TenantBusinessType in apps/backend/tenant-service/src/tenant/tenant.types.ts),
+/// in display order, with their default display labels.
+const Map<String, String> kBuiltInBusinessTypes = <String, String>{
+  'laundry': 'Laundry',
+  'dry_cleaning': 'Dry Cleaning',
+  'tailoring': 'Tailoring',
+  'shoe_cleaning': 'Shoe Cleaning',
+  'appliance_repair': 'Appliance Repair',
+  'mobile_repair': 'Mobile Repair',
+  'vehicle_wash': 'Vehicle Wash',
+  'salon': 'Salon',
+  'general': 'General',
+  'custom': 'Custom',
+};

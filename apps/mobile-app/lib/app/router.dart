@@ -801,7 +801,8 @@ abstract final class AppRouter {
         name: AppRouteNames.companyAdminBusinessTypeForm,
         path: AppRoutes.companyAdminBusinessTypeForm,
         builder: (BuildContext context, GoRouterState state) => BusinessTypeFormScreen(
-          existing: state.extra as BusinessTypeModel?,
+          existing: state.extra is BusinessTypeModel ? state.extra! as BusinessTypeModel : null,
+          initialValue: state.extra is String ? state.extra! as String : null,
         ),
       ),
     ],

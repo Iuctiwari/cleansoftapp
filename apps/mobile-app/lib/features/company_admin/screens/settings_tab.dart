@@ -24,7 +24,14 @@ class _SettingsTabState extends State<SettingsTab> {
   final TextEditingController _searchController = TextEditingController();
   Timer? _debounce;
 
+  static const int _pageSize = 50;
+
   bool _isSearching = false;
+  bool _isLoadingMore = false;
+  String? _error;
+  String _query = '';
+  int _page = 1;
+  int _total = 0;
   List<TenantOverviewEntryModel> _results = <TenantOverviewEntryModel>[];
   TenantOverviewEntryModel? _selected;
 
@@ -33,6 +40,8 @@ class _SettingsTabState extends State<SettingsTab> {
     super.initState();
     _apiService = widget.apiService ?? CompanyAdminDependencies.apiService;
     _searchController.addListener(_onSearchChanged);
+    // Show every tenant straight away; typing only narrows the list.
+    unawaited(_search(''));
   }
 
   @override
@@ -44,30 +53,62 @@ class _SettingsTabState extends State<SettingsTab> {
   }
 
   void _onSearchChanged() {
-    _debounce?.cancel();
     final String value = _searchController.text.trim();
-    if (value.isEmpty) {
-      setState(() => _results = <TenantOverviewEntryModel>[]);
-      return;
-    }
+    if (value == _query) return;
+    _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 350), () => _search(value));
   }
 
+  /// Loads the first page for [value] (empty = all tenants).
   Future<void> _search(String value) async {
-    setState(() => _isSearching = true);
+    setState(() {
+      _isSearching = true;
+      _error = null;
+      _query = value;
+    });
     try {
       final TenantOverviewPageModel page = await _apiService.listTenantsOverview(
         search: value,
-        limit: 20,
+        limit: _pageSize,
+      );
+      if (!mounted || value != _query) return;
+      setState(() {
+        _results = page.items;
+        _page = 1;
+        _total = page.total;
+        _isSearching = false;
+      });
+    } on CompanyAdminApiException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isSearching = false;
+        _error = e.message;
+      });
+    }
+  }
+
+  Future<void> _loadMore() async {
+    if (_isLoadingMore) return;
+    setState(() => _isLoadingMore = true);
+    try {
+      final TenantOverviewPageModel page = await _apiService.listTenantsOverview(
+        search: _query,
+        page: _page + 1,
+        limit: _pageSize,
       );
       if (!mounted) return;
       setState(() {
-        _results = page.items;
-        _isSearching = false;
+        _results = <TenantOverviewEntryModel>[..._results, ...page.items];
+        _page = page.page;
+        _total = page.total;
+        _isLoadingMore = false;
       });
-    } on CompanyAdminApiException {
+    } on CompanyAdminApiException catch (e) {
       if (!mounted) return;
-      setState(() => _isSearching = false);
+      setState(() => _isLoadingMore = false);
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(e.message)));
     }
   }
 
@@ -96,11 +137,11 @@ class _SettingsTabState extends State<SettingsTab> {
                   ),
                 ),
                 TextButton(
-                  onPressed: () => setState(() {
-                    _selected = null;
+                  onPressed: () {
+                    setState(() => _selected = null);
                     _searchController.clear();
-                    _results = <TenantOverviewEntryModel>[];
-                  }),
+                    if (_query.isNotEmpty || _results.isEmpty) unawaited(_search(''));
+                  },
                   child: const Text('Change'),
                 ),
               ],
@@ -119,7 +160,27 @@ class _SettingsTabState extends State<SettingsTab> {
               padding: EdgeInsets.symmetric(vertical: AppSpacing.lg),
               child: Center(child: CircularProgressIndicator()),
             )
-          else
+          else if (_error != null)
+            AppErrorView(message: _error!, onRetry: () => _search(_query))
+          else if (_results.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
+              child: Text(
+                _query.isEmpty ? 'No tenants yet.' : 'No tenant matches "$_query".',
+                textAlign: TextAlign.center,
+                style: AppTextStyles.bodySmall.copyWith(color: AppColors.textMuted),
+              ),
+            )
+          else ...<Widget>[
+            Padding(
+              padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+              child: Text(
+                _query.isEmpty
+                    ? 'All tenants ($_total)'
+                    : '$_total match${_total == 1 ? '' : 'es'}',
+                style: AppTextStyles.caption.copyWith(color: AppColors.textMuted),
+              ),
+            ),
             ..._results.map(
               (tenant) => Padding(
                 padding: const EdgeInsets.only(bottom: AppSpacing.sm),
@@ -138,6 +199,18 @@ class _SettingsTabState extends State<SettingsTab> {
                 ),
               ),
             ),
+            if (_results.length < _total)
+              Center(
+                child: TextButton(
+                  onPressed: _isLoadingMore ? null : _loadMore,
+                  child: Text(
+                    _isLoadingMore
+                        ? 'Loading…'
+                        : 'Load more (${_total - _results.length} more)',
+                  ),
+                ),
+              ),
+          ],
         ],
         if (selected != null) ...<Widget>[
           const SizedBox(height: AppSpacing.xl),

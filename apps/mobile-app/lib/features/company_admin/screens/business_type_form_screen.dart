@@ -4,28 +4,17 @@ import 'package:nexoraa_mobile/features/company_admin/models/company_admin_model
 import 'package:nexoraa_mobile/features/company_admin/services/company_admin_api_service.dart';
 import 'package:nexoraa_mobile/features/company_admin/services/company_admin_dependencies.dart';
 
-/// TenantBusinessType values (apps/backend/tenant-service/src/tenant/tenant.types.ts),
-/// duplicated locally the same way platform-admin-service's own BusinessType
-/// schema does — no shared-types package carries this enum.
-const List<String> _kBusinessTypeValues = <String>[
-  'laundry',
-  'dry_cleaning',
-  'tailoring',
-  'shoe_cleaning',
-  'appliance_repair',
-  'mobile_repair',
-  'vehicle_wash',
-  'salon',
-  'general',
-  'custom',
-];
+final List<String> _kBusinessTypeValues = kBuiltInBusinessTypes.keys.toList(growable: false);
 
 /// Pushed route — create when [existing] is null, edit otherwise. Pops with
 /// `true` on save so the Businesses tab knows to reload.
 class BusinessTypeFormScreen extends StatefulWidget {
-  const BusinessTypeFormScreen({super.key, this.existing, this.apiService});
+  const BusinessTypeFormScreen({super.key, this.existing, this.initialValue, this.apiService});
 
   final BusinessTypeModel? existing;
+
+  /// Create mode only: pre-select this built-in type (from the Businesses list).
+  final String? initialValue;
   final CompanyAdminApiService? apiService;
 
   @override
@@ -55,8 +44,11 @@ class _BusinessTypeFormScreenState extends State<BusinessTypeFormScreen> {
     super.initState();
     _apiService = widget.apiService ?? CompanyAdminDependencies.apiService;
     final BusinessTypeModel? existing = widget.existing;
-    _selectedValue = existing?.value ?? _kBusinessTypeValues.first;
-    _labelController = TextEditingController(text: existing?.label ?? '');
+    _selectedValue = existing?.value ??
+        (_kBusinessTypeValues.contains(widget.initialValue) ? widget.initialValue! : _kBusinessTypeValues.first);
+    _labelController = TextEditingController(
+      text: existing?.label ?? (widget.initialValue == null ? '' : kBuiltInBusinessTypes[widget.initialValue] ?? ''),
+    );
     _descriptionController = TextEditingController(text: existing?.description ?? '');
     final BusinessTypeTerminologyModel terminology =
         existing?.defaultTerminology ?? BusinessTypeTerminologyModel.fallback;

@@ -54,6 +54,15 @@ class _BusinessesTabState extends State<BusinessesTab> {
     if (saved == true && mounted) await _load();
   }
 
+  /// Create a configuration for a built-in type that has none yet.
+  Future<void> _openConfigure(String value) async {
+    final bool? saved = await context.pushNamed<bool>(
+      AppRouteNames.companyAdminBusinessTypeForm,
+      extra: value,
+    );
+    if (saved == true && mounted) await _load();
+  }
+
   Future<void> _openEdit(BusinessTypeModel type) async {
     final bool? saved = await context.pushNamed<bool>(
       AppRouteNames.companyAdminBusinessTypeForm,
@@ -65,8 +74,10 @@ class _BusinessesTabState extends State<BusinessesTab> {
   Future<void> _delete(BusinessTypeModel type) async {
     final bool confirmed = await AppConfirmDialog.show(
       context,
-      title: 'Remove Business Type',
-      message: 'Remove "${type.label}"? Tenants already using it are unaffected.',
+      title: 'Remove configuration',
+      message:
+          'Remove the defaults for "${type.label}"? The business type stays available to shops, '
+          'and tenants already using it are unaffected.',
       confirmLabel: 'Remove',
     );
     if (!confirmed) return;
@@ -100,73 +111,126 @@ class _BusinessesTabState extends State<BusinessesTab> {
   Widget _buildBody() {
     if (_isLoading) return const AppLoadingView();
     if (_error != null) return AppErrorView(message: _error!, onRetry: _load);
-    if (_businessTypes.isEmpty) {
-      return const AppEmptyState(
-        icon: AppIcons.tag,
-        title: 'No business types configured',
-        message: 'Tap + to add the first one (e.g. Laundry, Salon, Dry Cleaning).',
-      );
+
+    // Every built-in type shops can pick at sign-up is always listed; the
+    // configured record (defaults, label) is shown where one exists.
+    final List<Widget> rows = <Widget>[];
+    for (final MapEntry<String, String> builtIn in kBuiltInBusinessTypes.entries) {
+      final List<BusinessTypeModel> configured =
+          _businessTypes.where((BusinessTypeModel t) => t.value == builtIn.key).toList();
+      if (configured.isEmpty) {
+        rows.add(_notConfiguredCard(builtIn.key, builtIn.value));
+      } else {
+        rows.addAll(configured.map(_configuredCard));
+      }
     }
+    // Anything configured outside the built-in list (should not happen).
+    rows.addAll(
+      _businessTypes
+          .where((BusinessTypeModel t) => !kBuiltInBusinessTypes.containsKey(t.value))
+          .map(_configuredCard),
+    );
+
     return RefreshIndicator(
       onRefresh: _load,
       child: ListView.separated(
-        padding: const EdgeInsets.all(AppSpacing.lg),
-        itemCount: _businessTypes.length,
+        padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, 96),
+        itemCount: rows.length + 1,
         separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
         itemBuilder: (BuildContext context, int index) {
-          final BusinessTypeModel type = _businessTypes[index];
-          final int defaultsCount =
-              type.defaultServices.length +
-              type.defaultItemCategories.length +
-              type.defaultOrderStatuses.length +
-              type.defaultExpenseCategories.length;
-          return AppCard(
-            onTap: () => _openEdit(type),
-            child: Row(
+          if (index == 0) {
+            final int configuredCount = _businessTypes.length;
+            return Text(
+              '${kBuiltInBusinessTypes.length} business types · $configuredCount configured',
+              style: AppTextStyles.caption.copyWith(color: AppColors.textMuted),
+            );
+          }
+          return rows[index - 1];
+        },
+      ),
+    );
+  }
+
+  Widget _notConfiguredCard(String value, String label) {
+    return AppCard(
+      key: ValueKey<String>('business-type-$value'),
+      onTap: () => _openConfigure(value),
+      child: Row(
+        children: <Widget>[
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Row(
-                        children: <Widget>[
-                          Text(type.label, style: AppTextStyles.headingSmall),
-                          if (!type.isActive) ...<Widget>[
-                            const SizedBox(width: AppSpacing.sm),
-                            const AppStatusBadge(label: 'Inactive', tone: AppBadgeTone.neutral),
-                          ],
-                        ],
-                      ),
-                      const SizedBox(height: AppSpacing.xs),
-                      Text(
-                        type.value,
-                        style: AppTextStyles.bodySmall.copyWith(color: AppColors.textMuted),
-                      ),
-                      if (type.description != null && type.description!.isNotEmpty) ...<Widget>[
-                        const SizedBox(height: AppSpacing.xs),
-                        Text(
-                          type.description!,
-                          style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSubtle),
-                        ),
-                      ],
-                      const SizedBox(height: AppSpacing.xs),
-                      Text(
-                        defaultsCount == 0
-                            ? 'No defaults configured yet'
-                            : '$defaultsCount default${defaultsCount == 1 ? '' : 's'} configured',
-                        style: AppTextStyles.caption.copyWith(color: AppColors.textSubtle),
-                      ),
-                    ],
-                  ),
+                Row(
+                  children: <Widget>[
+                    Text(label, style: AppTextStyles.headingSmall),
+                    const SizedBox(width: AppSpacing.sm),
+                    const AppStatusBadge(label: 'Built-in', tone: AppBadgeTone.info),
+                  ],
                 ),
-                IconButton(
-                  icon: const Icon(AppIcons.delete, color: AppColors.error),
-                  onPressed: () => _delete(type),
+                const SizedBox(height: AppSpacing.xs),
+                Text(value, style: AppTextStyles.bodySmall.copyWith(color: AppColors.textMuted)),
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  'Not configured yet — tap to set defaults',
+                  style: AppTextStyles.caption.copyWith(color: AppColors.textSubtle),
                 ),
               ],
             ),
-          );
-        },
+          ),
+          const Icon(AppIcons.chevronRight, color: AppColors.textSubtle),
+        ],
+      ),
+    );
+  }
+
+  Widget _configuredCard(BusinessTypeModel type) {
+    final int defaultsCount =
+        type.defaultServices.length +
+        type.defaultItemCategories.length +
+        type.defaultOrderStatuses.length +
+        type.defaultExpenseCategories.length;
+    return AppCard(
+      key: ValueKey<String>('business-type-${type.value}-${type.id}'),
+      onTap: () => _openEdit(type),
+      child: Row(
+        children: <Widget>[
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Row(
+                  children: <Widget>[
+                    Flexible(child: Text(type.label, style: AppTextStyles.headingSmall)),
+                    const SizedBox(width: AppSpacing.sm),
+                    AppStatusBadge(
+                      label: type.isActive ? 'Configured' : 'Inactive',
+                      tone: type.isActive ? AppBadgeTone.success : AppBadgeTone.neutral,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                Text(type.value, style: AppTextStyles.bodySmall.copyWith(color: AppColors.textMuted)),
+                if (type.description != null && type.description!.isNotEmpty) ...<Widget>[
+                  const SizedBox(height: AppSpacing.xs),
+                  Text(type.description!, style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSubtle)),
+                ],
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  defaultsCount == 0
+                      ? 'No defaults configured yet'
+                      : '$defaultsCount default${defaultsCount == 1 ? '' : 's'} configured',
+                  style: AppTextStyles.caption.copyWith(color: AppColors.textSubtle),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            tooltip: 'Remove configuration',
+            icon: const Icon(AppIcons.delete, color: AppColors.error),
+            onPressed: () => _delete(type),
+          ),
+        ],
       ),
     );
   }
