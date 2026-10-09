@@ -25,6 +25,7 @@ import {
   type ServiceMode,
   type ShopPrincipal,
 } from '../platform/marketplace.types';
+import { PushClient } from '../platform/push.client';
 import { ShopServicesClient } from '../platform/shop-services.client';
 import { TenantDirectoryClient } from '../platform/tenant-directory.client';
 import type {
@@ -45,6 +46,11 @@ export const MAX_PENDING_PER_SHOP = 3;
 export const MAX_PENDING_TOTAL = 10;
 
 const TRAVELLING_MODES: readonly ServiceMode[] = ['home_service', 'pickup_drop'];
+const MODE_LABELS: Readonly<Record<ServiceMode, string>> = {
+  visit_shop: 'Visit shop',
+  home_service: 'Home service',
+  pickup_drop: 'Pickup & drop',
+};
 const IST_OFFSET_MS = 330 * 60_000;
 
 /** Today's date in India as YYYY-MM-DD. */
@@ -147,6 +153,7 @@ export class RequestService {
     private readonly addressService: AddressService,
     private readonly tenantDirectory: TenantDirectoryClient,
     private readonly shopServices: ShopServicesClient,
+    private readonly push: PushClient,
   ) {}
 
   // ── Customer side ─────────────────────────────────────────────────────────
@@ -268,6 +275,19 @@ export class RequestService {
       updatedAt: createdAt,
     };
     await this.database.requests.create(request);
+    // Tell the shop's phones right away (owner, plus staff who can see orders).
+    void this.push.send(
+      { tenantId: request.tenantId, branchId: request.branchId },
+      'New online request',
+      `${request.customer.name} · ${CATEGORY_LABELS[request.category]} · ${MODE_LABELS[request.requestType]}`,
+      {
+        type: 'online_request',
+        requestId: request.requestId,
+        requestNumber: request.requestNumber,
+        tenantId: request.tenantId,
+        branchId: request.branchId,
+      },
+    );
     return this.toCustomerView(request);
   }
 

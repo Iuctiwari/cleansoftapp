@@ -10,6 +10,7 @@ import {
   ShopAuthenticationMiddleware,
 } from './platform/auth.middleware';
 import { MarketplaceDatabase } from './platform/marketplace.database';
+import { PushClient } from './platform/push.client';
 import { ShopServicesClient } from './platform/shop-services.client';
 import { TenantDirectoryClient } from './platform/tenant-directory.client';
 import { ConsumerRequestController, ShopRequestController } from './request/request.controller';
@@ -31,6 +32,7 @@ import { RequestService } from './request/request.service';
     ListingService,
     RequestService,
     ShopServicesClient,
+    PushClient,
     ConsumerAuthenticationMiddleware,
     ShopAuthenticationMiddleware,
   ],

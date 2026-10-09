@@ -9,6 +9,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { DEFAULT_PAGE_NUMBER, DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from '@nexoraa/constants';
 import { FilterQuery, Model, Types } from 'mongoose';
 
+import { PushService } from '../push/push.service';
 import { NotificationGateway } from './notification.gateway';
 import { NotificationMongoose, type NotificationDocument } from './notification.schema';
 import {
@@ -32,6 +33,7 @@ export class NotificationService {
     @InjectModel(NotificationMongoose.name)
     private readonly notifications: Model<NotificationDocument>,
     private readonly gateway: NotificationGateway,
+    private readonly push: PushService,
   ) {}
 
   async create(
@@ -63,6 +65,26 @@ export class NotificationService {
 
     const record = this.toRecord(created);
     this.gateway.emitNew(record);
+    // Also a phone push for the recipient (never for something they did themselves).
+    // Best effort and not awaited: a push problem must not fail the notification.
+    if (record.recipientId !== scope.actorId) {
+      void this.push.send(
+        { kind: 'user', userId: record.recipientId },
+        {
+          title: record.title,
+          body: record.message,
+          data: {
+            type: record.type,
+            notificationId: record.id,
+            tenantId: record.tenantId,
+            branchId: record.branchId,
+            ...(record.orderId ? { orderId: record.orderId } : {}),
+            ...(record.entityType ? { entityType: record.entityType } : {}),
+            ...(record.entityId ? { entityId: record.entityId } : {}),
+          },
+        },
+      );
+    }
     return record;
   }
 

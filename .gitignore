@@ -78,3 +78,7 @@ crash.log
 
 # E2E seed run reports (contain test-account passwords)
 scripts/e2e-seed/output/
+
+# Firebase service-account keys are secrets: never commit them.
+*-firebase-adminsdk-*.json
+firebase-service-account*.json

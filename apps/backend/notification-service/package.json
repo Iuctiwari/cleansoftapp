@@ -12,7 +12,8 @@
     "start": "node ../../../scripts/run-typescript-project.mjs start",
     "start:prod": "node ../../../scripts/run-typescript-project.mjs start:prod",
     "lint": "eslint \"src/**/*.ts\" \"test/**/*.ts\" --no-error-on-unmatched-pattern",
-    "typecheck": "node ../../../scripts/run-typescript-project.mjs typecheck"
+    "typecheck": "node ../../../scripts/run-typescript-project.mjs typecheck",
+    "test": "jest --passWithNoTests"
   },
   "dependencies": {
     "@nestjs/common": "11.1.28",
@@ -35,5 +36,11 @@
     "reflect-metadata": "0.2.2",
     "rxjs": "7.8.2",
     "socket.io": "^4.8.3"
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "jest": "^30.4.2",
+    "ts-jest": "^29.4.12",
+    "typescript": "^5.8.3"
   }
 }

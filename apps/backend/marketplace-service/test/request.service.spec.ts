@@ -7,6 +7,7 @@ import type {
   ShopListingDocument,
 } from '../src/platform/marketplace.database';
 import type { ConsumerPrincipal, ShopPrincipal } from '../src/platform/marketplace.types';
+import type { PushClient } from '../src/platform/push.client';
 import type { ShopServicesClient } from '../src/platform/shop-services.client';
 import type { TenantDirectoryClient } from '../src/platform/tenant-directory.client';
 import type { CreateServiceRequestDto } from '../src/request/request.dto';
@@ -101,27 +102,28 @@ function createSubject(options: { pending?: [number, number]; addressKm?: number
     }),
   } as unknown as AddressService;
   const tenantDirectory = {
-    findSummaries: jest
-      .fn()
-      .mockResolvedValue(
-        new Map([
-          [
-            'tenant-1',
-            {
-              tenantId: 'tenant-1',
-              businessName: 'Sparkle Laundry',
-              ownerPhone: '9123456789',
-              status: 'Active',
-            },
-          ],
-        ]),
-      ),
+    findSummaries: jest.fn().mockResolvedValue(
+      new Map([
+        [
+          'tenant-1',
+          {
+            tenantId: 'tenant-1',
+            businessName: 'Sparkle Laundry',
+            ownerPhone: '9123456789',
+            status: 'Active',
+          },
+        ],
+      ]),
+    ),
   } as unknown as TenantDirectoryClient;
   const shopServices = {
     linkOnlineCustomer: jest.fn().mockResolvedValue('crm-customer-1'),
   } as unknown as jest.Mocked<ShopServicesClient>;
-  const service = new RequestService(database, addressService, tenantDirectory, shopServices);
-  return { service, created, shopServices };
+  const push = {
+    send: jest.fn().mockResolvedValue(undefined),
+  } as unknown as jest.Mocked<PushClient>;
+  const service = new RequestService(database, addressService, tenantDirectory, shopServices, push);
+  return { service, created, shopServices, push };
 }
 
 describe('India date helpers', () => {
@@ -137,7 +139,7 @@ describe('India date helpers', () => {
 
 describe('RequestService.create', () => {
   it('creates a pending request that expires in 48 hours and links the shop customer', async () => {
-    const { service, created, shopServices } = createSubject();
+    const { service, created, shopServices, push } = createSubject();
 
     const view = await service.create(
       consumer,
@@ -154,6 +156,13 @@ describe('RequestService.create', () => {
     const hours = (Date.parse(created[0].expiresAt) - Date.parse(created[0].createdAt)) / 3_600_000;
     expect(hours).toBe(48);
     expect(created[0].shopCustomerId).toBe('crm-customer-1');
+    // The shop's phones are told straight away.
+    expect(push.send).toHaveBeenCalledWith(
+      { tenantId: 'tenant-1', branchId: 'branch-1' },
+      'New online request',
+      'Riya Sharma · Laundry · Visit shop',
+      expect.objectContaining({ type: 'online_request', requestId: expect.any(String) }),
+    );
     expect(shopServices.linkOnlineCustomer).toHaveBeenCalledWith('tenant-1', 'branch-1', {
       consumerId: 'consumer-1',
       name: 'Riya Sharma',
