@@ -26,6 +26,7 @@ const API = {
   market: `https://market.${DOMAIN}/api/v1`,
   customers: `https://customer.${DOMAIN}`,
   catalog: `https://catalog.${DOMAIN}/api/v1`,
+  expenses: `https://expense.${DOMAIN}`, // this service has no /api prefix
   users: `https://user.${DOMAIN}/api/v1`,
 };
 
@@ -233,28 +234,76 @@ async function people() {
   }
 }
 
-// The marketplace customer ("I need a service"). Signing up emails a 6-digit code to a real inbox.
+// The marketplace customer ("I need a service"). A new sign-up emails a 6-digit code to a real inbox,
+// so an account that already exists (and can sign in) is used as is: nothing is emailed again.
 async function customer() {
-  const register = await call('POST', `${API.auth}/auth/consumer/register`, {
-    body: { fullName: 'Iuc Krishna', email: CUSTOMER_EMAIL, mobileNumber: '9811200001', password: PASSWORD },
-  });
-  console.log(ok(register) ? `  + customer registered; a verification code was emailed to ${CUSTOMER_EMAIL}` : `  = customer: ${register.body?.error?.code ?? register.status} ${why(register)}`);
-  const login = await call('POST', `${API.auth}/auth/login`, { body: { context: 'consumer', identifier: CUSTOMER_EMAIL, password: PASSWORD } });
+  const signIn = () => call('POST', `${API.auth}/auth/login`, { body: { context: 'consumer', identifier: CUSTOMER_EMAIL, password: PASSWORD } });
+  let login = await signIn();
+  if (!ok(login) && login.body?.error?.code !== 'auth.email_not_verified') {
+    const register = await call('POST', `${API.auth}/auth/consumer/register`, {
+      body: { fullName: 'Iuc Krishna', email: CUSTOMER_EMAIL, mobileNumber: '9811200001', password: PASSWORD },
+    });
+    console.log(ok(register) ? `  + registered; a verification code was emailed to ${CUSTOMER_EMAIL}` : `  customer: ${why(register)}`);
+    login = await signIn();
+  }
   if (!ok(login)) {
-    console.log('  customer cannot sign in yet: the email code has not been entered');
+    console.log(`  customer cannot sign in yet (${login.body?.error?.code ?? login.status}): the email is not verified`);
     return;
   }
   const token = login.data.accessToken;
   const have = list(await call('GET', `${API.market}/consumer/addresses`, { token }));
-  if (have.length === 0) {
-    must(await call('POST', `${API.market}/consumer/addresses`, {
-      token,
-      body: { label: 'Home', houseFlat: 'Flat 204, Sai Heights', streetArea: 'Hadapsar, Pune', landmark: 'Near Seasons Mall', city: 'Pune', state: 'Maharashtra', pincode: '411028', latitude: 18.5097, longitude: 73.9272 },
-    }), 'address');
-    console.log('  + home address saved');
-  } else {
-    console.log('  = address already saved');
+  const wanted = [
+    { label: 'Home', houseFlat: 'Flat 204, Sai Heights', streetArea: 'Hadapsar, Pune', landmark: 'Near Seasons Mall', city: 'Pune', state: 'Maharashtra', pincode: '411028', latitude: 18.5097, longitude: 73.9272 },
+    { label: 'Work', houseFlat: '3rd floor, Tech Park One', streetArea: 'Kharadi, Pune', landmark: 'Near EON IT Park', city: 'Pune', state: 'Maharashtra', pincode: '411014', latitude: 18.5522, longitude: 73.9487 },
+    { label: 'Other', houseFlat: 'B-7, Gulmohar Society', streetArea: 'Magarpatta City, Hadapsar', city: 'Pune', state: 'Maharashtra', pincode: '411013', latitude: 18.5149, longitude: 73.9275 },
+  ];
+  let added = 0;
+  for (const address of wanted) {
+    if (have.some((a) => a.label === address.label)) continue;
+    must(await call('POST', `${API.market}/consumer/addresses`, { token, body: address }), `address ${address.label}`);
+    added++;
   }
+  console.log(`  + ${added} addresses added (${have.length + added} saved)`);
+  const shops = list(await call('GET', `${API.market}/marketplace/shops?latitude=18.5097&longitude=73.9272`, { token }));
+  console.log(`  nearby shops she can see: ${shops.length}${shops[0] ? ` (first: ${shops[0].shopName})` : ''}`);
+}
+
+// (category keyword, amount, method, vendor, what, days ago)
+const EXPENSES = [
+  [/rent/i, 18000, 'BankTransfer', 'Magarpatta Estates', 'Shop rent for the month', 24],
+  [/electric|utilit/i, 4650, 'UPI', 'MSEDCL', 'Electricity bill', 20],
+  [/water/i, 900, 'Cash', 'Pune Municipal Corporation', 'Water charges', 20],
+  [/detergent|material|supply/i, 3200, 'UPI', 'CleanChem Traders', 'Detergent, softener and stain remover', 18],
+  [/detergent|material|supply/i, 1450, 'Cash', 'Shree Packaging', 'Hangers, polythene covers and tags', 15],
+  [/salary|wage|staff/i, 12000, 'BankTransfer', 'Staff payroll', 'Salary: Abhay Chavan', 12],
+  [/salary|wage|staff/i, 12000, 'BankTransfer', 'Staff payroll', 'Salary: Deepak Shinde', 12],
+  [/salary|wage|staff/i, 15000, 'BankTransfer', 'Staff payroll', 'Salary: Suresh Patil', 12],
+  [/transport|fuel|delivery/i, 1800, 'Cash', 'HP Petrol Pump', 'Fuel for the pickup and delivery scooter', 9],
+  [/maint|repair/i, 2600, 'UPI', 'Kumar Machine Works', 'Washing machine drum bearing repair', 7],
+  [/maint|repair/i, 850, 'Cash', 'Local Electrician', 'Iron table and steam iron fix', 5],
+  [/market|advert|promo/i, 1500, 'UPI', 'Print Point', 'Flyers for Hadapsar housing societies', 4],
+  [/misc|other|general/i, 600, 'Cash', 'Tea & snacks', 'Refreshments for staff', 2],
+  [/detergent|material|supply/i, 2100, 'UPI', 'CleanChem Traders', 'Dry-cleaning solvent refill', 1],
+];
+
+async function expenses() {
+  const owner = await ownerLogin();
+  if (!owner) throw new Error('owner cannot sign in; run "shop" first');
+  const ctx = { token: owner.token, branchId: owner.branchId };
+  const categories = list(await call('GET', `${API.expenses}/expense-categories`, ctx));
+  if (categories.length === 0) throw new Error('the shop has no expense categories');
+  const existing = list(await call('GET', `${API.expenses}/expenses?limit=100`, ctx));
+  if (existing.length >= EXPENSES.length) return console.log(`  = ${existing.length} expenses already recorded`);
+  let added = 0;
+  for (const [pattern, amount, paymentMethod, vendor, description, daysAgo] of EXPENSES) {
+    const category = categories.find((c) => pattern.test(c.categoryName)) ?? categories[0];
+    must(await call('POST', `${API.expenses}/expenses`, {
+      ...ctx,
+      body: { expenseCategoryId: category.id, amount, paymentMethod, vendor, description, expenseDate: new Date(Date.now() - daysAgo * 86_400_000).toISOString() },
+    }), `expense ${description}`);
+    added++;
+  }
+  console.log(`  + ${added} expenses recorded (categories: ${categories.map((c) => c.categoryName).join(', ')})`);
 }
 
 async function inspect() {
@@ -269,7 +318,7 @@ async function inspect() {
 }
 
 const command = process.argv[2];
-const commands = { shop, catalog, people, customer, inspect };
+const commands = { shop, catalog, people, customer, expenses, inspect };
 if (!commands[command]) {
   console.log('usage: node scripts/demo/seed-laundry.mjs shop|catalog|people|customer|inspect');
   process.exit(1);
