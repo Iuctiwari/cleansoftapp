@@ -1548,4 +1548,8 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get pickupPhotosTitle => 'पिकअप के समय ली गई फ़ोटो';
+
+  @override
+  String get shopListingModesHint =>
+      'हर विकल्प को चालू/बंद करने के लिए टैप करें। आप इसे कभी भी बदलकर फिर से सेव कर सकते हैं।';
 }

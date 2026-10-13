@@ -694,5 +694,6 @@
   "pickupTakePhoto": "Take photo",
   "pickupPhotoLimit": "Up to 6 photos",
   "pickupUploading": "Uploading photos…",
-  "pickupPhotosTitle": "Photos taken at pickup"
+  "pickupPhotosTitle": "Photos taken at pickup",
+  "shopListingModesHint": "Tap to switch each one on or off. You can change this any time and save again."
 }

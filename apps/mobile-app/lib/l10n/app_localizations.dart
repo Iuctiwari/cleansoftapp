@@ -2835,6 +2835,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Photos taken at pickup'**
   String get pickupPhotosTitle;
+
+  /// No description provided for @shopListingModesHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to switch each one on or off. You can change this any time and save again.'**
+  String get shopListingModesHint;
 }
 
 class _AppLocalizationsDelegate

@@ -1544,4 +1544,8 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get pickupPhotosTitle => 'Photos taken at pickup';
+
+  @override
+  String get shopListingModesHint =>
+      'Tap to switch each one on or off. You can change this any time and save again.';
 }

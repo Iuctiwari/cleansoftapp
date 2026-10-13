@@ -1543,4 +1543,8 @@ class AppLocalizationsMr extends AppLocalizations {
 
   @override
   String get pickupPhotosTitle => 'पिकअपच्या वेळी घेतलेले फोटो';
+
+  @override
+  String get shopListingModesHint =>
+      'प्रत्येक पर्याय चालू/बंद करण्यासाठी टॅप करा. तुम्ही हे कधीही बदलून पुन्हा सेव्ह करू शकता.';
 }

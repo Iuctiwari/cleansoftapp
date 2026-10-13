@@ -320,17 +320,38 @@ class _ShopListingScreenState extends State<ShopListingScreen> {
             ),
             const Divider(),
             ConsumerSectionTitle(context.l10n.shopListingHowServe),
+            Text(context.l10n.shopListingModesHint, style: AppTextStyles.caption),
+            const SizedBox(height: AppSpacing.sm),
             Wrap(
               spacing: AppSpacing.sm,
               runSpacing: AppSpacing.sm,
               children: ServiceMode.values
                   .map(
-                    (ServiceMode mode) => FilterChip(
-                      avatar: Icon(modeIcon(mode), size: 18),
-                      label: Text(context.modeLabel(mode)),
-                      selected: _modes.contains(mode),
-                      onSelected: (bool on) => setState(() => on ? _modes.add(mode) : _modes.remove(mode)),
-                    ),
+                    (ServiceMode mode) {
+                      final bool on = _modes.contains(mode);
+                      return FilterChip(
+                        key: Key('listing.mode.${mode.code}'),
+                        // Selected = solid blue with white text and a tick, so the state is obvious.
+                        avatar: on ? null : Icon(modeIcon(mode), size: 18),
+                        label: Text(
+                          context.modeLabel(mode),
+                          style: TextStyle(color: on ? Colors.white : null, fontWeight: on ? FontWeight.w600 : null),
+                        ),
+                        selected: on,
+                        showCheckmark: true,
+                        checkmarkColor: Colors.white,
+                        selectedColor: AppColors.primary,
+                        onSelected: (bool value) {
+                          setState(() {
+                            if (value) {
+                              _modes.add(mode);
+                            } else {
+                              _modes.remove(mode);
+                            }
+                          });
+                        },
+                      );
+                    },
                   )
                   .toList(),
             ),

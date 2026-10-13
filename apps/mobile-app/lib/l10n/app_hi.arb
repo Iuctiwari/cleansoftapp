@@ -456,5 +456,6 @@
   "pickupTakePhoto": "फ़ोटो लें",
   "pickupPhotoLimit": "अधिकतम 6 फ़ोटो",
   "pickupUploading": "फ़ोटो अपलोड हो रही हैं…",
-  "pickupPhotosTitle": "पिकअप के समय ली गई फ़ोटो"
+  "pickupPhotosTitle": "पिकअप के समय ली गई फ़ोटो",
+  "shopListingModesHint": "हर विकल्प को चालू/बंद करने के लिए टैप करें। आप इसे कभी भी बदलकर फिर से सेव कर सकते हैं।"
 }
