@@ -4,6 +4,7 @@ import type {
   ServiceRequestDocument,
 } from '../src/platform/marketplace.database';
 import type { ShopPrincipal } from '../src/platform/marketplace.types';
+import type { PhotoStorage } from '../src/platform/photo-storage';
 import type { PushClient } from '../src/platform/push.client';
 import type { ShopServicesClient } from '../src/platform/shop-services.client';
 import type { TenantDirectoryClient } from '../src/request/../platform/tenant-directory.client';
@@ -45,6 +46,15 @@ function doc(extra: Partial<ServiceRequestDocument> = {}): ServiceRequestDocumen
   };
 }
 
+const photos = {
+  isEnabled: () => true,
+  isKeyFor: (key: string) => /^pickups\/t1\/r1\/[a-z0-9]+\.jpg$/.test(key),
+  createUploadSlots: jest.fn(async (_t: string, _r: string, count: number) =>
+    Array.from({ length: count }, (_, i) => ({ key: `pickups/t1/r1/k${i}.jpg`, uploadUrl: `https://s3/put${i}`, contentType: 'image/jpeg' })),
+  ),
+  viewUrl: jest.fn(async (key: string) => `https://s3/view/${key}`),
+} as unknown as PhotoStorage;
+
 function subject(current: ServiceRequestDocument) {
   const lean = (v: unknown) => ({ lean: () => ({ exec: () => Promise.resolve(v) }) });
   const findOneAndUpdate = jest.fn((_f: unknown, update: { $set: Partial<ServiceRequestDocument> }) =>
@@ -65,6 +75,7 @@ function subject(current: ServiceRequestDocument) {
     {} as TenantDirectoryClient,
     { linkOnlineCustomer: jest.fn().mockResolvedValue('crm') } as unknown as ShopServicesClient,
     push,
+    photos,
   );
   return { service, push, findOne: database.requests.findOne as jest.Mock };
 }
@@ -143,6 +154,47 @@ describe('pickup flow', () => {
     const view = await service.collect(worker, 'r1', { items: [{ name: 'a', quantity: 1 }], deliveryDate: future });
     expect(view.deliveryDate).toBe(future);
     expect(view.deliveryDateIsCustom).toBe(true);
+  });
+
+  it('stores the pickup photos and the customer gets viewing links', async () => {
+    const accepted = doc({ status: 'Accepted', pickupWorker: { userId: 'worker-1', name: 'Ravi' } });
+    const { service } = subject(accepted);
+    const { slots } = await service.photoUploadSlots(worker, 'r1', 2);
+    expect(slots).toHaveLength(2);
+    const view = await service.collect(worker, 'r1', {
+      items: [{ name: 'Shirts', quantity: 3 }],
+      photoKeys: slots.map((s) => s.key),
+    });
+    expect(view.collectedPhotos).toEqual(['https://s3/view/pickups/t1/r1/k0.jpg', 'https://s3/view/pickups/t1/r1/k1.jpg']);
+
+    const done = doc({
+      status: 'Accepted',
+      pickupWorker: { userId: 'worker-1', name: 'Ravi' },
+      collected: { at: 'x', items: [], totalQuantity: 1, byUserId: 'worker-1', photos: ['pickups/t1/r1/k0.jpg'] },
+    });
+    const customerView = await subject(done).service.getForCustomer({ consumerId: 'c1' } as never, 'r1');
+    expect(customerView.collectedPhotos).toEqual(['https://s3/view/pickups/t1/r1/k0.jpg']);
+  });
+
+  it('refuses photo keys that are not slots for this request', async () => {
+    const accepted = doc({ status: 'Accepted', pickupWorker: { userId: 'worker-1', name: 'Ravi' } });
+    await expect(
+      subject(accepted).service.collect(worker, 'r1', {
+        items: [{ name: 'a', quantity: 1 }],
+        photoKeys: ['pickups/other-tenant/r9/abc.jpg'],
+      }),
+    ).rejects.toThrow(/does not belong/);
+  });
+
+  it('only the assigned worker (or a manager) gets upload links, and only before collecting', async () => {
+    const accepted = doc({ status: 'Accepted', pickupWorker: { userId: 'worker-2', name: 'Other' } });
+    await expect(subject(accepted).service.photoUploadSlots(worker, 'r1', 1)).rejects.toThrow(/while collecting/);
+    const done = doc({
+      status: 'Accepted',
+      pickupWorker: { userId: 'worker-1', name: 'Ravi' },
+      collected: { at: 'x', items: [], totalQuantity: 1, byUserId: 'worker-1' },
+    });
+    await expect(subject(done).service.photoUploadSlots(worker, 'r1', 1)).rejects.toThrow(/while collecting/);
   });
 
   it('refuses a second collection', async () => {

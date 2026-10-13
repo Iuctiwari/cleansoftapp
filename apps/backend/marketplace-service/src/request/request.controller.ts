@@ -9,12 +9,14 @@ import {
   CancelRequestDto,
   CollectRequestDto,
   EstimateQueryDto,
+  PhotoUploadDto,
   CompleteRequestDto,
   CreateServiceRequestDto,
   DeclineRequestDto,
   LinkOrderDto,
   ListRequestsQueryDto,
 } from './request.dto';
+import type { PhotoUploadSlot } from '../platform/photo-storage';
 import type { DeliveryEstimate } from './delivery';
 import {
   RequestService,
@@ -132,6 +134,17 @@ export class ShopRequestController {
     @Query() query: EstimateQueryDto,
   ): Promise<DeliveryEstimate> {
     return this.requestService.estimateDelivery(shop, requestId, query.quantity);
+  }
+
+  @Post(':requestId/photo-upload-urls')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Assigned worker: signed links to upload pickup photos' })
+  photoUploadUrls(
+    @CurrentShop() shop: ShopPrincipal,
+    @Param('requestId') requestId: string,
+    @Body() body: PhotoUploadDto,
+  ): Promise<{ slots: PhotoUploadSlot[] }> {
+    return this.requestService.photoUploadSlots(shop, requestId, body.count);
   }
 
   @Post(':requestId/collect')

@@ -7,6 +7,7 @@ import type {
   ShopListingDocument,
 } from '../src/platform/marketplace.database';
 import type { ConsumerPrincipal, ShopPrincipal } from '../src/platform/marketplace.types';
+import type { PhotoStorage } from '../src/platform/photo-storage';
 import type { PushClient } from '../src/platform/push.client';
 import type { ShopServicesClient } from '../src/platform/shop-services.client';
 import type { TenantDirectoryClient } from '../src/platform/tenant-directory.client';
@@ -122,7 +123,7 @@ function createSubject(options: { pending?: [number, number]; addressKm?: number
   const push = {
     send: jest.fn().mockResolvedValue(undefined),
   } as unknown as jest.Mocked<PushClient>;
-  const service = new RequestService(database, addressService, tenantDirectory, shopServices, push);
+  const service = new RequestService(database, addressService, tenantDirectory, shopServices, push, { isEnabled: () => false } as unknown as PhotoStorage);
   return { service, created, shopServices, push };
 }
 

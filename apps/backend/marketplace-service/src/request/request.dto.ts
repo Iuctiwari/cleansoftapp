@@ -3,6 +3,7 @@ import { Type } from 'class-transformer';
 import {
   ArrayMaxSize,
   ArrayMinSize,
+  IsArray,
   IsIn,
   IsInt,
   IsISO8601,
@@ -154,6 +155,13 @@ export class CollectRequestDto {
   @Type(() => RequestItemDto)
   items!: RequestItemDto[];
 
+  @ApiPropertyOptional({ description: 'Photo keys from photo-upload-urls, already uploaded', type: [String] })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(6)
+  @IsString({ each: true })
+  photoKeys?: string[];
+
   @ApiPropertyOptional({ description: 'Custom delivery date YYYY-MM-DD; omit to use the automatic date' })
   @IsOptional()
   @Matches(/^d{4}-d{2}-d{2}$/, { message: 'deliveryDate must be YYYY-MM-DD' })
@@ -164,6 +172,14 @@ export class CollectRequestDto {
   @IsString()
   @MaxLength(300)
   note?: string;
+}
+
+export class PhotoUploadDto {
+  @ApiProperty({ minimum: 1, maximum: 6 })
+  @IsInt()
+  @Min(1)
+  @Max(6)
+  count!: number;
 }
 
 export class EstimateQueryDto {

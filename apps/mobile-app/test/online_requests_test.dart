@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:nexoraa_mobile/app/router.dart';
 import 'package:nexoraa_mobile/core/localization/l10n.dart';
 import 'package:nexoraa_mobile/core/push/push_platform.dart';
@@ -351,6 +352,52 @@ void main() {
     expect(result?.items.single.name, 'Shirts');
     expect(result?.items.single.quantity, 12);
     expect(result?.customDeliveryDate, isNull);
+  });
+
+  testWidgets('collect dialog: photos are taken, shown and can be removed', (WidgetTester tester) async {
+    CollectResult? result;
+    await tester.pumpWidget(
+      _page(
+        Builder(
+          builder: (BuildContext context) => TextButton(
+            onPressed: () async {
+              result = await showDialog<CollectResult>(
+                context: context,
+                builder: (_) => CollectPickupDialog(
+                  initialItems: const <RequestItem>[RequestItem(name: 'Shirts', quantity: 2)],
+                  estimate: (int quantity) async => '2030-01-10',
+                  takePhoto: () async => XFile.fromData(base64Decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='), mimeType: 'image/jpeg'),
+                ),
+              );
+            },
+            child: const Text('open'),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+
+    await tester.runAsync(() async {
+      await tester.tap(find.byKey(const Key('collect.photo.add')));
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+    });
+    await tester.pump();
+    expect(find.byKey(const Key('collect.photo.remove.0')), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('collect.photo.remove.0')));
+    await tester.pump();
+    expect(find.byKey(const Key('collect.photo.remove.0')), findsNothing);
+
+    await tester.runAsync(() async {
+      await tester.tap(find.byKey(const Key('collect.photo.add')));
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+    });
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('collect.confirm')));
+    await tester.pumpAndSettle();
+    expect(result?.photos.length, 1);
+    expect(result?.items.single.name, 'Shirts');
   });
 
   testWidgets('request detail: decline needs a reason', (WidgetTester tester) async {

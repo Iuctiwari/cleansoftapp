@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:nexoraa_mobile/core/localization/l10n.dart';
 import 'package:nexoraa_mobile/design_system/design_system.dart';
 import 'package:nexoraa_mobile/features/consumer/models/consumer_models.dart';
@@ -8,9 +10,12 @@ import 'package:nexoraa_mobile/features/consumer/widgets/consumer_ui.dart';
 
 /// What the worker recorded at the customer's door.
 class CollectResult {
-  const CollectResult({required this.items, this.customDeliveryDate});
+  const CollectResult({required this.items, this.photos = const <Uint8List>[], this.customDeliveryDate});
 
   final List<RequestItem> items;
+
+  /// JPEG bytes of the photos taken at the door (may be empty).
+  final List<Uint8List> photos;
 
   /// YYYY-MM-DD, only when the worker chose their own date; null = automatic.
   final String? customDeliveryDate;
@@ -19,12 +24,15 @@ class CollectResult {
 /// The worker lists what was collected; the delivery date follows from the
 /// count (automatic) unless they pick another day.
 class CollectPickupDialog extends StatefulWidget {
-  const CollectPickupDialog({required this.initialItems, required this.estimate, super.key});
+  const CollectPickupDialog({required this.initialItems, required this.estimate, this.takePhoto, super.key});
 
   final List<RequestItem> initialItems;
 
   /// Asks the server for the automatic delivery date (YYYY-MM-DD) for a quantity.
   final Future<String> Function(int quantity) estimate;
+
+  /// Opens the camera; tests pass a fake. Null = the phone's camera.
+  final Future<XFile?> Function()? takePhoto;
 
   @override
   State<CollectPickupDialog> createState() => _CollectPickupDialogState();
@@ -50,6 +58,7 @@ class _CollectPickupDialogState extends State<CollectPickupDialog> {
   late final List<_ItemRow> _rows = widget.initialItems.isEmpty
       ? <_ItemRow>[_ItemRow('', null)]
       : widget.initialItems.map((RequestItem i) => _ItemRow(i.name, i.quantity)).toList();
+  final List<Uint8List> _photos = <Uint8List>[];
   String? _autoDate;
   String? _customDate;
   bool _needItem = false;
@@ -92,6 +101,21 @@ class _CollectPickupDialogState extends State<CollectPickupDialog> {
     });
   }
 
+  Future<void> _addPhoto() async {
+    try {
+      final XFile? shot =
+          await (widget.takePhoto ?? () => ImagePicker().pickImage(source: ImageSource.camera, maxWidth: 1600, imageQuality: 70))();
+      if (shot == null) return;
+      final Uint8List bytes = await shot.readAsBytes();
+      if (!mounted) return;
+      setState(() {
+        _photos.add(bytes);
+      });
+    } on Object {
+      // Camera unavailable or permission refused: the pickup can still be recorded without photos.
+    }
+  }
+
   String _show(BuildContext context, String yyyyMmDd) {
     final DateTime? day = DateTime.tryParse(yyyyMmDd);
     return day == null ? yyyyMmDd : context.formatDay(day);
@@ -127,7 +151,7 @@ class _CollectPickupDialogState extends State<CollectPickupDialog> {
       });
       return;
     }
-    Navigator.of(context).pop(CollectResult(items: items, customDeliveryDate: _customDate));
+    Navigator.of(context).pop(CollectResult(items: items, photos: List<Uint8List>.of(_photos), customDeliveryDate: _customDate));
   }
 
   @override
@@ -187,6 +211,45 @@ class _CollectPickupDialogState extends State<CollectPickupDialog> {
               ),
               if (_needItem)
                 Text(context.l10n.pickupNeedItem, style: AppTextStyles.caption.copyWith(color: AppColors.errorText)),
+              const Divider(),
+              Text(context.l10n.pickupPhotosHeading, style: AppTextStyles.inputLabel),
+              const SizedBox(height: AppSpacing.xs),
+              Wrap(
+                spacing: AppSpacing.sm,
+                runSpacing: AppSpacing.sm,
+                children: <Widget>[
+                  for (int i = 0; i < _photos.length; i++)
+                    Stack(
+                      children: <Widget>[
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.memory(_photos[i], width: 64, height: 64, fit: BoxFit.cover),
+                        ),
+                        Positioned(
+                          right: 0,
+                          top: 0,
+                          child: InkWell(
+                            key: Key('collect.photo.remove.$i'),
+                            onTap: () {
+                              setState(() {
+                                _photos.removeAt(i);
+                              });
+                            },
+                            child: const CircleAvatar(radius: 10, backgroundColor: Colors.black54, child: Icon(Icons.close, size: 12, color: Colors.white)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  if (_photos.length < 6)
+                    OutlinedButton.icon(
+                      key: const Key('collect.photo.add'),
+                      onPressed: _addPhoto,
+                      icon: const Icon(Icons.photo_camera_outlined, size: 18),
+                      label: Text(context.l10n.pickupTakePhoto),
+                    ),
+                ],
+              ),
+              Text(context.l10n.pickupPhotoLimit, style: AppTextStyles.caption),
               const Divider(),
               Text(context.l10n.pickupDeliveryDate, style: AppTextStyles.inputLabel),
               const SizedBox(height: AppSpacing.xs),

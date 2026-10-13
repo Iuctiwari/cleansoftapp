@@ -10,6 +10,7 @@ import {
   ShopAuthenticationMiddleware,
 } from './platform/auth.middleware';
 import { MarketplaceDatabase } from './platform/marketplace.database';
+import { PhotoStorage } from './platform/photo-storage';
 import { PushClient } from './platform/push.client';
 import { ShopServicesClient } from './platform/shop-services.client';
 import { TenantDirectoryClient } from './platform/tenant-directory.client';
@@ -33,6 +34,7 @@ import { RequestService } from './request/request.service';
     RequestService,
     ShopServicesClient,
     PushClient,
+    PhotoStorage,
     ConsumerAuthenticationMiddleware,
     ShopAuthenticationMiddleware,
   ],

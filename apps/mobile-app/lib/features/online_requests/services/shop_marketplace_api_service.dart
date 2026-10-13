@@ -12,6 +12,13 @@ import 'package:nexoraa_mobile/features/online_requests/models/shop_marketplace_
 
 /// The shop's side of marketplace-service: its listing and online requests.
 /// Uses the shop login; every call is scoped to [branchId] via x-branch-id.
+class PhotoSlot {
+  const PhotoSlot({required this.key, required this.uploadUrl});
+
+  final String key;
+  final String uploadUrl;
+}
+
 class ShopMarketplaceApiService {
   ShopMarketplaceApiService({
     required AuthTokenStorage tokenStorage,
@@ -91,11 +98,42 @@ class ShopMarketplaceApiService {
     return json['deliveryDate'] as String? ?? '';
   }
 
+  /// Signed links to upload [count] pickup photos to.
+  Future<List<PhotoSlot>> photoUploadSlots(String requestId, {required int count}) async {
+    final Map<String, dynamic> json = _map(
+      await _send('POST', 'v1/shop/requests/$requestId/photo-upload-urls', body: <String, Object>{'count': count}),
+    );
+    return (json['slots'] as List<dynamic>? ?? const <dynamic>[])
+        .whereType<Map<String, dynamic>>()
+        .map((Map<String, dynamic> s) => PhotoSlot(key: s['key'] as String? ?? '', uploadUrl: s['uploadUrl'] as String? ?? ''))
+        .toList(growable: false);
+  }
+
+  /// Sends one photo straight to S3 (the link already carries the permission).
+  Future<void> uploadPhoto(PhotoSlot slot, List<int> bytes) async {
+    final http.Response response;
+    try {
+      response = await _client
+          .put(Uri.parse(slot.uploadUrl), headers: <String, String>{HttpHeaders.contentTypeHeader: 'image/jpeg'}, body: bytes)
+          .timeout(const Duration(seconds: 60));
+    } on TimeoutException {
+      throw const ConsumerApiException('network', 'The photo upload timed out. Please try again.');
+    } on SocketException {
+      throw const ConsumerApiException('network', 'Unable to reach the server. Check your internet connection.');
+    } on http.ClientException {
+      throw const ConsumerApiException('network', 'Unable to reach the server. Check your internet connection.');
+    }
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw ConsumerApiException('http.${response.statusCode}', 'A photo could not be uploaded. Please try again.', statusCode: response.statusCode);
+    }
+  }
+
   Future<ShopRequest> collect(
     String requestId, {
     required List<RequestItem> items,
     String? deliveryDate,
     String? note,
+    List<String> photoKeys = const <String>[],
   }) async => ShopRequest.fromJson(
     _map(
       await _send(
@@ -104,6 +142,7 @@ class ShopMarketplaceApiService {
         body: <String, Object>{
           'items': items.map((RequestItem i) => <String, Object>{'name': i.name, 'quantity': i.quantity}).toList(),
           if (deliveryDate != null) 'deliveryDate': deliveryDate,
+          if (photoKeys.isNotEmpty) 'photoKeys': photoKeys,
           if (note != null && note.trim().isNotEmpty) 'note': note.trim(),
         },
       ),

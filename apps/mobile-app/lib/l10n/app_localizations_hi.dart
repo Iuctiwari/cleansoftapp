@@ -1533,4 +1533,19 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get pickupCollectedItems => 'लिए गए आइटम';
+
+  @override
+  String get pickupPhotosHeading => 'पिकअप की फ़ोटो';
+
+  @override
+  String get pickupTakePhoto => 'फ़ोटो लें';
+
+  @override
+  String get pickupPhotoLimit => 'अधिकतम 6 फ़ोटो';
+
+  @override
+  String get pickupUploading => 'फ़ोटो अपलोड हो रही हैं…';
+
+  @override
+  String get pickupPhotosTitle => 'पिकअप के समय ली गई फ़ोटो';
 }

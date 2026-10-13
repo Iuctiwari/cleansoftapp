@@ -543,6 +543,7 @@ class ServiceRequest {
     this.pickupWorkerName,
     this.collectedAt,
     this.collectedItems = const <RequestItem>[],
+    this.collectedPhotos = const <String>[],
     this.deliveryDate,
     this.deliveryDateIsCustom = false,
   });
@@ -588,6 +589,7 @@ class ServiceRequest {
           .whereType<Map<String, dynamic>>()
           .map(RequestItem.fromJson)
           .toList(growable: false),
+      collectedPhotos: (json['collectedPhotos'] as List<dynamic>? ?? const <dynamic>[]).whereType<String>().toList(growable: false),
       deliveryDate: json['deliveryDate'] as String?,
       deliveryDateIsCustom: json['deliveryDateIsCustom'] as bool? ?? false,
       canCancel: json['canCancel'] as bool? ?? false,
@@ -626,6 +628,9 @@ class ServiceRequest {
   final String? pickupWorkerName;
   final DateTime? collectedAt;
   final List<RequestItem> collectedItems;
+
+  /// Temporary links to the photos the worker took at pickup.
+  final List<String> collectedPhotos;
 
   /// YYYY-MM-DD: when the clothes come back (set when the worker collects).
   final String? deliveryDate;

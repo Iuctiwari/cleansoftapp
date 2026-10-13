@@ -6,6 +6,7 @@ import 'package:nexoraa_mobile/features/authentication/access_policy.dart';
 import 'package:nexoraa_mobile/features/authentication/authentication_dependencies.dart';
 import 'package:nexoraa_mobile/features/consumer/models/consumer_models.dart';
 import 'package:nexoraa_mobile/features/consumer/widgets/consumer_ui.dart';
+import 'package:nexoraa_mobile/features/consumer/widgets/pickup_photos.dart';
 import 'package:nexoraa_mobile/features/customers/controllers/customer_controller.dart';
 import 'package:nexoraa_mobile/features/customers/models/customer.dart';
 import 'package:nexoraa_mobile/features/customers/services/customer_api_service.dart';
@@ -265,10 +266,23 @@ class _ShopRequestDetailScreenState extends State<ShopRequestDetailScreen> {
       ),
     );
     if (result == null || !mounted) return;
-    await _act(
-      () => _api.collect(request.requestId, items: result.items, deliveryDate: result.customDeliveryDate),
-      context.l10n.pickupCollectedToast,
-    );
+    await _act(() async {
+      // Photos go straight to S3 first; the order is only marked collected once they are all up.
+      final List<String> keys = <String>[];
+      if (result.photos.isNotEmpty) {
+        final List<PhotoSlot> slots = await _api.photoUploadSlots(request.requestId, count: result.photos.length);
+        for (int i = 0; i < slots.length; i++) {
+          await _api.uploadPhoto(slots[i], result.photos[i]);
+          keys.add(slots[i].key);
+        }
+      }
+      return _api.collect(
+        request.requestId,
+        items: result.items,
+        deliveryDate: result.customDeliveryDate,
+        photoKeys: keys,
+      );
+    }, context.l10n.pickupCollectedToast);
   }
 
   Future<void> _decline(ShopRequest request) async {
@@ -573,6 +587,10 @@ class _ShopRequestDetailScreenState extends State<ShopRequestDetailScreen> {
                 Text(context.l10n.pickupCollectedItems, style: AppTextStyles.labelBold),
                 for (final RequestItem item in r.collectedItems)
                   Text('• ${item.name} × ${item.quantity}', style: AppTextStyles.bodySmall),
+              ],
+              if (r.collectedPhotos.isNotEmpty) ...<Widget>[
+                const SizedBox(height: AppSpacing.md),
+                PickupPhotos(urls: r.collectedPhotos),
               ],
               if (r.shopNote != null) ...<Widget>[
                 const Divider(),

@@ -1529,4 +1529,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get pickupCollectedItems => 'Collected items';
+
+  @override
+  String get pickupPhotosHeading => 'Photos at pickup';
+
+  @override
+  String get pickupTakePhoto => 'Take photo';
+
+  @override
+  String get pickupPhotoLimit => 'Up to 6 photos';
+
+  @override
+  String get pickupUploading => 'Uploading photos…';
+
+  @override
+  String get pickupPhotosTitle => 'Photos taken at pickup';
 }

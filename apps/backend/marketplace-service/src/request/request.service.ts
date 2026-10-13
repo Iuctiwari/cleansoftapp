@@ -26,6 +26,8 @@ import {
   type ShopPrincipal,
 } from '../platform/marketplace.types';
 import { suggestDelivery, type DeliveryEstimate } from './delivery';
+import type { PhotoUploadSlot } from '../platform/photo-storage';
+import { MAX_PICKUP_PHOTOS, PhotoStorage } from '../platform/photo-storage';
 import { PushClient } from '../platform/push.client';
 import { ShopServicesClient } from '../platform/shop-services.client';
 import { TenantDirectoryClient } from '../platform/tenant-directory.client';
@@ -123,6 +125,8 @@ export interface CustomerRequestView {
   readonly pickupWorkerName?: string;
   readonly collectedAt?: string;
   readonly collectedItems?: readonly { readonly name: string; readonly quantity: number }[];
+  /** Temporary links to the photos the worker took at pickup. */
+  readonly collectedPhotos?: readonly string[];
   /** YYYY-MM-DD: when the clothes come back. */
   readonly deliveryDate?: string;
   readonly deliveryDateIsCustom?: boolean;
@@ -181,6 +185,7 @@ export class RequestService {
     private readonly tenantDirectory: TenantDirectoryClient,
     private readonly shopServices: ShopServicesClient,
     private readonly push: PushClient,
+    private readonly photos: PhotoStorage,
   ) {}
 
   // ── Customer side ─────────────────────────────────────────────────────────
@@ -332,7 +337,8 @@ export class RequestService {
     requestId: string,
   ): Promise<CustomerRequestView> {
     await this.expireDue({ consumerId: consumer.consumerId, requestId });
-    return this.toCustomerView(await this.findOne({ consumerId: consumer.consumerId, requestId }));
+    const request = await this.findOne({ consumerId: consumer.consumerId, requestId });
+    return this.withPhotos(this.toCustomerView(request), request);
   }
 
   async cancel(
@@ -403,7 +409,8 @@ export class RequestService {
   async getForShop(shop: ShopPrincipal, requestId: string): Promise<ShopRequestView> {
     this.assertCanRead(shop);
     await this.expireDue({ branchId: shop.branchId, requestId });
-    return this.toShopView(await this.findOne(this.shopFilter(shop, requestId)), shop);
+    const request = await this.findOne(this.shopFilter(shop, requestId));
+    return this.withPhotos(this.toShopView(request, shop), request);
   }
 
   async accept(
@@ -613,6 +620,14 @@ export class RequestService {
       deliveryDate = (await this.estimate(current, totalQuantity, now)).deliveryDate;
     }
 
+    const photoKeys = [...new Set(input.photoKeys ?? [])];
+    if (
+      photoKeys.length > MAX_PICKUP_PHOTOS ||
+      photoKeys.some((key) => !this.photos.isKeyFor(key, current.tenantId, current.requestId))
+    ) {
+      throw new BadRequestException('One of the photos does not belong to this request');
+    }
+
     const note = input.note?.trim();
     const updated = await this.transition(
       { ...scope, status: 'Accepted', collected: { $exists: false } },
@@ -629,6 +644,7 @@ export class RequestService {
           totalQuantity,
           byUserId: shop.actorId,
           ...(note ? { note } : {}),
+          ...(photoKeys.length ? { photos: photoKeys } : {}),
         },
         deliveryDate,
         deliveryDateIsCustom: custom,
@@ -636,10 +652,48 @@ export class RequestService {
     );
     if (!updated) throw new ConflictException('This pickup is already collected');
     this.notifyCustomer(updated, 'collected');
-    return this.toShopView(updated, shop);
+    return this.withPhotos(this.toShopView(updated, shop), updated);
+  }
+
+  /** Signed links the phone uses to upload pickup photos, before it calls collect. */
+  async photoUploadSlots(
+    shop: ShopPrincipal,
+    requestId: string,
+    count: number,
+  ): Promise<{ slots: PhotoUploadSlot[] }> {
+    this.assertCanRead(shop);
+    const current = await this.findOne(this.shopFilter(shop, requestId));
+    const mayCollect =
+      current.status === 'Accepted' &&
+      !current.collected &&
+      current.requestType !== 'visit_shop' &&
+      !!current.pickupWorker &&
+      (this.canManage(shop) || current.pickupWorker.userId === shop.actorId);
+    if (!mayCollect) throw new ConflictException('Photos can only be added while collecting a pickup');
+    if (count < 1 || count > MAX_PICKUP_PHOTOS) {
+      throw new BadRequestException(`Add between 1 and ${MAX_PICKUP_PHOTOS} photos`);
+    }
+    return { slots: await this.photos.createUploadSlots(current.tenantId, current.requestId, count) };
   }
 
   // ── helpers ───────────────────────────────────────────────────────────────
+
+  /** Adds temporary photo links to a request detail (never to lists). */
+  private async withPhotos<T extends { readonly collectedPhotos?: readonly string[] }>(
+    view: T,
+    request: ServiceRequestDocument,
+  ): Promise<T> {
+    const keys = request.collected?.photos ?? [];
+    if (!keys.length) return view;
+    try {
+      const urls = (await Promise.all(keys.map((key) => this.photos.viewUrl(key)))).filter(
+        (url): url is string => !!url,
+      );
+      return { ...view, collectedPhotos: urls };
+    } catch {
+      return view;
+    }
+  }
 
   private async estimate(
     request: ServiceRequestDocument,

@@ -9,6 +9,7 @@ import 'package:nexoraa_mobile/design_system/design_system.dart';
 import 'package:nexoraa_mobile/features/consumer/consumer_dependencies.dart';
 import 'package:nexoraa_mobile/features/consumer/models/consumer_models.dart';
 import 'package:nexoraa_mobile/features/consumer/widgets/consumer_ui.dart';
+import 'package:nexoraa_mobile/features/consumer/widgets/pickup_photos.dart';
 
 /// One of the customer's requests: status, shop reply, history, cancel.
 class RequestDetailScreen extends StatefulWidget {
@@ -211,6 +212,11 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
             null,
             AppColors.primary,
             AppColors.primarySurface,
+          ),
+        if (request.collectedPhotos.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(bottom: AppSpacing.md),
+            child: PickupPhotos(urls: request.collectedPhotos),
           ),
         if (request.shopNote != null) box(context.l10n.consumerShopMessage, request.shopNote, AppColors.primary, AppColors.primarySurface),
         if (request.orderNumber != null)

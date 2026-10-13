@@ -689,5 +689,10 @@
   "pickupCollectedToast": "Pickup recorded. The customer has been told the delivery date.",
   "pickupDeliveryOn": "Delivery on {date}",
   "@pickupDeliveryOn": {"placeholders": {"date": {"type": "String"}}},
-  "pickupCollectedItems": "Collected items"
+  "pickupCollectedItems": "Collected items",
+  "pickupPhotosHeading": "Photos at pickup",
+  "pickupTakePhoto": "Take photo",
+  "pickupPhotoLimit": "Up to 6 photos",
+  "pickupUploading": "Uploading photos…",
+  "pickupPhotosTitle": "Photos taken at pickup"
 }

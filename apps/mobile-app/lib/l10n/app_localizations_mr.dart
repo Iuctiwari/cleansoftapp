@@ -1528,4 +1528,19 @@ class AppLocalizationsMr extends AppLocalizations {
 
   @override
   String get pickupCollectedItems => 'घेतलेल्या वस्तू';
+
+  @override
+  String get pickupPhotosHeading => 'पिकअपचे फोटो';
+
+  @override
+  String get pickupTakePhoto => 'फोटो घ्या';
+
+  @override
+  String get pickupPhotoLimit => 'जास्तीत जास्त 6 फोटो';
+
+  @override
+  String get pickupUploading => 'फोटो अपलोड होत आहेत…';
+
+  @override
+  String get pickupPhotosTitle => 'पिकअपच्या वेळी घेतलेले फोटो';
 }

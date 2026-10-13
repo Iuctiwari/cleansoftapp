@@ -5,6 +5,7 @@ import type {
   ServiceRequestDocument,
 } from '../src/platform/marketplace.database';
 import type { ShopPrincipal } from '../src/platform/marketplace.types';
+import type { PhotoStorage } from '../src/platform/photo-storage';
 import type { PushClient } from '../src/platform/push.client';
 import type { ShopServicesClient } from '../src/platform/shop-services.client';
 import type { TenantDirectoryClient } from '../src/platform/tenant-directory.client';
@@ -66,6 +67,7 @@ function createSubject(
     {} as TenantDirectoryClient,
     { linkOnlineCustomer: jest.fn() } as unknown as ShopServicesClient,
     push,
+    { isEnabled: () => false } as unknown as PhotoStorage,
   );
   return { service, push };
 }

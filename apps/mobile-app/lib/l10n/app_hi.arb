@@ -451,5 +451,10 @@
   "pickupBackToAuto": "अपने-आप वाली तारीख लें",
   "pickupCollectedToast": "पिकअप दर्ज हुआ। ग्राहक को डिलीवरी की तारीख बता दी गई है।",
   "pickupDeliveryOn": "{date} को डिलीवरी",
-  "pickupCollectedItems": "लिए गए आइटम"
+  "pickupCollectedItems": "लिए गए आइटम",
+  "pickupPhotosHeading": "पिकअप की फ़ोटो",
+  "pickupTakePhoto": "फ़ोटो लें",
+  "pickupPhotoLimit": "अधिकतम 6 फ़ोटो",
+  "pickupUploading": "फ़ोटो अपलोड हो रही हैं…",
+  "pickupPhotosTitle": "पिकअप के समय ली गई फ़ोटो"
 }

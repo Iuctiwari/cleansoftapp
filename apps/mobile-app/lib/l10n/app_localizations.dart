@@ -2805,6 +2805,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Collected items'**
   String get pickupCollectedItems;
+
+  /// No description provided for @pickupPhotosHeading.
+  ///
+  /// In en, this message translates to:
+  /// **'Photos at pickup'**
+  String get pickupPhotosHeading;
+
+  /// No description provided for @pickupTakePhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Take photo'**
+  String get pickupTakePhoto;
+
+  /// No description provided for @pickupPhotoLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'Up to 6 photos'**
+  String get pickupPhotoLimit;
+
+  /// No description provided for @pickupUploading.
+  ///
+  /// In en, this message translates to:
+  /// **'Uploading photos…'**
+  String get pickupUploading;
+
+  /// No description provided for @pickupPhotosTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Photos taken at pickup'**
+  String get pickupPhotosTitle;
 }
 
 class _AppLocalizationsDelegate

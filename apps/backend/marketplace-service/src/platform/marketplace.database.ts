@@ -233,6 +233,8 @@ export interface ServiceRequestDocument {
     readonly totalQuantity: number;
     readonly byUserId: string;
     readonly note?: string;
+    /** S3 keys of the photos the worker took at the door. */
+    readonly photos?: readonly string[];
   };
   /** YYYY-MM-DD, India date: when the clothes come back. */
   readonly deliveryDate?: string;
