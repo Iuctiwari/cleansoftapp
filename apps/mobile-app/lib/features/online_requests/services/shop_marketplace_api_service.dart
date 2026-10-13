@@ -130,7 +130,7 @@ class ShopMarketplaceApiService {
 
   Future<ShopRequest> collect(
     String requestId, {
-    required List<RequestItem> items,
+    int? totalItems,
     String? deliveryDate,
     String? note,
     List<String> photoKeys = const <String>[],
@@ -140,7 +140,7 @@ class ShopMarketplaceApiService {
         'POST',
         'v1/shop/requests/$requestId/collect',
         body: <String, Object>{
-          'items': items.map((RequestItem i) => <String, Object>{'name': i.name, 'quantity': i.quantity}).toList(),
+          if (totalItems != null) 'totalItems': totalItems,
           if (deliveryDate != null) 'deliveryDate': deliveryDate,
           if (photoKeys.isNotEmpty) 'photoKeys': photoKeys,
           if (note != null && note.trim().isNotEmpty) 'note': note.trim(),

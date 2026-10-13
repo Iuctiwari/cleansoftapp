@@ -457,5 +457,8 @@
   "pickupPhotoLimit": "जास्तीत जास्त 6 फोटो",
   "pickupUploading": "फोटो अपलोड होत आहेत…",
   "pickupPhotosTitle": "पिकअपच्या वेळी घेतलेले फोटो",
-  "shopListingModesHint": "प्रत्येक पर्याय चालू/बंद करण्यासाठी टॅप करा. तुम्ही हे कधीही बदलून पुन्हा सेव्ह करू शकता."
+  "shopListingModesHint": "प्रत्येक पर्याय चालू/बंद करण्यासाठी टॅप करा. तुम्ही हे कधीही बदलून पुन्हा सेव्ह करू शकता.",
+  "pickupTotalItems": "एकूण वस्तू (ऐच्छिक)",
+  "pickupTotalItemsLine": "एकूण वस्तू: {count}",
+  "pickupCollectAndCreate": "घेतले, ऑर्डर तयार करा"
 }

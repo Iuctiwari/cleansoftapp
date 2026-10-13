@@ -125,6 +125,8 @@ export interface CustomerRequestView {
   readonly pickupWorkerName?: string;
   readonly collectedAt?: string;
   readonly collectedItems?: readonly { readonly name: string; readonly quantity: number }[];
+  /** Total number of items the worker counted at pickup, when they gave one. */
+  readonly collectedTotal?: number;
   /** Temporary links to the photos the worker took at pickup. */
   readonly collectedPhotos?: readonly string[];
   /** YYYY-MM-DD: when the clothes come back. */
@@ -602,8 +604,13 @@ export class RequestService {
     }
     if (current.collected) throw new ConflictException('This pickup is already collected');
 
-    const items = input.items.map((item) => ({ name: item.name.trim(), quantity: item.quantity }));
-    const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
+    const items = (input.items ?? []).map((item) => ({
+      name: item.name.trim(),
+      quantity: item.quantity,
+    }));
+    // The worker may give just a total, an itemised list, or nothing at all.
+    const totalQuantity =
+      input.totalItems ?? items.reduce((sum, item) => sum + item.quantity, 0);
     const now = new Date();
     let deliveryDate: string;
     const custom = Boolean(input.deliveryDate);
@@ -617,7 +624,7 @@ export class RequestService {
       }
       deliveryDate = input.deliveryDate;
     } else {
-      deliveryDate = (await this.estimate(current, totalQuantity, now)).deliveryDate;
+      deliveryDate = (await this.estimate(current, Math.max(1, totalQuantity), now)).deliveryDate;
     }
 
     const photoKeys = [...new Set(input.photoKeys ?? [])];
@@ -635,7 +642,7 @@ export class RequestService {
       {
         by: 'shop',
         actorId: shop.actorId,
-        note: `Collected ${totalQuantity} item${totalQuantity === 1 ? '' : 's'}; delivery on ${deliveryDate}${note ? `. ${note}` : ''}`,
+        note: `Collected${totalQuantity > 0 ? ` ${totalQuantity} item${totalQuantity === 1 ? '' : 's'}` : ''}; delivery on ${deliveryDate}${note ? `. ${note}` : ''}`,
       },
       {
         collected: {
@@ -968,6 +975,7 @@ export class RequestService {
       pickupWorkerName: request.pickupWorker?.name,
       collectedAt: request.collected?.at,
       collectedItems: request.collected?.items,
+      collectedTotal: request.collected?.totalQuantity || undefined,
       deliveryDate: request.deliveryDate,
       deliveryDateIsCustom: request.deliveryDateIsCustom,
       expiresAt: request.status === 'Pending' ? request.expiresAt : undefined,

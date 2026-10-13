@@ -308,75 +308,65 @@ void main() {
     expect(find.byKey(const Key('request.accept')), findsNothing);
   });
 
-  testWidgets('collect dialog: lists items, shows the automatic date, allows a custom one', (WidgetTester tester) async {
+  Widget _collectHost(void Function(CollectResult?) onResult, {int? initialTotal, List<int>? asked}) => _page(
+    Builder(
+      builder: (BuildContext context) => TextButton(
+        onPressed: () async {
+          onResult(
+            await showDialog<CollectResult>(
+              context: context,
+              builder: (_) => CollectPickupDialog(
+                initialTotal: initialTotal,
+                estimate: (int quantity) async {
+                  asked?.add(quantity);
+                  return '2030-01-10';
+                },
+                takePhoto: () async => XFile.fromData(base64Decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='), mimeType: 'image/jpeg'),
+              ),
+            ),
+          );
+        },
+        child: const Text('open'),
+      ),
+    ),
+  );
+
+  testWidgets('collect dialog: the total is optional and the date is automatic', (WidgetTester tester) async {
     final List<int> asked = <int>[];
     CollectResult? result;
-    await tester.pumpWidget(
-      _page(
-        Builder(
-          builder: (BuildContext context) => TextButton(
-            onPressed: () async {
-              result = await showDialog<CollectResult>(
-                context: context,
-                builder: (_) => CollectPickupDialog(
-                  initialItems: const <RequestItem>[],
-                  estimate: (int quantity) async {
-                    asked.add(quantity);
-                    return '2030-01-10';
-                  },
-                ),
-              );
-            },
-            child: const Text('open'),
-          ),
-        ),
-      ),
-    );
+    await tester.pumpWidget(_collectHost((CollectResult? r) => result = r, asked: asked));
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
 
-    // Nothing entered yet: confirming is refused.
+    // Nothing entered: it still works, and the date is worked out for one batch.
+    expect(find.textContaining('Automatic:'), findsOneWidget);
+    expect(asked, <int>[1]);
     await tester.tap(find.byKey(const Key('collect.confirm')));
     await tester.pumpAndSettle();
-    expect(find.text('Add at least one item with a quantity'), findsOneWidget);
+    expect(result, isNotNull);
+    expect(result?.totalItems, isNull);
+    expect(result?.photos, isEmpty);
+    expect(result?.customDeliveryDate, isNull);
 
-    await tester.enterText(find.byKey(const Key('collect.name.0')), 'Shirts');
-    await tester.enterText(find.byKey(const Key('collect.qty.0')), '12');
+    // With a count the date is asked again for that count.
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('collect.total')), '30');
     await tester.pump(const Duration(milliseconds: 500));
     await tester.pumpAndSettle();
-    expect(asked, <int>[12]);
-    expect(find.textContaining('Automatic:'), findsOneWidget);
-
+    expect(asked.last, 30);
     await tester.tap(find.byKey(const Key('collect.confirm')));
     await tester.pumpAndSettle();
-    expect(result?.items.single.name, 'Shirts');
-    expect(result?.items.single.quantity, 12);
-    expect(result?.customDeliveryDate, isNull);
+    expect(result?.totalItems, 30);
   });
 
-  testWidgets('collect dialog: photos are taken, shown and can be removed', (WidgetTester tester) async {
+  testWidgets('collect dialog: starts from what the customer wrote, photos can be added and removed', (WidgetTester tester) async {
+    final List<int> asked = <int>[];
     CollectResult? result;
-    await tester.pumpWidget(
-      _page(
-        Builder(
-          builder: (BuildContext context) => TextButton(
-            onPressed: () async {
-              result = await showDialog<CollectResult>(
-                context: context,
-                builder: (_) => CollectPickupDialog(
-                  initialItems: const <RequestItem>[RequestItem(name: 'Shirts', quantity: 2)],
-                  estimate: (int quantity) async => '2030-01-10',
-                  takePhoto: () async => XFile.fromData(base64Decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='), mimeType: 'image/jpeg'),
-                ),
-              );
-            },
-            child: const Text('open'),
-          ),
-        ),
-      ),
-    );
+    await tester.pumpWidget(_collectHost((CollectResult? r) => result = r, initialTotal: 4, asked: asked));
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
+    expect(asked, <int>[4]);
 
     await tester.runAsync(() async {
       await tester.tap(find.byKey(const Key('collect.photo.add')));
@@ -397,7 +387,7 @@ void main() {
     await tester.tap(find.byKey(const Key('collect.confirm')));
     await tester.pumpAndSettle();
     expect(result?.photos.length, 1);
-    expect(result?.items.single.name, 'Shirts');
+    expect(result?.totalItems, 4);
   });
 
   testWidgets('request detail: decline needs a reason', (WidgetTester tester) async {

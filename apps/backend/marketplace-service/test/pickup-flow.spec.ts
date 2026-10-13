@@ -146,6 +146,16 @@ describe('pickup flow', () => {
     );
   });
 
+  it('collects with just a total, or with nothing at all', async () => {
+    const accepted = doc({ status: 'Accepted', pickupWorker: { userId: 'worker-1', name: 'Ravi' } });
+    const withTotal = await subject(accepted).service.collect(worker, 'r1', { totalItems: 30 });
+    expect(withTotal.collectedTotal).toBe(30);
+    expect(withTotal.deliveryDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    const bare = await subject(accepted).service.collect(worker, 'r1', {});
+    expect(bare.collectedTotal).toBeUndefined();
+    expect(bare.deliveryDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+
   it('accepts a custom delivery date but refuses one in the past', async () => {
     const accepted = doc({ status: 'Accepted', pickupWorker: { userId: 'worker-1', name: 'Ravi' } });
     const { service } = subject(accepted);

@@ -213,6 +213,8 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
             AppColors.primary,
             AppColors.primarySurface,
           ),
+        if (request.collectedTotal != null)
+          box(context.l10n.pickupTotalItemsLine(request.collectedTotal!), null, AppColors.primary, AppColors.primarySurface),
         if (request.collectedPhotos.isNotEmpty)
           Padding(
             padding: const EdgeInsets.only(bottom: AppSpacing.md),

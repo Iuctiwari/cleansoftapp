@@ -695,5 +695,9 @@
   "pickupPhotoLimit": "Up to 6 photos",
   "pickupUploading": "Uploading photos…",
   "pickupPhotosTitle": "Photos taken at pickup",
-  "shopListingModesHint": "Tap to switch each one on or off. You can change this any time and save again."
+  "shopListingModesHint": "Tap to switch each one on or off. You can change this any time and save again.",
+  "pickupTotalItems": "Total items (optional)",
+  "pickupTotalItemsLine": "Total items: {count}",
+  "@pickupTotalItemsLine": {"placeholders": {"count": {"type": "int"}}},
+  "pickupCollectAndCreate": "Collected, create order"
 }

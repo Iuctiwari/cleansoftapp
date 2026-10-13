@@ -1548,4 +1548,15 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get shopListingModesHint =>
       'Tap to switch each one on or off. You can change this any time and save again.';
+
+  @override
+  String get pickupTotalItems => 'Total items (optional)';
+
+  @override
+  String pickupTotalItemsLine(int count) {
+    return 'Total items: $count';
+  }
+
+  @override
+  String get pickupCollectAndCreate => 'Collected, create order';
 }

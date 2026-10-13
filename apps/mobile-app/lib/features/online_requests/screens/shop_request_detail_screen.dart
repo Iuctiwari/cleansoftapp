@@ -261,7 +261,9 @@ class _ShopRequestDetailScreenState extends State<ShopRequestDetailScreen> {
     final CollectResult? result = await showDialog<CollectResult>(
       context: context,
       builder: (BuildContext dialogContext) => CollectPickupDialog(
-        initialItems: request.base.items,
+        initialTotal: request.base.items.isEmpty
+            ? null
+            : request.base.items.fold<int>(0, (int sum, RequestItem i) => sum + i.quantity),
         estimate: (int quantity) => _api.estimateDelivery(request.requestId, quantity: quantity),
       ),
     );
@@ -278,11 +280,16 @@ class _ShopRequestDetailScreenState extends State<ShopRequestDetailScreen> {
       }
       return _api.collect(
         request.requestId,
-        items: result.items,
+        totalItems: result.totalItems,
         deliveryDate: result.customDeliveryDate,
         photoKeys: keys,
       );
     }, context.l10n.pickupCollectedToast);
+    // The worker is at the door: carry straight on to creating the order.
+    final ShopRequest? after = _request;
+    if (mounted && after != null && after.base.collectedAt != null && after.canLinkOrder) {
+      await _createOrder(after);
+    }
   }
 
   Future<void> _decline(ShopRequest request) async {
@@ -319,7 +326,8 @@ class _ShopRequestDetailScreenState extends State<ShopRequestDetailScreen> {
   /// Opens the normal New Order screen with this customer already chosen,
   /// then links the created order to the request.
   Future<void> _createOrder(ShopRequest request) async {
-    if (!_policy.allows(AppCapability.ordersCreate)) {
+    final bool mayCreate = _policy.allows(AppCapability.ordersCreate) || request.pickupWorkerId != null;
+    if (!mayCreate) {
       await AppAlertDialog.show(
         context,
         title: context.l10n.onlineRequestCreateOrder,
@@ -582,11 +590,9 @@ class _ShopRequestDetailScreenState extends State<ShopRequestDetailScreen> {
                 for (final RequestItem item in r.items)
                   Text('• ${item.name} × ${item.quantity}', style: AppTextStyles.bodySmall),
               ],
-              if (r.collectedItems.isNotEmpty) ...<Widget>[
+              if (r.collectedTotal != null) ...<Widget>[
                 const SizedBox(height: AppSpacing.md),
-                Text(context.l10n.pickupCollectedItems, style: AppTextStyles.labelBold),
-                for (final RequestItem item in r.collectedItems)
-                  Text('• ${item.name} × ${item.quantity}', style: AppTextStyles.bodySmall),
+                Text(context.l10n.pickupTotalItemsLine(r.collectedTotal!), style: AppTextStyles.labelBold),
               ],
               if (r.collectedPhotos.isNotEmpty) ...<Widget>[
                 const SizedBox(height: AppSpacing.md),

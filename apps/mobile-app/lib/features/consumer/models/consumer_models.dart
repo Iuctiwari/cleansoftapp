@@ -544,6 +544,7 @@ class ServiceRequest {
     this.collectedAt,
     this.collectedItems = const <RequestItem>[],
     this.collectedPhotos = const <String>[],
+    this.collectedTotal,
     this.deliveryDate,
     this.deliveryDateIsCustom = false,
   });
@@ -590,6 +591,7 @@ class ServiceRequest {
           .map(RequestItem.fromJson)
           .toList(growable: false),
       collectedPhotos: (json['collectedPhotos'] as List<dynamic>? ?? const <dynamic>[]).whereType<String>().toList(growable: false),
+      collectedTotal: (json['collectedTotal'] as num?)?.toInt(),
       deliveryDate: json['deliveryDate'] as String?,
       deliveryDateIsCustom: json['deliveryDateIsCustom'] as bool? ?? false,
       canCancel: json['canCancel'] as bool? ?? false,
@@ -631,6 +633,9 @@ class ServiceRequest {
 
   /// Temporary links to the photos the worker took at pickup.
   final List<String> collectedPhotos;
+
+  /// How many items the worker counted at pickup, when they said.
+  final int? collectedTotal;
 
   /// YYYY-MM-DD: when the clothes come back (set when the worker collects).
   final String? deliveryDate;

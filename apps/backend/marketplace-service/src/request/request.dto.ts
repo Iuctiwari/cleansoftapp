@@ -148,12 +148,19 @@ export class AssignWorkerDto {
 }
 
 export class CollectRequestDto {
-  @ApiProperty({ type: [RequestItemDto], description: 'What was actually collected' })
-  @ArrayMinSize(1)
+  @ApiPropertyOptional({ minimum: 1, maximum: 9999, description: 'Total number of items collected (optional)' })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(9999)
+  totalItems?: number;
+
+  @ApiPropertyOptional({ type: [RequestItemDto], description: 'Optional itemised list (older apps)' })
+  @IsOptional()
   @ArrayMaxSize(50)
   @ValidateNested({ each: true })
   @Type(() => RequestItemDto)
-  items!: RequestItemDto[];
+  items?: RequestItemDto[];
 
   @ApiPropertyOptional({ description: 'Photo keys from photo-upload-urls, already uploaded', type: [String] })
   @IsOptional()

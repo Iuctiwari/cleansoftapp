@@ -2841,6 +2841,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Tap to switch each one on or off. You can change this any time and save again.'**
   String get shopListingModesHint;
+
+  /// No description provided for @pickupTotalItems.
+  ///
+  /// In en, this message translates to:
+  /// **'Total items (optional)'**
+  String get pickupTotalItems;
+
+  /// No description provided for @pickupTotalItemsLine.
+  ///
+  /// In en, this message translates to:
+  /// **'Total items: {count}'**
+  String pickupTotalItemsLine(int count);
+
+  /// No description provided for @pickupCollectAndCreate.
+  ///
+  /// In en, this message translates to:
+  /// **'Collected, create order'**
+  String get pickupCollectAndCreate;
 }
 
 class _AppLocalizationsDelegate

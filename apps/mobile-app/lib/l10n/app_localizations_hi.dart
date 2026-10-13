@@ -1552,4 +1552,15 @@ class AppLocalizationsHi extends AppLocalizations {
   @override
   String get shopListingModesHint =>
       'हर विकल्प को चालू/बंद करने के लिए टैप करें। आप इसे कभी भी बदलकर फिर से सेव कर सकते हैं।';
+
+  @override
+  String get pickupTotalItems => 'कुल आइटम (वैकल्पिक)';
+
+  @override
+  String pickupTotalItemsLine(int count) {
+    return 'कुल आइटम: $count';
+  }
+
+  @override
+  String get pickupCollectAndCreate => 'ले लिया, ऑर्डर बनाएं';
 }

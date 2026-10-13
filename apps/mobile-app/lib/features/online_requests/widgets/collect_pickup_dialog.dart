@@ -5,14 +5,14 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:nexoraa_mobile/core/localization/l10n.dart';
 import 'package:nexoraa_mobile/design_system/design_system.dart';
-import 'package:nexoraa_mobile/features/consumer/models/consumer_models.dart';
 import 'package:nexoraa_mobile/features/consumer/widgets/consumer_ui.dart';
 
 /// What the worker recorded at the customer's door.
 class CollectResult {
-  const CollectResult({required this.items, this.photos = const <Uint8List>[], this.customDeliveryDate});
+  const CollectResult({this.totalItems, this.photos = const <Uint8List>[], this.customDeliveryDate});
 
-  final List<RequestItem> items;
+  /// Number of items counted at pickup; null when the worker left it blank.
+  final int? totalItems;
 
   /// JPEG bytes of the photos taken at the door (may be empty).
   final List<Uint8List> photos;
@@ -21,12 +21,13 @@ class CollectResult {
   final String? customDeliveryDate;
 }
 
-/// The worker lists what was collected; the delivery date follows from the
-/// count (automatic) unless they pick another day.
+/// Photos of what was handed over, an optional total item count, and the delivery
+/// date (automatic from the count, unless the worker picks another day).
 class CollectPickupDialog extends StatefulWidget {
-  const CollectPickupDialog({required this.initialItems, required this.estimate, this.takePhoto, super.key});
+  const CollectPickupDialog({required this.estimate, this.initialTotal, this.takePhoto, super.key});
 
-  final List<RequestItem> initialItems;
+  /// The count the customer wrote when booking, offered as a starting point.
+  final int? initialTotal;
 
   /// Asks the server for the automatic delivery date (YYYY-MM-DD) for a quantity.
   final Future<String> Function(int quantity) estimate;
@@ -38,58 +39,43 @@ class CollectPickupDialog extends StatefulWidget {
   State<CollectPickupDialog> createState() => _CollectPickupDialogState();
 }
 
-class _ItemRow {
-  _ItemRow(String name, int? quantity)
-    : name = TextEditingController(text: name),
-      quantity = TextEditingController(text: quantity == null ? '' : '$quantity');
-
-  final TextEditingController name;
-  final TextEditingController quantity;
-
-  int get qty => int.tryParse(quantity.text.trim()) ?? 0;
-
-  void dispose() {
-    name.dispose();
-    quantity.dispose();
-  }
-}
-
 class _CollectPickupDialogState extends State<CollectPickupDialog> {
-  late final List<_ItemRow> _rows = widget.initialItems.isEmpty
-      ? <_ItemRow>[_ItemRow('', null)]
-      : widget.initialItems.map((RequestItem i) => _ItemRow(i.name, i.quantity)).toList();
+  late final TextEditingController _total = TextEditingController(
+    text: widget.initialTotal == null ? '' : '${widget.initialTotal}',
+  );
   final List<Uint8List> _photos = <Uint8List>[];
   String? _autoDate;
   String? _customDate;
-  bool _needItem = false;
   Timer? _debounce;
   int _asked = -1;
 
   @override
   void initState() {
     super.initState();
-    _scheduleEstimate();
+    _scheduleEstimate(immediate: true);
   }
 
   @override
   void dispose() {
     _debounce?.cancel();
-    for (final _ItemRow row in _rows) {
-      row.dispose();
-    }
+    _total.dispose();
     super.dispose();
   }
 
-  int get _total => _rows.fold<int>(0, (int sum, _ItemRow r) => sum + r.qty);
+  int? get _count {
+    final int? value = int.tryParse(_total.text.trim());
+    return value != null && value > 0 ? value : null;
+  }
 
-  void _scheduleEstimate() {
+  void _scheduleEstimate({bool immediate = false}) {
     _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 400), () async {
-      final int total = _total;
-      if (total < 1 || total == _asked) return;
-      _asked = total;
+    _debounce = Timer(immediate ? Duration.zero : const Duration(milliseconds: 400), () async {
+      // Without a count the server assumes one batch, which is the shortest turnaround.
+      final int quantity = _count ?? 1;
+      if (quantity == _asked) return;
+      _asked = quantity;
       try {
-        final String date = await widget.estimate(total);
+        final String date = await widget.estimate(quantity);
         if (mounted && date.isNotEmpty) {
           setState(() {
             _autoDate = date;
@@ -139,21 +125,6 @@ class _CollectPickupDialogState extends State<CollectPickupDialog> {
     });
   }
 
-  void _submit() {
-    final List<RequestItem> items = <RequestItem>[
-      for (final _ItemRow row in _rows)
-        if (row.name.text.trim().isNotEmpty && row.qty > 0)
-          RequestItem(name: row.name.text.trim(), quantity: row.qty),
-    ];
-    if (items.isEmpty) {
-      setState(() {
-        _needItem = true;
-      });
-      return;
-    }
-    Navigator.of(context).pop(CollectResult(items: items, photos: List<Uint8List>.of(_photos), customDeliveryDate: _customDate));
-  }
-
   @override
   Widget build(BuildContext context) {
     final String? shown = _customDate ?? _autoDate;
@@ -166,52 +137,6 @@ class _CollectPickupDialogState extends State<CollectPickupDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              Text(context.l10n.pickupItemsHeading, style: AppTextStyles.inputLabel),
-              const SizedBox(height: AppSpacing.sm),
-              for (int i = 0; i < _rows.length; i++)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                  child: Row(
-                    children: <Widget>[
-                      Expanded(
-                        flex: 3,
-                        child: TextField(
-                          key: Key('collect.name.$i'),
-                          controller: _rows[i].name,
-                          textCapitalization: TextCapitalization.sentences,
-                          decoration: InputDecoration(hintText: context.l10n.pickupItemName, isDense: true),
-                        ),
-                      ),
-                      const SizedBox(width: AppSpacing.sm),
-                      Expanded(
-                        child: TextField(
-                          key: Key('collect.qty.$i'),
-                          controller: _rows[i].quantity,
-                          keyboardType: TextInputType.number,
-                          decoration: InputDecoration(hintText: context.l10n.pickupItemQty, isDense: true),
-                          onChanged: (_) {
-                            setState(() {
-                              _needItem = false;
-                            });
-                            _scheduleEstimate();
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              TextButton.icon(
-                onPressed: () {
-                  setState(() {
-                    _rows.add(_ItemRow('', null));
-                  });
-                },
-                icon: const Icon(Icons.add, size: 18),
-                label: Text(context.l10n.pickupAddItem),
-              ),
-              if (_needItem)
-                Text(context.l10n.pickupNeedItem, style: AppTextStyles.caption.copyWith(color: AppColors.errorText)),
-              const Divider(),
               Text(context.l10n.pickupPhotosHeading, style: AppTextStyles.inputLabel),
               const SizedBox(height: AppSpacing.xs),
               Wrap(
@@ -235,7 +160,11 @@ class _CollectPickupDialogState extends State<CollectPickupDialog> {
                                 _photos.removeAt(i);
                               });
                             },
-                            child: const CircleAvatar(radius: 10, backgroundColor: Colors.black54, child: Icon(Icons.close, size: 12, color: Colors.white)),
+                            child: const CircleAvatar(
+                              radius: 10,
+                              backgroundColor: Colors.black54,
+                              child: Icon(Icons.close, size: 12, color: Colors.white),
+                            ),
                           ),
                         ),
                       ],
@@ -250,7 +179,18 @@ class _CollectPickupDialogState extends State<CollectPickupDialog> {
                 ],
               ),
               Text(context.l10n.pickupPhotoLimit, style: AppTextStyles.caption),
-              const Divider(),
+              const SizedBox(height: AppSpacing.lg),
+              TextField(
+                key: const Key('collect.total'),
+                controller: _total,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(labelText: context.l10n.pickupTotalItems, isDense: true),
+                onChanged: (_) {
+                  setState(() {});
+                  _scheduleEstimate();
+                },
+              ),
+              const Divider(height: AppSpacing.xl),
               Text(context.l10n.pickupDeliveryDate, style: AppTextStyles.inputLabel),
               const SizedBox(height: AppSpacing.xs),
               Text(
@@ -292,8 +232,10 @@ class _CollectPickupDialogState extends State<CollectPickupDialog> {
         ),
         FilledButton(
           key: const Key('collect.confirm'),
-          onPressed: _submit,
-          child: Text(context.l10n.pickupCollectAction),
+          onPressed: () => Navigator.of(context).pop(
+            CollectResult(totalItems: _count, photos: List<Uint8List>.of(_photos), customDeliveryDate: _customDate),
+          ),
+          child: Text(context.l10n.pickupCollectAndCreate),
         ),
       ],
     );
