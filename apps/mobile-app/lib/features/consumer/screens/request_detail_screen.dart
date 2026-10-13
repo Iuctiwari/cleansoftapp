@@ -201,6 +201,17 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
             AppColors.successDark,
             AppColors.successSurface,
           ),
+        if (request.deliveryDate != null)
+          box(
+            context.l10n.pickupDeliveryOn(
+              DateTime.tryParse(request.deliveryDate!) == null
+                  ? request.deliveryDate!
+                  : context.formatDay(DateTime.parse(request.deliveryDate!)),
+            ),
+            null,
+            AppColors.primary,
+            AppColors.primarySurface,
+          ),
         if (request.shopNote != null) box(context.l10n.consumerShopMessage, request.shopNote, AppColors.primary, AppColors.primarySurface),
         if (request.orderNumber != null)
           box(context.l10n.consumerOrderCreated(request.orderNumber!), null, AppColors.primary, AppColors.primarySurface),

@@ -540,6 +540,11 @@ class ServiceRequest {
     this.cancelReason,
     this.orderNumber,
     this.expiresAt,
+    this.pickupWorkerName,
+    this.collectedAt,
+    this.collectedItems = const <RequestItem>[],
+    this.deliveryDate,
+    this.deliveryDateIsCustom = false,
   });
 
   factory ServiceRequest.fromJson(Map<String, dynamic> json) {
@@ -577,6 +582,14 @@ class ServiceRequest {
       cancelReason: json['cancelReason'] as String?,
       orderNumber: json['orderNumber'] as String?,
       expiresAt: date('expiresAt'),
+      pickupWorkerName: json['pickupWorkerName'] as String?,
+      collectedAt: date('collectedAt'),
+      collectedItems: (json['collectedItems'] as List<dynamic>? ?? const <dynamic>[])
+          .whereType<Map<String, dynamic>>()
+          .map(RequestItem.fromJson)
+          .toList(growable: false),
+      deliveryDate: json['deliveryDate'] as String?,
+      deliveryDateIsCustom: json['deliveryDateIsCustom'] as bool? ?? false,
       canCancel: json['canCancel'] as bool? ?? false,
       history: (json['history'] as List<dynamic>? ?? const <dynamic>[])
           .whereType<Map<String, dynamic>>()
@@ -610,6 +623,13 @@ class ServiceRequest {
   final String? cancelReason;
   final String? orderNumber;
   final DateTime? expiresAt;
+  final String? pickupWorkerName;
+  final DateTime? collectedAt;
+  final List<RequestItem> collectedItems;
+
+  /// YYYY-MM-DD: when the clothes come back (set when the worker collects).
+  final String? deliveryDate;
+  final bool deliveryDateIsCustom;
   final bool canCancel;
   final List<RequestHistoryEntry> history;
   final DateTime createdAt;

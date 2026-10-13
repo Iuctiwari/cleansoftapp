@@ -187,6 +187,9 @@ class ShopRequest {
     required this.canDecline,
     required this.canLinkOrder,
     required this.canComplete,
+    this.canAssignWorker = false,
+    this.canCollect = false,
+    this.pickupWorkerId,
     this.shopCustomerId,
     this.distanceKm,
     this.addressContactName,
@@ -223,6 +226,9 @@ class ShopRequest {
       canDecline: actions['decline'] as bool? ?? false,
       canLinkOrder: actions['linkOrder'] as bool? ?? false,
       canComplete: actions['complete'] as bool? ?? false,
+      canAssignWorker: actions['assignWorker'] as bool? ?? false,
+      canCollect: actions['collect'] as bool? ?? false,
+      pickupWorkerId: (json['pickupWorker'] as Map<String, dynamic>?)?['userId'] as String?,
     );
   }
 
@@ -242,6 +248,9 @@ class ShopRequest {
   final bool canDecline;
   final bool canLinkOrder;
   final bool canComplete;
+  final bool canAssignWorker;
+  final bool canCollect;
+  final String? pickupWorkerId;
 
   String get requestId => base.requestId;
   RequestStatus get status => base.status;

@@ -11,6 +11,7 @@ class TextPromptDialog extends StatefulWidget {
     required this.confirmLabel,
     required this.cancelLabel,
     this.header,
+    this.initialText = '',
     this.minLength = 0,
     this.tooShortMessage,
     this.destructive = false,
@@ -26,6 +27,9 @@ class TextPromptDialog extends StatefulWidget {
 
   /// Extra content above the text box (e.g. a date/time picker).
   final Widget? header;
+
+  /// Text already in the box when the dialog opens (e.g. when it is shown again).
+  final String initialText;
   final int minLength;
   final String? tooShortMessage;
   final bool destructive;
@@ -37,7 +41,7 @@ class TextPromptDialog extends StatefulWidget {
 }
 
 class _TextPromptDialogState extends State<TextPromptDialog> {
-  final TextEditingController _text = TextEditingController();
+  late final TextEditingController _text = TextEditingController(text: widget.initialText);
   final GlobalKey<FormState> _form = GlobalKey<FormState>();
 
   @override

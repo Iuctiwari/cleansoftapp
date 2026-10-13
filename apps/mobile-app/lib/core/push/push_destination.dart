@@ -29,6 +29,7 @@ const Set<String> _customerRequestTypes = <String>{
   'request_accepted',
   'request_declined',
   'request_completed',
+  'request_collected',
   'request_update',
 };
 
@@ -51,7 +52,7 @@ PushDestination destinationFor(PushPayload payload) {
   }
 
   // To a shop: a new online request for one of its branches.
-  if (type == 'online_request') {
+  if (type == 'online_request' || type == 'pickup_assigned') {
     final String? branchId = data['branchId'];
     return PushDestination(
       AppRouteNames.onlineRequests,

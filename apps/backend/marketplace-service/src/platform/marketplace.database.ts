@@ -224,6 +224,19 @@ export interface ServiceRequestDocument {
   readonly shopCustomerId?: string;
   readonly orderId?: string;
   readonly orderNumber?: string;
+  /** The worker the owner/manager sent to collect the order. */
+  readonly pickupWorker?: { readonly userId: string; readonly name: string };
+  /** Filled in by that worker at the customer's door. */
+  readonly collected?: {
+    readonly at: string;
+    readonly items: readonly { readonly name: string; readonly quantity: number }[];
+    readonly totalQuantity: number;
+    readonly byUserId: string;
+    readonly note?: string;
+  };
+  /** YYYY-MM-DD, India date: when the clothes come back. */
+  readonly deliveryDate?: string;
+  readonly deliveryDateIsCustom?: boolean;
   readonly expiresAt: string;
   readonly statusHistory: readonly RequestHistoryEntry[];
   readonly createdAt: string;
@@ -255,6 +268,10 @@ const serviceRequestSchema = new Schema<ServiceRequestDocument>(
     shopCustomerId: { type: String },
     orderId: { type: String },
     orderNumber: { type: String },
+    pickupWorker: { type: Schema.Types.Mixed },
+    collected: { type: Schema.Types.Mixed },
+    deliveryDate: { type: String },
+    deliveryDateIsCustom: { type: Boolean },
     expiresAt: { type: String, required: true },
     statusHistory: { type: [Schema.Types.Mixed], default: [] },
     createdAt: { type: String, required: true },
@@ -265,6 +282,7 @@ const serviceRequestSchema = new Schema<ServiceRequestDocument>(
 serviceRequestSchema.index({ consumerId: 1, createdAt: -1 });
 serviceRequestSchema.index({ branchId: 1, status: 1, createdAt: -1 });
 serviceRequestSchema.index({ status: 1, expiresAt: 1 });
+serviceRequestSchema.index({ branchId: 1, 'pickupWorker.userId': 1, status: 1 });
 // An order can settle only one request.
 serviceRequestSchema.index(
   { orderId: 1 },

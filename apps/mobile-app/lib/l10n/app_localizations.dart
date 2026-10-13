@@ -2685,6 +2685,126 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Ask the owner or a manager to create the order.'**
   String get onlineRequestStaffCannotCreate;
+
+  /// No description provided for @pickupWorkerLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Who will go and collect it?'**
+  String get pickupWorkerLabel;
+
+  /// No description provided for @pickupChooseWorker.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a worker'**
+  String get pickupChooseWorker;
+
+  /// No description provided for @pickupNoWorkers.
+  ///
+  /// In en, this message translates to:
+  /// **'No workers found for this branch. Add a worker in Staff first.'**
+  String get pickupNoWorkers;
+
+  /// No description provided for @pickupWorkerRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose the worker who will collect'**
+  String get pickupWorkerRequired;
+
+  /// No description provided for @pickupChangeWorker.
+  ///
+  /// In en, this message translates to:
+  /// **'Change worker'**
+  String get pickupChangeWorker;
+
+  /// No description provided for @pickupBy.
+  ///
+  /// In en, this message translates to:
+  /// **'Pickup by {name}'**
+  String pickupBy(String name);
+
+  /// No description provided for @pickupCollectTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Record the pickup'**
+  String get pickupCollectTitle;
+
+  /// No description provided for @pickupCollectAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Collected'**
+  String get pickupCollectAction;
+
+  /// No description provided for @pickupItemsHeading.
+  ///
+  /// In en, this message translates to:
+  /// **'What did you collect?'**
+  String get pickupItemsHeading;
+
+  /// No description provided for @pickupItemName.
+  ///
+  /// In en, this message translates to:
+  /// **'Item (e.g. Shirt)'**
+  String get pickupItemName;
+
+  /// No description provided for @pickupItemQty.
+  ///
+  /// In en, this message translates to:
+  /// **'Qty'**
+  String get pickupItemQty;
+
+  /// No description provided for @pickupAddItem.
+  ///
+  /// In en, this message translates to:
+  /// **'Add item'**
+  String get pickupAddItem;
+
+  /// No description provided for @pickupNeedItem.
+  ///
+  /// In en, this message translates to:
+  /// **'Add at least one item with a quantity'**
+  String get pickupNeedItem;
+
+  /// No description provided for @pickupDeliveryDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Delivery date'**
+  String get pickupDeliveryDate;
+
+  /// No description provided for @pickupAutoDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic: {date}'**
+  String pickupAutoDate(String date);
+
+  /// No description provided for @pickupCustomDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick another date'**
+  String get pickupCustomDate;
+
+  /// No description provided for @pickupBackToAuto.
+  ///
+  /// In en, this message translates to:
+  /// **'Use the automatic date'**
+  String get pickupBackToAuto;
+
+  /// No description provided for @pickupCollectedToast.
+  ///
+  /// In en, this message translates to:
+  /// **'Pickup recorded. The customer has been told the delivery date.'**
+  String get pickupCollectedToast;
+
+  /// No description provided for @pickupDeliveryOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Delivery on {date}'**
+  String pickupDeliveryOn(String date);
+
+  /// No description provided for @pickupCollectedItems.
+  ///
+  /// In en, this message translates to:
+  /// **'Collected items'**
+  String get pickupCollectedItems;
 }
 
 class _AppLocalizationsDelegate

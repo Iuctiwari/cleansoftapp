@@ -1461,4 +1461,72 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get onlineRequestStaffCannotCreate =>
       'Ask the owner or a manager to create the order.';
+
+  @override
+  String get pickupWorkerLabel => 'Who will go and collect it?';
+
+  @override
+  String get pickupChooseWorker => 'Choose a worker';
+
+  @override
+  String get pickupNoWorkers =>
+      'No workers found for this branch. Add a worker in Staff first.';
+
+  @override
+  String get pickupWorkerRequired => 'Choose the worker who will collect';
+
+  @override
+  String get pickupChangeWorker => 'Change worker';
+
+  @override
+  String pickupBy(String name) {
+    return 'Pickup by $name';
+  }
+
+  @override
+  String get pickupCollectTitle => 'Record the pickup';
+
+  @override
+  String get pickupCollectAction => 'Collected';
+
+  @override
+  String get pickupItemsHeading => 'What did you collect?';
+
+  @override
+  String get pickupItemName => 'Item (e.g. Shirt)';
+
+  @override
+  String get pickupItemQty => 'Qty';
+
+  @override
+  String get pickupAddItem => 'Add item';
+
+  @override
+  String get pickupNeedItem => 'Add at least one item with a quantity';
+
+  @override
+  String get pickupDeliveryDate => 'Delivery date';
+
+  @override
+  String pickupAutoDate(String date) {
+    return 'Automatic: $date';
+  }
+
+  @override
+  String get pickupCustomDate => 'Pick another date';
+
+  @override
+  String get pickupBackToAuto => 'Use the automatic date';
+
+  @override
+  String get pickupCollectedToast =>
+      'Pickup recorded. The customer has been told the delivery date.';
+
+  @override
+  String pickupDeliveryOn(String date) {
+    return 'Delivery on $date';
+  }
+
+  @override
+  String get pickupCollectedItems => 'Collected items';
 }

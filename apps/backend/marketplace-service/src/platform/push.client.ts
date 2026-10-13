@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 
 export type PushTarget =
   | { readonly consumerId: string }
+  | { readonly userId: string }
   | { readonly tenantId: string; readonly branchId: string };
 
 /**

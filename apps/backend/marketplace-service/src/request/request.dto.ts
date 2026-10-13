@@ -2,6 +2,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   ArrayMaxSize,
+  ArrayMinSize,
   IsIn,
   IsInt,
   IsISO8601,
@@ -117,6 +118,61 @@ export class AcceptRequestDto {
   @IsString()
   @MaxLength(300)
   note?: string;
+
+  @ApiPropertyOptional({ description: 'The worker who will go and collect (required for pickup and home service)' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  workerId?: string;
+
+  @ApiPropertyOptional({ maxLength: 120 })
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  workerName?: string;
+}
+
+export class AssignWorkerDto {
+  @ApiProperty()
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(64)
+  workerId!: string;
+
+  @ApiProperty({ maxLength: 120 })
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(120)
+  workerName!: string;
+}
+
+export class CollectRequestDto {
+  @ApiProperty({ type: [RequestItemDto], description: 'What was actually collected' })
+  @ArrayMinSize(1)
+  @ArrayMaxSize(50)
+  @ValidateNested({ each: true })
+  @Type(() => RequestItemDto)
+  items!: RequestItemDto[];
+
+  @ApiPropertyOptional({ description: 'Custom delivery date YYYY-MM-DD; omit to use the automatic date' })
+  @IsOptional()
+  @Matches(/^d{4}-d{2}-d{2}$/, { message: 'deliveryDate must be YYYY-MM-DD' })
+  deliveryDate?: string;
+
+  @ApiPropertyOptional({ maxLength: 300 })
+  @IsOptional()
+  @IsString()
+  @MaxLength(300)
+  note?: string;
+}
+
+export class EstimateQueryDto {
+  @ApiProperty({ minimum: 1, maximum: 9999 })
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(9999)
+  quantity!: number;
 }
 
 export class DeclineRequestDto {

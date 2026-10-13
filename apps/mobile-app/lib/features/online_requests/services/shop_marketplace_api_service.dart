@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:http/http.dart' as http;
+import 'package:nexoraa_mobile/features/consumer/models/consumer_models.dart';
 import 'package:nexoraa_mobile/features/authentication/authentication_models.dart';
 import 'package:nexoraa_mobile/features/authentication/services/auth_token_storage.dart';
 import 'package:nexoraa_mobile/features/consumer/consumer_dependencies.dart';
@@ -50,13 +51,59 @@ class ShopMarketplaceApiService {
   Future<ShopRequest> getRequest(String requestId) async =>
       ShopRequest.fromJson(_map(await _send('GET', 'v1/shop/requests/$requestId')));
 
-  Future<ShopRequest> accept(String requestId, {DateTime? confirmedAt, String? note}) async => ShopRequest.fromJson(
+  Future<ShopRequest> accept(
+    String requestId, {
+    DateTime? confirmedAt,
+    String? note,
+    String? workerId,
+    String? workerName,
+  }) async => ShopRequest.fromJson(
     _map(
       await _send(
         'POST',
         'v1/shop/requests/$requestId/accept',
         body: <String, Object>{
           if (confirmedAt != null) 'confirmedAt': confirmedAt.toUtc().toIso8601String(),
+          if (note != null && note.trim().isNotEmpty) 'note': note.trim(),
+          if (workerId != null) 'workerId': workerId,
+          if (workerName != null) 'workerName': workerName,
+        },
+      ),
+    ),
+  );
+
+  Future<ShopRequest> assignWorker(String requestId, {required String workerId, required String workerName}) async =>
+      ShopRequest.fromJson(
+        _map(
+          await _send(
+            'POST',
+            'v1/shop/requests/$requestId/assign-worker',
+            body: <String, Object>{'workerId': workerId, 'workerName': workerName},
+          ),
+        ),
+      );
+
+  /// The automatic delivery date (YYYY-MM-DD) for this many items.
+  Future<String> estimateDelivery(String requestId, {required int quantity}) async {
+    final Map<String, dynamic> json = _map(
+      await _send('GET', 'v1/shop/requests/$requestId/delivery-estimate', query: <String, String>{'quantity': '$quantity'}),
+    );
+    return json['deliveryDate'] as String? ?? '';
+  }
+
+  Future<ShopRequest> collect(
+    String requestId, {
+    required List<RequestItem> items,
+    String? deliveryDate,
+    String? note,
+  }) async => ShopRequest.fromJson(
+    _map(
+      await _send(
+        'POST',
+        'v1/shop/requests/$requestId/collect',
+        body: <String, Object>{
+          'items': items.map((RequestItem i) => <String, Object>{'name': i.name, 'quantity': i.quantity}).toList(),
+          if (deliveryDate != null) 'deliveryDate': deliveryDate,
           if (note != null && note.trim().isNotEmpty) 'note': note.trim(),
         },
       ),

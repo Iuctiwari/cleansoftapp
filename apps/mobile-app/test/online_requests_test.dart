@@ -14,11 +14,14 @@ import 'package:nexoraa_mobile/features/authentication/authentication_models.dar
 import 'package:nexoraa_mobile/features/authentication/controllers/authentication_controller.dart';
 import 'package:nexoraa_mobile/features/authentication/services/auth_token_storage.dart';
 import 'package:nexoraa_mobile/features/authentication/services/authentication_service.dart';
+import 'package:nexoraa_mobile/features/consumer/models/consumer_models.dart';
 import 'package:nexoraa_mobile/features/online_requests/screens/shop_listing_screen.dart';
 import 'package:nexoraa_mobile/features/online_requests/screens/shop_request_detail_screen.dart';
 import 'package:nexoraa_mobile/features/online_requests/services/shop_marketplace_api_service.dart';
 import 'package:nexoraa_mobile/features/online_requests/widgets/online_requests_card.dart';
+import 'package:nexoraa_mobile/features/online_requests/widgets/collect_pickup_dialog.dart';
 import 'package:nexoraa_mobile/features/online_requests/widgets/shop_ui.dart';
+import 'package:nexoraa_mobile/features/staff/services/staff_api_service.dart';
 
 AuthenticationSession _session(String role, List<String> permissions) => AuthenticationSession(
   accessToken: 'shop-token',
@@ -254,10 +257,21 @@ void main() {
     expect(find.byKey(const Key('listing.save')), findsNothing);
   });
 
-  testWidgets('request detail: accept with a note, then create-order becomes available', (WidgetTester tester) async {
+  testWidgets('request detail: accept with a worker and a note, then create-order becomes available', (WidgetTester tester) async {
     final AuthTokenStorage storage = await _signInAs('Owner', const <String>[]);
     final _Backend backend = _Backend();
-    await tester.pumpWidget(_page(ShopRequestDetailScreen(requestId: 'req-1', branch: _branch, service: backend.service(storage))));
+    final StaffApiService staff = StaffApiService(
+      baseUrl: 'http://test',
+      tokenStorage: storage,
+      client: MockClient((http.Request request) async {
+        final List<Map<String, Object>> people = <Map<String, Object>>[
+          <String, Object>{'userId': 'w-1', 'name': 'Ravi Kumar', 'role': 'Staff', 'status': 'Active', 'branchIds': <String>['branch-1']},
+          <String, Object>{'userId': 'm-1', 'name': 'Meena Manager', 'role': 'Branch Manager', 'status': 'Active', 'branchIds': <String>['branch-1']},
+        ];
+        return http.Response(jsonEncode(people), 200);
+      }),
+    );
+    await tester.pumpWidget(_page(ShopRequestDetailScreen(requestId: 'req-1', branch: _branch, service: backend.service(storage), staffService: staff)));
     await tester.pumpAndSettle();
 
     expect(find.text('Riya Sharma'), findsWidgets);
@@ -267,15 +281,76 @@ void main() {
     await tester.tap(find.byKey(const Key('request.accept')));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField).last, 'We will come at 10:30');
+
+    // A pickup needs a worker: confirming without one is refused, and managers are not offered.
+    await tester.tap(find.byKey(const Key('accept.confirm')));
+    await tester.pumpAndSettle();
+    expect(find.text('Choose the worker who will collect'), findsOneWidget);
+    expect(backend.requests.any((http.Request r) => r.url.path.endsWith('/accept')), isFalse);
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('accept.worker')));
+    await tester.pumpAndSettle();
+    expect(find.text('Meena Manager'), findsNothing);
+    await tester.tap(find.text('Ravi Kumar').last);
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('accept.confirm')));
     await tester.pumpAndSettle();
 
     final http.Request accept = backend.requests.lastWhere((http.Request r) => r.url.path.endsWith('/accept'));
     final Map<String, dynamic> body = jsonDecode(accept.body) as Map<String, dynamic>;
     expect(body['note'], 'We will come at 10:30');
+    expect(body['workerId'], 'w-1');
+    expect(body['workerName'], 'Ravi Kumar');
     expect(DateTime.parse(body['confirmedAt'] as String).toLocal().hour, 10);
     expect(find.byKey(const Key('request.createOrder')), findsOneWidget);
     expect(find.byKey(const Key('request.accept')), findsNothing);
+  });
+
+  testWidgets('collect dialog: lists items, shows the automatic date, allows a custom one', (WidgetTester tester) async {
+    final List<int> asked = <int>[];
+    CollectResult? result;
+    await tester.pumpWidget(
+      _page(
+        Builder(
+          builder: (BuildContext context) => TextButton(
+            onPressed: () async {
+              result = await showDialog<CollectResult>(
+                context: context,
+                builder: (_) => CollectPickupDialog(
+                  initialItems: const <RequestItem>[],
+                  estimate: (int quantity) async {
+                    asked.add(quantity);
+                    return '2030-01-10';
+                  },
+                ),
+              );
+            },
+            child: const Text('open'),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+
+    // Nothing entered yet: confirming is refused.
+    await tester.tap(find.byKey(const Key('collect.confirm')));
+    await tester.pumpAndSettle();
+    expect(find.text('Add at least one item with a quantity'), findsOneWidget);
+
+    await tester.enterText(find.byKey(const Key('collect.name.0')), 'Shirts');
+    await tester.enterText(find.byKey(const Key('collect.qty.0')), '12');
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pumpAndSettle();
+    expect(asked, <int>[12]);
+    expect(find.textContaining('Automatic:'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('collect.confirm')));
+    await tester.pumpAndSettle();
+    expect(result?.items.single.name, 'Shirts');
+    expect(result?.items.single.quantity, 12);
+    expect(result?.customDeliveryDate, isNull);
   });
 
   testWidgets('request detail: decline needs a reason', (WidgetTester tester) async {

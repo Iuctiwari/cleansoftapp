@@ -1465,4 +1465,72 @@ class AppLocalizationsHi extends AppLocalizations {
   @override
   String get onlineRequestStaffCannotCreate =>
       'ऑर्डर बनाने के लिए मालिक या मैनेजर से कहें।';
+
+  @override
+  String get pickupWorkerLabel => 'लेने कौन जाएगा?';
+
+  @override
+  String get pickupChooseWorker => 'कर्मचारी चुनें';
+
+  @override
+  String get pickupNoWorkers =>
+      'इस ब्रांच में कोई कर्मचारी नहीं मिला। पहले स्टाफ में जोड़ें।';
+
+  @override
+  String get pickupWorkerRequired => 'लेने जाने वाला कर्मचारी चुनें';
+
+  @override
+  String get pickupChangeWorker => 'कर्मचारी बदलें';
+
+  @override
+  String pickupBy(String name) {
+    return '$name लेने जाएंगे';
+  }
+
+  @override
+  String get pickupCollectTitle => 'पिकअप दर्ज करें';
+
+  @override
+  String get pickupCollectAction => 'ले लिया';
+
+  @override
+  String get pickupItemsHeading => 'आपने क्या लिया?';
+
+  @override
+  String get pickupItemName => 'आइटम (जैसे शर्ट)';
+
+  @override
+  String get pickupItemQty => 'संख्या';
+
+  @override
+  String get pickupAddItem => 'आइटम जोड़ें';
+
+  @override
+  String get pickupNeedItem => 'संख्या के साथ कम से कम एक आइटम जोड़ें';
+
+  @override
+  String get pickupDeliveryDate => 'डिलीवरी की तारीख';
+
+  @override
+  String pickupAutoDate(String date) {
+    return 'अपने-आप: $date';
+  }
+
+  @override
+  String get pickupCustomDate => 'दूसरी तारीख चुनें';
+
+  @override
+  String get pickupBackToAuto => 'अपने-आप वाली तारीख लें';
+
+  @override
+  String get pickupCollectedToast =>
+      'पिकअप दर्ज हुआ। ग्राहक को डिलीवरी की तारीख बता दी गई है।';
+
+  @override
+  String pickupDeliveryOn(String date) {
+    return '$date को डिलीवरी';
+  }
+
+  @override
+  String get pickupCollectedItems => 'लिए गए आइटम';
 }

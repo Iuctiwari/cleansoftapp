@@ -5,13 +5,17 @@ import type { ConsumerPrincipal, ShopPrincipal } from '../platform/marketplace.t
 import { CurrentConsumer, CurrentShop } from '../platform/principal.decorators';
 import {
   AcceptRequestDto,
+  AssignWorkerDto,
   CancelRequestDto,
+  CollectRequestDto,
+  EstimateQueryDto,
   CompleteRequestDto,
   CreateServiceRequestDto,
   DeclineRequestDto,
   LinkOrderDto,
   ListRequestsQueryDto,
 } from './request.dto';
+import type { DeliveryEstimate } from './delivery';
 import {
   RequestService,
   type CustomerRequestView,
@@ -107,6 +111,38 @@ export class ShopRequestController {
     @Body() body: AcceptRequestDto,
   ): Promise<ShopRequestView> {
     return this.requestService.accept(shop, requestId, body);
+  }
+
+  @Post(':requestId/assign-worker')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Owner/manager: send a worker to collect the order' })
+  assignWorker(
+    @CurrentShop() shop: ShopPrincipal,
+    @Param('requestId') requestId: string,
+    @Body() body: AssignWorkerDto,
+  ): Promise<ShopRequestView> {
+    return this.requestService.assignWorker(shop, requestId, body);
+  }
+
+  @Get(':requestId/delivery-estimate')
+  @ApiOperation({ summary: 'Automatic delivery date for this many items' })
+  estimate(
+    @CurrentShop() shop: ShopPrincipal,
+    @Param('requestId') requestId: string,
+    @Query() query: EstimateQueryDto,
+  ): Promise<DeliveryEstimate> {
+    return this.requestService.estimateDelivery(shop, requestId, query.quantity);
+  }
+
+  @Post(':requestId/collect')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Assigned worker: record the pickup and finalise the delivery date' })
+  collect(
+    @CurrentShop() shop: ShopPrincipal,
+    @Param('requestId') requestId: string,
+    @Body() body: CollectRequestDto,
+  ): Promise<ShopRequestView> {
+    return this.requestService.collect(shop, requestId, body);
   }
 
   @Post(':requestId/decline')

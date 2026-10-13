@@ -25,12 +25,15 @@ import {
   type ServiceMode,
   type ShopPrincipal,
 } from '../platform/marketplace.types';
+import { suggestDelivery, type DeliveryEstimate } from './delivery';
 import { PushClient } from '../platform/push.client';
 import { ShopServicesClient } from '../platform/shop-services.client';
 import { TenantDirectoryClient } from '../platform/tenant-directory.client';
 import type {
   AcceptRequestDto,
+  AssignWorkerDto,
   CancelRequestDto,
+  CollectRequestDto,
   CompleteRequestDto,
   CreateServiceRequestDto,
   DeclineRequestDto,
@@ -117,6 +120,12 @@ export interface CustomerRequestView {
   readonly declineReason?: string;
   readonly cancelReason?: string;
   readonly orderNumber?: string;
+  readonly pickupWorkerName?: string;
+  readonly collectedAt?: string;
+  readonly collectedItems?: readonly { readonly name: string; readonly quantity: number }[];
+  /** YYYY-MM-DD: when the clothes come back. */
+  readonly deliveryDate?: string;
+  readonly deliveryDateIsCustom?: boolean;
   /** While Pending: when the request expires if the shop does not answer. */
   readonly expiresAt?: string;
   readonly canCancel: boolean;
@@ -141,11 +150,16 @@ export interface ShopRequestView
   };
   readonly distanceKm?: number;
   readonly orderId?: string;
+  readonly pickupWorker?: { readonly userId: string; readonly name: string };
   readonly actions: {
     readonly accept: boolean;
     readonly decline: boolean;
     readonly linkOrder: boolean;
     readonly complete: boolean;
+    /** Owner/manager can send (or change) the worker who collects. */
+    readonly assignWorker: boolean;
+    /** The assigned worker (or a manager) records the pickup and the delivery date. */
+    readonly collect: boolean;
   };
   readonly history: readonly RequestHistoryEntry[];
 }
@@ -357,8 +371,8 @@ export class RequestService {
   ): Promise<PageOf<ShopRequestView>> {
     this.assertCanRead(shop);
     await this.expireDue({ branchId: shop.branchId });
-    const page = await this.page({ tenantId: shop.tenantId, branchId: shop.branchId }, query);
-    return { ...page, items: page.items.map((request) => this.toShopView(request)) };
+    const page = await this.page(this.branchScope(shop), query);
+    return { ...page, items: page.items.map((request) => this.toShopView(request, shop)) };
   }
 
   /** Counts for the "Online Requests" tab badge. */
@@ -370,7 +384,7 @@ export class RequestService {
         _id: RequestStatus;
         count: number;
       }>([
-        { $match: { tenantId: shop.tenantId, branchId: shop.branchId } },
+        { $match: this.branchScope(shop) },
         { $group: { _id: '$status', count: { $sum: 1 } } },
       ])
       .exec();
@@ -389,7 +403,7 @@ export class RequestService {
   async getForShop(shop: ShopPrincipal, requestId: string): Promise<ShopRequestView> {
     this.assertCanRead(shop);
     await this.expireDue({ branchId: shop.branchId, requestId });
-    return this.toShopView(await this.findOne(this.shopFilter(shop, requestId)));
+    return this.toShopView(await this.findOne(this.shopFilter(shop, requestId)), shop);
   }
 
   async accept(
@@ -397,11 +411,12 @@ export class RequestService {
     requestId: string,
     input: AcceptRequestDto,
   ): Promise<ShopRequestView> {
-    this.assertCanAct(shop);
+    this.assertCanManage(shop);
     const scope = this.shopFilter(shop, requestId);
     await this.expireDue(scope);
     const current = await this.findOne(scope);
 
+    const worker = this.pickWorker(current, input.workerId, input.workerName);
     const confirmedAt = input.confirmedAt
       ? new Date(input.confirmedAt).toISOString()
       : istInstant(current.preferredDate, current.preferredSlot.start);
@@ -427,13 +442,15 @@ export class RequestService {
       { by: 'shop', actorId: shop.actorId, note },
       {
         confirmedAt,
+        ...(worker ? { pickupWorker: worker } : {}),
         ...(note ? { shopNote: note } : {}),
         ...(shopCustomerId ? { shopCustomerId } : {}),
       },
     );
     if (!updated) throw this.alreadyHandled(await this.findOne(scope));
     this.notifyCustomer(updated, 'accepted');
-    return this.toShopView(updated);
+    this.notifyWorker(updated);
+    return this.toShopView(updated, shop);
   }
 
   async decline(
@@ -441,7 +458,7 @@ export class RequestService {
     requestId: string,
     input: DeclineRequestDto,
   ): Promise<ShopRequestView> {
-    this.assertCanAct(shop);
+    this.assertCanManage(shop);
     const scope = this.shopFilter(shop, requestId);
     await this.expireDue(scope);
     const reason = input.reason.trim();
@@ -456,7 +473,7 @@ export class RequestService {
     );
     if (!updated) throw this.alreadyHandled(await this.findOne(scope));
     this.notifyCustomer(updated, 'declined');
-    return this.toShopView(updated);
+    return this.toShopView(updated, shop);
   }
 
   /** After the shop creates the order for an accepted request, link the two. */
@@ -498,7 +515,7 @@ export class RequestService {
       throw error;
     }
     if (!updated) throw this.alreadyHandled(await this.findOne(scope));
-    return this.toShopView(updated);
+    return this.toShopView(updated, shop);
   }
 
   async complete(
@@ -506,7 +523,7 @@ export class RequestService {
     requestId: string,
     input: CompleteRequestDto,
   ): Promise<ShopRequestView> {
-    this.assertCanAct(shop);
+    this.assertCanManage(shop);
     const scope = this.shopFilter(shop, requestId);
     const note = input.note?.trim();
     const updated = await this.transition(
@@ -522,10 +539,149 @@ export class RequestService {
         : this.alreadyHandled(current);
     }
     this.notifyCustomer(updated, 'completed');
-    return this.toShopView(updated);
+    return this.toShopView(updated, shop);
+  }
+
+  /** Owner/manager sends a different worker to collect, before anything has been collected. */
+  async assignWorker(
+    shop: ShopPrincipal,
+    requestId: string,
+    input: AssignWorkerDto,
+  ): Promise<ShopRequestView> {
+    this.assertCanManage(shop);
+    const scope = this.shopFilter(shop, requestId);
+    const current = await this.findOne(scope);
+    if (current.requestType === 'visit_shop') {
+      throw new BadRequestException('A shop visit has nothing to collect');
+    }
+    const worker = this.pickWorker(current, input.workerId, input.workerName);
+    const updated = await this.transition(
+      { ...scope, status: 'Accepted', collected: { $exists: false } },
+      'Accepted',
+      { by: 'shop', actorId: shop.actorId, note: `${worker?.name ?? 'A worker'} will collect` },
+      { pickupWorker: worker },
+    );
+    if (!updated) throw new ConflictException('This pickup cannot be reassigned any more');
+    this.notifyWorker(updated);
+    return this.toShopView(updated, shop);
+  }
+
+  /** What the delivery date would be for this many items, if collected now. */
+  async estimateDelivery(
+    shop: ShopPrincipal,
+    requestId: string,
+    quantity: number,
+  ): Promise<DeliveryEstimate> {
+    this.assertCanRead(shop);
+    const current = await this.findOne(this.shopFilter(shop, requestId));
+    return this.estimate(current, quantity, new Date());
+  }
+
+  /**
+   * The assigned worker records what was collected and finalises the delivery
+   * date (automatic, or one they type in). The customer is told that date.
+   */
+  async collect(
+    shop: ShopPrincipal,
+    requestId: string,
+    input: CollectRequestDto,
+  ): Promise<ShopRequestView> {
+    this.assertCanRead(shop);
+    const scope = this.shopFilter(shop, requestId);
+    const current = await this.findOne(scope);
+    if (current.status !== 'Accepted') throw this.alreadyHandled(current);
+    if (current.requestType === 'visit_shop' || !current.pickupWorker) {
+      throw new BadRequestException('There is no pickup to collect for this request');
+    }
+    if (current.collected) throw new ConflictException('This pickup is already collected');
+
+    const items = input.items.map((item) => ({ name: item.name.trim(), quantity: item.quantity }));
+    const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
+    const now = new Date();
+    let deliveryDate: string;
+    const custom = Boolean(input.deliveryDate);
+    if (input.deliveryDate) {
+      const today = istToday(now);
+      if (!isRealDate(input.deliveryDate)) {
+        throw new BadRequestException('deliveryDate is not a valid date');
+      }
+      if (input.deliveryDate < today || input.deliveryDate > addDays(today, 60)) {
+        throw new BadRequestException('Choose a delivery date from today up to 60 days ahead');
+      }
+      deliveryDate = input.deliveryDate;
+    } else {
+      deliveryDate = (await this.estimate(current, totalQuantity, now)).deliveryDate;
+    }
+
+    const note = input.note?.trim();
+    const updated = await this.transition(
+      { ...scope, status: 'Accepted', collected: { $exists: false } },
+      'Accepted',
+      {
+        by: 'shop',
+        actorId: shop.actorId,
+        note: `Collected ${totalQuantity} item${totalQuantity === 1 ? '' : 's'}; delivery on ${deliveryDate}${note ? `. ${note}` : ''}`,
+      },
+      {
+        collected: {
+          at: now.toISOString(),
+          items,
+          totalQuantity,
+          byUserId: shop.actorId,
+          ...(note ? { note } : {}),
+        },
+        deliveryDate,
+        deliveryDateIsCustom: custom,
+      },
+    );
+    if (!updated) throw new ConflictException('This pickup is already collected');
+    this.notifyCustomer(updated, 'collected');
+    return this.toShopView(updated, shop);
   }
 
   // ── helpers ───────────────────────────────────────────────────────────────
+
+  private async estimate(
+    request: ServiceRequestDocument,
+    quantity: number,
+    from: Date,
+  ): Promise<DeliveryEstimate> {
+    const listing = await this.database.listings
+      .findOne({ branchId: request.branchId }, { openingHours: 1, _id: 0 })
+      .lean()
+      .exec();
+    return suggestDelivery(request.category, quantity, from, listing?.openingHours ?? []);
+  }
+
+  /** Pickups and home visits need a worker to go; a shop visit does not. */
+  private pickWorker(
+    request: ServiceRequestDocument,
+    workerId: string | undefined,
+    workerName: string | undefined,
+  ): { userId: string; name: string } | undefined {
+    if (request.requestType === 'visit_shop') return undefined;
+    const userId = workerId?.trim();
+    if (!userId) {
+      throw new BadRequestException('Choose the worker who will go and collect');
+    }
+    return { userId, name: workerName?.trim() || 'Worker' };
+  }
+
+  private notifyWorker(request: ServiceRequestDocument): void {
+    if (!request.pickupWorker) return;
+    this.firePush(
+      { userId: request.pickupWorker.userId },
+      'New pickup for you',
+      `${request.customer.name}${request.confirmedAt ? ` · ${formatIst(request.confirmedAt)}` : ''} · ${request.requestNumber}`,
+      {
+        type: 'pickup_assigned',
+        requestId: request.requestId,
+        requestNumber: request.requestNumber,
+        branchId: request.branchId,
+      },
+    );
+  }
+
 
   /**
    * Lazily expires unanswered requests: every read or action first marks
@@ -601,7 +757,7 @@ export class RequestService {
    */
   private notifyCustomer(
     request: ServiceRequestDocument,
-    event: 'accepted' | 'declined' | 'completed',
+    event: 'accepted' | 'declined' | 'completed' | 'collected',
   ): void {
     const shop = request.shop.shopName;
     const copy = {
@@ -614,6 +770,10 @@ export class RequestService {
       declined: {
         title: 'Request declined',
         body: `${shop}: ${request.declineReason ?? 'The shop could not take this request.'}`,
+      },
+      collected: {
+        title: 'Clothes collected',
+        body: `${shop} collected your order ${request.requestNumber}. It will be delivered on ${request.deliveryDate ?? 'the agreed date'}`,
       },
       completed: {
         title: 'Request completed',
@@ -634,11 +794,27 @@ export class RequestService {
       .catch(() => undefined);
   }
 
-  private shopFilter(
-    shop: ShopPrincipal,
-    requestId: string,
-  ): { tenantId: string; branchId: string; requestId: string } {
-    return { tenantId: shop.tenantId, branchId: shop.branchId, requestId };
+  private shopFilter(shop: ShopPrincipal, requestId: string): FilterQuery<ServiceRequestDocument> {
+    return { ...this.branchScope(shop), requestId };
+  }
+
+  /** Owners and managers see the whole branch; a worker only the pickups sent to them. */
+  private branchScope(shop: ShopPrincipal): FilterQuery<ServiceRequestDocument> {
+    return {
+      tenantId: shop.tenantId,
+      branchId: shop.branchId,
+      ...(this.canManage(shop) ? {} : { 'pickupWorker.userId': shop.actorId }),
+    };
+  }
+
+  private canManage(shop: ShopPrincipal): boolean {
+    return hasPermission(shop.roleCode, shop.permissions, Permissions.ordersAssign);
+  }
+
+  private assertCanManage(shop: ShopPrincipal): void {
+    if (!this.canManage(shop)) {
+      throw new ForbiddenException('Only the owner or a branch manager can do this');
+    }
   }
 
   private async findOne(
@@ -735,6 +911,11 @@ export class RequestService {
       declineReason: request.declineReason,
       cancelReason: request.cancelReason,
       orderNumber: request.orderNumber,
+      pickupWorkerName: request.pickupWorker?.name,
+      collectedAt: request.collected?.at,
+      collectedItems: request.collected?.items,
+      deliveryDate: request.deliveryDate,
+      deliveryDateIsCustom: request.deliveryDateIsCustom,
       expiresAt: request.status === 'Pending' ? request.expiresAt : undefined,
       createdAt: request.createdAt,
       updatedAt: request.updatedAt,
@@ -759,7 +940,8 @@ export class RequestService {
     };
   }
 
-  private toShopView(request: ServiceRequestDocument): ShopRequestView {
+  private toShopView(request: ServiceRequestDocument, shop?: ShopPrincipal): ShopRequestView {
+    const manager = shop ? this.canManage(shop) : true;
     const point = request.address ? fromGeoJson(request.address.location) : undefined;
     const openAccepted = request.status === 'Accepted' && !request.orderId;
     return {
@@ -780,11 +962,19 @@ export class RequestService {
           : undefined,
       distanceKm: request.distanceKm,
       orderId: request.orderId,
+      pickupWorker: request.pickupWorker,
       actions: {
-        accept: request.status === 'Pending',
-        decline: request.status === 'Pending' || openAccepted,
+        accept: manager && request.status === 'Pending',
+        decline: manager && (request.status === 'Pending' || openAccepted),
         linkOrder: openAccepted,
-        complete: request.status === 'Accepted',
+        complete: manager && request.status === 'Accepted',
+        assignWorker: manager && openAccepted && !request.collected && request.requestType !== 'visit_shop',
+        collect:
+          request.status === 'Accepted' &&
+          !request.collected &&
+          request.requestType !== 'visit_shop' &&
+          !!request.pickupWorker &&
+          (manager || request.pickupWorker.userId === shop?.actorId),
       },
       history: request.statusHistory,
     };
