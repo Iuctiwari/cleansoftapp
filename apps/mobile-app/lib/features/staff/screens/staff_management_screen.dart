@@ -9,6 +9,7 @@ import 'package:nexoraa_mobile/features/branch/branch_models.dart';
 import 'package:nexoraa_mobile/features/staff/models/staff_member.dart';
 import 'package:nexoraa_mobile/features/staff/models/system_role.dart';
 import 'package:nexoraa_mobile/features/staff/services/staff_api_service.dart';
+import 'package:nexoraa_mobile/features/staff/widgets/role_access_sheet.dart';
 
 class StaffManagementScreen extends StatefulWidget {
   const StaffManagementScreen({super.key});
@@ -294,6 +295,47 @@ class _StaffManagementScreenState extends State<StaffManagementScreen>
     );
   }
 
+  Future<void> _editRole(SystemRole role) async {
+    final List<String>? chosen = await showModalBottomSheet<List<String>>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (BuildContext sheetContext) => RoleAccessSheet(role: role),
+    );
+    if (chosen == null || !mounted) return;
+    await _saveRoleAccess(() => _staffApiService.updateRoleAccess(role.role, chosen));
+  }
+
+  Future<void> _resetRole(SystemRole role) async {
+    final bool ok = await AppConfirmDialog.show(
+      context,
+      title: 'Reset ${role.role} access?',
+      message: 'Everyone with this role goes back to the standard access and will need to sign in again.',
+      confirmLabel: 'Reset to default',
+      destructive: false,
+    );
+    if (!ok || !mounted) return;
+    await _saveRoleAccess(() => _staffApiService.resetRoleAccess(role.role));
+  }
+
+  Future<void> _saveRoleAccess(Future<List<SystemRole>> Function() save) async {
+    try {
+      final List<SystemRole> roles = await save();
+      if (!mounted) return;
+      setState(() {
+        _systemRoles = roles;
+      });
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(const SnackBar(content: Text('Access updated')));
+    } catch (e) {
+      final String message = e is StaffApiException ? e.userMessage : e.toString();
+      if (mounted) {
+        await AppAlertDialog.show(context, title: AppAlertDialog.titleFor(message), message: message);
+      }
+    }
+  }
+
   Widget _buildRolesTab() {
     return ListView(
       padding: const EdgeInsets.all(AppSpacing.pageHorizontal),
@@ -311,7 +353,7 @@ class _StaffManagementScreenState extends State<StaffManagementScreen>
               const SizedBox(width: AppSpacing.md),
               Expanded(
                 child: Text(
-                  'System roles are read-only. Contact your administrator to request permission changes.',
+                  'These are the standard roles. You can change which modules Staff and Branch Manager get in your shop, and reset them any time.',
                   style: AppTextStyles.bodySmall.copyWith(
                     color: AppColors.primary,
                   ),
@@ -339,11 +381,19 @@ class _StaffManagementScreenState extends State<StaffManagementScreen>
                         children: [
                           Text(role.role, style: AppTextStyles.headingSmall),
                           const SizedBox(width: AppSpacing.xs),
-                          const Icon(
-                            AppIcons.lock,
-                            size: AppIconSizes.xs,
-                            color: AppColors.textSubtle,
-                          ),
+                          if (role.editable)
+                            Text(
+                              role.isCustomized ? 'Customised' : 'Default',
+                              style: AppTextStyles.caption.copyWith(
+                                color: role.isCustomized ? AppColors.primary : AppColors.textSubtle,
+                              ),
+                            )
+                          else
+                            const Icon(
+                              AppIcons.lock,
+                              size: AppIconSizes.xs,
+                              color: AppColors.textSubtle,
+                            ),
                         ],
                       ),
                       Text(
@@ -386,6 +436,27 @@ class _StaffManagementScreenState extends State<StaffManagementScreen>
                         .toList(),
                   ),
                 ),
+                if (role.editable)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.lg),
+                    child: Wrap(
+                      spacing: AppSpacing.sm,
+                      children: <Widget>[
+                        FilledButton.tonalIcon(
+                          key: Key('role.edit.${role.role}'),
+                          onPressed: () => _editRole(role),
+                          icon: const Icon(Icons.tune, size: 18),
+                          label: const Text('Change access'),
+                        ),
+                        if (role.isCustomized)
+                          TextButton(
+                            key: Key('role.reset.${role.role}'),
+                            onPressed: () => _resetRole(role),
+                            child: const Text('Reset to default'),
+                          ),
+                      ],
+                    ),
+                  ),
               ],
             ),
           ),

@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
+  IsArray,
   IsBoolean,
   IsEmail,
   IsEnum,
@@ -141,6 +142,13 @@ export class UpdateStaffDto {
   @IsOptional()
   @IsString({ each: true })
   permissions?: string[];
+}
+
+export class UpdateRoleAccessDto {
+  @ApiProperty({ type: [String], description: 'Modules this role gets in this shop' })
+  @IsArray()
+  @IsString({ each: true })
+  permissions!: string[];
 }
 
 export class UpdateAvailabilityDto {

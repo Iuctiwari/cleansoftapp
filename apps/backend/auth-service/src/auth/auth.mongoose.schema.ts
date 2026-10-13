@@ -333,6 +333,29 @@ export class TenantStaffAuthMongoose extends Document {
 
 export const TenantStaffAuthMongooseSchema = SchemaFactory.createForClass(TenantStaffAuthMongoose);
 
+// ─── Role access the shop owner customised ────────────────────────────────────
+// One row per (shop, role) the owner changed from the platform default. No row = default.
+
+export type TenantRoleAccessDocument = HydratedDocument<TenantRoleAccessMongoose>;
+
+@Schema({ collection: 'tenantRoleAccess', timestamps: false, versionKey: false })
+export class TenantRoleAccessMongoose extends Document {
+  @Prop({ required: true })
+  tenantId!: string;
+
+  @Prop({ required: true })
+  roleCode!: string;
+
+  @Prop({ type: [String], required: true, default: [] })
+  permissions!: string[];
+
+  @Prop({ required: true })
+  updatedAtUtc!: string;
+}
+
+export const TenantRoleAccessMongooseSchema = SchemaFactory.createForClass(TenantRoleAccessMongoose);
+TenantRoleAccessMongooseSchema.index({ tenantId: 1, roleCode: 1 }, { unique: true });
+
 // Compound unique index: loginId must be unique per tenant
 TenantStaffAuthMongooseSchema.index({ tenantId: 1, loginId: 1 }, { unique: true });
 

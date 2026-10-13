@@ -15,8 +15,11 @@ import {
   Permissions,
   defaultPermissionsForRole,
   hasPermission,
+  CUSTOM_ACCESS_MARKER,
+  EDITABLE_ROLES,
   isBranchManagerRole,
   isOwnerRole,
+  rolePermissionsWithOverride,
   sanitizeCustomPermissions,
 } from '@nexoraa/shared';
 import { Model, Types } from 'mongoose';
@@ -25,6 +28,20 @@ import type { UserAccessScope } from './user-auth.middleware';
 import { RegisterStaffDto, StaffResponseDto, UpdateStaffDto } from './user.dto';
 import { UserMongoose } from './user.schema';
 import { StaffAvailability, UserStatus } from './user.types';
+
+/** A role as the Roles screen shows it. */
+export interface RoleView {
+  readonly role: string;
+  readonly description: string;
+  /** What the role can do in this shop right now. */
+  readonly permissions: string[];
+  /** The platform default, for "reset". */
+  readonly defaultPermissions: string[];
+  /** The owner may change this role's modules. */
+  readonly editable: boolean;
+  /** The owner has changed it from the default. */
+  readonly isCustomized: boolean;
+}
 
 @Injectable()
 export class UserService {
@@ -310,10 +327,83 @@ export class UserService {
 
   // ── Roles ─────────────────────────────────────────────────────────────────
 
-  getSystemRoles(
-    scope: UserAccessScope,
-  ): Array<{ role: string; description: string; permissions: string[] }> {
+  /**
+   * The roles and what each can do in this shop. Platform defaults, unless the owner chose
+   * different modules for Staff or Branch Manager.
+   */
+  async getSystemRoles(scope: UserAccessScope): Promise<RoleView[]> {
     this.assertStaffRead(scope);
+    const overrides = await this.fetchRoleOverrides(scope.tenantId);
+    return this.baseRoles().map((base) => {
+      const editable = EDITABLE_ROLES.includes(base.role);
+      const chosen = overrides.get(base.role);
+      const permissions =
+        editable && chosen
+          ? rolePermissionsWithOverride(base.role, chosen).filter((p) => p !== CUSTOM_ACCESS_MARKER)
+          : base.permissions;
+      return {
+        ...base,
+        permissions: [...permissions],
+        defaultPermissions: base.permissions,
+        editable,
+        isCustomized: editable && !!chosen,
+      };
+    });
+  }
+
+  /** Owner only: change (or, with null, reset) what a role gets in this shop. */
+  async setRoleAccess(
+    scope: UserAccessScope,
+    role: string,
+    permissions: string[] | null,
+  ): Promise<RoleView[]> {
+    if (!isOwnerRole(scope.roleCode)) {
+      throw new ForbiddenException('Only the owner can change what a role can access');
+    }
+    if (!EDITABLE_ROLES.includes(role)) {
+      throw new BadRequestException(`The ${role} role cannot be customised`);
+    }
+    const authBaseUrl = this.configService.getOrThrow<string>('AUTH_SERVICE_INTERNAL_URL');
+    const secret = this.configService.getOrThrow<string>('INTERNAL_SERVICE_SECRET');
+    const apiVersion = this.configService.get<string>('API_VERSION', 'v1');
+    const apiPrefix = this.configService.get<string>('API_PREFIX', 'api');
+    const response = await fetch(
+      `${authBaseUrl}/${apiPrefix}/${apiVersion}/internal/tenants/${encodeURIComponent(scope.tenantId)}/roles/${encodeURIComponent(role)}`,
+      {
+        method: permissions === null ? 'DELETE' : 'PUT',
+        headers: { 'Content-Type': 'application/json', 'x-internal-secret': secret },
+        ...(permissions === null
+          ? {}
+          : { body: JSON.stringify({ permissions: sanitizeCustomPermissions(permissions) }) }),
+      },
+    );
+    if (!response.ok) throw new Error(`Role access update failed (${response.status})`);
+    return this.getSystemRoles(scope);
+  }
+
+  private async fetchRoleOverrides(tenantId: string): Promise<Map<string, string[]>> {
+    try {
+      const authBaseUrl = this.configService.getOrThrow<string>('AUTH_SERVICE_INTERNAL_URL');
+      const secret = this.configService.getOrThrow<string>('INTERNAL_SERVICE_SECRET');
+      const apiVersion = this.configService.get<string>('API_VERSION', 'v1');
+      const apiPrefix = this.configService.get<string>('API_PREFIX', 'api');
+      const response = await fetch(
+        `${authBaseUrl}/${apiPrefix}/${apiVersion}/internal/tenants/${encodeURIComponent(tenantId)}/roles`,
+        { headers: { 'x-internal-secret': secret } },
+      );
+      if (!response.ok) return new Map();
+      const body = (await response.json()) as
+        | Array<{ roleCode: string; permissions: string[] }>
+        | { data?: Array<{ roleCode: string; permissions: string[] }> };
+      const rows = Array.isArray(body) ? body : (body.data ?? []);
+      return new Map(rows.map((row) => [row.roleCode, row.permissions]));
+    } catch {
+      // Showing the defaults is better than failing the whole screen.
+      return new Map();
+    }
+  }
+
+  private baseRoles(): Array<{ role: string; description: string; permissions: string[] }> {
     return [
       {
         role: 'Owner',

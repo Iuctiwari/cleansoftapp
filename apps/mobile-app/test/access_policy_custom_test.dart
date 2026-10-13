@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:nexoraa_mobile/features/authentication/access_policy.dart';
 
 void main() {
+  rolesTests();
   test('default staff keep the usual access', () {
     const AccessPolicy policy = AccessPolicy(roleCode: 'Staff', permissions: <String>['orders:read', 'orders:write']);
     expect(policy.allows(AppCapability.ordersView), isTrue);
@@ -32,5 +33,26 @@ void main() {
   test('owners and managers are never narrowed by the marker', () {
     const AccessPolicy owner = AccessPolicy(roleCode: 'Owner', permissions: <String>['access:custom']);
     expect(owner.allows(AppCapability.reportsView), isTrue);
+  });
+}
+
+void rolesTests() {
+  test('a customised Branch Manager role is followed, but management powers stay', () {
+    const AccessPolicy manager = AccessPolicy(
+      roleCode: 'Branch Manager',
+      permissions: <String>['access:custom', 'orders:read', 'orders:assign', 'staff:read', 'staff:write', 'branches:read', 'branches:write'],
+    );
+    expect(manager.allows(AppCapability.ordersView), isTrue);
+    expect(manager.allows(AppCapability.staffManage), isTrue);
+    expect(manager.allows(AppCapability.ordersAssign), isTrue);
+    // not ticked by the owner for this role
+    expect(manager.allows(AppCapability.paymentsRecord), isFalse);
+    expect(manager.allows(AppCapability.reportsView), isFalse);
+  });
+
+  test('a default Branch Manager (no marker) still has everything', () {
+    const AccessPolicy manager = AccessPolicy(roleCode: 'Branch Manager', permissions: <String>['orders:read']);
+    expect(manager.allows(AppCapability.reportsView), isTrue);
+    expect(manager.allows(AppCapability.paymentsRecord), isTrue);
   });
 }

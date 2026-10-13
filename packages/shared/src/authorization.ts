@@ -141,6 +141,26 @@ export function sanitizeCustomPermissions(list: readonly unknown[]): string[] {
   ];
 }
 
+/** Roles whose modules the shop owner may change for the whole shop. */
+export const EDITABLE_ROLES: readonly string[] = Object.freeze([Roles.staff, Roles.branchManager]);
+
+/**
+ * A role with the owner's chosen modules: the role's fixed core (management powers, basics)
+ * plus exactly the ticked customizable modules. No override = the platform default.
+ */
+export function rolePermissionsWithOverride(
+  roleCode: string,
+  override: readonly string[] | undefined,
+): readonly string[] {
+  if (!override) return defaultPermissionsForRole(roleCode);
+  const core = defaultPermissionsForRole(roleCode).filter(
+    (permission) => !CUSTOMIZABLE_PERMISSIONS.includes(permission),
+  );
+  return Object.freeze([
+    ...new Set([...core, ...sanitizeCustomPermissions(override), CUSTOM_ACCESS_MARKER]),
+  ]);
+}
+
 /**
  * What a staff member can do: the role's defaults, or — when the owner chose custom
  * access — exactly the chosen modules plus the always-on basics.
@@ -149,8 +169,13 @@ export function staffEffectivePermissions(
   roleCode: string,
   stored: readonly string[],
   custom: boolean | undefined,
+  roleOverride?: readonly string[],
 ): readonly string[] {
-  if (!custom) return effectivePermissions(roleCode, stored);
+  if (!custom) {
+    return roleOverride && EDITABLE_ROLES.includes(roleCode)
+      ? rolePermissionsWithOverride(roleCode, roleOverride)
+      : effectivePermissions(roleCode, stored);
+  }
   return Object.freeze([
     ...new Set([...ALWAYS_ON_PERMISSIONS, ...sanitizeCustomPermissions(stored), CUSTOM_ACCESS_MARKER]),
   ]);

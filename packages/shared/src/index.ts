@@ -4,6 +4,8 @@ export {
   ALWAYS_ON_PERMISSIONS,
   CUSTOMIZABLE_PERMISSIONS,
   CUSTOM_ACCESS_MARKER,
+  EDITABLE_ROLES,
+  rolePermissionsWithOverride,
   sanitizeCustomPermissions,
   staffEffectivePermissions,
   Permissions,

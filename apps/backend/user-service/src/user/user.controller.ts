@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Req } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Req } from '@nestjs/common';
 import { ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 
 import type { UserAccessRequest, UserAccessScope } from './user-auth.middleware';
@@ -6,6 +6,7 @@ import {
   RegisterStaffDto,
   StaffResponseDto,
   UpdateAvailabilityDto,
+  UpdateRoleAccessDto,
   UpdateStaffDto,
 } from './user.dto';
 import { UserService } from './user.service';
@@ -51,10 +52,26 @@ export class UserController {
   }
 
   @Get('roles')
-  @ApiOperation({ summary: 'Get static system roles and permissions' })
+  @ApiOperation({ summary: "Roles and what each can do in this shop (platform default unless the owner changed it)" })
   @ApiResponse({ status: 200 })
   getRoles(@Req() request: UserAccessRequest): unknown {
     return this.userService.getSystemRoles(scopeOf(request));
+  }
+
+  @Put('roles/:role')
+  @ApiOperation({ summary: 'Owner: choose the modules a role gets in this shop' })
+  setRoleAccess(
+    @Req() request: UserAccessRequest,
+    @Param('role') role: string,
+    @Body() dto: UpdateRoleAccessDto,
+  ): unknown {
+    return this.userService.setRoleAccess(scopeOf(request), role, dto.permissions);
+  }
+
+  @Delete('roles/:role')
+  @ApiOperation({ summary: 'Owner: put a role back to the platform default' })
+  resetRoleAccess(@Req() request: UserAccessRequest, @Param('role') role: string): unknown {
+    return this.userService.setRoleAccess(scopeOf(request), role, null);
   }
 
   @Get(':userId')

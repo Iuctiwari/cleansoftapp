@@ -427,6 +427,42 @@ class StaffApiService {
     }
   }
 
+  /// Owner only: choose the modules a role gets in this shop. Returns the refreshed roles.
+  Future<List<SystemRole>> updateRoleAccess(String role, List<String> permissions) =>
+      _sendRoleAccess('PUT', role, <String, dynamic>{'permissions': permissions});
+
+  /// Owner only: put a role back to the platform default.
+  Future<List<SystemRole>> resetRoleAccess(String role) => _sendRoleAccess('DELETE', role, null);
+
+  Future<List<SystemRole>> _sendRoleAccess(String method, String role, Map<String, dynamic>? body) async {
+    final uri = Uri.parse('$_baseUrl/api/v1/users/roles/${Uri.encodeComponent(role)}');
+    final headers = await _authHeaders();
+    late http.Response response;
+    try {
+      final request = http.Request(method, uri)..headers.addAll(headers);
+      if (body != null) request.body = jsonEncode(body);
+      response = await http.Response.fromStream(await _client.send(request).timeout(_requestTimeout));
+    } catch (e) {
+      throw StaffApiException(
+        code: 'network_error',
+        messageKey: 'network_error',
+        statusCode: 0,
+        backendMessage: 'Unable to reach the staff service. Details: $e',
+      );
+    }
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      final Object? decoded = jsonDecode(response.body);
+      final List<dynamic> rows = decoded is List ? decoded : (decoded is Map ? (decoded['data'] as List<dynamic>? ?? const <dynamic>[]) : const <dynamic>[]);
+      return rows.map((e) => SystemRole.fromJson(e as Map<String, dynamic>)).toList();
+    }
+    String message = 'Failed to update role access.';
+    try {
+      final Object? decoded = jsonDecode(response.body);
+      if (decoded is Map && decoded['message'] is String) message = decoded['message'] as String;
+    } catch (_) {}
+    throw StaffApiException(code: 'error', messageKey: 'error', statusCode: response.statusCode, backendMessage: message);
+  }
+
   // ── Register ─────────────────────────────────────────────────────────────
 
   /// Registers a new staff member with direct credentials.

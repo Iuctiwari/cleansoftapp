@@ -57,6 +57,29 @@ final class AccessPolicy {
         capability == AppCapability.ownSecurity) {
       return true;
     }
+    if ((isStaff || isBranchManager) && permissions.contains(customAccessMarker)) {
+      // The owner chose exactly which modules this role / person gets.
+      return switch (capability) {
+        AppCapability.notificationsView => true,
+        AppCapability.ordersView => permissions.contains('orders:read'),
+        AppCapability.ordersCreate || AppCapability.ordersEdit => permissions.contains('orders:write'),
+        AppCapability.ordersAssign => permissions.contains('orders:assign'),
+        AppCapability.customersView => permissions.contains('customers:read'),
+        AppCapability.customersCreate || AppCapability.customersEdit => permissions.contains('customers:write'),
+        AppCapability.customersDelete => permissions.contains('customers:delete'),
+        AppCapability.paymentsView => permissions.contains('payments:read'),
+        AppCapability.paymentsRecord => permissions.contains('payments:write'),
+        AppCapability.expensesView => permissions.contains('expenses:read'),
+        AppCapability.expensesCreate => permissions.contains('expenses:write'),
+        AppCapability.reportsView => permissions.contains('reports:read'),
+        AppCapability.staffView => permissions.contains('staff:read'),
+        AppCapability.staffManage => permissions.contains('staff:write'),
+        AppCapability.branchesView => permissions.contains('branches:read'),
+        AppCapability.branchesEdit => permissions.contains('branches:write'),
+        AppCapability.cashRegister => permissions.contains('cash-register:access'),
+        _ => false,
+      };
+    }
     if (isBranchManager) {
       return true;
     }

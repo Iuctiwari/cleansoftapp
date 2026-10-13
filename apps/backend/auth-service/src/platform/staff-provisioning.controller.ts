@@ -1,15 +1,18 @@
 import {
+  BadRequestException,
   Body,
   ConflictException,
   Controller,
   Delete,
+  Get,
   Headers,
   Param,
   Patch,
   Post,
+  Put,
   UnauthorizedException,
 } from '@nestjs/common';
-import { sanitizeCustomPermissions } from '@nexoraa/shared';
+import { EDITABLE_ROLES, sanitizeCustomPermissions } from '@nexoraa/shared';
 import { ConfigService } from '@nestjs/config';
 import { ApiExcludeController } from '@nestjs/swagger';
 import {
@@ -166,6 +169,80 @@ export class StaffProvisioningController {
   ): Promise<void> {
     this.assertInternalSecret(secret);
     await this.authRepository.deleteStaffIdentity(userId);
+  }
+
+  private assertInternalSecret(provided: string): void {
+    const expected = this.configService.get<string>('INTERNAL_SERVICE_SECRET');
+    if (!expected || provided !== expected) {
+      throw new UnauthorizedException('Invalid internal secret');
+    }
+  }
+}
+
+class SetRoleAccessDto {
+  @IsArray() @IsString({ each: true }) permissions!: string[];
+}
+
+/**
+ * Internal-only: the shop owner's per-role module choices (called by user-service).
+ * No row for a role means the platform default applies.
+ */
+@ApiExcludeController()
+@Controller({ path: 'internal/tenants/:tenantId/roles', version: '1' })
+export class RoleAccessController {
+  constructor(
+    private readonly authRepository: MongoAuthRepository,
+    private readonly configService: ConfigService,
+  ) {}
+
+  @Get()
+  async list(
+    @Headers('x-internal-secret') secret: string,
+    @Param('tenantId') tenantId: string,
+  ): Promise<Array<{ roleCode: string; permissions: string[] }>> {
+    this.assertInternalSecret(secret);
+    return this.authRepository.listRoleAccess(tenantId);
+  }
+
+  @Put(':roleCode')
+  async set(
+    @Headers('x-internal-secret') secret: string,
+    @Param('tenantId') tenantId: string,
+    @Param('roleCode') roleCode: string,
+    @Body() dto: SetRoleAccessDto,
+  ): Promise<void> {
+    this.assertInternalSecret(secret);
+    this.assertEditable(roleCode);
+    await this.apply(tenantId, roleCode, sanitizeCustomPermissions(dto.permissions));
+  }
+
+  @Delete(':roleCode')
+  async reset(
+    @Headers('x-internal-secret') secret: string,
+    @Param('tenantId') tenantId: string,
+    @Param('roleCode') roleCode: string,
+  ): Promise<void> {
+    this.assertInternalSecret(secret);
+    this.assertEditable(roleCode);
+    await this.apply(tenantId, roleCode, null);
+  }
+
+  private async apply(
+    tenantId: string,
+    roleCode: string,
+    permissions: readonly string[] | null,
+  ): Promise<void> {
+    const userIds = await this.authRepository.setRoleAccess(tenantId, roleCode, permissions);
+    const now = new Date().toISOString();
+    for (const userId of userIds) {
+      await this.authRepository.revokeSessionsByUser(userId, 'role_access_changed', now);
+    }
+  }
+
+  private assertEditable(roleCode: string): void {
+    if (!EDITABLE_ROLES.includes(roleCode)) {
+      throw new BadRequestException(`The ${roleCode} role cannot be customised`);
+    }
   }
 
   private assertInternalSecret(provided: string): void {

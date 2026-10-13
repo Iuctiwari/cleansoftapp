@@ -36,6 +36,8 @@ import {
   TenantAuthMongoose,
   TenantOwnerAuthDocument,
   TenantOwnerAuthMongoose,
+  TenantRoleAccessDocument,
+  TenantRoleAccessMongoose,
   TenantStaffAuthDocument,
   TenantStaffAuthMongoose,
   UserBranchAssignmentDocument,
@@ -61,6 +63,8 @@ export class MongoAuthRepository implements AuthRepository, OnModuleInit {
     @InjectModel(BranchAuthMongoose.name) private readonly branchModel: Model<BranchAuthDocument>,
     @InjectModel(TenantStaffAuthMongoose.name)
     private readonly tenantStaffModel: Model<TenantStaffAuthDocument>,
+    @InjectModel(TenantRoleAccessMongoose.name)
+    private readonly tenantRoleAccessModel: Model<TenantRoleAccessDocument>,
     @InjectModel(UserBranchAssignmentMongoose.name)
     private readonly userBranchAssignmentModel: Model<UserBranchAssignmentDocument>,
     @InjectModel(ConsumerAccountMongoose.name)
@@ -284,7 +288,12 @@ export class MongoAuthRepository implements AuthRepository, OnModuleInit {
       displayName: staff.displayName,
       passwordHash: staff.passwordHash,
       roleCode: staff.roleCode,
-      permissions: staffEffectivePermissions(staff.roleCode, staff.permissions, staff.permissionsCustom),
+      permissions: staffEffectivePermissions(
+        staff.roleCode,
+        staff.permissions,
+        staff.permissionsCustom,
+        await this.roleOverride(staff.tenantId, staff.roleCode),
+      ),
       status: staff.status as AuthIdentityRecord['status'],
       accessVersion: staff.accessVersion,
       tenantId: staff.tenantId,
@@ -561,6 +570,54 @@ export class MongoAuthRepository implements AuthRepository, OnModuleInit {
     return record;
   }
 
+  // ── Role access the shop owner customised ─────────────────────────────────
+
+  private async roleOverride(tenantId: string, roleCode: string): Promise<string[] | undefined> {
+    const row = await this.tenantRoleAccessModel.findOne({ tenantId, roleCode }).lean().exec();
+    return row ? [...row.permissions] : undefined;
+  }
+
+  async listRoleAccess(
+    tenantId: string,
+  ): Promise<Array<{ roleCode: string; permissions: string[] }>> {
+    const rows = await this.tenantRoleAccessModel.find({ tenantId }).lean().exec();
+    return rows.map((row) => ({ roleCode: row.roleCode, permissions: [...row.permissions] }));
+  }
+
+  /**
+   * Saves (or, with null, clears) the owner's choice for one role, then returns the staff
+   * whose access just changed so their sessions can be ended and they sign in again.
+   */
+  async setRoleAccess(
+    tenantId: string,
+    roleCode: string,
+    permissions: readonly string[] | null,
+  ): Promise<string[]> {
+    if (permissions === null) {
+      await this.tenantRoleAccessModel.deleteOne({ tenantId, roleCode }).exec();
+    } else {
+      await this.tenantRoleAccessModel
+        .updateOne(
+          { tenantId, roleCode },
+          { $set: { permissions: [...permissions], updatedAtUtc: new Date().toISOString() } },
+          { upsert: true },
+        )
+        .exec();
+    }
+    // People with their own custom access are not affected by a role change.
+    const affected = await this.tenantStaffModel
+      .find({ tenantId, roleCode, permissionsCustom: { $ne: true } }, { userId: 1 })
+      .lean()
+      .exec();
+    const userIds = affected.map((row) => row.userId);
+    if (userIds.length > 0) {
+      await this.tenantStaffModel
+        .updateMany({ userId: { $in: userIds } }, { $inc: { accessVersion: 1 } })
+        .exec();
+    }
+    return userIds;
+  }
+
   async deleteStaffIdentity(userId: string): Promise<void> {
     await this.tenantStaffModel.deleteOne({ userId }).exec();
   }
@@ -578,7 +635,12 @@ export class MongoAuthRepository implements AuthRepository, OnModuleInit {
       email: doc.email,
       passwordHash: doc.passwordHash,
       roleCode: doc.roleCode,
-      permissions: staffEffectivePermissions(doc.roleCode, doc.permissions, doc.permissionsCustom),
+      permissions: staffEffectivePermissions(
+        doc.roleCode,
+        doc.permissions,
+        doc.permissionsCustom,
+        await this.roleOverride(doc.tenantId, doc.roleCode),
+      ),
       branchIds: Object.freeze(doc.branchIds ?? []),
       status: doc.status as StaffAuthRecord['status'],
       accessVersion: doc.accessVersion,
