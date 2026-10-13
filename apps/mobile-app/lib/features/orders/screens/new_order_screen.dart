@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:nexoraa_mobile/design_system/design_system.dart';
 import 'package:nexoraa_mobile/features/customers/controllers/customer_controller.dart';
 import 'package:nexoraa_mobile/features/customers/models/customer.dart';
@@ -21,8 +23,12 @@ class NewOrderScreen extends StatefulWidget {
     required this.customerController,
     required this.businessName,
     required this.branchName,
+    this.takePhoto,
     super.key,
   });
+
+  /// Opens the camera for the pickup photos; tests pass a fake. Null = the phone camera.
+  final Future<XFile?> Function()? takePhoto;
 
   final NewOrderController controller;
   final OrderController orderController;
@@ -38,6 +44,7 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
   final TextEditingController _customerSearch = TextEditingController();
   final TextEditingController _discount = TextEditingController();
   final TextEditingController _advancePayment = TextEditingController();
+  final TextEditingController _totalItems = TextEditingController();
   Timer? _searchDebounce;
 
   @override
@@ -47,6 +54,7 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
     widget.customerController.addListener(_refresh);
     _discount.addListener(_discountChanged);
     _advancePayment.addListener(_advancePaymentChanged);
+    _totalItems.addListener(() => widget.controller.setTotalItems(_totalItems.text));
     if (widget.customerController.customers.isEmpty &&
         !widget.customerController.isLoading) {
       unawaited(widget.customerController.load());
@@ -58,6 +66,7 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
   void dispose() {
     _searchDebounce?.cancel();
     _customerSearch.dispose();
+    _totalItems.dispose();
     _discount.removeListener(_discountChanged);
     _discount.dispose();
     _advancePayment
@@ -81,7 +90,7 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
   }
 
   void _closeOrBack() {
-    if (widget.controller.step == 0 || widget.controller.step == 5) {
+    if (widget.controller.stage == NewOrderStage.customer || widget.controller.stage == NewOrderStage.receipt) {
       Navigator.of(context).pop(widget.controller.createdOrder != null);
       return;
     }
@@ -89,12 +98,12 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
   }
 
   void _next() {
-    final int currentStep = widget.controller.step;
+    final NewOrderStage current = widget.controller.stage;
     if (!widget.controller.next()) {
       _showError();
       return;
     }
-    if (currentStep == 0) unawaited(widget.controller.loadCatalog());
+    if (current == NewOrderStage.customer) unawaited(widget.controller.loadCatalog());
   }
 
   Future<void> _save() async {
@@ -198,6 +207,7 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
   @override
   Widget build(BuildContext context) => NewOrderStepScaffold(
     step: widget.controller.step,
+    stepCount: widget.controller.stepCount,
     onClose: _closeOrBack,
     body: AnimatedSwitcher(
       duration: AppDurations.fast,
@@ -209,18 +219,19 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
     footer: _footer(),
   );
 
-  Widget _body() => switch (widget.controller.step) {
-    0 => _customerStep(),
-    1 => _itemsStep(),
-    2 => _servicesStep(),
-    3 => _pricingStep(),
-    4 => _paymentStep(),
-    _ => _receiptStep(),
+  Widget _body() => switch (widget.controller.stage) {
+    NewOrderStage.customer => _customerStep(),
+    NewOrderStage.items => _itemsStep(),
+    NewOrderStage.services => _servicesStep(),
+    NewOrderStage.pricing => _pricingStep(),
+    NewOrderStage.photos => _photosStep(),
+    NewOrderStage.payment => _paymentStep(),
+    NewOrderStage.receipt => _receiptStep(),
   };
 
   Widget _footer() {
-    final int step = widget.controller.step;
-    if (step == 4) {
+    final NewOrderStage step = widget.controller.stage;
+    if (step == NewOrderStage.payment) {
       return NewOrderFooter(
         secondaryLabel: 'Back',
         primaryLabel: 'Save Order',
@@ -231,7 +242,7 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
         busy: widget.controller.isSaving,
       );
     }
-    if (step == 5) {
+    if (step == NewOrderStage.receipt) {
       return NewOrderFooter(
         secondaryLabel: 'Orders',
         primaryLabel: 'Done',
@@ -240,12 +251,12 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
       );
     }
     return NewOrderFooter(
-      secondaryLabel: step == 0 ? 'Cancel' : 'Back',
+      secondaryLabel: step == NewOrderStage.customer ? 'Cancel' : 'Back',
       primaryLabel: 'Next',
-      onSecondary: step == 0
+      onSecondary: step == NewOrderStage.customer
           ? () => Navigator.of(context).pop(false)
           : widget.controller.back,
-      onPrimary: step == 1 && widget.controller.selections.isEmpty
+      onPrimary: step == NewOrderStage.items && widget.controller.selections.isEmpty
           ? null
           : _next,
     );
@@ -673,6 +684,141 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
       ],
     ],
   );
+
+  Future<void> _takePhoto() async {
+    try {
+      final XFile? shot =
+          await (widget.takePhoto ?? () => ImagePicker().pickImage(source: ImageSource.camera, maxWidth: 1600, imageQuality: 70))();
+      if (shot == null) return;
+      final Uint8List bytes = await shot.readAsBytes();
+      widget.controller.addPhoto(bytes);
+    } on Object {
+      // Camera unavailable or permission refused: photos are optional.
+    }
+  }
+
+  String _dayLabel(String yyyyMmDd) {
+    final DateTime? day = DateTime.tryParse(yyyyMmDd);
+    if (day == null) return yyyyMmDd;
+    const List<String> months = <String>['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const List<String> days = <String>['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    return '${days[day.weekday - 1]}, ${day.day} ${months[day.month - 1]}';
+  }
+
+  Future<void> _pickDeliveryDate() async {
+    final DateTime today = DateUtils.dateOnly(DateTime.now());
+    final DateTime initial = DateTime.tryParse(widget.controller.deliveryDate ?? '') ?? today;
+    final DateTime? day = await showDatePicker(
+      context: context,
+      initialDate: initial.isBefore(today) ? today : initial,
+      firstDate: today,
+      lastDate: today.add(const Duration(days: 60)),
+    );
+    if (day == null) return;
+    widget.controller.setCustomDeliveryDate(
+      '${day.year.toString().padLeft(4, '0')}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}',
+    );
+  }
+
+  /// Pickup only: photos of the items, an optional total count and the delivery date.
+  Widget _photosStep() {
+    final NewOrderController c = widget.controller;
+    final List<Uint8List> photos = c.photos;
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.pageHorizontal,
+        AppSpacing.xl,
+        AppSpacing.pageHorizontal,
+        AppSpacing.pageBottom,
+      ),
+      children: <Widget>[
+        Text('Photos & delivery', style: AppTextStyles.headingSmall),
+        const SizedBox(height: AppSpacing.md),
+        Text(
+          'Take photos of the items you are collecting. The customer can see them on their order.',
+          style: AppTextStyles.bodySmall,
+        ),
+        const SizedBox(height: AppSpacing.xl),
+        Wrap(
+          spacing: AppSpacing.md,
+          runSpacing: AppSpacing.md,
+          children: <Widget>[
+            for (int i = 0; i < photos.length; i++)
+              Stack(
+                children: <Widget>[
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: Image.memory(photos[i], width: 88, height: 88, fit: BoxFit.cover),
+                  ),
+                  Positioned(
+                    right: 2,
+                    top: 2,
+                    child: InkWell(
+                      key: Key('order.photo.remove.$i'),
+                      onTap: () => c.removePhotoAt(i),
+                      child: const CircleAvatar(
+                        radius: 11,
+                        backgroundColor: Colors.black54,
+                        child: Icon(Icons.close, size: 14, color: Colors.white),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            if (photos.length < 6)
+              OutlinedButton.icon(
+                key: const Key('order.photo.add'),
+                onPressed: _takePhoto,
+                icon: const Icon(Icons.photo_camera_outlined, size: 18),
+                label: const Text('Take photo'),
+                style: OutlinedButton.styleFrom(minimumSize: const Size(0, 88)),
+              ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.xs),
+        Text('Up to 6 photos', style: AppTextStyles.caption),
+        const SizedBox(height: AppSpacing.xl),
+        AppTextField(
+          controller: _totalItems,
+          label: 'Total items (optional)',
+          hintText: 'e.g. 12',
+          keyboardType: TextInputType.number,
+          textInputAction: TextInputAction.done,
+        ),
+        const SizedBox(height: AppSpacing.xl),
+        Text('Delivery date', style: AppTextStyles.inputLabel),
+        const SizedBox(height: AppSpacing.xs),
+        Text(
+          c.deliveryDate == null
+              ? '…'
+              : c.deliveryIsCustom
+              ? _dayLabel(c.deliveryDate!)
+              : 'Automatic: ${_dayLabel(c.deliveryDate!)}',
+          key: const Key('order.delivery.date'),
+          style: AppTextStyles.labelBold,
+        ),
+        Wrap(
+          spacing: AppSpacing.sm,
+          children: <Widget>[
+            TextButton(
+              key: const Key('order.delivery.pick'),
+              onPressed: _pickDeliveryDate,
+              child: const Text('Pick another date'),
+            ),
+            if (c.deliveryIsCustom)
+              TextButton(
+                onPressed: () => c.setCustomDeliveryDate(null),
+                child: const Text('Use the automatic date'),
+              ),
+          ],
+        ),
+        if (c.error != null) ...<Widget>[
+          const SizedBox(height: AppSpacing.lg),
+          NewOrderErrorBanner(message: c.error!),
+        ],
+      ],
+    );
+  }
 
   Widget _receiptStep() {
     final Order? order = widget.controller.createdOrder;

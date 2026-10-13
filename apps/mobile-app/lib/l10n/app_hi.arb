@@ -460,5 +460,14 @@
   "shopListingModesHint": "हर विकल्प को चालू/बंद करने के लिए टैप करें। आप इसे कभी भी बदलकर फिर से सेव कर सकते हैं।",
   "pickupTotalItems": "कुल आइटम (वैकल्पिक)",
   "pickupTotalItemsLine": "कुल आइटम: {count}",
-  "pickupCollectAndCreate": "ले लिया, ऑर्डर बनाएं"
+  "pickupCollectAndCreate": "ले लिया, ऑर्डर बनाएं",
+  "pickupAssignButton": "तय करें कि कौन लेने जाएगा",
+  "pickupAssignTitle": "लेने कौन जाएगा?",
+  "pickupAssignMe": "मैं खुद जाऊँगा",
+  "pickupAssignNoWorkers": "अभी कोई कर्मचारी नहीं जुड़ा। किसी और को भेजने के लिए स्टाफ जोड़ें।",
+  "pickupAssignedToast": "पिकअप सौंप दिया गया",
+  "pickupStart": "पिकअप शुरू करें",
+  "pickupFinish": "पिकअप पूरा करें",
+  "pickupPhotosFailed": "{count} फ़ोटो अपलोड नहीं हो सकीं। ऑर्डर सेव हो गया है।",
+  "pickupNotRecorded": "ऑर्डर सेव हो गया, पर पिकअप दर्ज नहीं हो सका। रिक्वेस्ट खोलकर \"पिकअप पूरा करें\" दबाएं।"
 }

@@ -2859,6 +2859,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Collected, create order'**
   String get pickupCollectAndCreate;
+
+  /// No description provided for @pickupAssignButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Assign who collects'**
+  String get pickupAssignButton;
+
+  /// No description provided for @pickupAssignTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Who will go and collect?'**
+  String get pickupAssignTitle;
+
+  /// No description provided for @pickupAssignMe.
+  ///
+  /// In en, this message translates to:
+  /// **'I will go myself'**
+  String get pickupAssignMe;
+
+  /// No description provided for @pickupAssignNoWorkers.
+  ///
+  /// In en, this message translates to:
+  /// **'No workers added yet. Add staff to send someone else.'**
+  String get pickupAssignNoWorkers;
+
+  /// No description provided for @pickupAssignedToast.
+  ///
+  /// In en, this message translates to:
+  /// **'Pickup assigned'**
+  String get pickupAssignedToast;
+
+  /// No description provided for @pickupStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Start pickup'**
+  String get pickupStart;
+
+  /// No description provided for @pickupFinish.
+  ///
+  /// In en, this message translates to:
+  /// **'Finish pickup'**
+  String get pickupFinish;
+
+  /// No description provided for @pickupPhotosFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} photo(s) could not be uploaded. The order is saved.'**
+  String pickupPhotosFailed(int count);
+
+  /// No description provided for @pickupNotRecorded.
+  ///
+  /// In en, this message translates to:
+  /// **'The order is saved, but the pickup could not be recorded. Open the request and tap Finish pickup.'**
+  String get pickupNotRecorded;
 }
 
 class _AppLocalizationsDelegate

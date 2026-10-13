@@ -460,5 +460,14 @@
   "shopListingModesHint": "प्रत्येक पर्याय चालू/बंद करण्यासाठी टॅप करा. तुम्ही हे कधीही बदलून पुन्हा सेव्ह करू शकता.",
   "pickupTotalItems": "एकूण वस्तू (ऐच्छिक)",
   "pickupTotalItemsLine": "एकूण वस्तू: {count}",
-  "pickupCollectAndCreate": "घेतले, ऑर्डर तयार करा"
+  "pickupCollectAndCreate": "घेतले, ऑर्डर तयार करा",
+  "pickupAssignButton": "कोण घ्यायला जाईल ते ठरवा",
+  "pickupAssignTitle": "घ्यायला कोण जाईल?",
+  "pickupAssignMe": "मी स्वतः जाईन",
+  "pickupAssignNoWorkers": "अजून कर्मचारी जोडलेला नाही. दुसऱ्याला पाठवण्यासाठी स्टाफ जोडा.",
+  "pickupAssignedToast": "पिकअप सोपवला",
+  "pickupStart": "पिकअप सुरू करा",
+  "pickupFinish": "पिकअप पूर्ण करा",
+  "pickupPhotosFailed": "{count} फोटो अपलोड झाले नाहीत. ऑर्डर सेव्ह झाला आहे.",
+  "pickupNotRecorded": "ऑर्डर सेव्ह झाला, पण पिकअप नोंदवला गेला नाही. रिक्वेस्ट उघडून \"पिकअप पूर्ण करा\" दाबा."
 }

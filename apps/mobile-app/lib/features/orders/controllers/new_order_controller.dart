@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:typed_data';
+
 import 'package:flutter/foundation.dart';
 import 'package:nexoraa_mobile/features/customers/models/customer.dart';
 import 'package:nexoraa_mobile/features/orders/controllers/order_controller.dart';
@@ -54,6 +57,20 @@ class NewOrderItemGroup {
   final List<OrderItemCategory> items;
 }
 
+/// The steps of the New Order wizard, in order. [photos] only appears for a pickup.
+enum NewOrderStage { customer, items, services, pricing, photos, payment, receipt }
+
+/// Set when the order is created at a customer's door for an online request: adds the
+/// "Photos & delivery" step and tells the app which request to finish afterwards.
+class PickupOrderContext {
+  const PickupOrderContext({required this.requestId, required this.estimate});
+
+  final String requestId;
+
+  /// The automatic delivery date (YYYY-MM-DD) for roughly this many items.
+  final Future<String> Function(int quantity) estimate;
+}
+
 class NewOrderController extends ChangeNotifier {
   static const double additionalServiceSurcharge = 10;
 
@@ -62,6 +79,7 @@ class NewOrderController extends ChangeNotifier {
     required OrderController orderController,
     required PaymentApiService paymentService,
     required String branchId,
+    this.pickup,
   }) : _catalogService = catalogService,
        _branchId = branchId,
        _paymentService = paymentService,
@@ -74,6 +92,9 @@ class NewOrderController extends ChangeNotifier {
   final String _branchId;
   final OrderController _orderController;
   final PaymentApiService _paymentService;
+
+  /// Non-null when this order is the pickup of an online request.
+  final PickupOrderContext? pickup;
   final Map<String, NewOrderLineSelection> _selections =
       <String, NewOrderLineSelection>{};
   List<OrderItemCategory> _categories = const <OrderItemCategory>[];
@@ -90,7 +111,79 @@ class NewOrderController extends ChangeNotifier {
   bool _saving = false;
   String? _error;
 
+  final List<Uint8List> _photos = <Uint8List>[];
+  int? _totalItems;
+  String? _autoDeliveryDate;
+  String? _customDeliveryDate;
+  int _estimatedFor = -1;
+
+  List<NewOrderStage> get stages => <NewOrderStage>[
+    NewOrderStage.customer,
+    NewOrderStage.items,
+    NewOrderStage.services,
+    NewOrderStage.pricing,
+    if (pickup != null) NewOrderStage.photos,
+    NewOrderStage.payment,
+    NewOrderStage.receipt,
+  ];
+  NewOrderStage get stage => stages[_step];
+  int get stepCount => stages.length;
   int get step => _step;
+
+  List<Uint8List> get photos => List<Uint8List>.unmodifiable(_photos);
+  int? get totalItems => _totalItems;
+  bool get deliveryIsCustom => _customDeliveryDate != null;
+
+  /// YYYY-MM-DD the customer will be told: the worker's own pick, else the automatic one.
+  String? get deliveryDate => _customDeliveryDate ?? _autoDeliveryDate;
+
+  void addPhoto(Uint8List bytes) {
+    if (_photos.length >= 6) return;
+    _photos.add(bytes);
+    notifyListeners();
+  }
+
+  void removePhotoAt(int index) {
+    if (index < 0 || index >= _photos.length) return;
+    _photos.removeAt(index);
+    notifyListeners();
+  }
+
+  void setTotalItems(String text) {
+    final int? value = int.tryParse(text.trim());
+    _totalItems = value != null && value > 0 ? value : null;
+    unawaited(loadDeliveryEstimate());
+  }
+
+  void setCustomDeliveryDate(String? yyyyMmDd) {
+    _customDeliveryDate = yyyyMmDd;
+    notifyListeners();
+  }
+
+  /// How many items to base the automatic date on: what the worker typed, else the order's items.
+  int get _quantityForEstimate {
+    final int? typed = _totalItems;
+    if (typed != null) return typed;
+    final int fromOrder = selections.fold<int>(0, (int sum, NewOrderLineSelection l) => sum + l.amount.round());
+    return fromOrder < 1 ? 1 : fromOrder;
+  }
+
+  Future<void> loadDeliveryEstimate() async {
+    final PickupOrderContext? context = pickup;
+    if (context == null) return;
+    final int quantity = _quantityForEstimate;
+    if (quantity == _estimatedFor) return;
+    _estimatedFor = quantity;
+    try {
+      final String date = await context.estimate(quantity);
+      if (date.isNotEmpty) {
+        _autoDeliveryDate = date;
+        notifyListeners();
+      }
+    } on Object {
+      // The date can still be picked by hand.
+    }
+  }
   Customer? get customer => _customer;
   Order? get createdOrder => _createdOrder;
   List<OrderItemCategory> get categories => _categories;
@@ -366,12 +459,12 @@ class NewOrderController extends ChangeNotifier {
   }
 
   String? nextValidation() {
-    if (_step == 0 && _customer == null)
+    if (stage == NewOrderStage.customer && _customer == null)
       return 'Select a customer to continue.';
-    if (_step == 1 && selections.isEmpty) {
+    if (stage == NewOrderStage.items && selections.isEmpty) {
       return 'Add at least one item to continue.';
     }
-    if (_step == 2 &&
+    if (stage == NewOrderStage.services &&
         selections.any(
           (NewOrderLineSelection line) =>
               line.services.isEmpty ||
@@ -379,14 +472,14 @@ class NewOrderController extends ChangeNotifier {
         )) {
       return 'Select at least one available service for every item.';
     }
-    if (_step == 3 && (_discountPercentage < 0 || _discountPercentage > 100)) {
+    if (stage == NewOrderStage.pricing && (_discountPercentage < 0 || _discountPercentage > 100)) {
       return 'Discount percentage must be between 0 and 100.';
     }
-    if (_step == 4 &&
+    if (stage == NewOrderStage.payment &&
         (_advancePayment < 0 || _advancePayment > previewGrandTotal)) {
       return 'Advance payment must be between Rs. 0 and the grand total.';
     }
-    if (_step == 4 && _advancePayment > 0 && _paymentMethod == null) {
+    if (stage == NewOrderStage.payment && _advancePayment > 0 && _paymentMethod == null) {
       return 'Select a payment method for the advance payment.';
     }
     return null;
@@ -399,14 +492,15 @@ class NewOrderController extends ChangeNotifier {
       notifyListeners();
       return false;
     }
-    if (_step < 4) _step += 1;
+    if (stage != NewOrderStage.payment && stage != NewOrderStage.receipt) _step += 1;
     _error = null;
     notifyListeners();
+    if (stage == NewOrderStage.photos) unawaited(loadDeliveryEstimate());
     return true;
   }
 
   void back() {
-    if (_step > 0 && _step < 5) {
+    if (_step > 0 && stage != NewOrderStage.receipt) {
       _step -= 1;
       _error = null;
       notifyListeners();
@@ -432,6 +526,7 @@ class NewOrderController extends ChangeNotifier {
               customerId: _customer!.id,
               discountPercentage: _discountPercentage,
               items: selections.expand(_createItems).toList(growable: false),
+              expectedDeliveryDate: pickup == null ? null : DateTime.tryParse(deliveryDate ?? ''),
             ),
           );
       _createdOrder = order;
@@ -447,7 +542,7 @@ class NewOrderController extends ChangeNotifier {
         );
         _createdOrder = order;
       }
-      _step = 5;
+      _step = stages.length - 1;
       return order;
     } on OrderApiException catch (error) {
       _error = error.message;

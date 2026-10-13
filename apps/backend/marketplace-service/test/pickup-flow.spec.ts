@@ -97,11 +97,27 @@ describe('delivery formula', () => {
 });
 
 describe('pickup flow', () => {
-  it('needs a worker when the shop travels, not for a shop visit', async () => {
+  it('accepting does not force a worker; assigning is its own step', async () => {
     const a = subject(doc());
-    await expect(a.service.accept(owner, 'r1', {})).rejects.toThrow(/Choose the worker/);
+    const accepted = await a.service.accept(owner, 'r1', {});
+    expect(accepted.pickupWorker).toBeUndefined();
+    expect(a.push.send).not.toHaveBeenCalledWith({ userId: expect.anything() }, expect.anything(), expect.anything(), expect.anything());
     const b = subject(doc({ requestType: 'visit_shop' }));
     await expect(b.service.accept(owner, 'r1', {})).resolves.toBeDefined();
+
+    const open = subject(doc({ status: 'Accepted' }));
+    await expect(open.service.assignWorker(owner, 'r1', { workerId: '', workerName: '' })).rejects.toThrow(/Choose who/);
+  });
+
+  it('the owner can send themselves (me) or a worker, and only the worker is pushed', async () => {
+    const mine = subject(doc({ status: 'Accepted' }));
+    const self = await mine.service.assignWorker(owner, 'r1', { workerId: 'me', workerName: 'Owner' });
+    expect(self.pickupWorker).toEqual({ userId: 'owner-1', name: 'Owner' });
+    expect(mine.push.send).not.toHaveBeenCalledWith({ userId: 'owner-1' }, expect.anything(), expect.anything(), expect.anything());
+
+    const other = subject(doc({ status: 'Accepted' }));
+    await other.service.assignWorker(owner, 'r1', { workerId: 'worker-1', workerName: 'Ravi' });
+    expect(other.push.send).toHaveBeenCalledWith({ userId: 'worker-1' }, 'New pickup for you', expect.any(String), expect.objectContaining({ type: 'pickup_assigned' }));
   });
 
   it('accepting with a worker pushes the worker as well as the customer', async () => {

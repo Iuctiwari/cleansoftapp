@@ -6,7 +6,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:nexoraa_mobile/app/router.dart';
 import 'package:nexoraa_mobile/core/localization/l10n.dart';
 import 'package:nexoraa_mobile/core/push/push_platform.dart';
@@ -15,12 +14,10 @@ import 'package:nexoraa_mobile/features/authentication/authentication_models.dar
 import 'package:nexoraa_mobile/features/authentication/controllers/authentication_controller.dart';
 import 'package:nexoraa_mobile/features/authentication/services/auth_token_storage.dart';
 import 'package:nexoraa_mobile/features/authentication/services/authentication_service.dart';
-import 'package:nexoraa_mobile/features/consumer/models/consumer_models.dart';
 import 'package:nexoraa_mobile/features/online_requests/screens/shop_listing_screen.dart';
 import 'package:nexoraa_mobile/features/online_requests/screens/shop_request_detail_screen.dart';
 import 'package:nexoraa_mobile/features/online_requests/services/shop_marketplace_api_service.dart';
 import 'package:nexoraa_mobile/features/online_requests/widgets/online_requests_card.dart';
-import 'package:nexoraa_mobile/features/online_requests/widgets/collect_pickup_dialog.dart';
 import 'package:nexoraa_mobile/features/online_requests/widgets/shop_ui.dart';
 import 'package:nexoraa_mobile/features/staff/services/staff_api_service.dart';
 
@@ -97,7 +94,16 @@ class _Backend {
         return http.Response(jsonEncode(listing), 200);
       }
       if (path.endsWith('/accept')) {
-        request = <String, dynamic>{...request, 'status': 'Accepted', 'shopNote': (jsonDecode(r.body) as Map<String, dynamic>)['note'], 'actions': <String, bool>{'accept': false, 'decline': true, 'linkOrder': true, 'complete': true}};
+        request = <String, dynamic>{...request, 'status': 'Accepted', 'shopNote': (jsonDecode(r.body) as Map<String, dynamic>)['note'], 'actions': <String, bool>{'accept': false, 'decline': true, 'linkOrder': true, 'complete': true, 'assignWorker': true, 'collect': false}};
+      }
+      if (path.endsWith('/assign-worker')) {
+        final Map<String, dynamic> body = jsonDecode(r.body) as Map<String, dynamic>;
+        request = <String, dynamic>{
+          ...request,
+          'pickupWorker': <String, String>{'userId': body['workerId'] as String, 'name': body['workerName'] as String},
+          'pickupWorkerName': body['workerName'],
+          'actions': <String, bool>{'accept': false, 'decline': true, 'linkOrder': true, 'complete': true, 'assignWorker': true, 'collect': true},
+        };
       }
       if (path.endsWith('/decline')) {
         request = <String, dynamic>{...request, 'status': 'Declined', 'declineReason': (jsonDecode(r.body) as Map<String, dynamic>)['reason'], 'actions': <String, bool>{}};
@@ -258,21 +264,22 @@ void main() {
     expect(find.byKey(const Key('listing.save')), findsNothing);
   });
 
-  testWidgets('request detail: accept with a worker and a note, then create-order becomes available', (WidgetTester tester) async {
+  StaffApiService _staff(AuthTokenStorage storage) => StaffApiService(
+    baseUrl: 'http://test',
+    tokenStorage: storage,
+    client: MockClient((http.Request request) async {
+      final List<Map<String, Object>> people = <Map<String, Object>>[
+        <String, Object>{'userId': 'w-1', 'name': 'Ravi Kumar', 'role': 'Staff', 'status': 'Active', 'branchIds': <String>['branch-1']},
+        <String, Object>{'userId': 'm-1', 'name': 'Meena Manager', 'role': 'Branch Manager', 'status': 'Active', 'branchIds': <String>['branch-1']},
+      ];
+      return http.Response(jsonEncode(people), 200);
+    }),
+  );
+
+  testWidgets('request detail: accept with a note, then choose who collects (a worker)', (WidgetTester tester) async {
     final AuthTokenStorage storage = await _signInAs('Owner', const <String>[]);
     final _Backend backend = _Backend();
-    final StaffApiService staff = StaffApiService(
-      baseUrl: 'http://test',
-      tokenStorage: storage,
-      client: MockClient((http.Request request) async {
-        final List<Map<String, Object>> people = <Map<String, Object>>[
-          <String, Object>{'userId': 'w-1', 'name': 'Ravi Kumar', 'role': 'Staff', 'status': 'Active', 'branchIds': <String>['branch-1']},
-          <String, Object>{'userId': 'm-1', 'name': 'Meena Manager', 'role': 'Branch Manager', 'status': 'Active', 'branchIds': <String>['branch-1']},
-        ];
-        return http.Response(jsonEncode(people), 200);
-      }),
-    );
-    await tester.pumpWidget(_page(ShopRequestDetailScreen(requestId: 'req-1', branch: _branch, service: backend.service(storage), staffService: staff)));
+    await tester.pumpWidget(_page(ShopRequestDetailScreen(requestId: 'req-1', branch: _branch, service: backend.service(storage), staffService: _staff(storage))));
     await tester.pumpAndSettle();
 
     expect(find.text('Riya Sharma'), findsWidgets);
@@ -282,112 +289,55 @@ void main() {
     await tester.tap(find.byKey(const Key('request.accept')));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField).last, 'We will come at 10:30');
-
-    // A pickup needs a worker: confirming without one is refused, and managers are not offered.
-    await tester.tap(find.byKey(const Key('accept.confirm')));
-    await tester.pumpAndSettle();
-    expect(find.text('Choose the worker who will collect'), findsOneWidget);
-    expect(backend.requests.any((http.Request r) => r.url.path.endsWith('/accept')), isFalse);
-    await tester.tap(find.text('OK'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('accept.worker')));
-    await tester.pumpAndSettle();
-    expect(find.text('Meena Manager'), findsNothing);
-    await tester.tap(find.text('Ravi Kumar').last);
-    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('accept.confirm')));
     await tester.pumpAndSettle();
 
     final http.Request accept = backend.requests.lastWhere((http.Request r) => r.url.path.endsWith('/accept'));
     final Map<String, dynamic> body = jsonDecode(accept.body) as Map<String, dynamic>;
     expect(body['note'], 'We will come at 10:30');
-    expect(body['workerId'], 'w-1');
-    expect(body['workerName'], 'Ravi Kumar');
     expect(DateTime.parse(body['confirmedAt'] as String).toLocal().hour, 10);
-    expect(find.byKey(const Key('request.createOrder')), findsOneWidget);
+    expect(body.containsKey('workerId'), isFalse);
+
+    // straight after accepting: who goes? Owner themselves or a worker (not managers)
+    expect(find.byKey(const Key('assign.me')), findsOneWidget);
+    expect(find.text('Meena Manager'), findsNothing);
+    await tester.tap(find.byKey(const Key('assign.worker.w-1')));
+    await tester.pumpAndSettle();
+
+    final http.Request assign = backend.requests.lastWhere((http.Request r) => r.url.path.endsWith('/assign-worker'));
+    final Map<String, dynamic> assigned = jsonDecode(assign.body) as Map<String, dynamic>;
+    expect(assigned['workerId'], 'w-1');
+    expect(assigned['workerName'], 'Ravi Kumar');
+    expect(find.text('Pickup by Ravi Kumar'), findsOneWidget);
+    expect(find.byKey(const Key('request.startPickup')), findsOneWidget);
+    expect(find.byKey(const Key('request.createOrder')), findsNothing);
     expect(find.byKey(const Key('request.accept')), findsNothing);
   });
 
-  Widget _collectHost(void Function(CollectResult?) onResult, {int? initialTotal, List<int>? asked}) => _page(
-    Builder(
-      builder: (BuildContext context) => TextButton(
-        onPressed: () async {
-          onResult(
-            await showDialog<CollectResult>(
-              context: context,
-              builder: (_) => CollectPickupDialog(
-                initialTotal: initialTotal,
-                estimate: (int quantity) async {
-                  asked?.add(quantity);
-                  return '2030-01-10';
-                },
-                takePhoto: () async => XFile.fromData(base64Decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='), mimeType: 'image/jpeg'),
-              ),
-            ),
-          );
-        },
-        child: const Text('open'),
-      ),
-    ),
-  );
-
-  testWidgets('collect dialog: the total is optional and the date is automatic', (WidgetTester tester) async {
-    final List<int> asked = <int>[];
-    CollectResult? result;
-    await tester.pumpWidget(_collectHost((CollectResult? r) => result = r, asked: asked));
-    await tester.tap(find.text('open'));
+  testWidgets('request detail: the owner can send themselves, or assign later', (WidgetTester tester) async {
+    final AuthTokenStorage storage = await _signInAs('Owner', const <String>[]);
+    final _Backend backend = _Backend();
+    await tester.pumpWidget(_page(ShopRequestDetailScreen(requestId: 'req-1', branch: _branch, service: backend.service(storage), staffService: _staff(storage))));
     await tester.pumpAndSettle();
 
-    // Nothing entered: it still works, and the date is worked out for one batch.
-    expect(find.textContaining('Automatic:'), findsOneWidget);
-    expect(asked, <int>[1]);
-    await tester.tap(find.byKey(const Key('collect.confirm')));
+    await tester.tap(find.byKey(const Key('request.accept')));
     await tester.pumpAndSettle();
-    expect(result, isNotNull);
-    expect(result?.totalItems, isNull);
-    expect(result?.photos, isEmpty);
-    expect(result?.customDeliveryDate, isNull);
+    await tester.tap(find.byKey(const Key('accept.confirm')));
+    await tester.pumpAndSettle();
 
-    // With a count the date is asked again for that count.
-    await tester.tap(find.text('open'));
+    // dismiss the sheet: assigning is still one tap away
+    await tester.tapAt(const Offset(10, 10));
     await tester.pumpAndSettle();
-    await tester.enterText(find.byKey(const Key('collect.total')), '30');
-    await tester.pump(const Duration(milliseconds: 500));
-    await tester.pumpAndSettle();
-    expect(asked.last, 30);
-    await tester.tap(find.byKey(const Key('collect.confirm')));
-    await tester.pumpAndSettle();
-    expect(result?.totalItems, 30);
-  });
+    expect(find.byKey(const Key('request.assign')), findsOneWidget);
+    expect(find.byKey(const Key('request.createOrder')), findsNothing);
 
-  testWidgets('collect dialog: starts from what the customer wrote, photos can be added and removed', (WidgetTester tester) async {
-    final List<int> asked = <int>[];
-    CollectResult? result;
-    await tester.pumpWidget(_collectHost((CollectResult? r) => result = r, initialTotal: 4, asked: asked));
-    await tester.tap(find.text('open'));
+    await tester.tap(find.byKey(const Key('request.assign')));
     await tester.pumpAndSettle();
-    expect(asked, <int>[4]);
-
-    await tester.runAsync(() async {
-      await tester.tap(find.byKey(const Key('collect.photo.add')));
-      await Future<void>.delayed(const Duration(milliseconds: 50));
-    });
-    await tester.pump();
-    expect(find.byKey(const Key('collect.photo.remove.0')), findsOneWidget);
-
-    await tester.tap(find.byKey(const Key('collect.photo.remove.0')));
-    await tester.pump();
-    expect(find.byKey(const Key('collect.photo.remove.0')), findsNothing);
-
-    await tester.runAsync(() async {
-      await tester.tap(find.byKey(const Key('collect.photo.add')));
-      await Future<void>.delayed(const Duration(milliseconds: 50));
-    });
-    await tester.pump();
-    await tester.tap(find.byKey(const Key('collect.confirm')));
+    await tester.tap(find.byKey(const Key('assign.me')));
     await tester.pumpAndSettle();
-    expect(result?.photos.length, 1);
-    expect(result?.totalItems, 4);
+    final http.Request assign = backend.requests.lastWhere((http.Request r) => r.url.path.endsWith('/assign-worker'));
+    expect((jsonDecode(assign.body) as Map<String, dynamic>)['workerId'], 'me');
+    expect(find.byKey(const Key('request.startPickup')), findsOneWidget);
   });
 
   testWidgets('request detail: decline needs a reason', (WidgetTester tester) async {

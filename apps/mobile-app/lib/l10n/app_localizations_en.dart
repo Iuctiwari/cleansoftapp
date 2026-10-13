@@ -1559,4 +1559,35 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get pickupCollectAndCreate => 'Collected, create order';
+
+  @override
+  String get pickupAssignButton => 'Assign who collects';
+
+  @override
+  String get pickupAssignTitle => 'Who will go and collect?';
+
+  @override
+  String get pickupAssignMe => 'I will go myself';
+
+  @override
+  String get pickupAssignNoWorkers =>
+      'No workers added yet. Add staff to send someone else.';
+
+  @override
+  String get pickupAssignedToast => 'Pickup assigned';
+
+  @override
+  String get pickupStart => 'Start pickup';
+
+  @override
+  String get pickupFinish => 'Finish pickup';
+
+  @override
+  String pickupPhotosFailed(int count) {
+    return '$count photo(s) could not be uploaded. The order is saved.';
+  }
+
+  @override
+  String get pickupNotRecorded =>
+      'The order is saved, but the pickup could not be recorded. Open the request and tap Finish pickup.';
 }

@@ -8,6 +8,7 @@ import 'package:nexoraa_mobile/features/orders/widgets/order_widgets.dart';
 class NewOrderStepScaffold extends StatelessWidget {
   const NewOrderStepScaffold({
     required this.step,
+    this.stepCount = 6,
     required this.body,
     required this.footer,
     required this.onClose,
@@ -15,6 +16,7 @@ class NewOrderStepScaffold extends StatelessWidget {
   });
 
   final int step;
+  final int stepCount;
   final Widget body;
   final Widget footer;
   final VoidCallback onClose;
@@ -54,7 +56,7 @@ class NewOrderStepScaffold extends StatelessWidget {
                         child: Text('New Order', style: AppTextStyles.title),
                       ),
                       Text(
-                        '${step + 1}/6',
+                        '${step + 1}/$stepCount',
                         style: AppTextStyles.captionBold.copyWith(
                           color: AppColors.textMuted,
                         ),
@@ -63,7 +65,7 @@ class NewOrderStepScaffold extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: AppSpacing.md),
-                NewOrderProgressIndicator(currentStep: step),
+                NewOrderProgressIndicator(currentStep: step, stepCount: stepCount),
               ],
             ),
           ),
@@ -88,21 +90,22 @@ class NewOrderStepScaffold extends StatelessWidget {
 }
 
 class NewOrderProgressIndicator extends StatelessWidget {
-  const NewOrderProgressIndicator({required this.currentStep, super.key});
+  const NewOrderProgressIndicator({required this.currentStep, this.stepCount = 6, super.key});
 
   final int currentStep;
+  final int stepCount;
 
   @override
   Widget build(BuildContext context) => Semantics(
-    label: 'New order step ${currentStep + 1} of 6',
-    value: '${currentStep + 1} of 6',
+    label: 'New order step ${currentStep + 1} of $stepCount',
+    value: '${currentStep + 1} of $stepCount',
     child: Row(
       children: List<Widget>.generate(
-        6,
+        stepCount,
         (int index) => Expanded(
           child: Container(
             height: AppSpacing.xxs,
-            margin: EdgeInsets.only(right: index == 5 ? 0 : AppSpacing.xs),
+            margin: EdgeInsets.only(right: index == stepCount - 1 ? 0 : AppSpacing.xs),
             decoration: BoxDecoration(
               color: index <= currentStep
                   ? AppColors.primary

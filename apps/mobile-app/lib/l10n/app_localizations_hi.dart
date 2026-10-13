@@ -1563,4 +1563,35 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get pickupCollectAndCreate => 'ले लिया, ऑर्डर बनाएं';
+
+  @override
+  String get pickupAssignButton => 'तय करें कि कौन लेने जाएगा';
+
+  @override
+  String get pickupAssignTitle => 'लेने कौन जाएगा?';
+
+  @override
+  String get pickupAssignMe => 'मैं खुद जाऊँगा';
+
+  @override
+  String get pickupAssignNoWorkers =>
+      'अभी कोई कर्मचारी नहीं जुड़ा। किसी और को भेजने के लिए स्टाफ जोड़ें।';
+
+  @override
+  String get pickupAssignedToast => 'पिकअप सौंप दिया गया';
+
+  @override
+  String get pickupStart => 'पिकअप शुरू करें';
+
+  @override
+  String get pickupFinish => 'पिकअप पूरा करें';
+
+  @override
+  String pickupPhotosFailed(int count) {
+    return '$count फ़ोटो अपलोड नहीं हो सकीं। ऑर्डर सेव हो गया है।';
+  }
+
+  @override
+  String get pickupNotRecorded =>
+      'ऑर्डर सेव हो गया, पर पिकअप दर्ज नहीं हो सका। रिक्वेस्ट खोलकर \"पिकअप पूरा करें\" दबाएं।';
 }

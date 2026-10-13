@@ -1,4 +1,6 @@
 import 'package:nexoraa_mobile/features/consumer/widgets/text_prompt_dialog.dart';
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:nexoraa_mobile/core/localization/l10n.dart';
 import 'package:nexoraa_mobile/design_system/design_system.dart';
@@ -12,7 +14,6 @@ import 'package:nexoraa_mobile/features/customers/models/customer.dart';
 import 'package:nexoraa_mobile/features/customers/services/customer_api_service.dart';
 import 'package:nexoraa_mobile/features/online_requests/models/shop_marketplace_models.dart';
 import 'package:nexoraa_mobile/features/online_requests/services/shop_marketplace_api_service.dart';
-import 'package:nexoraa_mobile/features/online_requests/widgets/collect_pickup_dialog.dart';
 import 'package:nexoraa_mobile/features/online_requests/widgets/shop_ui.dart';
 import 'package:nexoraa_mobile/features/staff/models/staff_member.dart';
 import 'package:nexoraa_mobile/features/staff/services/staff_api_service.dart';
@@ -101,45 +102,13 @@ class _ShopRequestDetailScreenState extends State<ShopRequestDetailScreen> {
     }).toList(growable: false);
   }
 
-  Widget _workerPicker(BuildContext context, List<StaffMember> workers, ValueNotifier<StaffMember?> chosen) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Text(context.l10n.pickupWorkerLabel, style: AppTextStyles.inputLabel),
-        const SizedBox(height: AppSpacing.sm),
-        ValueListenableBuilder<StaffMember?>(
-          valueListenable: chosen,
-          builder: (BuildContext context, StaffMember? value, _) => DropdownButtonFormField<StaffMember>(
-            key: const Key('accept.worker'),
-            initialValue: value,
-            isExpanded: true,
-            hint: Text(context.l10n.pickupChooseWorker),
-            items: <DropdownMenuItem<StaffMember>>[
-              for (final StaffMember w in workers)
-                DropdownMenuItem<StaffMember>(value: w, child: Text(w.displayName, overflow: TextOverflow.ellipsis)),
-            ],
-            onChanged: (StaffMember? w) => chosen.value = w,
-          ),
-        ),
-      ],
-    );
-  }
-
-  /// Loads the workers, or explains why there are none. Null = stop.
-  Future<List<StaffMember>?> _workersOrExplain() async {
+  /// Active workers of this branch. Empty is fine: the owner can always go themselves.
+  Future<List<StaffMember>?> _workersOrError() async {
     setState(() => _busy = true);
     try {
       final List<StaffMember> workers = await _loadWorkers();
       if (!mounted) return null;
       setState(() => _busy = false);
-      if (workers.isEmpty) {
-        await AppAlertDialog.show(
-          context,
-          title: context.l10n.pickupChooseWorker,
-          message: context.l10n.pickupNoWorkers,
-        );
-        return null;
-      }
       return workers;
     } on Object catch (error) {
       if (mounted) setState(() => _busy = false);
@@ -150,145 +119,166 @@ class _ShopRequestDetailScreenState extends State<ShopRequestDetailScreen> {
 
   Future<void> _accept(ShopRequest request) async {
     final ServiceRequest r = request.base;
-    final bool travels = r.requestType != ServiceMode.visitShop;
-    List<StaffMember> workers = const <StaffMember>[];
-    if (travels) {
-      final List<StaffMember>? loaded = await _workersOrExplain();
-      if (loaded == null || !mounted) return;
-      workers = loaded;
-    }
-    final ValueNotifier<StaffMember?> worker = ValueNotifier<StaffMember?>(null);
     final ValueNotifier<DateTime> when = ValueNotifier<DateTime>(
       DateTime.tryParse('${r.preferredDate}T${r.slotStart}:00') ?? DateTime.now(),
     );
-    String? note;
-    try {
-      while (true) {
-        note = await showDialog<String>(
-          context: context,
-          builder: (BuildContext dialogContext) => TextPromptDialog(
-            title: dialogContext.l10n.onlineRequestAcceptTitle,
-            hint: dialogContext.l10n.onlineRequestNoteHint,
-            initialText: note ?? '',
-            confirmLabel: dialogContext.l10n.onlineRequestAccept,
-            cancelLabel: MaterialLocalizations.of(dialogContext).cancelButtonLabel,
-            confirmKey: const Key('accept.confirm'),
-            header: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(dialogContext.l10n.onlineRequestConfirmTime, style: AppTextStyles.inputLabel),
-                const SizedBox(height: AppSpacing.sm),
-                ValueListenableBuilder<DateTime>(
-                  valueListenable: when,
-                  builder: (BuildContext context, DateTime value, _) => OutlinedButton.icon(
-                    key: const Key('accept.time'),
-                    icon: const Icon(Icons.event_outlined),
-                    label: Text(context.formatDateTime(value)),
-                    onPressed: () async {
-                      final DateTime today = DateUtils.dateOnly(DateTime.now());
-                      final DateTime? day = await showDatePicker(
-                        context: context,
-                        initialDate: value.isBefore(today) ? today : value,
-                        firstDate: today,
-                        lastDate: today.add(const Duration(days: 60)),
-                      );
-                      if (day == null || !context.mounted) return;
-                      final TimeOfDay? time = await showTimePicker(
-                        context: context,
-                        initialTime: TimeOfDay.fromDateTime(value),
-                      );
-                      if (time == null) return;
-                      when.value = DateTime(day.year, day.month, day.day, time.hour, time.minute);
-                    },
-                  ),
-                ),
-                if (travels) ...<Widget>[
-                  const SizedBox(height: AppSpacing.md),
-                  _workerPicker(dialogContext, workers, worker),
-                ],
-              ],
+    final String? note = await showDialog<String>(
+      context: context,
+      builder: (BuildContext dialogContext) => TextPromptDialog(
+        title: dialogContext.l10n.onlineRequestAcceptTitle,
+        hint: dialogContext.l10n.onlineRequestNoteHint,
+        confirmLabel: dialogContext.l10n.onlineRequestAccept,
+        cancelLabel: MaterialLocalizations.of(dialogContext).cancelButtonLabel,
+        confirmKey: const Key('accept.confirm'),
+        header: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Text(dialogContext.l10n.onlineRequestConfirmTime, style: AppTextStyles.inputLabel),
+            const SizedBox(height: AppSpacing.sm),
+            ValueListenableBuilder<DateTime>(
+              valueListenable: when,
+              builder: (BuildContext context, DateTime value, _) => OutlinedButton.icon(
+                key: const Key('accept.time'),
+                icon: const Icon(Icons.event_outlined),
+                label: Text(context.formatDateTime(value)),
+                onPressed: () async {
+                  final DateTime today = DateUtils.dateOnly(DateTime.now());
+                  final DateTime? day = await showDatePicker(
+                    context: context,
+                    initialDate: value.isBefore(today) ? today : value,
+                    firstDate: today,
+                    lastDate: today.add(const Duration(days: 60)),
+                  );
+                  if (day == null || !context.mounted) return;
+                  final TimeOfDay? time = await showTimePicker(context: context, initialTime: TimeOfDay.fromDateTime(value));
+                  if (time == null) return;
+                  when.value = DateTime(day.year, day.month, day.day, time.hour, time.minute);
+                },
+              ),
             ),
-          ),
-        );
-        if (note == null || !mounted) return;
-        if (!travels || worker.value != null) break;
-        await AppAlertDialog.show(
-          context,
-          title: context.l10n.pickupChooseWorker,
-          message: context.l10n.pickupWorkerRequired,
-        );
-        if (!mounted) return;
-      }
-      final DateTime confirmedAt = when.value;
-      final StaffMember? chosen = worker.value;
-      await _act(
-        () => _api.accept(
-          request.requestId,
-          confirmedAt: confirmedAt,
-          note: note,
-          workerId: chosen?.id,
-          workerName: chosen?.displayName,
+          ],
         ),
-        context.l10n.onlineRequestAccepted,
-      );
-    } finally {
-      when.dispose();
-      worker.dispose();
+      ),
+    );
+    final DateTime confirmedAt = when.value;
+    when.dispose();
+    if (note == null || !mounted) return;
+    await _act(
+      () => _api.accept(request.requestId, confirmedAt: confirmedAt, note: note),
+      context.l10n.onlineRequestAccepted,
+    );
+    // Pickup or home visit: decide straight away who goes.
+    final ShopRequest? after = _request;
+    if (mounted && after != null && after.canAssignWorker && after.pickupWorkerId == null) {
+      await _assign(after);
     }
   }
 
-  Future<void> _changeWorker(ShopRequest request) async {
-    final List<StaffMember>? workers = await _workersOrExplain();
+  /// Who goes to collect: the owner/manager themselves, or one of the workers.
+  Future<void> _assign(ShopRequest request) async {
+    final List<StaffMember>? workers = await _workersOrError();
     if (workers == null || !mounted) return;
-    final StaffMember? chosen = await showDialog<StaffMember>(
+    final ({String id, String name})? chosen = await showModalBottomSheet<({String id, String name})>(
       context: context,
-      builder: (BuildContext dialogContext) => SimpleDialog(
-        title: Text(dialogContext.l10n.pickupChooseWorker),
-        children: <Widget>[
-          for (final StaffMember w in workers)
-            SimpleDialogOption(onPressed: () => Navigator.of(dialogContext).pop(w), child: Text(w.displayName)),
-        ],
+      showDragHandle: true,
+      builder: (BuildContext sheetContext) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          children: <Widget>[
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+              child: Text(sheetContext.l10n.pickupAssignTitle, style: AppTextStyles.title),
+            ),
+            ListTile(
+              key: const Key('assign.me'),
+              leading: const Icon(Icons.person_outline),
+              title: Text(sheetContext.l10n.pickupAssignMe),
+              onTap: () => Navigator.of(sheetContext).pop((
+                id: 'me',
+                name: AuthenticationDependencies.controller.session?.ownerName ?? 'Owner',
+              )),
+            ),
+            for (final StaffMember w in workers)
+              ListTile(
+                key: Key('assign.worker.${w.id}'),
+                leading: const Icon(Icons.directions_walk_outlined),
+                title: Text(w.displayName),
+                onTap: () => Navigator.of(sheetContext).pop((id: w.id, name: w.displayName)),
+              ),
+            if (workers.isEmpty)
+              Padding(
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                child: Text(sheetContext.l10n.pickupAssignNoWorkers, style: AppTextStyles.caption),
+              ),
+          ],
+        ),
       ),
     );
     if (chosen == null || !mounted) return;
     await _act(
-      () => _api.assignWorker(request.requestId, workerId: chosen.id, workerName: chosen.displayName),
-      context.l10n.onlineRequestAccepted,
+      () => _api.assignWorker(request.requestId, workerId: chosen.id, workerName: chosen.name),
+      context.l10n.pickupAssignedToast,
     );
   }
 
-  Future<void> _collect(ShopRequest request) async {
-    final CollectResult? result = await showDialog<CollectResult>(
-      context: context,
-      builder: (BuildContext dialogContext) => CollectPickupDialog(
-        initialTotal: request.base.items.isEmpty
-            ? null
-            : request.base.items.fold<int>(0, (int sum, RequestItem i) => sum + i.quantity),
-        estimate: (int quantity) => _api.estimateDelivery(request.requestId, quantity: quantity),
-      ),
-    );
-    if (result == null || !mounted) return;
-    await _act(() async {
-      // Photos go straight to S3 first; the order is only marked collected once they are all up.
-      final List<String> keys = <String>[];
-      if (result.photos.isNotEmpty) {
-        final List<PhotoSlot> slots = await _api.photoUploadSlots(request.requestId, count: result.photos.length);
+  /// The collector is at the door: the New Order wizard opens with the customer chosen
+  /// and an extra Photos step; saving it also records the pickup.
+  Future<void> _startPickup(ShopRequest request) => _createOrder(request, pickup: true);
+
+  /// Uploads the photos, then marks the pickup collected so the customer is told.
+  Future<void> _finishPickup(
+    ShopRequest request, {
+    List<Uint8List> photos = const <Uint8List>[],
+    int? totalItems,
+    String? deliveryDate,
+  }) async {
+    setState(() => _busy = true);
+    final List<String> keys = <String>[];
+    int failed = 0;
+    try {
+      if (photos.isNotEmpty) {
+        List<PhotoSlot> slots = const <PhotoSlot>[];
+        try {
+          slots = await _api.photoUploadSlots(request.requestId, count: photos.length);
+        } on Object {
+          failed = photos.length;
+        }
         for (int i = 0; i < slots.length; i++) {
-          await _api.uploadPhoto(slots[i], result.photos[i]);
-          keys.add(slots[i].key);
+          try {
+            await _api.uploadPhoto(slots[i], photos[i]);
+            keys.add(slots[i].key);
+          } on Object {
+            failed++;
+          }
         }
       }
-      return _api.collect(
+      final ShopRequest done = await _api.collect(
         request.requestId,
-        totalItems: result.totalItems,
-        deliveryDate: result.customDeliveryDate,
+        totalItems: totalItems,
+        deliveryDate: deliveryDate,
         photoKeys: keys,
       );
-    }, context.l10n.pickupCollectedToast);
-    // The worker is at the door: carry straight on to creating the order.
-    final ShopRequest? after = _request;
-    if (mounted && after != null && after.base.collectedAt != null && after.canLinkOrder) {
-      await _createOrder(after);
+      if (!mounted) return;
+      setState(() {
+        _request = done;
+        _busy = false;
+      });
+      context.showConsumerToast(context.l10n.pickupCollectedToast);
+      if (failed > 0) {
+        await AppAlertDialog.show(
+          context,
+          title: context.l10n.pickupPhotosHeading,
+          message: context.l10n.pickupPhotosFailed(failed),
+        );
+      }
+    } on Object catch (error) {
+      if (mounted) setState(() => _busy = false);
+      if (!mounted) return;
+      await AppAlertDialog.show(
+        context,
+        title: context.l10n.pickupStart,
+        message: '${context.l10n.pickupNotRecorded}\n\n${context.consumerError(error)}',
+      );
     }
   }
 
@@ -325,7 +315,7 @@ class _ShopRequestDetailScreenState extends State<ShopRequestDetailScreen> {
 
   /// Opens the normal New Order screen with this customer already chosen,
   /// then links the created order to the request.
-  Future<void> _createOrder(ShopRequest request) async {
+  Future<void> _createOrder(ShopRequest request, {bool pickup = false}) async {
     final bool mayCreate = _policy.allows(AppCapability.ordersCreate) || request.pickupWorkerId != null;
     if (!mayCreate) {
       await AppAlertDialog.show(
@@ -347,6 +337,12 @@ class _ShopRequestDetailScreenState extends State<ShopRequestDetailScreen> {
       orderController: orderController,
       paymentService: PaymentApiService(tokenStorage: AuthenticationDependencies.tokenStorage),
       branchId: branchId,
+      pickup: pickup
+          ? PickupOrderContext(
+              requestId: request.requestId,
+              estimate: (int quantity) => _api.estimateDelivery(request.requestId, quantity: quantity),
+            )
+          : null,
     );
 
     setState(() => _busy = true);
@@ -373,6 +369,10 @@ class _ShopRequestDetailScreenState extends State<ShopRequestDetailScreen> {
       ),
     );
     final Order? created = newOrder.createdOrder;
+    // Taken before the wizard is disposed: the pickup needs them afterwards.
+    final List<Uint8List> photos = newOrder.photos;
+    final int? totalItems = newOrder.totalItems;
+    final String? deliveryDate = newOrder.deliveryDate;
     newOrder.dispose();
     orderController.dispose();
     customerController.dispose();
@@ -387,6 +387,9 @@ class _ShopRequestDetailScreenState extends State<ShopRequestDetailScreen> {
         _busy = false;
       });
       context.showConsumerToast(context.l10n.onlineRequestOrderLinked(created.orderNumber));
+      if (pickup && linked.canCollect) {
+        await _finishPickup(linked, photos: photos, totalItems: totalItems, deliveryDate: deliveryDate);
+      }
     } on Object catch (error) {
       if (mounted) setState(() => _busy = false);
       if (!mounted) return;
@@ -434,16 +437,34 @@ class _ShopRequestDetailScreenState extends State<ShopRequestDetailScreen> {
             child: Text(context.l10n.onlineRequestAccept),
           ),
         ),
-      if (request.canCollect)
+      if (request.canAssignWorker && request.pickupWorkerId == null)
         Expanded(
           child: FilledButton(
-            key: const Key('request.collect'),
-            onPressed: _busy ? null : () => _collect(request),
+            key: const Key('request.assign'),
+            onPressed: _busy ? null : () => _assign(request),
             style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
-            child: Text(context.l10n.pickupCollectAction),
+            child: Text(context.l10n.pickupAssignButton),
           ),
         ),
-      if (request.canLinkOrder && !request.canCollect)
+      if (request.canCollect && request.orderId == null)
+        Expanded(
+          child: FilledButton(
+            key: const Key('request.startPickup'),
+            onPressed: _busy ? null : () => _startPickup(request),
+            style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+            child: Text(context.l10n.pickupStart),
+          ),
+        ),
+      if (request.canCollect && request.orderId != null)
+        Expanded(
+          child: FilledButton(
+            key: const Key('request.finishPickup'),
+            onPressed: _busy ? null : () => _finishPickup(request),
+            style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+            child: Text(context.l10n.pickupFinish),
+          ),
+        ),
+      if (request.canLinkOrder && !request.canCollect && !(request.canAssignWorker && request.pickupWorkerId == null))
         Expanded(
           child: FilledButton(
             key: const Key('request.createOrder'),
@@ -554,12 +575,12 @@ class _ShopRequestDetailScreenState extends State<ShopRequestDetailScreen> {
               ),
               if (r.pickupWorkerName != null)
                 _row(Icons.directions_walk_outlined, context.l10n.pickupBy(r.pickupWorkerName!)),
-              if (request.canAssignWorker)
+              if (request.canAssignWorker && request.pickupWorkerId != null)
                 Align(
                   alignment: Alignment.centerLeft,
                   child: TextButton(
                     key: const Key('request.changeWorker'),
-                    onPressed: _busy ? null : () => _changeWorker(request),
+                    onPressed: _busy ? null : () => _assign(request),
                     child: Text(context.l10n.pickupChangeWorker),
                   ),
                 ),

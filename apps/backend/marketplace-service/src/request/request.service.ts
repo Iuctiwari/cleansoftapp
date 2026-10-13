@@ -425,7 +425,7 @@ export class RequestService {
     await this.expireDue(scope);
     const current = await this.findOne(scope);
 
-    const worker = this.pickWorker(current, input.workerId, input.workerName);
+    const worker = this.pickWorker(current, shop, input.workerId, input.workerName);
     const confirmedAt = input.confirmedAt
       ? new Date(input.confirmedAt).toISOString()
       : istInstant(current.preferredDate, current.preferredSlot.start);
@@ -458,7 +458,7 @@ export class RequestService {
     );
     if (!updated) throw this.alreadyHandled(await this.findOne(scope));
     this.notifyCustomer(updated, 'accepted');
-    this.notifyWorker(updated);
+    this.notifyWorker(updated, shop.actorId);
     return this.toShopView(updated, shop);
   }
 
@@ -563,7 +563,8 @@ export class RequestService {
     if (current.requestType === 'visit_shop') {
       throw new BadRequestException('A shop visit has nothing to collect');
     }
-    const worker = this.pickWorker(current, input.workerId, input.workerName);
+    const worker = this.pickWorker(current, shop, input.workerId, input.workerName);
+    if (!worker) throw new BadRequestException('Choose who will go and collect');
     const updated = await this.transition(
       { ...scope, status: 'Accepted', collected: { $exists: false } },
       'Accepted',
@@ -571,7 +572,7 @@ export class RequestService {
       { pickupWorker: worker },
     );
     if (!updated) throw new ConflictException('This pickup cannot be reassigned any more');
-    this.notifyWorker(updated);
+    this.notifyWorker(updated, shop.actorId);
     return this.toShopView(updated, shop);
   }
 
@@ -714,22 +715,26 @@ export class RequestService {
     return suggestDelivery(request.category, quantity, from, listing?.openingHours ?? []);
   }
 
-  /** Pickups and home visits need a worker to go; a shop visit does not. */
+  /**
+   * Who goes to collect: a worker, or 'me' for the owner/manager answering. Optional at
+   * accept time (assigned in the next step); a shop visit has nothing to collect.
+   */
   private pickWorker(
     request: ServiceRequestDocument,
+    shop: ShopPrincipal,
     workerId: string | undefined,
     workerName: string | undefined,
   ): { userId: string; name: string } | undefined {
     if (request.requestType === 'visit_shop') return undefined;
-    const userId = workerId?.trim();
-    if (!userId) {
-      throw new BadRequestException('Choose the worker who will go and collect');
-    }
-    return { userId, name: workerName?.trim() || 'Worker' };
+    const id = workerId?.trim();
+    if (!id) return undefined;
+    if (id === 'me') return { userId: shop.actorId, name: workerName?.trim() || 'Owner' };
+    return { userId: id, name: workerName?.trim() || 'Worker' };
   }
 
-  private notifyWorker(request: ServiceRequestDocument): void {
-    if (!request.pickupWorker) return;
+  private notifyWorker(request: ServiceRequestDocument, actorId: string): void {
+    // Nothing to tell someone who just assigned the pickup to themselves.
+    if (!request.pickupWorker || request.pickupWorker.userId === actorId) return;
     this.firePush(
       { userId: request.pickupWorker.userId },
       'New pickup for you',

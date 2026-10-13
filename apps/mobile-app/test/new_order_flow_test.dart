@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -25,6 +26,52 @@ const String _customerId = '64f0c18f7c4d2f0012ab342';
 const String _orderId = '64f0c18f7c4d2f0012ab343';
 
 void main() {
+  test('a pickup order gets a Photos & delivery step before Payment; a normal order does not', () async {
+    final List<int> asked = <int>[];
+    final _FlowDependencies pickup = await _dependencies(
+      (_) async => http.Response('{}', 500),
+      pickup: PickupOrderContext(
+        requestId: 'req-1',
+        estimate: (int quantity) async {
+          asked.add(quantity);
+          return '2030-01-10';
+        },
+      ),
+    );
+    final NewOrderController c = pickup.newOrder;
+    expect(c.stepCount, 7);
+    expect(c.stages.sublist(3, 6), <NewOrderStage>[NewOrderStage.pricing, NewOrderStage.photos, NewOrderStage.payment]);
+
+    // at most six photos, and they can be removed
+    for (int i = 0; i < 8; i++) {
+      c.addPhoto(Uint8List.fromList(<int>[i]));
+    }
+    expect(c.photos.length, 6);
+    c.removePhotoAt(0);
+    expect(c.photos.length, 5);
+
+    // the delivery date follows the typed total; a custom date wins until it is cleared
+    c.setTotalItems('12');
+    await Future<void>.delayed(Duration.zero);
+    expect(asked.last, 12);
+    expect(c.totalItems, 12);
+    expect(c.deliveryDate, '2030-01-10');
+    expect(c.deliveryIsCustom, isFalse);
+    c.setCustomDeliveryDate('2030-01-15');
+    expect(c.deliveryDate, '2030-01-15');
+    expect(c.deliveryIsCustom, isTrue);
+    c.setCustomDeliveryDate(null);
+    expect(c.deliveryDate, '2030-01-10');
+
+    // an empty or invalid total means "not given"
+    c.setTotalItems('');
+    expect(c.totalItems, isNull);
+
+    final _FlowDependencies plain = await _dependencies((_) async => http.Response('{}', 500));
+    expect(plain.newOrder.stepCount, 6);
+    expect(plain.newOrder.stages, isNot(contains(NewOrderStage.photos)));
+  });
+
   test(
     'groups unsorted catalog items deterministically without changing selections or IDs',
     () async {
@@ -377,6 +424,7 @@ Future<_FlowDependencies> _dependencies(
   Future<http.Response> Function(http.Request request)? paymentHandler,
   List<Object>? catalogCategories,
   List<Object>? catalogServices,
+  PickupOrderContext? pickup,
 }) async {
   final _MemoryTokenStorage storage = _MemoryTokenStorage();
   final OrderApiService orderApi = OrderApiService(
@@ -454,6 +502,7 @@ Future<_FlowDependencies> _dependencies(
         ),
       ),
       branchId: 'branch-a',
+      pickup: pickup,
     ),
   );
 }

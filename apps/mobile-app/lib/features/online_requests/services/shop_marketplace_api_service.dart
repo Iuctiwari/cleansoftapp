@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:http/http.dart' as http;
-import 'package:nexoraa_mobile/features/consumer/models/consumer_models.dart';
 import 'package:nexoraa_mobile/features/authentication/authentication_models.dart';
 import 'package:nexoraa_mobile/features/authentication/services/auth_token_storage.dart';
 import 'package:nexoraa_mobile/features/consumer/consumer_dependencies.dart';

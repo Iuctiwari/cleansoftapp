@@ -699,5 +699,15 @@
   "pickupTotalItems": "Total items (optional)",
   "pickupTotalItemsLine": "Total items: {count}",
   "@pickupTotalItemsLine": {"placeholders": {"count": {"type": "int"}}},
-  "pickupCollectAndCreate": "Collected, create order"
+  "pickupCollectAndCreate": "Collected, create order",
+  "pickupAssignButton": "Assign who collects",
+  "pickupAssignTitle": "Who will go and collect?",
+  "pickupAssignMe": "I will go myself",
+  "pickupAssignNoWorkers": "No workers added yet. Add staff to send someone else.",
+  "pickupAssignedToast": "Pickup assigned",
+  "pickupStart": "Start pickup",
+  "pickupFinish": "Finish pickup",
+  "pickupPhotosFailed": "{count} photo(s) could not be uploaded. The order is saved.",
+  "@pickupPhotosFailed": {"placeholders": {"count": {"type": "int"}}},
+  "pickupNotRecorded": "The order is saved, but the pickup could not be recorded. Open the request and tap Finish pickup."
 }
