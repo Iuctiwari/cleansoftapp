@@ -128,6 +128,19 @@ export class UpdateStaffDto {
   @IsOptional()
   @IsString({ each: true })
   branchIds?: string[];
+
+  @ApiPropertyOptional({
+    enum: ['default', 'custom'],
+    description: "Owner only. 'custom' gives exactly the listed permissions; 'default' goes back to the role's access.",
+  })
+  @IsOptional()
+  @IsEnum(['default', 'custom'])
+  accessMode?: 'default' | 'custom';
+
+  @ApiPropertyOptional({ type: [String], description: 'Modules to allow when accessMode is custom' })
+  @IsOptional()
+  @IsString({ each: true })
+  permissions?: string[];
 }
 
 export class UpdateAvailabilityDto {
@@ -156,6 +169,9 @@ export class StaffResponseDto {
   @ApiProperty({ enum: ['Active', 'Suspended'] }) status!: UserStatus;
   @ApiProperty({ enum: ['Available', 'Busy', 'On Break', 'Offline'], example: 'Available' })
   availability!: StaffAvailability;
+  @ApiProperty({ enum: ['default', 'custom'] }) accessMode!: 'default' | 'custom';
+  @ApiProperty({ type: [String], description: 'The modules allowed when accessMode is custom' })
+  permissions!: string[];
   @ApiProperty() createdAt!: string;
   @ApiProperty() updatedAt!: string;
 }

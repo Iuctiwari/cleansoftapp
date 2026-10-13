@@ -45,6 +45,13 @@ export class UserMongoose extends BaseSchema {
   })
   availability!: StaffAvailability;
 
+  /**
+   * Modules the owner switched on for this person (Staff role only). Unset = the
+   * role's default access.
+   */
+  @Prop({ type: [String], default: undefined })
+  customPermissions?: string[];
+
   @Prop({ type: Date })
   invitedAt?: Date;
 

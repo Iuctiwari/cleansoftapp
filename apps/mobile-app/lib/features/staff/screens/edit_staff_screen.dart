@@ -34,6 +34,9 @@ class _EditStaffScreenState extends State<EditStaffScreen> {
   late List<String> _selectedBranchIds;
   List<SystemRole> _systemRoles = [];
 
+  late bool _customAccess = widget.staff.accessCustom;
+  late final Set<String> _perms = widget.staff.customPermissions.toSet();
+
   bool _isLoading = true;
   bool _isSubmitting = false;
   String? _errorMessage;
@@ -86,6 +89,14 @@ class _EditStaffScreenState extends State<EditStaffScreen> {
     }
   }
 
+  bool get _accessChanged {
+    if (!_accessPolicy.isOwner || _selectedRole != 'Staff') return false;
+    if (_customAccess != widget.staff.accessCustom) return true;
+    return _customAccess && !_sameSet(_perms, widget.staff.customPermissions.toSet());
+  }
+
+  static bool _sameSet(Set<String> a, Set<String> b) => a.length == b.length && a.containsAll(b);
+
   SystemRole? get _currentRoleInfo {
     try {
       return _systemRoles.firstWhere((r) => r.role == _selectedRole);
@@ -120,6 +131,9 @@ class _EditStaffScreenState extends State<EditStaffScreen> {
         branchIds: _accessPolicy.isOwner && _selectedBranchIds.isNotEmpty
             ? _selectedBranchIds
             : null,
+        // Only sent when the owner actually changed it (a change signs that person out).
+        accessMode: _accessChanged ? (_customAccess ? 'custom' : 'default') : null,
+        permissions: _accessChanged && _customAccess ? _perms.toList() : null,
       );
 
       if (mounted) {
@@ -203,6 +217,11 @@ class _EditStaffScreenState extends State<EditStaffScreen> {
                               _buildRoleDropdown(),
                               if (_currentRoleInfo != null)
                                 _buildRolePreview(_currentRoleInfo!),
+                              if (_selectedRole == 'Staff') ...[
+                                const SizedBox(height: AppSpacing.xxxl),
+                                _buildSectionTitle('MODULE ACCESS'),
+                                _buildModuleAccess(),
+                              ],
                               const SizedBox(height: AppSpacing.xxxl),
                               _buildSectionTitle('BRANCH ASSIGNMENT'),
                               _buildBranchSelection(),
@@ -298,6 +317,109 @@ class _EditStaffScreenState extends State<EditStaffScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  // (label, read permission, write permission or null)
+  static const List<(String, String, String?)> _modules = [
+    ('Orders', 'orders:read', 'orders:write'),
+    ('Customers', 'customers:read', 'customers:write'),
+    ('Payments', 'payments:read', 'payments:write'),
+    ('Expenses', 'expenses:read', 'expenses:write'),
+    ('Reports', 'reports:read', null),
+    ('Cash register', 'cash-register:access', null),
+  ];
+
+  /// Default = what the Staff role normally gets. Custom = the owner ticks each module.
+  Widget _buildModuleAccess() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SegmentedButton<bool>(
+          key: const Key('staff.access.mode'),
+          segments: const [
+            ButtonSegment<bool>(value: false, label: Text('Default')),
+            ButtonSegment<bool>(value: true, label: Text('Custom')),
+          ],
+          selected: {_customAccess},
+          onSelectionChanged: (Set<bool> value) {
+            setState(() {
+              _customAccess = value.first;
+              // Starting custom access from "nothing" would lock the person out by surprise,
+              // so begin from the Staff defaults.
+              if (_customAccess && _perms.isEmpty) {
+                _perms.addAll(const [
+                  'orders:read',
+                  'orders:write',
+                  'customers:read',
+                  'customers:write',
+                ]);
+              }
+            });
+          },
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        Text(
+          _customAccess
+              ? 'Switch on only what this person needs. They keep notifications and their own profile.'
+              : 'Uses the standard Staff access: orders and customers.',
+          style: AppTextStyles.caption,
+        ),
+        if (_customAccess)
+          for (final (String label, String read, String? write) in _modules) ...[
+            const Divider(),
+            Text(label, style: AppTextStyles.labelBold),
+            SwitchListTile(
+              key: Key('staff.access.${read}'),
+              dense: true,
+              contentPadding: EdgeInsets.zero,
+              title: Text('See ${label.toLowerCase()}'),
+              value: _perms.contains(read),
+              onChanged: (bool on) {
+                setState(() {
+                  if (on) {
+                    _perms.add(read);
+                  } else {
+                    _perms.remove(read);
+                    if (write != null) _perms.remove(write);
+                  }
+                });
+              },
+            ),
+            if (write != null)
+              SwitchListTile(
+                key: Key('staff.access.${write}'),
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+                title: Text(
+                  label == 'Orders'
+                      ? 'Create & update orders'
+                      : label == 'Payments'
+                      ? 'Record payments'
+                      : 'Add & edit ${label.toLowerCase()}',
+                ),
+                value: _perms.contains(write),
+                onChanged: (bool on) {
+                  setState(() {
+                    if (on) {
+                      _perms
+                        ..add(write)
+                        ..add(read);
+                    } else {
+                      _perms.remove(write);
+                    }
+                  });
+                },
+              ),
+          ],
+        if (_accessChanged) ...[
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            'This person will be signed out and must sign in again for the new access to apply.',
+            style: AppTextStyles.caption,
+          ),
+        ],
+      ],
     );
   }
 

@@ -44,6 +44,9 @@ final class AccessPolicy {
   bool get isBranchManager =>
       const <String>{'Branch Manager', 'branch_manager'}.contains(roleCode);
   bool get isStaff => const <String>{'Staff', 'staff'}.contains(roleCode);
+  /// Set by the server when the owner chose exactly which modules this person gets.
+  static const String customAccessMarker = 'access:custom';
+
   bool hasPermission(String permission) =>
       isOwner || permissions.contains(permission);
 
@@ -56,6 +59,23 @@ final class AccessPolicy {
     }
     if (isBranchManager) {
       return true;
+    }
+    if (isStaff && permissions.contains(customAccessMarker)) {
+      // Custom access: exactly what the owner ticked, nothing assumed from the role.
+      return switch (capability) {
+        AppCapability.notificationsView => true,
+        AppCapability.ordersView => permissions.contains('orders:read'),
+        AppCapability.ordersCreate || AppCapability.ordersEdit => permissions.contains('orders:write'),
+        AppCapability.customersView => permissions.contains('customers:read'),
+        AppCapability.customersCreate || AppCapability.customersEdit => permissions.contains('customers:write'),
+        AppCapability.paymentsView => permissions.contains('payments:read'),
+        AppCapability.paymentsRecord => permissions.contains('payments:write'),
+        AppCapability.expensesView => permissions.contains('expenses:read'),
+        AppCapability.expensesCreate => permissions.contains('expenses:write'),
+        AppCapability.reportsView => permissions.contains('reports:read'),
+        AppCapability.cashRegister => permissions.contains('cash-register:access'),
+        _ => false,
+      };
     }
     if (isStaff) {
       if (const <AppCapability>{

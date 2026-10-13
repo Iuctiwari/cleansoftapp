@@ -101,6 +101,61 @@ export function defaultPermissionsForRole(roleCode: string): readonly string[] {
   return Object.freeze([]);
 }
 
+/**
+ * Added to the permission list of staff whose owner chose custom access, so the app
+ * knows to use exactly the listed permissions instead of assuming the role's defaults.
+ */
+export const CUSTOM_ACCESS_MARKER = 'access:custom';
+
+/** Every staff member keeps these, whatever the owner switches off. */
+export const ALWAYS_ON_PERMISSIONS: readonly string[] = Object.freeze([
+  Permissions.notificationsRead,
+  Permissions.profileRead,
+  Permissions.profileWrite,
+  Permissions.securityWrite,
+]);
+
+/** The modules an owner can switch on or off for a staff member. */
+export const CUSTOMIZABLE_PERMISSIONS: readonly string[] = Object.freeze([
+  Permissions.ordersRead,
+  Permissions.ordersWrite,
+  Permissions.customersRead,
+  Permissions.customersWrite,
+  Permissions.paymentsRead,
+  Permissions.paymentsWrite,
+  Permissions.expensesRead,
+  Permissions.expensesWrite,
+  Permissions.reportsRead,
+  Permissions.cashRegisterAccess,
+]);
+
+/** Keeps only permissions an owner is allowed to hand out, without duplicates. */
+export function sanitizeCustomPermissions(list: readonly unknown[]): string[] {
+  return [
+    ...new Set(
+      list.filter(
+        (value): value is string =>
+          typeof value === 'string' && CUSTOMIZABLE_PERMISSIONS.includes(value),
+      ),
+    ),
+  ];
+}
+
+/**
+ * What a staff member can do: the role's defaults, or — when the owner chose custom
+ * access — exactly the chosen modules plus the always-on basics.
+ */
+export function staffEffectivePermissions(
+  roleCode: string,
+  stored: readonly string[],
+  custom: boolean | undefined,
+): readonly string[] {
+  if (!custom) return effectivePermissions(roleCode, stored);
+  return Object.freeze([
+    ...new Set([...ALWAYS_ON_PERMISSIONS, ...sanitizeCustomPermissions(stored), CUSTOM_ACCESS_MARKER]),
+  ]);
+}
+
 export function effectivePermissions(
   roleCode: string,
   storedPermissions: readonly string[],

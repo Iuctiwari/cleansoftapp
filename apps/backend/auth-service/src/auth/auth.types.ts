@@ -337,6 +337,7 @@ export interface AuthRepository {
     roleCode: string,
     permissions: readonly string[],
     branchIds: readonly string[],
+    custom?: { readonly permissions: readonly string[] } | 'reset',
   ): Promise<void>;
   deleteStaffIdentity(userId: string): Promise<void>;
   // ── Consumer (marketplace customer) accounts ──────────────────────────────

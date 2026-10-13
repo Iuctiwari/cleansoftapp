@@ -1,6 +1,6 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { effectivePermissions } from '@nexoraa/shared';
+import { effectivePermissions, staffEffectivePermissions } from '@nexoraa/shared';
 import { FilterQuery, Model } from 'mongoose';
 import { hashPassword } from './auth.crypto';
 import { normalizeIdentifier, normalizeIndianMobile } from './auth.normalization';
@@ -284,7 +284,7 @@ export class MongoAuthRepository implements AuthRepository, OnModuleInit {
       displayName: staff.displayName,
       passwordHash: staff.passwordHash,
       roleCode: staff.roleCode,
-      permissions: effectivePermissions(staff.roleCode, staff.permissions),
+      permissions: staffEffectivePermissions(staff.roleCode, staff.permissions, staff.permissionsCustom),
       status: staff.status as AuthIdentityRecord['status'],
       accessVersion: staff.accessVersion,
       tenantId: staff.tenantId,
@@ -578,7 +578,7 @@ export class MongoAuthRepository implements AuthRepository, OnModuleInit {
       email: doc.email,
       passwordHash: doc.passwordHash,
       roleCode: doc.roleCode,
-      permissions: effectivePermissions(doc.roleCode, doc.permissions),
+      permissions: staffEffectivePermissions(doc.roleCode, doc.permissions, doc.permissionsCustom),
       branchIds: Object.freeze(doc.branchIds ?? []),
       status: doc.status as StaffAuthRecord['status'],
       accessVersion: doc.accessVersion,
@@ -595,15 +595,24 @@ export class MongoAuthRepository implements AuthRepository, OnModuleInit {
     roleCode: string,
     permissions: readonly string[],
     branchIds: readonly string[],
+    custom?: { readonly permissions: readonly string[] } | 'reset',
   ): Promise<void> {
+    // Custom access only ever applies to the Staff role; a role change drops it.
+    const existing = await this.tenantStaffModel.findOne({ userId }).lean().exec();
+    const stayCustom =
+      custom === undefined && existing?.permissionsCustom === true && roleCode === 'Staff';
+    const set: Record<string, unknown> = { roleCode, branchIds: [...branchIds] };
+    if (custom && custom !== 'reset') {
+      set.permissions = [...custom.permissions];
+      set.permissionsCustom = true;
+    } else if (stayCustom) {
+      // keep the owner's chosen modules
+    } else {
+      set.permissions = [...permissions];
+      set.permissionsCustom = false;
+    }
     await this.tenantStaffModel
-      .updateOne(
-        { userId },
-        {
-          $set: { roleCode, permissions: [...permissions], branchIds: [...branchIds] },
-          $inc: { accessVersion: 1 },
-        },
-      )
+      .updateOne({ userId }, { $set: set, $inc: { accessVersion: 1 } })
       .exec();
   }
 }

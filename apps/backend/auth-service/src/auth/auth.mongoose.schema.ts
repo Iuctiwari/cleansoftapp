@@ -314,6 +314,10 @@ export class TenantStaffAuthMongoose extends Document {
   @Prop({ type: [String], required: true, default: [] })
   permissions!: string[];
 
+  /** true = the owner chose exactly which modules this person gets; false = role defaults. */
+  @Prop({ type: Boolean, default: false })
+  permissionsCustom?: boolean;
+
   @Prop({ type: [String], required: true, default: [] })
   branchIds!: string[];
 

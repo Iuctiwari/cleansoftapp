@@ -9,6 +9,7 @@ import {
   Post,
   UnauthorizedException,
 } from '@nestjs/common';
+import { sanitizeCustomPermissions } from '@nexoraa/shared';
 import { ConfigService } from '@nestjs/config';
 import { ApiExcludeController } from '@nestjs/swagger';
 import {
@@ -48,6 +49,10 @@ class UpdateStaffStatusDto {
 class UpdateStaffAccessDto {
   @IsString() @IsNotEmpty() roleCode!: string;
   @IsArray() @IsString({ each: true }) branchIds!: string[];
+  /** Owner's chosen modules for this staff member (custom access). */
+  @IsOptional() @IsArray() @IsString({ each: true }) customPermissions?: string[];
+  /** Go back to the role's default access. */
+  @IsOptional() @IsBoolean() resetAccess?: boolean;
 }
 
 /**
@@ -135,11 +140,17 @@ export class StaffProvisioningController {
   ): Promise<void> {
     this.assertInternalSecret(secret);
     const permissions = STAFF_ROLES_PERMISSIONS[dto.roleCode] ?? [];
+    const custom = dto.customPermissions
+      ? { permissions: sanitizeCustomPermissions(dto.customPermissions) }
+      : dto.resetAccess
+        ? ('reset' as const)
+        : undefined;
     await this.authRepository.updateStaffIdentityAccess(
       userId,
       dto.roleCode,
       permissions,
       dto.branchIds,
+      custom,
     );
     await this.authRepository.revokeSessionsByUser(
       userId,

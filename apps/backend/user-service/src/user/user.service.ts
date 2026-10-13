@@ -17,6 +17,7 @@ import {
   hasPermission,
   isBranchManagerRole,
   isOwnerRole,
+  sanitizeCustomPermissions,
 } from '@nexoraa/shared';
 import { Model, Types } from 'mongoose';
 
@@ -241,6 +242,28 @@ export class UserService {
       throw new ForbiddenException('Branch Managers cannot change role or branch scope');
     }
 
+    // Module access: only the owner decides, and only for the Staff role.
+    let accessChange: { customPermissions?: string[]; resetAccess?: boolean } | undefined;
+    if (dto.accessMode !== undefined) {
+      if (!isOwnerRole(scope.roleCode)) {
+        throw new ForbiddenException('Only the owner can change module access');
+      }
+      if ((dto.role ?? user.role) !== 'Staff') {
+        throw new BadRequestException('Module access can only be customised for the Staff role');
+      }
+      if (dto.accessMode === 'custom') {
+        const list = sanitizeCustomPermissions(dto.permissions ?? []);
+        user.set('customPermissions', list);
+        accessChange = { customPermissions: list };
+      } else {
+        user.set('customPermissions', undefined);
+        accessChange = { resetAccess: true };
+      }
+    } else if (dto.role !== undefined && dto.role !== 'Staff' && user.customPermissions) {
+      // Moving someone out of the Staff role drops their custom access.
+      user.set('customPermissions', undefined);
+    }
+
     if (dto.name) user.name = dto.name;
     if (dto.email !== undefined) user.email = dto.email;
     if (dto.mobileNumber !== undefined) user.mobileNumber = dto.mobileNumber;
@@ -251,11 +274,12 @@ export class UserService {
     }
 
     await user.save();
-    if (dto.role !== undefined || dto.branchIds !== undefined) {
+    if (dto.role !== undefined || dto.branchIds !== undefined || accessChange) {
       await this.updateAuthAccess(
         userId,
         user.role,
         user.branchIds.map((id) => id.toString()),
+        accessChange,
       );
     }
     return this.mapToDto(user);
@@ -498,6 +522,7 @@ export class UserService {
     userId: string,
     roleCode: string,
     branchIds: string[],
+    access?: { customPermissions?: string[]; resetAccess?: boolean },
   ): Promise<void> {
     const authBaseUrl = this.configService.getOrThrow<string>('AUTH_SERVICE_INTERNAL_URL');
     const secret = this.configService.getOrThrow<string>('INTERNAL_SERVICE_SECRET');
@@ -508,7 +533,7 @@ export class UserService {
       {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', 'x-internal-secret': secret },
-        body: JSON.stringify({ roleCode, branchIds }),
+        body: JSON.stringify({ roleCode, branchIds, ...access }),
       },
     );
     if (!response.ok) {
@@ -529,6 +554,7 @@ export class UserService {
       branchIds: Types.ObjectId[];
       status: string;
       availability?: string;
+      customPermissions?: string[];
       createdAt: Date;
       updatedAt: Date;
     };
@@ -544,6 +570,8 @@ export class UserService {
       branchIds: doc.branchIds.map((id) => id.toString()),
       status: doc.status as StaffResponseDto['status'],
       availability: (doc.availability as StaffResponseDto['availability']) || 'Available',
+      accessMode: doc.customPermissions ? 'custom' : 'default',
+      permissions: doc.customPermissions ? [...doc.customPermissions] : [],
       createdAt: doc.createdAt?.toISOString?.() ?? new Date().toISOString(),
       updatedAt: doc.updatedAt?.toISOString?.() ?? new Date().toISOString(),
     };

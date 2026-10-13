@@ -11,6 +11,12 @@ class StaffMember {
   final String? lastName;
   final String? departmentValue;
 
+  /// true when the owner chose exactly which modules this person gets.
+  final bool accessCustom;
+
+  /// The modules allowed when [accessCustom] is true.
+  final List<String> customPermissions;
+
   /// The unique login username set by the owner at registration. Read-only.
   final String loginId;
   final DateTime createdAt;
@@ -28,6 +34,8 @@ class StaffMember {
     this.firstName,
     this.lastName,
     this.departmentValue,
+    this.accessCustom = false,
+    this.customPermissions = const <String>[],
     required this.loginId,
     required this.createdAt,
     required this.updatedAt,
@@ -47,6 +55,10 @@ class StaffMember {
           json['name'] as String? ?? json['profile']?['firstName'] as String?,
       lastName: json['profile']?['lastName'] as String?,
       departmentValue: json['department'] as String?,
+      accessCustom: json['accessMode'] == 'custom',
+      customPermissions: (json['permissions'] is List)
+          ? List<String>.from((json['permissions'] as List).whereType<String>())
+          : const <String>[],
       loginId: json['loginId'] as String? ?? '',
       createdAt: json['createdAt'] != null
           ? DateTime.tryParse(json['createdAt']) ?? DateTime.now()

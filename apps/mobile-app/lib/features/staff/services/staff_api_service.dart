@@ -569,6 +569,8 @@ class StaffApiService {
     String? department,
     String? role,
     List<String>? branchIds,
+    String? accessMode,
+    List<String>? permissions,
   }) async {
     final uri = Uri.parse('$_baseUrl/api/v1/users/$userId');
     final headers = await _authHeaders();
@@ -580,6 +582,8 @@ class StaffApiService {
       if (department != null) body['department'] = department;
       if (role != null) body['role'] = role;
       if (branchIds != null) body['branchIds'] = branchIds;
+      if (accessMode != null) body['accessMode'] = accessMode;
+      if (permissions != null) body['permissions'] = permissions;
 
       final response = await _client
           .patch(uri, headers: headers, body: jsonEncode(body))
