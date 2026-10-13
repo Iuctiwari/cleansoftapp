@@ -11,6 +11,7 @@ import { MongoAuthRepository } from './auth.mongo.repository';
 import { AuthService } from './auth.service';
 import { ConsumerAuthController } from './consumer-auth.controller';
 import { ConsumerAuthService } from './consumer-auth.service';
+import { FirebaseIdTokenVerifier } from './firebase-id-token.verifier';
 import { AUTH_REPOSITORY } from './auth.types';
 
 import {
@@ -66,6 +67,7 @@ import {
   providers: [
     AuthService,
     ConsumerAuthService,
+    FirebaseIdTokenVerifier,
     MongoAuthRepository,
     {
       provide: AUTH_REPOSITORY,

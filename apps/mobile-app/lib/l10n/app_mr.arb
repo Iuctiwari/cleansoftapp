@@ -469,5 +469,11 @@
   "pickupStart": "पिकअप सुरू करा",
   "pickupFinish": "पिकअप पूर्ण करा",
   "pickupPhotosFailed": "{count} फोटो अपलोड झाले नाहीत. ऑर्डर सेव्ह झाला आहे.",
-  "pickupNotRecorded": "ऑर्डर सेव्ह झाला, पण पिकअप नोंदवला गेला नाही. रिक्वेस्ट उघडून \"पिकअप पूर्ण करा\" दाबा."
+  "pickupNotRecorded": "ऑर्डर सेव्ह झाला, पण पिकअप नोंदवला गेला नाही. रिक्वेस्ट उघडून \"पिकअप पूर्ण करा\" दाबा.",
+  "consumerPhoneInstead": "त्याऐवजी फोन नंबरने सत्यापित करा",
+  "consumerPhoneUseEmail": "ईमेल कोड वापरा",
+  "consumerPhoneLabel": "मोबाईल नंबर",
+  "consumerPhoneSend": "कोड पाठवा",
+  "consumerPhoneSentTo": "{phone} वर कोड पाठवला",
+  "consumerPhoneInvalid": "साइन अप करताना दिलेला 10 अंकी मोबाईल नंबर टाका"
 }

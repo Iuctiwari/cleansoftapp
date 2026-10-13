@@ -6,6 +6,7 @@ import {
   ConsumerRegisterDto,
   ConsumerResendVerificationDto,
   ConsumerVerifyEmailDto,
+  ConsumerVerifyPhoneDto,
 } from './consumer-auth.dto';
 import { ConsumerAuthService } from './consumer-auth.service';
 
@@ -30,6 +31,13 @@ export class ConsumerAuthController {
   @ApiOperation({ summary: 'Verify the customer email with the 6-digit code' })
   async verifyEmail(@Body() body: ConsumerVerifyEmailDto): Promise<unknown> {
     return this.consumerAuthService.verifyEmail(body);
+  }
+
+  @Post('verify-phone')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Verify the account with the phone code instead of the email code (Firebase)' })
+  async verifyPhone(@Body() body: ConsumerVerifyPhoneDto): Promise<unknown> {
+    return this.consumerAuthService.verifyPhone(body);
   }
 
   @Post('resend-verification')

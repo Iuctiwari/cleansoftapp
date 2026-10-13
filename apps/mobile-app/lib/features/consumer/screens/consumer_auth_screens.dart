@@ -7,6 +7,7 @@ import 'package:nexoraa_mobile/app/router.dart';
 import 'package:nexoraa_mobile/core/localization/l10n.dart';
 import 'package:nexoraa_mobile/design_system/design_system.dart';
 import 'package:nexoraa_mobile/features/consumer/consumer_dependencies.dart';
+import 'package:nexoraa_mobile/core/phone/phone_verifier.dart';
 import 'package:nexoraa_mobile/features/consumer/services/consumer_api_service.dart';
 import 'package:nexoraa_mobile/features/consumer/widgets/consumer_auth_scaffold.dart';
 import 'package:nexoraa_mobile/features/consumer/widgets/consumer_ui.dart';
@@ -272,6 +273,11 @@ class ConsumerVerifyEmailScreen extends StatefulWidget {
 
 class _ConsumerVerifyEmailScreenState extends State<ConsumerVerifyEmailScreen> {
   final TextEditingController _code = TextEditingController();
+  final TextEditingController _phone = TextEditingController();
+  final TextEditingController _phoneCode = TextEditingController();
+  bool _phoneMode = false;
+  PhoneCodeSession? _phoneSession;
+  String? _phoneSentTo;
   bool _busy = false;
   int _wait = 60;
   Timer? _timer;
@@ -286,6 +292,8 @@ class _ConsumerVerifyEmailScreenState extends State<ConsumerVerifyEmailScreen> {
   void dispose() {
     _timer?.cancel();
     _code.dispose();
+    _phone.dispose();
+    _phoneCode.dispose();
     super.dispose();
   }
 
@@ -311,19 +319,76 @@ class _ConsumerVerifyEmailScreenState extends State<ConsumerVerifyEmailScreen> {
     setState(() => _busy = true);
     try {
       await ConsumerDependencies.api.verifyEmail(email: widget.args.email, otp: _code.text);
-      final String? password = widget.args.password;
-      if (password != null) {
-        await ConsumerDependencies.controller.signIn(identifier: widget.args.email, password: password);
-        // A brand-new customer adds their address straight away.
-        if (mounted) context.goNamed(AppRouteNames.consumerHome);
-      } else if (mounted) {
-        context.goNamed(AppRouteNames.consumerLogin);
-      }
+      // A brand-new customer adds their address straight away.
+      await _afterVerified();
     } on Object catch (error) {
       if (mounted) setState(() => _busy = false);
       if (mounted) await context.showConsumerError(error);
     } finally {
       if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  /// After either kind of code is accepted: sign in (new sign-up) or go to the sign-in screen.
+  Future<void> _afterVerified() async {
+    final String? password = widget.args.password;
+    if (password != null) {
+      await ConsumerDependencies.controller.signIn(identifier: widget.args.email, password: password);
+      if (mounted) context.goNamed(AppRouteNames.consumerHome);
+    } else if (mounted) {
+      context.goNamed(AppRouteNames.consumerLogin);
+    }
+  }
+
+  Future<void> _sendPhoneCode() async {
+    final String digits = _phone.text.replaceAll(RegExp(r'\D'), '');
+    final String ten = digits.length >= 10 ? digits.substring(digits.length - 10) : digits;
+    if (ten.length != 10) {
+      context.showConsumerToast(context.l10n.consumerPhoneInvalid);
+      return;
+    }
+    FocusManager.instance.primaryFocus?.unfocus();
+    setState(() => _busy = true);
+    try {
+      final PhoneCodeSession session = await PhoneVerification.verifier.sendCode('+91$ten');
+      if (!mounted) return;
+      setState(() {
+        _phoneSession = session;
+        _phoneSentTo = '+91 $ten';
+        _busy = false;
+      });
+    } on Object catch (error) {
+      if (mounted) setState(() => _busy = false);
+      if (mounted) await _showPhoneError(error);
+    }
+  }
+
+  Future<void> _verifyPhone() async {
+    final PhoneCodeSession? session = _phoneSession;
+    if (session == null) return;
+    if (!RegExp(r'^\d{6}$').hasMatch(_phoneCode.text.trim())) {
+      context.showConsumerToast(context.l10n.enterSixDigitCode);
+      return;
+    }
+    FocusManager.instance.primaryFocus?.unfocus();
+    setState(() => _busy = true);
+    try {
+      final String idToken = await session.confirm(_phoneCode.text);
+      await ConsumerDependencies.api.verifyPhone(email: widget.args.email, idToken: idToken);
+      await _afterVerified();
+    } on Object catch (error) {
+      if (mounted) setState(() => _busy = false);
+      if (mounted) await _showPhoneError(error);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _showPhoneError(Object error) async {
+    if (error is PhoneVerificationException) {
+      await AppAlertDialog.show(context, title: AppAlertDialog.titleFor(error.message), message: error.message);
+    } else {
+      await context.showConsumerError(error);
     }
   }
 
@@ -344,7 +409,7 @@ class _ConsumerVerifyEmailScreenState extends State<ConsumerVerifyEmailScreen> {
     return ConsumerAuthScaffold(
       title: context.l10n.consumerVerifyTitle,
       subtitle: context.l10n.consumerVerifySubtitle(widget.args.email),
-      children: <Widget>[
+      children: _phoneMode ? _phoneChildren(context) : <Widget>[
         TextField(
           key: const Key('consumerVerify.code'),
           controller: _code,
@@ -366,8 +431,72 @@ class _ConsumerVerifyEmailScreenState extends State<ConsumerVerifyEmailScreen> {
             child: Text(_wait > 0 ? context.l10n.consumerResendIn(_wait) : context.l10n.consumerResendCode),
           ),
         ),
+        Center(
+          child: TextButton(
+            key: const Key('consumerVerify.phoneToggle'),
+            onPressed: () => setState(() => _phoneMode = true),
+            child: Text(context.l10n.consumerPhoneInstead),
+          ),
+        ),
       ],
     );
+  }
+
+  List<Widget> _phoneChildren(BuildContext context) {
+    final bool sent = _phoneSession != null;
+    return <Widget>[
+      if (!sent) ...<Widget>[
+        TextField(
+          key: const Key('consumerVerify.phone'),
+          controller: _phone,
+          autofocus: true,
+          keyboardType: TextInputType.phone,
+          maxLength: 13,
+          decoration: InputDecoration(labelText: context.l10n.consumerPhoneLabel, prefixText: '+91 ', counterText: ''),
+          onSubmitted: (_) => _sendPhoneCode(),
+        ),
+        const SizedBox(height: AppSpacing.xxl),
+        ConsumerPrimaryButton(
+          key: const Key('consumerVerify.phoneSend'),
+          label: context.l10n.consumerPhoneSend,
+          busy: _busy,
+          onPressed: _sendPhoneCode,
+        ),
+      ] else ...<Widget>[
+        Text(context.l10n.consumerPhoneSentTo(_phoneSentTo ?? ''), textAlign: TextAlign.center, style: AppTextStyles.bodySmall),
+        const SizedBox(height: AppSpacing.lg),
+        TextField(
+          key: const Key('consumerVerify.phoneCode'),
+          controller: _phoneCode,
+          autofocus: true,
+          keyboardType: TextInputType.number,
+          textAlign: TextAlign.center,
+          maxLength: 6,
+          inputFormatters: <TextInputFormatter>[FilteringTextInputFormatter.digitsOnly],
+          style: AppTextStyles.headingLarge.copyWith(letterSpacing: 8),
+          decoration: InputDecoration(labelText: context.l10n.verificationCodeLabel, counterText: ''),
+          onSubmitted: (_) => _verifyPhone(),
+        ),
+        const SizedBox(height: AppSpacing.xxl),
+        ConsumerPrimaryButton(
+          key: const Key('consumerVerify.phoneConfirm'),
+          label: context.l10n.consumerVerifyButton,
+          busy: _busy,
+          onPressed: _verifyPhone,
+        ),
+      ],
+      const SizedBox(height: AppSpacing.lg),
+      Center(
+        child: TextButton(
+          key: const Key('consumerVerify.emailToggle'),
+          onPressed: () => setState(() {
+            _phoneMode = false;
+            _phoneSession = null;
+          }),
+          child: Text(context.l10n.consumerPhoneUseEmail),
+        ),
+      ),
+    ];
   }
 }
 

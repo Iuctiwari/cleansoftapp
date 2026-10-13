@@ -2913,6 +2913,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The order is saved, but the pickup could not be recorded. Open the request and tap Finish pickup.'**
   String get pickupNotRecorded;
+
+  /// No description provided for @consumerPhoneInstead.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify with my phone number instead'**
+  String get consumerPhoneInstead;
+
+  /// No description provided for @consumerPhoneUseEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Use the email code instead'**
+  String get consumerPhoneUseEmail;
+
+  /// No description provided for @consumerPhoneLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Mobile number'**
+  String get consumerPhoneLabel;
+
+  /// No description provided for @consumerPhoneSend.
+  ///
+  /// In en, this message translates to:
+  /// **'Send code'**
+  String get consumerPhoneSend;
+
+  /// No description provided for @consumerPhoneSentTo.
+  ///
+  /// In en, this message translates to:
+  /// **'Code sent to {phone}'**
+  String consumerPhoneSentTo(String phone);
+
+  /// No description provided for @consumerPhoneInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the 10-digit mobile number you signed up with'**
+  String get consumerPhoneInvalid;
 }
 
 class _AppLocalizationsDelegate

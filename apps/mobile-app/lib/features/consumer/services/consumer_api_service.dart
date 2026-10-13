@@ -76,6 +76,16 @@ class ConsumerApiService {
     );
   }
 
+  /// Verifies the account with the proof of the phone number from Firebase instead of the email code.
+  Future<void> verifyPhone({required String email, required String idToken}) async {
+    await _send(
+      'POST',
+      _auth('v1/auth/consumer/verify-phone'),
+      body: <String, Object>{'email': email.trim(), 'idToken': idToken},
+      authenticated: false,
+    );
+  }
+
   /// Sends a new code; returns how many seconds until another may be sent.
   Future<int> resendVerification({required String email}) async {
     final Map<String, dynamic> data = _map(

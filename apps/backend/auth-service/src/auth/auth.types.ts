@@ -47,6 +47,8 @@ export interface ConsumerAccountRecord {
   readonly status: AuthIdentityStatus;
   readonly emailVerified: boolean;
   readonly emailVerifiedAtUtc?: string;
+  /** Set when the account was verified with a phone code instead of the email code. */
+  readonly phoneVerifiedAtUtc?: string;
   readonly verificationOtpHash?: string;
   readonly verificationExpiresAtUtc?: string;
   readonly verificationAttempts: number;

@@ -1590,4 +1590,25 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get pickupNotRecorded =>
       'The order is saved, but the pickup could not be recorded. Open the request and tap Finish pickup.';
+
+  @override
+  String get consumerPhoneInstead => 'Verify with my phone number instead';
+
+  @override
+  String get consumerPhoneUseEmail => 'Use the email code instead';
+
+  @override
+  String get consumerPhoneLabel => 'Mobile number';
+
+  @override
+  String get consumerPhoneSend => 'Send code';
+
+  @override
+  String consumerPhoneSentTo(String phone) {
+    return 'Code sent to $phone';
+  }
+
+  @override
+  String get consumerPhoneInvalid =>
+      'Enter the 10-digit mobile number you signed up with';
 }

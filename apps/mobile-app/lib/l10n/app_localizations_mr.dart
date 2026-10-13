@@ -1589,4 +1589,25 @@ class AppLocalizationsMr extends AppLocalizations {
   @override
   String get pickupNotRecorded =>
       'ऑर्डर सेव्ह झाला, पण पिकअप नोंदवला गेला नाही. रिक्वेस्ट उघडून \"पिकअप पूर्ण करा\" दाबा.';
+
+  @override
+  String get consumerPhoneInstead => 'त्याऐवजी फोन नंबरने सत्यापित करा';
+
+  @override
+  String get consumerPhoneUseEmail => 'ईमेल कोड वापरा';
+
+  @override
+  String get consumerPhoneLabel => 'मोबाईल नंबर';
+
+  @override
+  String get consumerPhoneSend => 'कोड पाठवा';
+
+  @override
+  String consumerPhoneSentTo(String phone) {
+    return '$phone वर कोड पाठवला';
+  }
+
+  @override
+  String get consumerPhoneInvalid =>
+      'साइन अप करताना दिलेला 10 अंकी मोबाईल नंबर टाका';
 }

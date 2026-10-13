@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
+import { FirebaseIdTokenVerifier, FirebaseTokenError } from './firebase-id-token.verifier';
 import { EmailService } from '../email/email.service';
 import { PlatformError } from '../platform/platform.errors';
 import type { ContractVersion, TrustedContext } from '../platform/platform.types';
@@ -57,6 +58,7 @@ export class ConsumerAuthService {
     @Inject(AUTH_REPOSITORY) private readonly authRepository: AuthRepository,
     configService: ConfigService,
     @Optional() private readonly emailService?: EmailService,
+    @Optional() private readonly phoneVerifier?: FirebaseIdTokenVerifier,
   ) {
     this.otpSecret = configService.getOrThrow<string>('AUTH_REFRESH_TOKEN_SECRET');
     this.otpTtlSeconds = Number(configService.getOrThrow<string>('AUTH_OTP_TTL_SECONDS'));
@@ -159,6 +161,53 @@ export class ConsumerAuthService {
       ...account,
       emailVerified: true,
       emailVerifiedAtUtc: now,
+      verificationOtpHash: undefined,
+      verificationExpiresAtUtc: undefined,
+      verificationAttempts: 0,
+      updatedAtUtc: now,
+    });
+    return { accepted: true as const, contractVersion: CONTRACT_VERSION };
+  }
+
+  /**
+   * Verifies the account with a phone code instead of the emailed one. The phone proves its
+   * number to Firebase; here we check Firebase's token and that the number is the one on the account.
+   */
+  async verifyPhone(input: { readonly email: string; readonly idToken: string }) {
+    if (!this.phoneVerifier?.isEnabled()) {
+      throw new PlatformError({
+        code: 'consumer.phone_verification_unavailable',
+        category: 'dependency_unavailable',
+        messageKey: 'errors.consumer.phone_verification_unavailable',
+      });
+    }
+    const account = await this.authRepository.findConsumerAccount({
+      email: normalizeIdentifier(input.email),
+    });
+    if (account?.emailVerified) {
+      return { accepted: true as const, contractVersion: CONTRACT_VERSION };
+    }
+
+    let verified: { phoneNumber: string };
+    try {
+      verified = await this.phoneVerifier.verify(input.idToken);
+    } catch (error) {
+      this.logger.warn(`Phone token refused: ${error instanceof FirebaseTokenError ? error.reason : String(error)}`);
+      throw this.invalidCode();
+    }
+    // Same neutral answer for "no such account" and "different number": nothing to enumerate.
+    const sameNumber =
+      account !== null &&
+      account !== undefined &&
+      verified.phoneNumber.replace(/\D/g, '').slice(-10) === account.mobileNumber.replace(/\D/g, '').slice(-10);
+    if (!account || !sameNumber) throw this.invalidCode();
+
+    const now = new Date().toISOString();
+    await this.authRepository.saveConsumerAccount({
+      ...account,
+      emailVerified: true,
+      emailVerifiedAtUtc: now,
+      phoneVerifiedAtUtc: now,
       verificationOtpHash: undefined,
       verificationExpiresAtUtc: undefined,
       verificationAttempts: 0,

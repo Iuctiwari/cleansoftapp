@@ -37,6 +37,18 @@ export class ConsumerVerifyEmailDto {
   otp!: string;
 }
 
+export class ConsumerVerifyPhoneDto {
+  @ApiProperty({ example: 'riya@example.com', maxLength: 160 })
+  @IsEmail()
+  @MaxLength(160)
+  email!: string;
+
+  @ApiProperty({ description: 'Firebase ID token the phone received after the SMS code was entered' })
+  @IsString()
+  @MaxLength(4096)
+  idToken!: string;
+}
+
 export class ConsumerResendVerificationDto {
   @ApiProperty({ example: 'riya@example.com', maxLength: 160 })
   @IsEmail()

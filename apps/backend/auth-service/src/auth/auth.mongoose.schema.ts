@@ -402,6 +402,7 @@ export class ConsumerAccountMongoose extends Document {
   emailVerified!: boolean;
 
   @Prop() emailVerifiedAtUtc?: string;
+  @Prop() phoneVerifiedAtUtc?: string;
   @Prop() verificationOtpHash?: string;
   @Prop() verificationExpiresAtUtc?: string;
 

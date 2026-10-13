@@ -709,5 +709,12 @@
   "pickupFinish": "Finish pickup",
   "pickupPhotosFailed": "{count} photo(s) could not be uploaded. The order is saved.",
   "@pickupPhotosFailed": {"placeholders": {"count": {"type": "int"}}},
-  "pickupNotRecorded": "The order is saved, but the pickup could not be recorded. Open the request and tap Finish pickup."
+  "pickupNotRecorded": "The order is saved, but the pickup could not be recorded. Open the request and tap Finish pickup.",
+  "consumerPhoneInstead": "Verify with my phone number instead",
+  "consumerPhoneUseEmail": "Use the email code instead",
+  "consumerPhoneLabel": "Mobile number",
+  "consumerPhoneSend": "Send code",
+  "consumerPhoneSentTo": "Code sent to {phone}",
+  "@consumerPhoneSentTo": {"placeholders": {"phone": {"type": "String"}}},
+  "consumerPhoneInvalid": "Enter the 10-digit mobile number you signed up with"
 }
