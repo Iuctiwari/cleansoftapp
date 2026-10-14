@@ -1,6 +1,8 @@
 /// Data for the customer (marketplace) side of the app.
 library;
 
+import 'package:nexoraa_mobile/features/salon/models/salon_models.dart';
+
 /// A signed-in customer. Kept apart from the shop [AuthenticationSession] so
 /// the two kinds of login can never be mixed up.
 class ConsumerSession {
@@ -547,6 +549,7 @@ class ServiceRequest {
     this.collectedTotal,
     this.deliveryDate,
     this.deliveryDateIsCustom = false,
+    this.salon,
   });
 
   factory ServiceRequest.fromJson(Map<String, dynamic> json) {
@@ -594,6 +597,7 @@ class ServiceRequest {
       collectedTotal: (json['collectedTotal'] as num?)?.toInt(),
       deliveryDate: json['deliveryDate'] as String?,
       deliveryDateIsCustom: json['deliveryDateIsCustom'] as bool? ?? false,
+      salon: SalonBooking.fromJson(json['salon']),
       canCancel: json['canCancel'] as bool? ?? false,
       history: (json['history'] as List<dynamic>? ?? const <dynamic>[])
           .whereType<Map<String, dynamic>>()
@@ -640,6 +644,9 @@ class ServiceRequest {
   /// YYYY-MM-DD: when the clothes come back (set when the worker collects).
   final String? deliveryDate;
   final bool deliveryDateIsCustom;
+
+  /// Salon appointments only: the services, who does each, and the total.
+  final SalonBooking? salon;
   final bool canCancel;
   final List<RequestHistoryEntry> history;
   final DateTime createdAt;
@@ -673,6 +680,7 @@ class ServiceRequestDraft {
     required this.slotEnd,
     this.items = const <RequestItem>[],
     this.addressId,
+    this.salonServiceIds = const <String>[],
   });
 
   final String shopId;
@@ -687,6 +695,9 @@ class ServiceRequestDraft {
   final List<RequestItem> items;
   final String? addressId;
 
+  /// Salon appointments: menu service ids. The slot is [slotStart]; the server works out the rest.
+  final List<String> salonServiceIds;
+
   Map<String, Object?> toJson() => <String, Object?>{
     'shopId': shopId,
     'category': category.code,
@@ -696,6 +707,7 @@ class ServiceRequestDraft {
     'preferredSlot': <String, String>{'start': slotStart, 'end': slotEnd},
     if (items.isNotEmpty) 'items': items.map((RequestItem i) => i.toJson()).toList(),
     if (addressId != null) 'addressId': addressId,
+    if (salonServiceIds.isNotEmpty) 'salonServiceIds': salonServiceIds,
   };
 }
 

@@ -17,6 +17,7 @@ import 'package:nexoraa_mobile/features/consumer/screens/consumer_auth_screens.d
 import 'package:nexoraa_mobile/features/consumer/screens/consumer_home_screen.dart';
 import 'package:nexoraa_mobile/features/consumer/screens/request_detail_screen.dart';
 import 'package:nexoraa_mobile/features/consumer/screens/shop_detail_screen.dart';
+import 'package:nexoraa_mobile/features/salon/screens/salon_chat_booking_screen.dart';
 import 'package:nexoraa_mobile/features/consumer/screens/welcome_screen.dart';
 import 'package:nexoraa_mobile/features/dashboard/dashboard.dart';
 import 'package:nexoraa_mobile/features/notifications/notifications.dart';
@@ -94,6 +95,7 @@ abstract final class AppRoutes {
   static const String consumerAddressEdit = '/c/addresses/edit';
   static const String consumerShop = '/c/shops/:shopId';
   static const String consumerBook = '/c/shops/:shopId/book';
+  static const String consumerSalonBook = '/c/shops/:shopId/salon-book';
   static const String consumerRequest = '/c/requests/:requestId';
 
   /// Customer screens a signed-out visitor may open.
@@ -166,6 +168,7 @@ abstract final class AppRouteNames {
   static const String consumerAddressEdit = 'consumerAddressEdit';
   static const String consumerShop = 'consumerShop';
   static const String consumerBook = 'consumerBook';
+  static const String consumerSalonBook = 'consumerSalonBook';
   static const String consumerRequest = 'consumerRequest';
 
   // Company Admin — see AppRoutes above for the isolation rationale.
@@ -736,6 +739,14 @@ abstract final class AppRouter {
             state.extra is ShopDetail ? null : AppRoutes.consumerHome,
         builder: (BuildContext context, GoRouterState state) =>
             BookingScreen(shop: state.extra! as ShopDetail),
+      ),
+      GoRoute(
+        name: AppRouteNames.consumerSalonBook,
+        path: AppRoutes.consumerSalonBook,
+        redirect: (BuildContext context, GoRouterState state) =>
+            state.extra is ShopDetail ? null : AppRoutes.consumerHome,
+        builder: (BuildContext context, GoRouterState state) =>
+            SalonChatBookingScreen(shop: state.extra! as ShopDetail),
       ),
       GoRoute(
         name: AppRouteNames.consumerRequest,

@@ -8,6 +8,8 @@ import 'package:nexoraa_mobile/features/online_requests/models/shop_marketplace_
 import 'package:nexoraa_mobile/features/online_requests/screens/shop_request_detail_screen.dart';
 import 'package:nexoraa_mobile/features/online_requests/services/shop_marketplace_api_service.dart';
 import 'package:nexoraa_mobile/features/online_requests/widgets/shop_ui.dart';
+import 'package:nexoraa_mobile/features/salon/screens/salon_schedule_screen.dart';
+import 'package:nexoraa_mobile/features/salon/screens/salon_setup_screen.dart';
 
 /// The shop's "Online requests" module for one branch.
 class OnlineRequestsScreen extends StatefulWidget {
@@ -32,6 +34,16 @@ class _OnlineRequestsScreenState extends State<OnlineRequestsScreen> {
   RequestStatus? _status = RequestStatus.pending;
   late Future<ShopRequestPage> _requests = _fetch();
   ShopRequestSummary? _summary;
+  bool _isSalon = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Salons get their team, menu and schedule here; other businesses see nothing new.
+    _api.getListing().then((ShopListing listing) {
+      if (mounted) setState(() => _isSalon = listing.categories.contains(ShopCategory.salon));
+    }).catchError((Object _) {});
+  }
 
   Future<ShopRequestPage> _fetch() {
     _api.summary().then((ShopRequestSummary s) {
@@ -51,6 +63,26 @@ class _OnlineRequestsScreenState extends State<OnlineRequestsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(context.l10n.onlineRequestsTitle),
+        actions: <Widget>[
+          if (_isSalon) ...<Widget>[
+            IconButton(
+              key: const Key('requests.salon.schedule'),
+              tooltip: 'Salon schedule',
+              icon: const Icon(Icons.calendar_month_outlined),
+              onPressed: () => Navigator.of(context).push<void>(
+                MaterialPageRoute<void>(builder: (_) => SalonScheduleScreen(branch: widget.branch, service: _api)),
+              ),
+            ),
+            IconButton(
+              key: const Key('requests.salon.setup'),
+              tooltip: 'Salon team & services',
+              icon: const Icon(Icons.content_cut_rounded),
+              onPressed: () => Navigator.of(context).push<void>(
+                MaterialPageRoute<void>(builder: (_) => SalonSetupScreen(branch: widget.branch, service: _api)),
+              ),
+            ),
+          ],
+        ],
         bottom: widget.branch.branchName.isEmpty
             ? null
             : PreferredSize(

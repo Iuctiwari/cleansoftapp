@@ -8,6 +8,7 @@ import 'package:nexoraa_mobile/features/authentication/services/auth_token_stora
 import 'package:nexoraa_mobile/features/consumer/consumer_dependencies.dart';
 import 'package:nexoraa_mobile/features/consumer/services/consumer_api_service.dart';
 import 'package:nexoraa_mobile/features/online_requests/models/shop_marketplace_models.dart';
+import 'package:nexoraa_mobile/features/salon/models/salon_models.dart';
 
 /// The shop's side of marketplace-service: its listing and online requests.
 /// Uses the shop login; every call is scoped to [branchId] via x-branch-id.
@@ -40,6 +41,47 @@ class ShopMarketplaceApiService {
 
   Future<ShopListing> saveListing(ShopListingDraft draft) async =>
       ShopListing.fromJson(_map(await _send('PUT', 'v1/shop-listing/me', body: draft.toJson())));
+
+  // ── Salon: team, menu, diary ──────────────────────────────────────────────
+
+  Future<SalonConfig> getSalonConfig() async =>
+      SalonConfig.fromJson(_map(await _send('GET', 'v1/shop/salon/config')));
+
+  Future<SalonConfig> saveSalonConfig({
+    required int slotMinutes,
+    required List<SalonStaff> staff,
+    required List<SalonMenuItem> menu,
+  }) async => SalonConfig.fromJson(
+    _map(
+      await _send(
+        'PUT',
+        'v1/shop/salon/config',
+        body: <String, Object?>{
+          'slotMinutes': slotMinutes,
+          'staff': staff.map((SalonStaff s) => s.toJson()).toList(),
+          'menu': menu.map((SalonMenuItem m) => m.toJson()).toList(),
+        },
+      ),
+    ),
+  );
+
+  Future<SalonSchedule> salonSchedule(String date) async => SalonSchedule.fromJson(
+    _map(await _send('GET', 'v1/shop/salon/schedule', query: <String, String>{'date': date})),
+  );
+
+  /// Owner picks who does which service of a booking.
+  Future<void> assignSalonStaff(String requestId, Map<String, String> staffByService) async {
+    await _send(
+      'POST',
+      'v1/shop/salon/requests/$requestId/assign',
+      body: <String, Object?>{
+        'assignments': <Map<String, String>>[
+          for (final MapEntry<String, String> entry in staffByService.entries)
+            <String, String>{'serviceId': entry.key, 'staffId': entry.value},
+        ],
+      },
+    );
+  }
 
   Future<ShopRequestSummary> summary() async =>
       ShopRequestSummary.fromJson(_map(await _send('GET', 'v1/shop/requests/summary')));

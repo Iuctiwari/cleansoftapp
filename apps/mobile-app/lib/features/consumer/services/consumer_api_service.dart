@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:nexoraa_mobile/features/consumer/models/consumer_models.dart';
 import 'package:nexoraa_mobile/features/consumer/services/consumer_session_storage.dart';
+import 'package:nexoraa_mobile/features/salon/models/salon_models.dart';
 
 /// A failed customer API call. [code] is the backend error code when there is
 /// one (e.g. `auth.email_not_verified`), else `http.<status>` or `network`;
@@ -208,6 +209,25 @@ class ConsumerApiService {
       _map(await _send('GET', _market('v1/marketplace/shops/$shopId', query))),
     );
   }
+
+  // ── Salon booking ─────────────────────────────────────────────────────────
+
+  Future<SalonMenu> salonMenu(String shopId) async =>
+      SalonMenu.fromJson(_map(await _send('GET', _market('v1/marketplace/salons/$shopId/menu'))));
+
+  /// Slots for a date, worked out for the chosen menu services.
+  Future<SalonSlots> salonSlots(String shopId, String date, List<String> serviceIds) async =>
+      SalonSlots.fromJson(
+        _map(
+          await _send(
+            'GET',
+            _market('v1/marketplace/salons/$shopId/slots', <String, String>{
+              'date': date,
+              if (serviceIds.isNotEmpty) 'serviceIds': serviceIds.join(','),
+            }),
+          ),
+        ),
+      );
 
   // ── Requests ──────────────────────────────────────────────────────────────
 

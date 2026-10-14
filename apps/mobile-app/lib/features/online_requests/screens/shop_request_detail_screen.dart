@@ -15,6 +15,8 @@ import 'package:nexoraa_mobile/features/customers/services/customer_api_service.
 import 'package:nexoraa_mobile/features/online_requests/models/shop_marketplace_models.dart';
 import 'package:nexoraa_mobile/features/online_requests/services/shop_marketplace_api_service.dart';
 import 'package:nexoraa_mobile/features/online_requests/widgets/shop_ui.dart';
+import 'package:nexoraa_mobile/features/salon/models/salon_models.dart';
+import 'package:nexoraa_mobile/features/salon/widgets/salon_parts_view.dart';
 import 'package:nexoraa_mobile/features/staff/models/staff_member.dart';
 import 'package:nexoraa_mobile/features/staff/services/staff_api_service.dart';
 import 'package:nexoraa_mobile/features/orders/controllers/new_order_controller.dart';
@@ -172,6 +174,60 @@ class _ShopRequestDetailScreenState extends State<ShopRequestDetailScreen> {
     if (mounted && after != null && after.canAssignWorker && after.pickupWorkerId == null) {
       await _assign(after);
     }
+  }
+
+  /// Salon: the owner picks another person of the same role for one service.
+  Future<void> _changeStaff(SalonBookedPart part) async {
+    final SalonConfig config;
+    try {
+      config = await _api.getSalonConfig();
+    } on Object catch (error) {
+      if (mounted) await context.showShopError(error);
+      return;
+    }
+    if (!mounted) return;
+    final List<SalonStaff> candidates = config.staff
+        .where((SalonStaff s) => s.role == part.role && s.staffId != part.staffId)
+        .toList();
+    if (candidates.isEmpty) {
+      context.showConsumerToast('No one else with the role ${part.role}');
+      return;
+    }
+    final SalonStaff? chosen = await showModalBottomSheet<SalonStaff>(
+      context: context,
+      showDragHandle: true,
+      builder: (BuildContext sheetContext) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          children: <Widget>[
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+              child: Text('Who should do ${part.name}?', style: AppTextStyles.title),
+            ),
+            for (final SalonStaff s in candidates)
+              ListTile(
+                key: Key('salon.assign.${s.staffId}'),
+                leading: const Icon(Icons.person_outline),
+                title: Text(s.name),
+                subtitle: Text(s.role),
+                onTap: () => Navigator.of(sheetContext).pop(s),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (chosen == null || !mounted) return;
+    setState(() => _busy = true);
+    try {
+      await _api.assignSalonStaff(widget.requestId, <String, String>{part.serviceId: chosen.staffId});
+      if (!mounted) return;
+      context.showConsumerToast('${chosen.name} will do ${part.name}');
+    } on Object catch (error) {
+      if (mounted) await context.showShopError(error);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+    await _load();
   }
 
   /// Who goes to collect: the owner/manager themselves, or one of the workers.
@@ -573,6 +629,13 @@ class _ShopRequestDetailScreenState extends State<ShopRequestDetailScreen> {
                           '${date == null ? r.preferredDate : context.formatDay(date)}, '
                           '${context.formatClock(r.slotStart)} – ${context.formatClock(r.slotEnd)}',
               ),
+              if (r.salon != null) ...<Widget>[
+                const Divider(),
+                SalonPartsView(
+                  booking: r.salon!,
+                  onChange: request.canAssignStaff && !_busy ? (SalonBookedPart part) => _changeStaff(part) : null,
+                ),
+              ],
               if (r.pickupWorkerName != null)
                 _row(Icons.directions_walk_outlined, context.l10n.pickupBy(r.pickupWorkerName!)),
               if (request.canAssignWorker && request.pickupWorkerId != null)

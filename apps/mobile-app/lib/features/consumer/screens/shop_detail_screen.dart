@@ -56,7 +56,10 @@ class _ShopDetailScreenState extends State<ShopDetailScreen> {
                             key: const Key('shop.book'),
                             label: context.l10n.consumerBookService,
                             onPressed: () => context.pushNamed(
-                              AppRouteNames.consumerBook,
+                              // Salon-only shops book through the short chat; every other business keeps the form.
+                              shop.categories.isNotEmpty && shop.categories.every((ShopCategory c) => c == ShopCategory.salon)
+                                  ? AppRouteNames.consumerSalonBook
+                                  : AppRouteNames.consumerBook,
                               pathParameters: <String, String>{'shopId': shop.shopId},
                               extra: shop,
                             ),

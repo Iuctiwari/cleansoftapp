@@ -189,6 +189,7 @@ class ShopRequest {
     required this.canComplete,
     this.canAssignWorker = false,
     this.canCollect = false,
+    this.canAssignStaff = false,
     this.pickupWorkerId,
     this.shopCustomerId,
     this.distanceKm,
@@ -228,6 +229,7 @@ class ShopRequest {
       canComplete: actions['complete'] as bool? ?? false,
       canAssignWorker: actions['assignWorker'] as bool? ?? false,
       canCollect: actions['collect'] as bool? ?? false,
+      canAssignStaff: actions['assignStaff'] as bool? ?? false,
       pickupWorkerId: (json['pickupWorker'] as Map<String, dynamic>?)?['userId'] as String?,
     );
   }
@@ -250,6 +252,9 @@ class ShopRequest {
   final bool canComplete;
   final bool canAssignWorker;
   final bool canCollect;
+
+  /// Salon appointments: owner/manager can change who does each service.
+  final bool canAssignStaff;
   final String? pickupWorkerId;
 
   String get requestId => base.requestId;
