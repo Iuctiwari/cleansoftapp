@@ -1,7 +1,8 @@
 // Runs ON THE SERVER (uploaded by salon-reset.mjs through AWS SSM).
 //
-//   node salon-server-tool.cjs list                     dry run: every salon shop and what would be deleted
-//   node salon-server-tool.cjs delete                   delete EVERY salon shop (businessType "salon") and all its data
+//   node salon-server-tool.cjs list [keepEmail]         dry run: every salon shop and what would be deleted
+//   node salon-server-tool.cjs delete [keepEmail]       delete every salon shop (businessType "salon") and all its data,
+//                                                       except the shop owned by keepEmail when given
 //   node salon-server-tool.cjs verify a@x.com,b@x.com   mark these marketplace customers' emails as verified
 //
 // "Salon shop" means a tenant whose business type is salon. Other businesses are never touched.
@@ -53,14 +54,19 @@ async function verify(emails) {
   console.log(`verified=${verified}`);
 }
 
-async function salonReset(doDelete) {
-  // 1. Find every salon shop, then everyone who works there.
+async function salonReset(doDelete, keepEmail) {
+  // 1. Find every salon shop (except the one to keep), then everyone who works there.
+  const keep = (keepEmail ?? '').trim().toLowerCase();
   const shops = new Map();
   await eachDb(async (db) => {
     for (const t of await db
       .collection('tenants')
       .find({ businessType: 'salon' }, { projection: { tenantId: 1, businessName: 1, ownerEmail: 1 } })
       .toArray()) {
+      if (keep && String(t.ownerEmail ?? '').toLowerCase() === keep) {
+        console.log(`  kept: ${t.businessName} (${t.ownerEmail})  [${t.tenantId}]`);
+        continue;
+      }
       shops.set(t.tenantId, `${t.businessName} (${t.ownerEmail})`);
     }
   });
@@ -109,8 +115,8 @@ async function salonReset(doDelete) {
 
 async function main() {
   const [command, arg] = process.argv.slice(2);
-  if (command === 'list') return salonReset(false);
-  if (command === 'delete') return salonReset(true);
+  if (command === 'list') return salonReset(false, arg);
+  if (command === 'delete') return salonReset(true, arg);
   if (command === 'verify') return verify(arg ?? '');
   throw new Error('usage: list | delete | verify <emails>');
 }

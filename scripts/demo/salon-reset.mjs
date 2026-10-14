@@ -4,7 +4,9 @@
 //
 //   node scripts/demo/salon-reset.mjs list            dry run: shows every salon shop and what would be deleted
 //   node scripts/demo/salon-reset.mjs delete --yes    DELETE every salon shop and all its data (cannot be undone)
-//   node scripts/demo/salon-reset.mjs seed            create the demo salon and print the logins
+//   node scripts/demo/salon-reset.mjs seed            fill the demo salon and print the logins
+//
+// The shop owned by qwerty@gmail.com is kept (set SALON_OWNER to use another email); the demo data goes into it.
 //
 // Needs Node 20+ and the AWS CLI signed in (list/delete/verify run on the server through AWS SSM).
 // Other businesses (laundry, tailoring, ...) are never touched.
@@ -19,7 +21,7 @@ const INSTANCE = process.env.DEMO_INSTANCE ?? 'i-01a4e8536097607c8';
 const REGION = 'ap-south-1';
 const PASSWORD = 'Iuc@12345';
 
-const OWNER_EMAIL = 'qwert@gmail.com';
+const OWNER_EMAIL = process.env.SALON_OWNER ?? 'qwerty@gmail.com';
 const MANAGER_ID = 'asdfg@gmail.com';
 const STAFF_ID = 'zxcvb@gmail.com';
 const CUSTOMER_EMAIL = 'poiuy@gmail.com';
@@ -145,8 +147,8 @@ function serverTool(args) {
 
 // ── commands ────────────────────────────────────────────────────────────────
 async function listCommand() {
-  console.log(serverTool('list'));
-  console.log('Nothing was deleted. To delete all of the above run:  node scripts/demo/salon-reset.mjs delete --yes');
+  console.log(serverTool(`list ${OWNER_EMAIL}`));
+  console.log(`Nothing was deleted. The shop owned by ${OWNER_EMAIL} is kept. To delete everything listed above run:  node scripts/demo/salon-reset.mjs delete --yes`);
 }
 
 async function deleteCommand(confirmed) {
@@ -154,7 +156,7 @@ async function deleteCommand(confirmed) {
     console.log('This permanently deletes EVERY salon shop and its data. Run "list" first, then add --yes to confirm.');
     process.exit(1);
   }
-  console.log(serverTool('delete'));
+  console.log(serverTool(`delete ${OWNER_EMAIL}`));
 }
 
 async function ownerLogin() {
