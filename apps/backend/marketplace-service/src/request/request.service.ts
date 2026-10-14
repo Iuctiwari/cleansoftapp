@@ -6,6 +6,7 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import { hasPermission, Permissions } from '@nexoraa/shared';
 import type { FilterQuery, UpdateQuery } from 'mongoose';
@@ -16,6 +17,7 @@ import {
   MarketplaceDatabase,
   type RequestHistoryEntry,
   type RequestStatus,
+  type SalonBookingSnapshot,
   type ServiceRequestDocument,
   type ShopListingDocument,
 } from '../platform/marketplace.database';
@@ -31,6 +33,7 @@ import { MAX_PICKUP_PHOTOS, PhotoStorage } from '../platform/photo-storage';
 import { PushClient } from '../platform/push.client';
 import { ShopServicesClient } from '../platform/shop-services.client';
 import { TenantDirectoryClient } from '../platform/tenant-directory.client';
+import { SalonService, type SalonPlan } from '../salon/salon.service';
 import type {
   AcceptRequestDto,
   AssignWorkerDto,
@@ -123,6 +126,8 @@ export interface CustomerRequestView {
   readonly cancelReason?: string;
   readonly orderNumber?: string;
   readonly pickupWorkerName?: string;
+  /** Salon appointments: the chosen services, price and the diary time they hold. */
+  readonly salon?: SalonBookingSnapshot;
   readonly collectedAt?: string;
   readonly collectedItems?: readonly { readonly name: string; readonly quantity: number }[];
   /** Total number of items the worker counted at pickup, when they gave one. */
@@ -166,6 +171,8 @@ export interface ShopRequestView
     readonly assignWorker: boolean;
     /** The assigned worker (or a manager) records the pickup and the delivery date. */
     readonly collect: boolean;
+    /** Salon appointments: owner/manager can change who does each service. */
+    readonly assignStaff: boolean;
   };
   readonly history: readonly RequestHistoryEntry[];
 }
@@ -188,14 +195,16 @@ export class RequestService {
     private readonly shopServices: ShopServicesClient,
     private readonly push: PushClient,
     private readonly photos: PhotoStorage,
+    @Optional() private readonly salon?: SalonService,
   ) {}
 
   // ── Customer side ─────────────────────────────────────────────────────────
 
   async create(
     consumer: ConsumerPrincipal,
-    input: CreateServiceRequestDto,
+    submitted: CreateServiceRequestDto,
   ): Promise<CustomerRequestView> {
+    let input = submitted;
     const listing = await this.findBookableShop(input.shopId);
     const now = new Date();
 
@@ -206,6 +215,30 @@ export class RequestService {
     }
     if (!listing.serviceModes.includes(input.requestType)) {
       throw new BadRequestException('This shop does not offer that kind of service');
+    }
+
+    // Salon appointments pick menu services and a diary slot; every other business is unchanged.
+    let salonPlan: SalonPlan | undefined;
+    if (submitted.salonServiceIds?.length) {
+      if (submitted.category !== 'salon' || !this.salon) {
+        throw new BadRequestException('Appointment booking is only for salons');
+      }
+      if (submitted.requestType === 'pickup_drop') {
+        throw new BadRequestException('Salons do not offer pickup & drop');
+      }
+      salonPlan = await this.salon.plan(
+        listing,
+        submitted.preferredDate,
+        submitted.preferredSlot.start,
+        submitted.salonServiceIds,
+        now,
+      );
+      input = {
+        ...submitted,
+        description: salonPlan.description,
+        items: salonPlan.items.map((item) => ({ ...item })),
+        preferredSlot: salonPlan.slot,
+      };
     }
     this.assertDateAndSlot(listing, input, now);
 
@@ -299,6 +332,7 @@ export class RequestService {
       preferredSlot: input.preferredSlot,
       ...(address ? { address } : {}),
       ...(distanceKm !== undefined ? { distanceKm } : {}),
+      ...(salonPlan ? { salon: salonPlan.snapshot } : {}),
       status: 'Pending',
       ...(shopCustomerId ? { shopCustomerId } : {}),
       expiresAt: new Date(now.getTime() + REQUEST_EXPIRY_HOURS * 3_600_000).toISOString(),
@@ -309,6 +343,9 @@ export class RequestService {
       updatedAt: createdAt,
     };
     await this.database.requests.create(request);
+    if (salonPlan) {
+      await this.salon!.settle(request, salonPlan.config);
+    }
     // Tell the shop's phones right away (owner, plus staff who can see orders).
     this.firePush(
       { tenantId: request.tenantId, branchId: request.branchId },
@@ -391,10 +428,7 @@ export class RequestService {
       .aggregate<{
         _id: RequestStatus;
         count: number;
-      }>([
-        { $match: this.branchScope(shop) },
-        { $group: { _id: '$status', count: { $sum: 1 } } },
-      ])
+      }>([{ $match: this.branchScope(shop) }, { $group: { _id: '$status', count: { $sum: 1 } } }])
       .exec();
     const count = (status: RequestStatus): number =>
       rows.find((row) => row._id === status)?.count ?? 0;
@@ -610,8 +644,7 @@ export class RequestService {
       quantity: item.quantity,
     }));
     // The worker may give just a total, an itemised list, or nothing at all.
-    const totalQuantity =
-      input.totalItems ?? items.reduce((sum, item) => sum + item.quantity, 0);
+    const totalQuantity = input.totalItems ?? items.reduce((sum, item) => sum + item.quantity, 0);
     const now = new Date();
     let deliveryDate: string;
     const custom = Boolean(input.deliveryDate);
@@ -677,11 +710,14 @@ export class RequestService {
       current.requestType !== 'visit_shop' &&
       !!current.pickupWorker &&
       (this.canManage(shop) || current.pickupWorker.userId === shop.actorId);
-    if (!mayCollect) throw new ConflictException('Photos can only be added while collecting a pickup');
+    if (!mayCollect)
+      throw new ConflictException('Photos can only be added while collecting a pickup');
     if (count < 1 || count > MAX_PICKUP_PHOTOS) {
       throw new BadRequestException(`Add between 1 and ${MAX_PICKUP_PHOTOS} photos`);
     }
-    return { slots: await this.photos.createUploadSlots(current.tenantId, current.requestId, count) };
+    return {
+      slots: await this.photos.createUploadSlots(current.tenantId, current.requestId, count),
+    };
   }
 
   // ── helpers ───────────────────────────────────────────────────────────────
@@ -747,7 +783,6 @@ export class RequestService {
       },
     );
   }
-
 
   /**
    * Lazily expires unanswered requests: every read or action first marks
@@ -978,6 +1013,7 @@ export class RequestService {
       cancelReason: request.cancelReason,
       orderNumber: request.orderNumber,
       pickupWorkerName: request.pickupWorker?.name,
+      salon: request.salon,
       collectedAt: request.collected?.at,
       collectedItems: request.collected?.items,
       collectedTotal: request.collected?.totalQuantity || undefined,
@@ -1035,13 +1071,18 @@ export class RequestService {
         decline: manager && (request.status === 'Pending' || openAccepted),
         linkOrder: openAccepted,
         complete: manager && request.status === 'Accepted',
-        assignWorker: manager && openAccepted && !request.collected && request.requestType !== 'visit_shop',
+        assignWorker:
+          manager && openAccepted && !request.collected && request.requestType !== 'visit_shop',
         collect:
           request.status === 'Accepted' &&
           !request.collected &&
           request.requestType !== 'visit_shop' &&
           !!request.pickupWorker &&
           (manager || request.pickupWorker.userId === shop?.actorId),
+        assignStaff:
+          manager &&
+          !!request.salon &&
+          (request.status === 'Pending' || request.status === 'Accepted'),
       },
       history: request.statusHistory,
     };

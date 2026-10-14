@@ -197,6 +197,49 @@ export interface RequestAddressSnapshot {
   readonly location: GeoJsonPoint;
 }
 
+/** One service on a salon's online menu. */
+export interface SalonMenuItem {
+  readonly serviceId: string;
+  readonly name: string;
+  readonly price: number;
+  readonly durationMinutes: number;
+  /** The kind of staff who do this service, e.g. "Hair Stylist". */
+  readonly role: string;
+}
+
+/** A person on the salon's roster. They are not app users; the owner lists them here. */
+export interface SalonStaffMember {
+  readonly staffId: string;
+  readonly name: string;
+  readonly role: string;
+}
+
+/** One service of an appointment, with who does it and when. */
+export interface SalonBookedPart {
+  readonly serviceId: string;
+  readonly name: string;
+  readonly price: number;
+  readonly durationMinutes: number;
+  readonly role: string;
+  readonly staffId: string;
+  readonly staffName: string;
+  /** Minutes after midnight, India time. */
+  readonly startMinute: number;
+  readonly endMinute: number;
+}
+
+/** What a salon appointment holds in the diary; set only on salon bookings. */
+export interface SalonBookingSnapshot {
+  readonly parts: readonly SalonBookedPart[];
+  readonly totalPrice: number;
+  readonly totalMinutes: number;
+  /** Minutes after midnight, India time. */
+  readonly startMinute: number;
+  readonly endMinute: number;
+  /** Salons take payment at the shop, after the service. No advance. */
+  readonly payment: 'pay_at_shop';
+}
+
 export interface ServiceRequestDocument {
   readonly requestId: string;
   /** Human-friendly, e.g. SR-2026-000123 */
@@ -239,6 +282,8 @@ export interface ServiceRequestDocument {
   /** YYYY-MM-DD, India date: when the clothes come back. */
   readonly deliveryDate?: string;
   readonly deliveryDateIsCustom?: boolean;
+  /** Salon appointments only: the chosen menu services and the diary time they hold. */
+  readonly salon?: SalonBookingSnapshot;
   readonly expiresAt: string;
   readonly statusHistory: readonly RequestHistoryEntry[];
   readonly createdAt: string;
@@ -274,6 +319,7 @@ const serviceRequestSchema = new Schema<ServiceRequestDocument>(
     collected: { type: Schema.Types.Mixed },
     deliveryDate: { type: String },
     deliveryDateIsCustom: { type: Boolean },
+    salon: { type: Schema.Types.Mixed },
     expiresAt: { type: String, required: true },
     statusHistory: { type: [Schema.Types.Mixed], default: [] },
     createdAt: { type: String, required: true },
@@ -285,10 +331,43 @@ serviceRequestSchema.index({ consumerId: 1, createdAt: -1 });
 serviceRequestSchema.index({ branchId: 1, status: 1, createdAt: -1 });
 serviceRequestSchema.index({ status: 1, expiresAt: 1 });
 serviceRequestSchema.index({ branchId: 1, 'pickupWorker.userId': 1, status: 1 });
+// Salon diary lookups: one branch, one day, still holding time.
+serviceRequestSchema.index(
+  { branchId: 1, preferredDate: 1, status: 1 },
+  { partialFilterExpression: { salon: { $exists: true } } },
+);
 // An order can settle only one request.
 serviceRequestSchema.index(
   { orderId: 1 },
   { unique: true, partialFilterExpression: { orderId: { $exists: true } } },
+);
+
+// ─── Salon online-booking setup (one per branch) ───────────────────────────
+
+export interface SalonConfigDocument {
+  readonly branchId: string;
+  readonly tenantId: string;
+  /** Length of one bookable slot, in minutes. */
+  readonly slotMinutes: number;
+  readonly staff: readonly SalonStaffMember[];
+  readonly menu: readonly SalonMenuItem[];
+  readonly updatedBy: string;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+}
+
+const salonConfigSchema = new Schema<SalonConfigDocument>(
+  {
+    branchId: { type: String, required: true, unique: true },
+    tenantId: { type: String, required: true, index: true },
+    slotMinutes: { type: Number, required: true },
+    staff: { type: [Schema.Types.Mixed], default: [] },
+    menu: { type: [Schema.Types.Mixed], default: [] },
+    updatedBy: { type: String, required: true },
+    createdAt: { type: String, required: true },
+    updatedAt: { type: String, required: true },
+  },
+  { collection: 'salonConfigs', versionKey: false },
 );
 
 interface CounterDocument {
@@ -308,6 +387,7 @@ export class MarketplaceDatabase implements OnModuleInit, OnModuleDestroy {
   private addressModel?: Model<ConsumerAddressDocument>;
   private listingModel?: Model<ShopListingDocument>;
   private requestModel?: Model<ServiceRequestDocument>;
+  private salonConfigModel?: Model<SalonConfigDocument>;
   private counterModel?: Model<CounterDocument>;
 
   constructor(private readonly configService: ConfigService) {}
@@ -324,11 +404,13 @@ export class MarketplaceDatabase implements OnModuleInit, OnModuleDestroy {
       this.addressModel = this.connection.model('ConsumerAddress', consumerAddressSchema);
       this.listingModel = this.connection.model('ShopListing', shopListingSchema);
       this.requestModel = this.connection.model('ServiceRequest', serviceRequestSchema);
+      this.salonConfigModel = this.connection.model('SalonConfig', salonConfigSchema);
       this.counterModel = this.connection.model('Counter', counterSchema);
       await Promise.all([
         this.addressModel.syncIndexes(),
         this.listingModel.syncIndexes(),
         this.requestModel.syncIndexes(),
+        this.salonConfigModel.syncIndexes(),
       ]);
       this.logger.log('Marketplace MongoDB connection established');
     } catch (error) {
@@ -353,6 +435,10 @@ export class MarketplaceDatabase implements OnModuleInit, OnModuleDestroy {
 
   get requests(): Model<ServiceRequestDocument> {
     return this.ready(this.requestModel);
+  }
+
+  get salonConfigs(): Model<SalonConfigDocument> {
+    return this.ready(this.salonConfigModel);
   }
 
   /** Next value of a named sequence (atomic). */

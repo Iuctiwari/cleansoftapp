@@ -89,6 +89,16 @@ export class CreateServiceRequestDto {
   preferredSlot!: TimeSlotDto;
 
   @ApiPropertyOptional({
+    description:
+      'Salons only: ids from the salon menu. The slot start is preferredSlot.start; the end, price and description are worked out by the server.',
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(10)
+  @IsString({ each: true })
+  salonServiceIds?: string[];
+
+  @ApiPropertyOptional({
     description: 'Saved address — required for home service and pickup & drop',
   })
   @IsOptional()
@@ -120,7 +130,9 @@ export class AcceptRequestDto {
   @MaxLength(300)
   note?: string;
 
-  @ApiPropertyOptional({ description: 'The worker who will go and collect (required for pickup and home service)' })
+  @ApiPropertyOptional({
+    description: 'The worker who will go and collect (required for pickup and home service)',
+  })
   @IsOptional()
   @IsString()
   @MaxLength(64)
@@ -148,28 +160,40 @@ export class AssignWorkerDto {
 }
 
 export class CollectRequestDto {
-  @ApiPropertyOptional({ minimum: 1, maximum: 9999, description: 'Total number of items collected (optional)' })
+  @ApiPropertyOptional({
+    minimum: 1,
+    maximum: 9999,
+    description: 'Total number of items collected (optional)',
+  })
   @IsOptional()
   @IsInt()
   @Min(1)
   @Max(9999)
   totalItems?: number;
 
-  @ApiPropertyOptional({ type: [RequestItemDto], description: 'Optional itemised list (older apps)' })
+  @ApiPropertyOptional({
+    type: [RequestItemDto],
+    description: 'Optional itemised list (older apps)',
+  })
   @IsOptional()
   @ArrayMaxSize(50)
   @ValidateNested({ each: true })
   @Type(() => RequestItemDto)
   items?: RequestItemDto[];
 
-  @ApiPropertyOptional({ description: 'Photo keys from photo-upload-urls, already uploaded', type: [String] })
+  @ApiPropertyOptional({
+    description: 'Photo keys from photo-upload-urls, already uploaded',
+    type: [String],
+  })
   @IsOptional()
   @IsArray()
   @ArrayMaxSize(6)
   @IsString({ each: true })
   photoKeys?: string[];
 
-  @ApiPropertyOptional({ description: 'Custom delivery date YYYY-MM-DD; omit to use the automatic date' })
+  @ApiPropertyOptional({
+    description: 'Custom delivery date YYYY-MM-DD; omit to use the automatic date',
+  })
   @IsOptional()
   @Matches(/^d{4}-d{2}-d{2}$/, { message: 'deliveryDate must be YYYY-MM-DD' })
   deliveryDate?: string;

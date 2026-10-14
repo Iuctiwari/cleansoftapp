@@ -16,6 +16,8 @@ import { ShopServicesClient } from './platform/shop-services.client';
 import { TenantDirectoryClient } from './platform/tenant-directory.client';
 import { ConsumerRequestController, ShopRequestController } from './request/request.controller';
 import { RequestService } from './request/request.service';
+import { ConsumerSalonController, ShopSalonController } from './salon/salon.controller';
+import { SalonService } from './salon/salon.service';
 
 @Module({
   imports: [ConfigModule],
@@ -25,6 +27,8 @@ import { RequestService } from './request/request.service';
     ShopListingController,
     ConsumerRequestController,
     ShopRequestController,
+    ShopSalonController,
+    ConsumerSalonController,
   ],
   providers: [
     MarketplaceDatabase,
@@ -32,6 +36,7 @@ import { RequestService } from './request/request.service';
     AddressService,
     ListingService,
     RequestService,
+    SalonService,
     ShopServicesClient,
     PushClient,
     PhotoStorage,
@@ -45,9 +50,14 @@ export class MarketplaceModule implements NestModule {
     // never reach customer data and a customer token never reaches a listing editor.
     consumer
       .apply(ConsumerAuthenticationMiddleware)
-      .forRoutes(AddressController, MarketplaceController, ConsumerRequestController);
+      .forRoutes(
+        AddressController,
+        MarketplaceController,
+        ConsumerRequestController,
+        ConsumerSalonController,
+      );
     consumer
       .apply(ShopAuthenticationMiddleware)
-      .forRoutes(ShopListingController, ShopRequestController);
+      .forRoutes(ShopListingController, ShopRequestController, ShopSalonController);
   }
 }
