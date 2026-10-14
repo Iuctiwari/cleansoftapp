@@ -15,6 +15,7 @@ import 'package:nexoraa_mobile/features/orders/screens/order_details_screen.dart
 import 'package:nexoraa_mobile/features/orders/widgets/new_order_widgets.dart';
 import 'package:nexoraa_mobile/features/orders/widgets/order_widgets.dart';
 import 'package:nexoraa_mobile/features/receipt/screens/receipt_preview_screen.dart';
+import 'package:nexoraa_mobile/features/salon/models/salon_models.dart';
 
 class NewOrderScreen extends StatefulWidget {
   const NewOrderScreen({
@@ -54,12 +55,15 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
     widget.customerController.addListener(_refresh);
     _discount.addListener(_discountChanged);
     _advancePayment.addListener(_advancePaymentChanged);
-    _totalItems.addListener(() => widget.controller.setTotalItems(_totalItems.text));
+    _totalItems.addListener(
+      () => widget.controller.setTotalItems(_totalItems.text),
+    );
     if (widget.customerController.customers.isEmpty &&
         !widget.customerController.isLoading) {
       unawaited(widget.customerController.load());
     }
     unawaited(widget.controller.loadCatalog());
+    unawaited(widget.controller.loadSalon());
   }
 
   @override
@@ -90,7 +94,8 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
   }
 
   void _closeOrBack() {
-    if (widget.controller.stage == NewOrderStage.customer || widget.controller.stage == NewOrderStage.receipt) {
+    if (widget.controller.stage == NewOrderStage.customer ||
+        widget.controller.stage == NewOrderStage.receipt) {
       Navigator.of(context).pop(widget.controller.createdOrder != null);
       return;
     }
@@ -103,7 +108,12 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
       _showError();
       return;
     }
-    if (current == NewOrderStage.customer) unawaited(widget.controller.loadCatalog());
+    if (current == NewOrderStage.customer)
+      unawaited(widget.controller.loadCatalog());
+  }
+
+  Future<void> _confirmSalonServices() async {
+    if (!await widget.controller.confirmSalonServices()) _showError();
   }
 
   Future<void> _save() async {
@@ -223,6 +233,7 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
     NewOrderStage.customer => _customerStep(),
     NewOrderStage.items => _itemsStep(),
     NewOrderStage.services => _servicesStep(),
+    NewOrderStage.salonServices => _salonServicesStep(),
     NewOrderStage.pricing => _pricingStep(),
     NewOrderStage.photos => _photosStep(),
     NewOrderStage.payment => _paymentStep(),
@@ -250,14 +261,22 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
         onPrimary: _done,
       );
     }
+    final bool first =
+        step == NewOrderStage.customer || widget.controller.step == 0;
     return NewOrderFooter(
-      secondaryLabel: step == NewOrderStage.customer ? 'Cancel' : 'Back',
+      secondaryLabel: first ? 'Cancel' : 'Back',
       primaryLabel: 'Next',
-      onSecondary: step == NewOrderStage.customer
+      onSecondary: first
           ? () => Navigator.of(context).pop(false)
           : widget.controller.back,
-      onPrimary: step == NewOrderStage.items && widget.controller.selections.isEmpty
+      onPrimary:
+          step == NewOrderStage.items && widget.controller.selections.isEmpty
           ? null
+          : step == NewOrderStage.salonServices
+          ? (widget.controller.salonChosenItems.isEmpty ||
+                    widget.controller.isQuoting
+                ? null
+                : _confirmSalonServices)
           : _next,
     );
   }
@@ -688,7 +707,12 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
   Future<void> _takePhoto() async {
     try {
       final XFile? shot =
-          await (widget.takePhoto ?? () => ImagePicker().pickImage(source: ImageSource.camera, maxWidth: 1600, imageQuality: 70))();
+          await (widget.takePhoto ??
+              () => ImagePicker().pickImage(
+                source: ImageSource.camera,
+                maxWidth: 1600,
+                imageQuality: 70,
+              ))();
       if (shot == null) return;
       final Uint8List bytes = await shot.readAsBytes();
       widget.controller.addPhoto(bytes);
@@ -700,14 +724,36 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
   String _dayLabel(String yyyyMmDd) {
     final DateTime? day = DateTime.tryParse(yyyyMmDd);
     if (day == null) return yyyyMmDd;
-    const List<String> months = <String>['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const List<String> days = <String>['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const List<String> months = <String>[
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    const List<String> days = <String>[
+      'Mon',
+      'Tue',
+      'Wed',
+      'Thu',
+      'Fri',
+      'Sat',
+      'Sun',
+    ];
     return '${days[day.weekday - 1]}, ${day.day} ${months[day.month - 1]}';
   }
 
   Future<void> _pickDeliveryDate() async {
     final DateTime today = DateUtils.dateOnly(DateTime.now());
-    final DateTime initial = DateTime.tryParse(widget.controller.deliveryDate ?? '') ?? today;
+    final DateTime initial =
+        DateTime.tryParse(widget.controller.deliveryDate ?? '') ?? today;
     final DateTime? day = await showDatePicker(
       context: context,
       initialDate: initial.isBefore(today) ? today : initial,
@@ -717,6 +763,34 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
     if (day == null) return;
     widget.controller.setCustomDeliveryDate(
       '${day.year.toString().padLeft(4, '0')}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}',
+    );
+  }
+
+  /// Salon walk-in: pick from the salon's service menu; staff are assigned automatically when the order is saved.
+  Widget _salonServicesStep() {
+    final NewOrderController c = widget.controller;
+    return ListView(
+      padding: const EdgeInsets.all(AppSpacing.xl),
+      children: <Widget>[
+        Text('Services', style: AppTextStyles.headingSmall),
+        const SizedBox(height: AppSpacing.xs),
+        Text(
+          'Pick what the customer wants. Each service goes to a free person with the right role when you save.',
+          style: AppTextStyles.caption,
+        ),
+        const SizedBox(height: AppSpacing.md),
+        for (final SalonMenuItem item in c.salonMenu)
+          CheckboxListTile(
+            key: Key('order.salon.${item.serviceId}'),
+            contentPadding: EdgeInsets.zero,
+            value: c.isSalonChosen(item.serviceId),
+            onChanged: (_) => c.toggleSalonItem(item.serviceId),
+            title: Text(item.name, style: AppTextStyles.title),
+            subtitle: Text(
+              '${rupees(item.price)} · ${durationText(item.durationMinutes)} · ${item.role}',
+            ),
+          ),
+      ],
     );
   }
 
@@ -748,7 +822,12 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
                 children: <Widget>[
                   ClipRRect(
                     borderRadius: BorderRadius.circular(10),
-                    child: Image.memory(photos[i], width: 88, height: 88, fit: BoxFit.cover),
+                    child: Image.memory(
+                      photos[i],
+                      width: 88,
+                      height: 88,
+                      fit: BoxFit.cover,
+                    ),
                   ),
                   Positioned(
                     right: 2,

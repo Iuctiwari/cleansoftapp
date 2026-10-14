@@ -388,11 +388,16 @@ class _ShopRequestDetailScreenState extends State<ShopRequestDetailScreen> {
       ..selectBranch(branchId);
     final OrderController orderController = OrderController(service: orderService);
     final CustomerController customerController = CustomerController(service: customerService, orderService: orderService);
+    // A salon booking already has its services and staff: the order is made from them, no selection steps.
+    final SalonBooking? salon = request.base.salon;
+    final bool fromSalonBooking = salon != null && salon.isBillable;
     final NewOrderController newOrder = NewOrderController(
       catalogService: OrderCatalogApiService(tokenStorage: AuthenticationDependencies.tokenStorage),
       orderController: orderController,
       paymentService: PaymentApiService(tokenStorage: AuthenticationDependencies.tokenStorage),
       branchId: branchId,
+      salonPreset: fromSalonBooking ? salon.parts : null,
+      salonApi: _api,
       pickup: pickup
           ? PickupOrderContext(
               requestId: request.requestId,
@@ -409,6 +414,16 @@ class _ShopRequestDetailScreenState extends State<ShopRequestDetailScreen> {
       }
     } on Object {
       // The customer can still be picked by hand on the order screen.
+    }
+    if (fromSalonBooking && !await newOrder.applySalonPreset()) {
+      final String reason = newOrder.error ?? 'These services are not in your price list.';
+      newOrder.dispose();
+      orderController.dispose();
+      customerController.dispose();
+      if (!mounted) return;
+      setState(() => _busy = false);
+      await AppAlertDialog.show(context, title: context.l10n.onlineRequestCreateOrder, message: reason);
+      return;
     }
     if (!mounted) return;
     setState(() => _busy = false);

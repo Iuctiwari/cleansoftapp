@@ -118,6 +118,24 @@ const PRICES = {
   Feet: [['SALON_PEDICURE', 550], ['SALON_WAXING', 400]],
   Nails: [['SALON_MANICURE', 300], ['SALON_PEDICURE', 350]],
 };
+// Each online menu item is billed as one entry of the price list: menu name -> [service code, item name].
+const MENU_LINKS = {
+  'Haircut (Women)': ['SALON_HAIRCUT', 'Hair (Women)'],
+  'Haircut (Men)': ['SALON_HAIRCUT', 'Hair (Men)'],
+  'Hair Wash & Blow-dry': ['SALON_HAIR_WASH', 'Hair (Women)'],
+  'Hair Colour': ['SALON_HAIR_COLOR', 'Hair (Women)'],
+  'Hair Spa': ['SALON_HAIR_SPA', 'Hair (Women)'],
+  'Beard Trim': ['SALON_BEARD_TRIM', 'Beard'],
+  Shave: ['SALON_SHAVE', 'Beard'],
+  Facial: ['SALON_FACIAL', 'Face'],
+  'Clean-up': ['SALON_CLEANUP', 'Face'],
+  'Waxing (Full Arms)': ['SALON_WAXING', 'Hands'],
+  Threading: ['SALON_THREADING', 'Face'],
+  Manicure: ['SALON_MANICURE', 'Hands'],
+  Pedicure: ['SALON_PEDICURE', 'Feet'],
+  'Party Makeup': ['SALON_PARTY_MAKEUP', 'Face'],
+  'Bridal Makeup': ['SALON_BRIDAL_MAKEUP', 'Face'],
+};
 const slug = (name) => name.toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_|_$/g, '');
 
 // ── plumbing ────────────────────────────────────────────────────────────────
@@ -224,12 +242,19 @@ async function seedShop() {
   }
 
   const ctx = { token: owner.token, branchId: owner.branchId };
+  const { services, items } = await ensureCatalog(ctx);
+  const link = (name) => {
+    const [serviceCode, itemName] = MENU_LINKS[name] ?? [];
+    const catalogServiceId = services.get(serviceCode);
+    const catalogItemCategoryId = items.get(String(itemName).toLowerCase())?.id;
+    return catalogServiceId && catalogItemCategoryId ? { catalogServiceId, catalogItemCategoryId } : {};
+  };
   const config = must(await call('PUT', `${API.market}/shop/salon/config`, {
     ...ctx,
     body: {
       slotMinutes: SLOT_MINUTES,
       staff: TEAM.map(([name, role]) => ({ name, role })),
-      menu: MENU.map(([name, price, durationMinutes, role]) => ({ name, price, durationMinutes, role })),
+      menu: MENU.map(([name, price, durationMinutes, role]) => ({ name, price, durationMinutes, role, ...link(name) })),
     },
   }), 'salon team and menu');
   console.log(`  + team of ${config.staff.length} and a menu of ${config.menu.length} services (${SLOT_MINUTES}-minute slots)`);
@@ -315,7 +340,10 @@ async function seedBookings(shop, customerToken) {
 async function catalogCommand() {
   const owner = await ownerLogin();
   if (!owner) throw new Error(`${OWNER_EMAIL} cannot sign in`);
-  const ctx = { token: owner.token, branchId: owner.branchId };
+  await ensureCatalog({ token: owner.token, branchId: owner.branchId });
+}
+
+async function ensureCatalog(ctx) {
   console.log('# Services, items and prices');
   const services = new Map(list(await call('GET', `${API.catalog}/services?limit=100`, ctx)).map((x) => [x.code, x.id]));
   let newServices = 0;
@@ -348,6 +376,7 @@ async function catalogCommand() {
   }
   console.log(`  + ${newServices} new services, ${newItems} new items, ${prices} new prices`);
   console.log(`  the salon now has ${services.size} services and ${items.size} items`);
+  return { services, items };
 }
 
 /** Everything on the shop side, with no server step: team, menu, walk-in customers and staff logins. */

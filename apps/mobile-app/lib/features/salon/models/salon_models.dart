@@ -28,6 +28,8 @@ class SalonMenuItem {
     required this.price,
     required this.durationMinutes,
     required this.role,
+    this.catalogServiceId,
+    this.catalogItemCategoryId,
   });
 
   factory SalonMenuItem.fromJson(Map<String, dynamic> json) => SalonMenuItem(
@@ -36,6 +38,8 @@ class SalonMenuItem {
     price: (json['price'] as num?)?.toDouble() ?? 0,
     durationMinutes: (json['durationMinutes'] as num?)?.toInt() ?? 30,
     role: json['role'] as String? ?? '',
+    catalogServiceId: json['catalogServiceId'] as String?,
+    catalogItemCategoryId: json['catalogItemCategoryId'] as String?,
   );
 
   final String serviceId;
@@ -46,12 +50,20 @@ class SalonMenuItem {
   /// The kind of staff who do it, e.g. "Hair Stylist".
   final String role;
 
+  /// The price-list entry this service is billed as (so an order can be made from a booking).
+  final String? catalogServiceId;
+  final String? catalogItemCategoryId;
+
+  bool get isBillable => (catalogServiceId?.isNotEmpty ?? false) && (catalogItemCategoryId?.isNotEmpty ?? false);
+
   Map<String, Object?> toJson() => <String, Object?>{
     if (serviceId.isNotEmpty) 'serviceId': serviceId,
     'name': name.trim(),
     'price': price,
     'durationMinutes': durationMinutes,
     'role': role.trim(),
+    if (isBillable) 'catalogServiceId': catalogServiceId,
+    if (isBillable) 'catalogItemCategoryId': catalogItemCategoryId,
   };
 }
 
@@ -168,6 +180,8 @@ class SalonBookedPart {
     required this.staffName,
     required this.start,
     required this.end,
+    this.catalogServiceId,
+    this.catalogItemCategoryId,
   });
 
   factory SalonBookedPart.fromJson(Map<String, dynamic> json) => SalonBookedPart(
@@ -179,6 +193,8 @@ class SalonBookedPart {
     staffName: json['staffName'] as String? ?? '',
     start: _clock((json['startMinute'] as num?)?.toInt() ?? 0),
     end: _clock((json['endMinute'] as num?)?.toInt() ?? 0),
+    catalogServiceId: json['catalogServiceId'] as String?,
+    catalogItemCategoryId: json['catalogItemCategoryId'] as String?,
   );
 
   final String serviceId;
@@ -189,6 +205,10 @@ class SalonBookedPart {
   final String staffName;
   final String start;
   final String end;
+  final String? catalogServiceId;
+  final String? catalogItemCategoryId;
+
+  bool get isBillable => (catalogServiceId?.isNotEmpty ?? false) && (catalogItemCategoryId?.isNotEmpty ?? false);
 }
 
 /// The salon part of a booking request: services, who does them, total and payment.
@@ -210,6 +230,34 @@ class SalonBooking {
   final List<SalonBookedPart> parts;
   final double totalPrice;
   final int totalMinutes;
+
+  /// Every service can be billed straight from the price list.
+  bool get isBillable => parts.isNotEmpty && parts.every((SalonBookedPart p) => p.isBillable);
+}
+
+/// A customer who walked in: staff were assigned and the time is held.
+class SalonWalkIn {
+  const SalonWalkIn({
+    required this.requestId,
+    required this.requestNumber,
+    required this.parts,
+    required this.totalPrice,
+  });
+
+  factory SalonWalkIn.fromJson(Map<String, dynamic> json) => SalonWalkIn(
+    requestId: json['requestId'] as String? ?? '',
+    requestNumber: json['requestNumber'] as String? ?? '',
+    parts: (json['parts'] as List<dynamic>? ?? const <dynamic>[])
+        .whereType<Map<String, dynamic>>()
+        .map(SalonBookedPart.fromJson)
+        .toList(growable: false),
+    totalPrice: (json['totalPrice'] as num?)?.toDouble() ?? 0,
+  );
+
+  final String requestId;
+  final String requestNumber;
+  final List<SalonBookedPart> parts;
+  final double totalPrice;
 }
 
 class SalonAppointment {

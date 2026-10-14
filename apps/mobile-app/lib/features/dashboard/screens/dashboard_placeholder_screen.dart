@@ -22,6 +22,7 @@ import 'package:nexoraa_mobile/features/notifications/controllers/notification_c
 import 'package:nexoraa_mobile/features/notifications/services/notification_api_service.dart';
 import 'package:nexoraa_mobile/features/online_requests/widgets/online_requests_card.dart';
 import 'package:nexoraa_mobile/features/online_requests/widgets/shop_ui.dart';
+import 'package:nexoraa_mobile/features/online_requests/services/shop_marketplace_api_service.dart';
 import 'package:nexoraa_mobile/features/orders/controllers/new_order_controller.dart';
 import 'package:nexoraa_mobile/features/orders/controllers/order_controller.dart';
 import 'package:nexoraa_mobile/features/orders/models/order.dart';
@@ -449,6 +450,10 @@ class _DashboardPlaceholderScreenState
         tokenStorage: AuthenticationDependencies.tokenStorage,
       ),
       branchId: data.branchId,
+      salonApi: ShopMarketplaceApiService(
+        tokenStorage: AuthenticationDependencies.tokenStorage,
+        branchId: data.branchId,
+      ),
     );
     final bool? created = await Navigator.of(context).push<bool>(
       MaterialPageRoute<bool>(

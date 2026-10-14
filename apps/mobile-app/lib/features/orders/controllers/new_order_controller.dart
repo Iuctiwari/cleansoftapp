@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
+import 'package:nexoraa_mobile/features/consumer/services/consumer_api_service.dart';
 import 'package:nexoraa_mobile/features/customers/models/customer.dart';
 import 'package:nexoraa_mobile/features/orders/controllers/order_controller.dart';
 import 'package:nexoraa_mobile/features/orders/models/order.dart';
@@ -9,6 +10,8 @@ import 'package:nexoraa_mobile/features/orders/models/order_catalog.dart';
 import 'package:nexoraa_mobile/features/orders/services/order_api_service.dart';
 import 'package:nexoraa_mobile/features/orders/services/order_catalog_api_service.dart';
 import 'package:nexoraa_mobile/features/orders/services/payment_api_service.dart';
+import 'package:nexoraa_mobile/features/online_requests/services/shop_marketplace_api_service.dart';
+import 'package:nexoraa_mobile/features/salon/models/salon_models.dart';
 
 class NewOrderLineSelection {
   const NewOrderLineSelection({
@@ -58,7 +61,16 @@ class NewOrderItemGroup {
 }
 
 /// The steps of the New Order wizard, in order. [photos] only appears for a pickup.
-enum NewOrderStage { customer, items, services, pricing, photos, payment, receipt }
+enum NewOrderStage {
+  customer,
+  items,
+  services,
+  salonServices,
+  pricing,
+  photos,
+  payment,
+  receipt,
+}
 
 /// Set when the order is created at a customer's door for an online request: adds the
 /// "Photos & delivery" step and tells the app which request to finish afterwards.
@@ -80,6 +92,8 @@ class NewOrderController extends ChangeNotifier {
     required PaymentApiService paymentService,
     required String branchId,
     this.pickup,
+    this.salonApi,
+    this.salonPreset,
   }) : _catalogService = catalogService,
        _branchId = branchId,
        _paymentService = paymentService,
@@ -95,6 +109,16 @@ class NewOrderController extends ChangeNotifier {
 
   /// Non-null when this order is the pickup of an online request.
   final PickupOrderContext? pickup;
+
+  /// Lets a salon's owner pick from the salon menu instead of the laundry item steps. Null for other businesses.
+  final ShopMarketplaceApiService? salonApi;
+
+  /// The services of an online salon booking: the order is made from them with no selection steps.
+  final List<SalonBookedPart>? salonPreset;
+  SalonConfig? _salonConfig;
+  final Set<String> _salonChosen = <String>{};
+  SalonWalkIn? _walkIn;
+  bool _walkInLinked = false;
   final Map<String, NewOrderLineSelection> _selections =
       <String, NewOrderLineSelection>{};
   List<OrderItemCategory> _categories = const <OrderItemCategory>[];
@@ -117,7 +141,129 @@ class NewOrderController extends ChangeNotifier {
   String? _customDeliveryDate;
   int _estimatedFor = -1;
 
-  List<NewOrderStage> get stages => <NewOrderStage>[
+  /// Salons bill from their menu: no item/service/pricing steps, every service at its full price.
+  bool get isSalonWalkIn =>
+      salonPreset == null &&
+      (_salonConfig?.menu.any((SalonMenuItem i) => i.isBillable) ?? false);
+  bool get standalonePricing => salonPreset != null || isSalonWalkIn;
+
+  /// Menu items that can be billed (linked to the price list).
+  List<SalonMenuItem> get salonMenu =>
+      _salonConfig?.menu
+          .where((SalonMenuItem i) => i.isBillable)
+          .toList(growable: false) ??
+      const <SalonMenuItem>[];
+  List<SalonMenuItem> get salonChosenItems => salonMenu
+      .where((SalonMenuItem i) => _salonChosen.contains(i.serviceId))
+      .toList(growable: false);
+  bool isSalonChosen(String serviceId) => _salonChosen.contains(serviceId);
+  SalonWalkIn? get walkIn => _walkIn;
+
+  Future<void> loadSalon() async {
+    final ShopMarketplaceApiService? api = salonApi;
+    if (api == null || salonPreset != null) return;
+    try {
+      _salonConfig = await api.getSalonConfig();
+    } on Object {
+      _salonConfig =
+          null; // not a salon (the server says so), or offline: the normal steps apply
+    }
+    notifyListeners();
+  }
+
+  void toggleSalonItem(String serviceId) {
+    if (!_salonChosen.add(serviceId)) _salonChosen.remove(serviceId);
+    _error = null;
+    notifyListeners();
+  }
+
+  Future<bool> _addSalonLine(
+    String? catalogItemCategoryId,
+    String? catalogServiceId,
+  ) async {
+    final OrderItemCategory? category = _categories
+        .where((OrderItemCategory c) => c.id == catalogItemCategoryId)
+        .firstOrNull;
+    final OrderCatalogService? service = _services
+        .where((OrderCatalogService s) => s.id == catalogServiceId)
+        .firstOrNull;
+    if (category == null || service == null) {
+      _error = 'A chosen service is no longer in your price list.';
+      return false;
+    }
+    if (!_selections.containsKey(category.id)) changeAmount(category, 1);
+    final NewOrderLineSelection? line = _selections[category.id];
+    if (line == null) return false;
+    return line.hasService(service.id) || await toggleService(line, service);
+  }
+
+  /// Turns the chosen menu services into order lines (full price each) and moves on to the review step.
+  Future<bool> confirmSalonServices() async {
+    if (_salonChosen.isEmpty) {
+      _error = 'Pick at least one service.';
+      notifyListeners();
+      return false;
+    }
+    if (_categories.isEmpty || _services.isEmpty) await loadCatalog();
+    _selections.clear();
+    for (final SalonMenuItem item in salonChosenItems) {
+      if (!await _addSalonLine(
+        item.catalogItemCategoryId,
+        item.catalogServiceId,
+      )) {
+        _selections.clear();
+        notifyListeners();
+        return false;
+      }
+    }
+    _step += 1;
+    _error = null;
+    notifyListeners();
+    return true;
+  }
+
+  /// Online salon booking: builds the order lines from the booked services so the owner starts at the review step.
+  Future<bool> applySalonPreset() async {
+    final List<SalonBookedPart>? parts = salonPreset;
+    if (parts == null) return true;
+    if (_categories.isEmpty || _services.isEmpty) await loadCatalog();
+    _selections.clear();
+    for (final SalonBookedPart part in parts) {
+      if (!await _addSalonLine(
+        part.catalogItemCategoryId,
+        part.catalogServiceId,
+      )) {
+        _selections.clear();
+        notifyListeners();
+        return false;
+      }
+    }
+    _step = 0;
+    notifyListeners();
+    return true;
+  }
+
+  List<NewOrderStage> get stages {
+    if (salonPreset != null) {
+      return <NewOrderStage>[
+        NewOrderStage.pricing,
+        NewOrderStage.payment,
+        NewOrderStage.receipt,
+      ];
+    }
+    if (isSalonWalkIn) {
+      return <NewOrderStage>[
+        NewOrderStage.customer,
+        NewOrderStage.salonServices,
+        NewOrderStage.pricing,
+        NewOrderStage.payment,
+        NewOrderStage.receipt,
+      ];
+    }
+    return _laundryStages;
+  }
+
+  List<NewOrderStage> get _laundryStages => <NewOrderStage>[
     NewOrderStage.customer,
     NewOrderStage.items,
     NewOrderStage.services,
@@ -164,7 +310,10 @@ class NewOrderController extends ChangeNotifier {
   int get _quantityForEstimate {
     final int? typed = _totalItems;
     if (typed != null) return typed;
-    final int fromOrder = selections.fold<int>(0, (int sum, NewOrderLineSelection l) => sum + l.amount.round());
+    final int fromOrder = selections.fold<int>(
+      0,
+      (int sum, NewOrderLineSelection l) => sum + l.amount.round(),
+    );
     return fromOrder < 1 ? 1 : fromOrder;
   }
 
@@ -184,6 +333,7 @@ class NewOrderController extends ChangeNotifier {
       // The date can still be picked by hand.
     }
   }
+
   Customer? get customer => _customer;
   Order? get createdOrder => _createdOrder;
   List<OrderItemCategory> get categories => _categories;
@@ -329,7 +479,7 @@ class NewOrderController extends ChangeNotifier {
       _selections[categoryId];
 
   bool isBaseService(NewOrderLineSelection line, String serviceId) =>
-      line.services.keys.firstOrNull == serviceId;
+      standalonePricing || line.services.keys.firstOrNull == serviceId;
 
   double serviceUnitPrice(NewOrderLineSelection line, String serviceId) {
     final OrderCatalogQuote? quote = line.quoteFor(serviceId);
@@ -461,6 +611,8 @@ class NewOrderController extends ChangeNotifier {
   String? nextValidation() {
     if (stage == NewOrderStage.customer && _customer == null)
       return 'Select a customer to continue.';
+    if (stage == NewOrderStage.salonServices && _salonChosen.isEmpty)
+      return 'Pick at least one service.';
     if (stage == NewOrderStage.items && selections.isEmpty) {
       return 'Add at least one item to continue.';
     }
@@ -472,14 +624,17 @@ class NewOrderController extends ChangeNotifier {
         )) {
       return 'Select at least one available service for every item.';
     }
-    if (stage == NewOrderStage.pricing && (_discountPercentage < 0 || _discountPercentage > 100)) {
+    if (stage == NewOrderStage.pricing &&
+        (_discountPercentage < 0 || _discountPercentage > 100)) {
       return 'Discount percentage must be between 0 and 100.';
     }
     if (stage == NewOrderStage.payment &&
         (_advancePayment < 0 || _advancePayment > previewGrandTotal)) {
       return 'Advance payment must be between Rs. 0 and the grand total.';
     }
-    if (stage == NewOrderStage.payment && _advancePayment > 0 && _paymentMethod == null) {
+    if (stage == NewOrderStage.payment &&
+        _advancePayment > 0 &&
+        _paymentMethod == null) {
       return 'Select a payment method for the advance payment.';
     }
     return null;
@@ -492,7 +647,8 @@ class NewOrderController extends ChangeNotifier {
       notifyListeners();
       return false;
     }
-    if (stage != NewOrderStage.payment && stage != NewOrderStage.receipt) _step += 1;
+    if (stage != NewOrderStage.payment && stage != NewOrderStage.receipt)
+      _step += 1;
     _error = null;
     notifyListeners();
     if (stage == NewOrderStage.photos) unawaited(loadDeliveryEstimate());
@@ -519,6 +675,20 @@ class NewOrderController extends ChangeNotifier {
     _error = null;
     notifyListeners();
     try {
+      // A walk-in at a salon: give each service a free person of the right role and hold the time first.
+      if (isSalonWalkIn && _walkIn == null) {
+        try {
+          _walkIn = await salonApi!.salonWalkIn(
+            customerId: _customer!.id,
+            serviceIds: _salonChosen.toList(),
+          );
+        } on Object catch (error) {
+          _error = error is ConsumerApiException
+              ? error.message
+              : 'Could not assign staff. Please try again.';
+          return null;
+        }
+      }
       Order order =
           _createdOrder ??
           await _orderController.create(
@@ -526,10 +696,21 @@ class NewOrderController extends ChangeNotifier {
               customerId: _customer!.id,
               discountPercentage: _discountPercentage,
               items: selections.expand(_createItems).toList(growable: false),
-              expectedDeliveryDate: pickup == null ? null : DateTime.tryParse(deliveryDate ?? ''),
+              expectedDeliveryDate: pickup == null
+                  ? null
+                  : DateTime.tryParse(deliveryDate ?? ''),
             ),
           );
       _createdOrder = order;
+      final SalonWalkIn? walkIn = _walkIn;
+      if (walkIn != null && !_walkInLinked) {
+        try {
+          await salonApi!.linkOrder(walkIn.requestId, orderId: order.id);
+          _walkInLinked = true;
+        } on Object {
+          // The order is saved; linking the appointment is best effort.
+        }
+      }
       if (_advancePayment > 0 && order.paidAmount < _advancePayment) {
         _paymentIdempotencyKey ??=
             'advance-${order.id}-${DateTime.now().microsecondsSinceEpoch}';
@@ -562,6 +743,7 @@ class NewOrderController extends ChangeNotifier {
           serviceId: service.id,
           quantity: measurement.quantity,
           weight: measurement.weight,
+          standalonePrice: standalonePricing,
         );
       });
 

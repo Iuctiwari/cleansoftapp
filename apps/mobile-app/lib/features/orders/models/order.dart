@@ -386,6 +386,7 @@ class CreateOrderItemInput {
     this.weight,
     this.discount = 0,
     this.notes,
+    this.standalonePrice = false,
   });
 
   final String itemCategoryId;
@@ -395,6 +396,9 @@ class CreateOrderItemInput {
   final double discount;
   final String? notes;
 
+  /// Salon lines: charge the full catalog price (no laundry additional-service surcharge).
+  final bool standalonePrice;
+
   Map<String, Object?> toJson() => <String, Object?>{
     'itemCategoryId': itemCategoryId,
     'serviceId': serviceId,
@@ -402,6 +406,7 @@ class CreateOrderItemInput {
     if (weight != null) 'weight': weight,
     if (discount > 0) 'discount': discount,
     if (notes?.trim().isNotEmpty ?? false) 'notes': notes!.trim(),
+    if (standalonePrice) 'standalonePrice': true,
   };
 }
 

@@ -69,6 +69,18 @@ class ShopMarketplaceApiService {
     _map(await _send('GET', 'v1/shop/salon/schedule', query: <String, String>{'date': date})),
   );
 
+  /// A customer walked in: the server assigns free staff for the services and holds the time.
+  Future<SalonWalkIn> salonWalkIn({required String customerId, required List<String> serviceIds}) async =>
+      SalonWalkIn.fromJson(
+        _map(
+          await _send(
+            'POST',
+            'v1/shop/salon/walk-in',
+            body: <String, Object?>{'customerId': customerId, 'serviceIds': serviceIds},
+          ),
+        ),
+      );
+
   /// Owner picks who does which service of a booking.
   Future<void> assignSalonStaff(String requestId, Map<String, String> staffByService) async {
     await _send(

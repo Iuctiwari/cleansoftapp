@@ -20,6 +20,7 @@ import 'package:nexoraa_mobile/features/dashboard/screens/more_screen.dart';
 import 'package:nexoraa_mobile/features/expenses/screens/expense_list_screen.dart';
 import 'package:nexoraa_mobile/features/notifications/controllers/notification_controller.dart';
 import 'package:nexoraa_mobile/features/notifications/services/notification_api_service.dart';
+import 'package:nexoraa_mobile/features/online_requests/services/shop_marketplace_api_service.dart';
 import 'package:nexoraa_mobile/features/orders/controllers/new_order_controller.dart';
 import 'package:nexoraa_mobile/features/orders/controllers/order_controller.dart';
 import 'package:nexoraa_mobile/features/orders/models/order.dart';
@@ -415,6 +416,10 @@ class _RoleDashboardScreenState extends State<RoleDashboardScreen> {
         tokenStorage: AuthenticationDependencies.tokenStorage,
       ),
       branchId: _selectedBranchId,
+      salonApi: ShopMarketplaceApiService(
+        tokenStorage: AuthenticationDependencies.tokenStorage,
+        branchId: _selectedBranchId,
+      ),
     );
     final bool? created = await Navigator.of(context).push<bool>(
       MaterialPageRoute<bool>(

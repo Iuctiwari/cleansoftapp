@@ -16,6 +16,7 @@ import 'package:nexoraa_mobile/features/consumer/services/consumer_api_service.d
 import 'package:nexoraa_mobile/features/consumer/services/consumer_session_storage.dart';
 import 'package:nexoraa_mobile/features/online_requests/services/shop_marketplace_api_service.dart';
 import 'package:nexoraa_mobile/features/online_requests/widgets/shop_ui.dart';
+import 'package:nexoraa_mobile/features/orders/services/order_catalog_api_service.dart';
 import 'package:nexoraa_mobile/features/salon/models/salon_models.dart';
 import 'package:nexoraa_mobile/features/salon/screens/salon_chat_booking_screen.dart';
 import 'package:nexoraa_mobile/features/salon/screens/salon_setup_screen.dart';
@@ -313,6 +314,147 @@ void main() {
     ]);
     expect(saved!['menu'], <Object>[
       <String, Object>{'name': 'Haircut', 'price': 300.0, 'durationMinutes': 30, 'role': 'Hair Stylist'},
+    ]);
+  });
+
+  testWidgets('owner setup: a menu service can be billed as a price-list entry, which fills its price', (
+    WidgetTester tester,
+  ) async {
+    Map<String, dynamic>? saved;
+    final AuthenticationSession session = AuthenticationSession(
+      accessToken: 'shop-token',
+      refreshToken: 'r',
+      accessTokenExpiresAt: DateTime.now().add(const Duration(hours: 1)),
+      refreshTokenExpiresAt: DateTime.now().add(const Duration(days: 1)),
+      tenantId: 'tenant-1',
+      branchId: 'branch-1',
+      branchName: 'Main',
+      businessName: 'Glow Salon',
+      roleCode: 'Owner',
+      permissions: const <String>[],
+    );
+    final ShopMarketplaceApiService service = ShopMarketplaceApiService(
+      tokenStorage: _Storage(session),
+      branchId: 'branch-1',
+      baseUri: () => Uri.parse('http://market.test/api'),
+      client: MockClient((http.Request r) async {
+        if (r.method == 'PUT') {
+          saved = jsonDecode(r.body) as Map<String, dynamic>;
+        }
+        return http.Response(
+          jsonEncode(<String, Object>{
+            'configured': false,
+            'slotMinutes': 30,
+            'staff': <Object>[
+              <String, String>{'staffId': 's1', 'name': 'Asha', 'role': 'Hair Stylist'},
+            ],
+            'menu': <Object>[],
+          }),
+          200,
+        );
+      }),
+    );
+    final OrderCatalogApiService catalog = OrderCatalogApiService(
+      tokenStorage: _Storage(session),
+      baseUrl: 'http://catalog.test/api',
+      client: MockClient((http.Request r) async {
+        final String body = r.url.path.endsWith('/item-categories')
+            ? jsonEncode(<String, Object>{
+                'items': <Object>[
+                  <String, Object>{
+                    'id': 'item-hair',
+                    'tenantId': 'tenant-1',
+                    'name': 'Hair (Women)',
+                    'code': 'SALON_HAIR_W',
+                    'status': 'Active',
+                    'unitType': 'Piece',
+                    'branchIds': <String>[],
+                    'serviceIds': <String>['svc-cut'],
+                    'createdAt': '2026-08-14T09:15:00.000Z',
+                    'updatedAt': '2026-08-14T09:15:00.000Z',
+                    'version': 1,
+                  },
+                ],
+                'total': 1,
+                'page': 1,
+                'limit': 100,
+              })
+            : jsonEncode(<String, Object>{
+                'items': <Object>[
+                  <String, Object>{
+                    'id': 'svc-cut',
+                    'tenantId': 'tenant-1',
+                    'serviceName': 'Haircut',
+                    'name': 'Haircut',
+                    'code': 'SALON_HAIRCUT',
+                    'status': 'Active',
+                    'pricingType': 'PerItem',
+                    'branchIds': <String>[],
+                    'itemCategoryIds': <String>['item-hair'],
+                    'createdAt': '2026-08-14T09:15:00.000Z',
+                    'updatedAt': '2026-08-14T09:15:00.000Z',
+                    'version': 1,
+                    'currentPricing': <Object>[
+                      <String, Object?>{
+                        'id': 'p1',
+                        'tenantId': 'tenant-1',
+                        'serviceId': 'svc-cut',
+                        'itemCategoryId': 'item-hair',
+                        'branchId': null,
+                        'pricingType': 'PerItem',
+                        'basePrice': 400,
+                        'taxPct': 0,
+                        'status': 'Active',
+                        'effectiveFrom': '2026-08-01T00:00:00.000Z',
+                        'createdAt': '2026-08-01T00:00:00.000Z',
+                        'updatedAt': '2026-08-01T00:00:00.000Z',
+                        'version': 1,
+                      },
+                    ],
+                  },
+                ],
+                'total': 1,
+                'page': 1,
+                'limit': 100,
+              });
+        return http.Response(body, 200);
+      }),
+    )..selectBranch('branch-1');
+    await tester.binding.setSurfaceSize(const Size(800, 2400));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(
+      _app(
+        SalonSetupScreen(
+          branch: const ShopBranchArgs(branchId: 'branch-1'),
+          service: service,
+          catalog: catalog,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('salon.menu.add')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('salon.menu.billedAs')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Haircut · Hair (Women) · Rs. 400').last);
+    await tester.pumpAndSettle();
+    // The name and price come from the price list, and the price can no longer be typed over.
+    expect(find.text('Taken from your price list'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('salon.menu.save')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('salon.setup.save')));
+    await tester.pumpAndSettle();
+
+    expect(saved!['menu'], <Object>[
+      <String, Object>{
+        'name': 'Haircut',
+        'price': 400.0,
+        'durationMinutes': 30,
+        'role': 'Hair Stylist',
+        'catalogServiceId': 'svc-cut',
+        'catalogItemCategoryId': 'item-hair',
+      },
     ]);
   });
 

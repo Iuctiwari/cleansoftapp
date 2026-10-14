@@ -4,14 +4,19 @@ import 'package:nexoraa_mobile/features/authentication/authentication_dependenci
 import 'package:nexoraa_mobile/features/consumer/widgets/consumer_ui.dart';
 import 'package:nexoraa_mobile/features/online_requests/services/shop_marketplace_api_service.dart';
 import 'package:nexoraa_mobile/features/online_requests/widgets/shop_ui.dart';
+import 'package:nexoraa_mobile/features/orders/models/order_catalog.dart';
+import 'package:nexoraa_mobile/features/orders/services/order_catalog_api_service.dart';
 import 'package:nexoraa_mobile/features/salon/models/salon_models.dart';
 
 /// The salon owner's online-booking setup: slot length, the team with their roles, and the service menu.
 class SalonSetupScreen extends StatefulWidget {
-  const SalonSetupScreen({required this.branch, this.service, super.key});
+  const SalonSetupScreen({required this.branch, this.service, this.catalog, super.key});
 
   final ShopBranchArgs branch;
   final ShopMarketplaceApiService? service;
+
+  /// The shop's price list, used to bill each menu service. Tests pass a fake.
+  final OrderCatalogApiService? catalog;
 
   @override
   State<SalonSetupScreen> createState() => _SalonSetupScreenState();
@@ -22,8 +27,18 @@ class _SalonSetupScreenState extends State<SalonSetupScreen> {
 
   late final ShopMarketplaceApiService _api =
       widget.service ??
-      ShopMarketplaceApiService(tokenStorage: AuthenticationDependencies.tokenStorage, branchId: widget.branch.branchId);
+      ShopMarketplaceApiService(
+        tokenStorage: AuthenticationDependencies.tokenStorage,
+        branchId: widget.branch.branchId,
+      );
 
+  late final OrderCatalogApiService _catalog =
+      widget.catalog ??
+      (OrderCatalogApiService(tokenStorage: AuthenticationDependencies.tokenStorage)
+        ..selectBranch(widget.branch.branchId));
+
+  /// Every priced service-and-item pair of the shop's price list.
+  List<_PriceListEntry> _priceList = <_PriceListEntry>[];
   bool _loading = true;
   bool _saving = false;
   Object? _loadError;
@@ -44,8 +59,10 @@ class _SalonSetupScreenState extends State<SalonSetupScreen> {
     });
     try {
       final SalonConfig config = await _api.getSalonConfig();
+      final List<_PriceListEntry> priceList = await _loadPriceList();
       if (!mounted) return;
       setState(() {
+        _priceList = priceList;
         _slotMinutes = config.slotMinutes;
         _staff = List<SalonStaff>.of(config.staff);
         _menu = List<SalonMenuItem>.of(config.menu);
@@ -58,6 +75,24 @@ class _SalonSetupScreenState extends State<SalonSetupScreen> {
           _loading = false;
         });
       }
+    }
+  }
+
+  Future<List<_PriceListEntry>> _loadPriceList() async {
+    try {
+      final List<OrderItemCategory> items = await _catalog.allItemCategories();
+      final List<OrderCatalogService> services = await _catalog.allServices();
+      final String branchId = widget.branch.branchId;
+      return <_PriceListEntry>[
+        for (final OrderCatalogService service in services)
+          for (final OrderCatalogPrice price in service.currentPricing)
+            if (price.branchId == null || price.branchId == branchId)
+              if (items.where((OrderItemCategory i) => i.id == price.itemCategoryId).firstOrNull
+                  case final OrderItemCategory item)
+                _PriceListEntry(service: service, item: item, price: price.basePrice),
+      ];
+    } on Object {
+      return <_PriceListEntry>[]; // services can still be added with a manual price
     }
   }
 
@@ -96,7 +131,8 @@ class _SalonSetupScreenState extends State<SalonSetupScreen> {
     }
     final SalonMenuItem? result = await showDialog<SalonMenuItem>(
       context: context,
-      builder: (BuildContext _) => _MenuDialog(existing: index == null ? null : _menu[index], roles: _roles),
+      builder: (BuildContext _) =>
+          _MenuDialog(existing: index == null ? null : _menu[index], roles: _roles, priceList: _priceList),
     );
     if (result == null) return;
     setState(() => index == null ? _menu.add(result) : _menu[index] = result);
@@ -269,12 +305,25 @@ class _StaffDialogState extends State<_StaffDialog> {
   }
 }
 
-/// Add or edit one menu service: name, price, how long, and which role does it.
+/// One priced service-and-item pair of the shop's price list.
+class _PriceListEntry {
+  const _PriceListEntry({required this.service, required this.item, required this.price});
+
+  final OrderCatalogService service;
+  final OrderItemCategory item;
+  final double price;
+
+  String get key => '${service.id}|${item.id}';
+  String get label => '${service.name} · ${item.name} · ${rupees(price)}';
+}
+
+/// Add or edit one menu service: name, price, how long, which role does it, and what it is billed as.
 class _MenuDialog extends StatefulWidget {
-  const _MenuDialog({required this.existing, required this.roles});
+  const _MenuDialog({required this.existing, required this.roles, required this.priceList});
 
   final SalonMenuItem? existing;
   final List<String> roles;
+  final List<_PriceListEntry> priceList;
 
   @override
   State<_MenuDialog> createState() => _MenuDialogState();
@@ -286,6 +335,12 @@ class _MenuDialogState extends State<_MenuDialog> {
     text: widget.existing == null ? '' : widget.existing!.price.toStringAsFixed(0),
   );
   late int _minutes = widget.existing?.durationMinutes ?? 30;
+  late _PriceListEntry? _billedAs = widget.priceList
+      .where(
+        (_PriceListEntry e) =>
+            e.service.id == widget.existing?.catalogServiceId && e.item.id == widget.existing?.catalogItemCategoryId,
+      )
+      .firstOrNull;
   late String _role = widget.existing != null && widget.roles.contains(widget.existing!.role)
       ? widget.existing!.role
       : widget.roles.first;
@@ -310,11 +365,37 @@ class _MenuDialogState extends State<_MenuDialog> {
               controller: _name,
               decoration: const InputDecoration(labelText: 'Service (e.g. Haircut)'),
             ),
+            if (widget.priceList.isNotEmpty)
+              DropdownButtonFormField<String?>(
+                key: const Key('salon.menu.billedAs'),
+                isExpanded: true,
+                initialValue: _billedAs?.key,
+                decoration: const InputDecoration(labelText: 'Billed as (price list)'),
+                items: <DropdownMenuItem<String?>>[
+                  const DropdownMenuItem<String?>(child: Text('Not linked (manual price)')),
+                  for (final _PriceListEntry entry in widget.priceList)
+                    DropdownMenuItem<String?>(
+                      value: entry.key,
+                      child: Text(entry.label, overflow: TextOverflow.ellipsis),
+                    ),
+                ],
+                onChanged: (String? key) => setState(() {
+                  _billedAs = widget.priceList.where((_PriceListEntry e) => e.key == key).firstOrNull;
+                  if (_billedAs != null) {
+                    _price.text = _billedAs!.price.toStringAsFixed(0);
+                    if (_name.text.trim().isEmpty) _name.text = _billedAs!.service.name;
+                  }
+                }),
+              ),
             TextField(
               key: const Key('salon.menu.price'),
               controller: _price,
+              enabled: _billedAs == null,
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Price (Rs.)'),
+              decoration: InputDecoration(
+                labelText: 'Price (Rs.)',
+                helperText: _billedAs == null ? null : 'Taken from your price list',
+              ),
             ),
             const SizedBox(height: AppSpacing.md),
             DropdownButtonFormField<int>(
@@ -353,6 +434,8 @@ class _MenuDialogState extends State<_MenuDialog> {
                 price: amount,
                 durationMinutes: _minutes,
                 role: _role,
+                catalogServiceId: _billedAs?.service.id,
+                catalogItemCategoryId: _billedAs?.item.id,
               ),
             );
           },
