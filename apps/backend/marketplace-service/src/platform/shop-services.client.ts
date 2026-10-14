@@ -19,6 +19,12 @@ export interface OnlineCustomerInput {
   readonly address?: string;
 }
 
+export interface ShopCustomer {
+  readonly id: string;
+  readonly name: string;
+  readonly mobile: string;
+}
+
 export interface LinkedOrder {
   readonly orderId: string;
   readonly orderNumber: string;
@@ -74,6 +80,44 @@ export class ShopServicesClient {
       this.logger.warn(`Linking online customer failed: ${String(error)}`);
       return undefined;
     }
+  }
+
+  /** The shop's own customer (walk-in), read with the shop user's token so it only works inside their branch. */
+  async getCustomer(shop: ShopPrincipal, customerId: string): Promise<ShopCustomer> {
+    const baseUrl = this.configService.get<string>(
+      'CUSTOMER_SERVICE_BASE_URL',
+      'http://localhost:3003',
+    );
+    let response: Response;
+    try {
+      response = await fetch(
+        `${baseUrl.replace(/\/$/, '')}/customers/${encodeURIComponent(customerId)}`,
+        {
+          headers: { authorization: shop.authorization, 'x-branch-id': shop.branchId },
+          signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+        },
+      );
+    } catch {
+      throw new ServiceUnavailableException('Customer service is unavailable');
+    }
+    if (response.status === 404 || response.status === 400 || response.status === 403) {
+      throw new NotFoundException('Customer not found in this branch');
+    }
+    if (!response.ok) {
+      throw new ServiceUnavailableException(`Customer service returned HTTP ${response.status}`);
+    }
+    const body = (await response.json()) as Record<string, unknown> & {
+      readonly data?: Record<string, unknown>;
+    };
+    const customer = (body.data ?? body) as {
+      readonly id?: string;
+      readonly name?: string;
+      readonly mobile?: string;
+    };
+    if (!customer.id || !customer.name) {
+      throw new ServiceUnavailableException('Customer service returned an unexpected response');
+    }
+    return { id: customer.id, name: customer.name, mobile: customer.mobile ?? '' };
   }
 
   /**

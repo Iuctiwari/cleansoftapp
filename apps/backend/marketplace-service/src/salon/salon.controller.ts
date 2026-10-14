@@ -5,6 +5,7 @@ import type { ShopPrincipal } from '../platform/marketplace.types';
 import { CurrentShop } from '../platform/principal.decorators';
 import {
   AssignSalonStaffDto,
+  SalonWalkInDto,
   SaveSalonConfigDto,
   SalonScheduleQueryDto,
   SalonSlotsQueryDto,
@@ -47,6 +48,14 @@ export class ShopSalonController {
     @Query() query: SalonScheduleQueryDto,
   ): Promise<SalonScheduleView> {
     return this.salon.schedule(shop, query.date);
+  }
+
+  @Post('walk-in')
+  @ApiOperation({
+    summary: 'A customer walked in: assign free staff for the chosen services and hold the time',
+  })
+  walkIn(@CurrentShop() shop: ShopPrincipal, @Body() body: SalonWalkInDto) {
+    return this.salon.walkIn(shop, body);
   }
 
   @Post('requests/:requestId/assign')

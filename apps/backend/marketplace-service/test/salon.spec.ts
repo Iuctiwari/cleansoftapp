@@ -432,3 +432,124 @@ describe('SalonService shop side', () => {
     expect(updates).toHaveLength(1);
   });
 });
+
+describe('SalonService.walkIn', () => {
+  const owner: ShopPrincipal = {
+    actorId: 'owner-1',
+    tenantId: 'tenant-1',
+    branchId: BRANCH,
+    roleCode: 'Owner',
+    permissions: [],
+    authorization: 'Bearer x',
+  };
+
+  function setup(rows: ServiceRequestDocument[], staff = [STYLIST, MAKEUP]) {
+    const created: ServiceRequestDocument[] = [];
+    const database = {
+      salonConfigs: {
+        findOne: () => ({
+          lean: () => ({ exec: () => Promise.resolve({ ...baseConfig, staff }) }),
+        }),
+      },
+      listings: {
+        findOne: () => ({ lean: () => ({ exec: () => Promise.resolve(listing) }) }),
+      },
+      nextSequence: () => Promise.resolve(7),
+      requests: {
+        find: () => ({ lean: () => ({ exec: () => Promise.resolve([...rows, ...created]) }) }),
+        findOne: ({ requestId }: { requestId: string }) => ({
+          lean: () => ({
+            exec: () =>
+              Promise.resolve(
+                [...rows, ...created].find((row) => row.requestId === requestId) ?? null,
+              ),
+          }),
+        }),
+        create: (doc: ServiceRequestDocument) => {
+          created.push(doc);
+          return Promise.resolve();
+        },
+        deleteOne: () => ({ exec: () => Promise.resolve() }),
+        updateOne: () => ({ exec: () => Promise.resolve() }),
+      },
+    } as unknown as MarketplaceDatabase;
+    const tenants = {
+      getMarketplaceProfile: jest.fn().mockResolvedValue({ services: ['salon'] }),
+    } as unknown as TenantDirectoryClient;
+    const shopServices = {
+      getCustomer: jest
+        .fn()
+        .mockResolvedValue({ id: 'c1', name: 'Rohan', mobile: '+919811100001' }),
+    };
+    return {
+      created,
+      service: new SalonService(database, tenants, shopServices as never),
+      shopServices,
+    };
+  }
+
+  beforeEach(() => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2026-10-15T05:00:00.000Z')); // 10:30 in India, a Thursday
+  });
+  afterEach(() => jest.useRealTimers());
+
+  it('books the next free slot with the right person and records an accepted walk-in', async () => {
+    const { service, created } = setup([]);
+    const result = await service.walkIn(owner, { customerId: 'c1', serviceIds: ['cut'] });
+
+    expect(result.parts.map((p) => [p.name, p.staffName, p.startMinute, p.endMinute])).toEqual([
+      ['Haircut', 'Asha', 630, 660],
+    ]);
+    expect(created).toHaveLength(1);
+    expect(created[0]).toMatchObject({
+      consumerId: 'walk-in:c1',
+      shopCustomerId: 'c1',
+      status: 'Accepted',
+      requestType: 'visit_shop',
+      category: 'salon',
+      preferredDate: '2026-10-15',
+      requestNumber: 'SR-2026-000007',
+    });
+    expect(created[0].customer.name).toBe('Rohan');
+  });
+
+  it('moves to the next slot when the only stylist is busy', async () => {
+    const { service } = setup([booking('a', [part(STYLIST, 630, 660)], 'Accepted')]);
+    const result = await service.walkIn(owner, { customerId: 'c1', serviceIds: ['cut'] });
+    expect(result.parts[0].startMinute).toBe(660);
+  });
+
+  it('refuses when nobody can take it for the rest of the day', async () => {
+    const { service } = setup([booking('a', [part(STYLIST, 600, 840)], 'Accepted')]);
+    await expect(
+      service.walkIn(owner, { customerId: 'c1', serviceIds: ['cut'] }),
+    ).rejects.toBeInstanceOf(ConflictException);
+  });
+
+  it('needs order permission and a salon business', async () => {
+    const { service } = setup([]);
+    await expect(
+      service.walkIn({ ...owner, roleCode: 'Viewer' }, { customerId: 'c1', serviceIds: ['cut'] }),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+  });
+});
+
+describe('salon menu price-list links', () => {
+  it('are kept on the booked parts so an order can be made from the booking', async () => {
+    const linked = {
+      ...baseConfig,
+      menu: baseConfig.menu.map((item) => ({
+        ...item,
+        catalogServiceId: `svc-${item.serviceId}`,
+        catalogItemCategoryId: `item-${item.serviceId}`,
+      })),
+    };
+    const { service } = build([], linked);
+    const plan = await service.plan(listing, DATE, '10:00', ['cut', 'makeup'], NOW);
+    expect(plan.snapshot.parts.map((p) => [p.catalogServiceId, p.catalogItemCategoryId])).toEqual([
+      ['svc-cut', 'item-cut'],
+      ['svc-makeup', 'item-makeup'],
+    ]);
+  });
+});

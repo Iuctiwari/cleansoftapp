@@ -335,6 +335,36 @@ describe('OrderService API use cases', () => {
     expect(dependencies.quoteCatalog.mock.calls).toHaveLength(2);
   });
 
+  it('charges every service its full price when the lines are standalone (salon)', async () => {
+    repository.create.mockImplementation((_scope, input) =>
+      Promise.resolve(
+        order({
+          grandTotal: input.grandTotal,
+          items: input.items.map((item, index) => ({ ...item, id: `${index}` })),
+          subtotal: input.subtotal,
+          tax: input.tax,
+        }),
+      ),
+    );
+
+    const result = await service.create(scope(), {
+      customerId: CUSTOMER_ID,
+      discount: 0,
+      items: [SERVICE_ID, SECOND_SERVICE_ID].map((serviceId) => ({
+        discount: 0,
+        itemCategoryId: CATEGORY_ID,
+        quantity: 2,
+        serviceId,
+        standalonePrice: true,
+        tax: 0,
+      })),
+      tax: 0,
+    });
+
+    expect(result.items.map((item) => item.unitPrice)).toEqual([50, 50]);
+    expect(result.subtotal).toBe(200);
+  });
+
   it.each([
     [1, 100],
     [2, 110],

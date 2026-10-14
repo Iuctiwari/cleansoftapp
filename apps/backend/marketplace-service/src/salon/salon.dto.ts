@@ -2,6 +2,8 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import {
   ArrayMaxSize,
+  ArrayMinSize,
+  IsArray,
   IsIn,
   IsInt,
   IsNotEmpty,
@@ -52,6 +54,18 @@ export class SalonMenuItemDto {
   @IsNotEmpty()
   @MaxLength(40)
   role!: string;
+
+  @ApiPropertyOptional({ description: 'Price-list service this item is billed as' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  catalogServiceId?: string;
+
+  @ApiPropertyOptional({ description: 'Price-list item this item is billed as' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  catalogItemCategoryId?: string;
 }
 
 export class SalonStaffDto {
@@ -133,4 +147,19 @@ export class AssignSalonStaffDto {
   @ValidateNested({ each: true })
   @Type(() => AssignedStaffDto)
   assignments!: AssignedStaffDto[];
+}
+
+export class SalonWalkInDto {
+  @ApiProperty({ description: 'The shop customer (customer-service id) who walked in' })
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(64)
+  customerId!: string;
+
+  @ApiProperty({ type: [String], description: 'Menu service ids the customer wants' })
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(10)
+  @IsString({ each: true })
+  serviceIds!: string[];
 }

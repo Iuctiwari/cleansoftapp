@@ -737,7 +737,9 @@ export class OrderService {
       return this.calculateItem(
         item,
         quotes[index],
-        serviceIndex === 0 ? quotes[index].unitPrice : ADDITIONAL_SERVICE_SURCHARGE,
+        serviceIndex === 0 || item.standalonePrice === true
+          ? quotes[index].unitPrice
+          : ADDITIONAL_SERVICE_SURCHARGE,
       );
     });
     return this.totals(

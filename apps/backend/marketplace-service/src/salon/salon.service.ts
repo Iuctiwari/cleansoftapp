@@ -6,6 +6,7 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import { hasPermission, Permissions } from '@nexoraa/shared';
 import type { FilterQuery } from 'mongoose';
@@ -21,8 +22,9 @@ import {
   type ShopListingDocument,
 } from '../platform/marketplace.database';
 import type { ShopPrincipal } from '../platform/marketplace.types';
+import { ShopServicesClient } from '../platform/shop-services.client';
 import { TenantDirectoryClient } from '../platform/tenant-directory.client';
-import type { AssignSalonStaffDto, SaveSalonConfigDto } from './salon.dto';
+import type { AssignSalonStaffDto, SalonWalkInDto, SaveSalonConfigDto } from './salon.dto';
 import {
   assignParts,
   buildSlots,
@@ -84,6 +86,16 @@ export interface SalonScheduleView {
   })[];
 }
 
+export interface SalonWalkInView {
+  readonly requestId: string;
+  readonly requestNumber: string;
+  readonly date: string;
+  readonly startMinute: number;
+  readonly endMinute: number;
+  readonly parts: readonly SalonBookedPart[];
+  readonly totalPrice: number;
+}
+
 export interface SalonPlan {
   readonly snapshot: SalonBookingSnapshot;
   readonly config: SalonConfigDocument;
@@ -112,6 +124,7 @@ export class SalonService {
   constructor(
     private readonly database: MarketplaceDatabase,
     private readonly tenantDirectory: TenantDirectoryClient,
+    @Optional() private readonly shopServices?: ShopServicesClient,
   ) {}
 
   // ── Shop side ─────────────────────────────────────────────────────────────
@@ -154,6 +167,12 @@ export class SalonService {
         price: item.price,
         durationMinutes: item.durationMinutes,
         role,
+        ...(item.catalogServiceId && item.catalogItemCategoryId
+          ? {
+              catalogServiceId: item.catalogServiceId,
+              catalogItemCategoryId: item.catalogItemCategoryId,
+            }
+          : {}),
       };
     });
     if (new Set(menu.map((item) => item.name.toLowerCase())).size !== menu.length) {
@@ -274,6 +293,96 @@ export class SalonService {
     return { requestId, parts };
   }
 
+  /**
+   * A customer who walked into the shop: gives each chosen service a free person of the right
+   * role starting at the next free slot today, and records it as an accepted appointment so the
+   * time is held and an order can be made from it.
+   */
+  async walkIn(shop: ShopPrincipal, input: SalonWalkInDto): Promise<SalonWalkInView> {
+    if (!hasPermission(shop.roleCode, shop.permissions, Permissions.ordersWrite)) {
+      throw new ForbiddenException('Order permission is required to add a walk-in');
+    }
+    await this.assertSalonBusiness(shop.tenantId);
+    if (!this.shopServices) throw new NotFoundException('Walk-ins are not available');
+    const listing = await this.database.listings
+      .findOne({ branchId: shop.branchId, tenantId: shop.tenantId }, { _id: 0 })
+      .lean()
+      .exec();
+    if (!listing) throw new NotFoundException('Save your shop listing first');
+    const config = await this.requireConfig(shop.branchId);
+    const customer = await this.shopServices.getCustomer(shop, input.customerId);
+
+    const now = new Date();
+    const date = istDate(now);
+    const window = openWindow(listing.openingHours, date);
+    if (!window) throw new BadRequestException('The salon is closed today');
+    const slot = config.slotMinutes;
+    let start = window.open + Math.max(0, Math.ceil((istMinutes(now) - window.open) / slot)) * slot;
+    let plan: SalonPlan | undefined;
+    for (; start + slot <= window.close; start += slot) {
+      try {
+        plan = await this.plan(listing, date, formatClock(start), input.serviceIds, now);
+        break;
+      } catch (error) {
+        if (error instanceof ConflictException) continue;
+        if (error instanceof BadRequestException && /fit before/.test(error.message)) break;
+        throw error;
+      }
+    }
+    if (!plan) {
+      throw new ConflictException('No one is free for these services for the rest of today');
+    }
+
+    const year = date.slice(0, 4);
+    const sequence = await this.database.nextSequence(`serviceRequest-${year}`);
+    const at = now.toISOString();
+    const request: ServiceRequestDocument = {
+      requestId: randomUUID(),
+      requestNumber: `SR-${year}-${String(sequence).padStart(6, '0')}`,
+      consumerId: `walk-in:${customer.id}`,
+      customer: { name: customer.name, mobile: customer.mobile, email: '' },
+      tenantId: shop.tenantId,
+      branchId: shop.branchId,
+      shop: {
+        shopName: listing.shopName,
+        branchName: listing.branchName,
+        phone: listing.bookingPhone || listing.ownerPhone,
+      },
+      category: 'salon',
+      requestType: 'visit_shop',
+      description: plan.description,
+      items: plan.items.map((item) => ({ ...item })),
+      preferredDate: date,
+      preferredSlot: plan.slot,
+      status: 'Accepted',
+      confirmedAt: new Date(`${date}T${plan.slot.start}:00+05:30`).toISOString(),
+      shopCustomerId: customer.id,
+      salon: plan.snapshot,
+      expiresAt: new Date(now.getTime() + 365 * DAY_MS).toISOString(),
+      statusHistory: [
+        { status: 'Accepted', at, by: 'shop', actorId: shop.actorId, note: 'Walk-in' },
+      ],
+      createdAt: at,
+      updatedAt: at,
+    };
+    await this.database.requests.create(request);
+    await this.settle(request, plan.config);
+    const saved = await this.database.requests
+      .findOne({ requestId: request.requestId }, { _id: 0 })
+      .lean()
+      .exec();
+    const booked = saved?.salon ?? plan.snapshot;
+    return {
+      requestId: request.requestId,
+      requestNumber: request.requestNumber,
+      date,
+      startMinute: booked.startMinute,
+      endMinute: booked.endMinute,
+      parts: booked.parts,
+      totalPrice: booked.totalPrice,
+    };
+  }
+
   // ── Customer side ─────────────────────────────────────────────────────────
 
   async menuForCustomer(shopId: string): Promise<SalonMenuView> {
@@ -381,6 +490,12 @@ export class SalonService {
         price: item.price,
         durationMinutes: item.durationMinutes,
         role: item.role,
+        ...(item.catalogServiceId && item.catalogItemCategoryId
+          ? {
+              catalogServiceId: item.catalogServiceId,
+              catalogItemCategoryId: item.catalogItemCategoryId,
+            }
+          : {}),
         staffId: member.staffId,
         staffName: member.name,
         startMinute: assigned.start,

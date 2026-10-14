@@ -205,6 +205,9 @@ export interface SalonMenuItem {
   readonly durationMinutes: number;
   /** The kind of staff who do this service, e.g. "Hair Stylist". */
   readonly role: string;
+  /** The price-list entry (service-service) this menu item is billed as, so an order can be made from a booking. */
+  readonly catalogServiceId?: string;
+  readonly catalogItemCategoryId?: string;
 }
 
 /** A person on the salon's roster. They are not app users; the owner lists them here. */
@@ -221,6 +224,8 @@ export interface SalonBookedPart {
   readonly price: number;
   readonly durationMinutes: number;
   readonly role: string;
+  readonly catalogServiceId?: string;
+  readonly catalogItemCategoryId?: string;
   readonly staffId: string;
   readonly staffName: string;
   /** Minutes after midnight, India time. */

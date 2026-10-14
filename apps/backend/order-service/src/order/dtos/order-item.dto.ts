@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
+  IsBoolean,
   IsMongoId,
   IsNumber,
   IsOptional,
@@ -62,4 +63,13 @@ export class OrderItemDto {
   @IsString()
   @MaxLength(500)
   notes?: string;
+
+  @ApiPropertyOptional({
+    default: false,
+    description:
+      'Charge this service at its full catalog price even when it is not the first service on its item category. Salons set this; laundry leaves it off and keeps the additional-service surcharge.',
+  })
+  @IsOptional()
+  @IsBoolean()
+  standalonePrice?: boolean;
 }
