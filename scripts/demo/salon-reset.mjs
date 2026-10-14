@@ -5,6 +5,7 @@
 //   node scripts/demo/salon-reset.mjs list            dry run: shows every salon shop and what would be deleted
 //   node scripts/demo/salon-reset.mjs delete --yes    DELETE every salon shop and all its data (cannot be undone)
 //   node scripts/demo/salon-reset.mjs seed            fill the demo salon and print the logins
+//   node scripts/demo/salon-reset.mjs seed-shop       same, but only the shop side (no customer or bookings, no server step)
 //
 // The shop owned by qwerty@gmail.com is kept (set SALON_OWNER to use another email); the demo data goes into it.
 //
@@ -187,8 +188,14 @@ async function seedShop() {
   } else {
     console.log('  = salon already exists');
   }
-  must(await call('PUT', `${API.market}/shop-listing/me`, { token: owner.token, body: { ...SHOP.listing, isListed: true } }), 'listing');
-  console.log('  + marketplace listing saved (Hadapsar, Pune)');
+  // A listing the owner already saved (address, hours, modes) is left exactly as it is.
+  const current = await call('GET', `${API.market}/shop-listing/me`, { token: owner.token, branchId: owner.branchId });
+  if (ok(current) && current.data.saved && current.data.isComplete) {
+    console.log('  = marketplace listing already complete, kept as is');
+  } else {
+    must(await call('PUT', `${API.market}/shop-listing/me`, { token: owner.token, branchId: owner.branchId, body: { ...SHOP.listing, isListed: true } }), 'listing');
+    console.log('  + marketplace listing saved (Hadapsar, Pune)');
+  }
 
   const ctx = { token: owner.token, branchId: owner.branchId };
   const config = must(await call('PUT', `${API.market}/shop/salon/config`, {
@@ -278,6 +285,17 @@ async function seedBookings(shop, customerToken) {
   }
 }
 
+/** Everything on the shop side, with no server step: team, menu, walk-in customers and staff logins. */
+async function shopOnlyCommand() {
+  const shop = await seedShop();
+  await seedPeople(shop.owner, shop.ctx);
+  console.log(`
+# Logins (password for all: ${PASSWORD})
+  Salon owner ("I run a business") ${OWNER_EMAIL}
+  Branch manager (shop login)      ${MANAGER_ID}
+  Staff (shop login)               ${STAFF_ID}`);
+}
+
 async function seedCommand() {
   const shop = await seedShop();
   await seedPeople(shop.owner, shop.ctx);
@@ -292,9 +310,9 @@ async function seedCommand() {
 }
 
 const [command, flag] = process.argv.slice(2);
-const commands = { list: listCommand, delete: () => deleteCommand(flag === '--yes'), seed: seedCommand };
+const commands = { list: listCommand, delete: () => deleteCommand(flag === '--yes'), seed: seedCommand, 'seed-shop': shopOnlyCommand };
 if (!commands[command]) {
-  console.log('usage: node scripts/demo/salon-reset.mjs list | delete --yes | seed');
+  console.log('usage: node scripts/demo/salon-reset.mjs list | delete --yes | seed | seed-shop');
   process.exit(1);
 }
 commands[command]().catch((error) => {
