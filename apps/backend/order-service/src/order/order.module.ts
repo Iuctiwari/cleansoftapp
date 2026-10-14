@@ -25,6 +25,7 @@ import { MongoOrderRepository } from './order.mongo.repository';
 import { OrderOwnerLookupService } from './order-owner.service';
 import { TenantOwnerMongoose, TenantOwnerMongooseSchema } from './order-owner.schema';
 import { OrderOverdueController } from './order-overdue.controller';
+import { OrderBillPushService } from './order-bill-push.service';
 import { OrderOverdueService } from './order-overdue.service';
 import { OrderService } from './order.service';
 import { ORDER_DEPENDENCIES, ORDER_REPOSITORY } from './order.types';
@@ -55,6 +56,7 @@ import { ORDER_DEPENDENCIES, ORDER_REPOSITORY } from './order.types';
     { provide: ORDER_DEPENDENCIES, useExisting: HttpOrderDependencies },
     OrderOwnerLookupService,
     OrderOverdueService,
+    OrderBillPushService,
   ],
   exports: [OrderService],
 })

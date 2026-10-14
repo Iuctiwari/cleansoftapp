@@ -83,6 +83,7 @@ export class HttpOrderDependencies implements OrderDependencies {
       ...this.optionalSnapshotField('mobile', customer.mobile),
       ...this.optionalSnapshotField('email', customer.email),
       ...this.optionalSnapshotField('address', customer.address),
+      ...this.optionalSnapshotField('consumerId', customer.consumerId),
     };
   }
 

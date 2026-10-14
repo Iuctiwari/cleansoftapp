@@ -4,6 +4,7 @@ import {
   ForbiddenException,
   Inject,
   Injectable,
+  Optional,
   Logger,
   NotFoundException,
 } from '@nestjs/common';
@@ -30,6 +31,7 @@ import type { UpdateOrderStatusDto } from './dtos/update-order-status.dto';
 import type { UpdateOrderDto } from './dtos/update-order.dto';
 import { OrderStatus } from './enums';
 import { OrderAuditService } from './order-audit.service';
+import { OrderBillPushService } from './order-bill-push.service';
 import { OrderOwnerLookupService } from './order-owner.service';
 import {
   CATALOG_PRICING_TYPES,
@@ -136,6 +138,7 @@ export class OrderService {
     private readonly audit: OrderAuditService,
     private readonly configService: ConfigService,
     private readonly ownerLookup: OrderOwnerLookupService,
+    @Optional() private readonly billPush?: OrderBillPushService,
   ) {}
 
   /** No scope needed — internal/system-level query (see PlatformAdminInternalGuard),
@@ -184,6 +187,8 @@ export class OrderService {
       title: 'New order created',
       type: 'OrderCreated',
     });
+    // The customer gets the bill on their phone as soon as the shop creates the order.
+    this.billPush?.sendBill(order);
     return order;
   }
 
